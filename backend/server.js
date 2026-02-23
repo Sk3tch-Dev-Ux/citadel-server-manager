@@ -41,6 +41,13 @@ const CONFIG = {
     launchParams: process.env.DAYZ_LAUNCH_PARAMS || '-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck',
   },
   webhookUrl: process.env.DISCORD_WEBHOOK_URL || '',
+  steam: {
+    cmdPath: process.env.STEAMCMD_PATH || '',  // auto-detected/downloaded if empty
+    username: process.env.STEAM_USERNAME || '',  // Steam account for Workshop downloads (leave blank for anonymous)
+    password: process.env.STEAM_PASSWORD || '',
+    appId: '221100',  // DayZ
+    serverAppId: '223350',  // DayZ Server (dedicated)
+  },
 };
 
 // ─── Middleware ───────────────────────────────────────────
@@ -1023,9 +1030,580 @@ app.patch('/api/config', auth('admin'), (req, res) => {
   }
 });
 
+// ─── SteamCMD Management ─────────────────────────────────
+// Handles auto-downloading SteamCMD if not found, and running workshop downloads.
+// IMPORTANT: DayZ Workshop items require a Steam account that OWNS DayZ.
+// Anonymous login will NOT work for DayZ mod downloads.
+
+let steamCmdPath = CONFIG.steam.cmdPath;
+const activeInstalls = {};  // { workshopId: { status, progress, error } }
+let steamCredentials = {
+  username: CONFIG.steam.username || '',
+  password: CONFIG.steam.password || '',
+  guardCode: '',  // Steam Guard code (temporary, entered per-session)
+};
+let steamLoginValidated = false;
+
+// Find or download SteamCMD
+async function ensureSteamCMD() {
+  // If already found, return
+  if (steamCmdPath && fs.existsSync(steamCmdPath)) return steamCmdPath;
+
+  // Check common locations
+  const searchPaths = [
+    'C:\\SteamCMD\\steamcmd.exe',
+    'C:\\steamcmd\\steamcmd.exe',
+    path.join(CONFIG.dayz.installDir, 'steamcmd', 'steamcmd.exe'),
+    path.join(__dirname, '..', 'steamcmd', 'steamcmd.exe'),
+    // Check alongside Steam installation
+    path.join(path.dirname(CONFIG.dayz.installDir), '..', '..', 'steamcmd.exe'),
+  ];
+
+  for (const p of searchPaths) {
+    if (fs.existsSync(p)) {
+      steamCmdPath = p;
+      addLog('info', 'steam', `SteamCMD found at: ${p}`);
+      return p;
+    }
+  }
+
+  // Not found — download SteamCMD
+  addLog('info', 'steam', 'SteamCMD not found. Downloading...');
+  io.emit('modInstallProgress', { workshopId: '_steamcmd', status: 'downloading', message: 'Downloading SteamCMD...' });
+
+  const steamCmdDir = path.join(__dirname, '..', 'steamcmd');
+  const zipPath = path.join(steamCmdDir, 'steamcmd.zip');
+
+  if (!fs.existsSync(steamCmdDir)) fs.mkdirSync(steamCmdDir, { recursive: true });
+
+  try {
+    // Download steamcmd.zip
+    const fetch = (await import('node-fetch')).default;
+    const resp = await fetch('https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip');
+    if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+    const buffer = Buffer.from(await resp.arrayBuffer());
+    fs.writeFileSync(zipPath, buffer);
+    addLog('info', 'steam', 'SteamCMD zip downloaded, extracting...');
+
+    // Extract using PowerShell (Windows)
+    await new Promise((resolve, reject) => {
+      exec(
+        `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${steamCmdDir}' -Force"`,
+        { timeout: 60000 },
+        (err, stdout, stderr) => err ? reject(new Error(stderr || err.message)) : resolve()
+      );
+    });
+
+    const exePath = path.join(steamCmdDir, 'steamcmd.exe');
+    if (!fs.existsSync(exePath)) throw new Error('steamcmd.exe not found after extraction');
+
+    // Run steamcmd once to self-update
+    addLog('info', 'steam', 'Running SteamCMD initial update...');
+    io.emit('modInstallProgress', { workshopId: '_steamcmd', status: 'updating', message: 'SteamCMD self-updating...' });
+
+    await new Promise((resolve, reject) => {
+      const proc = spawn(exePath, ['+quit'], { cwd: steamCmdDir });
+      proc.on('exit', (code) => code === 0 || code === 7 ? resolve() : reject(new Error(`SteamCMD update exit code: ${code}`)));
+      proc.on('error', reject);
+      setTimeout(() => { try { proc.kill(); } catch {} resolve(); }, 120000);
+    });
+
+    steamCmdPath = exePath;
+    addLog('info', 'steam', `SteamCMD ready at: ${exePath}`);
+    io.emit('modInstallProgress', { workshopId: '_steamcmd', status: 'ready', message: 'SteamCMD ready' });
+
+    // Cleanup zip
+    try { fs.unlinkSync(zipPath); } catch {}
+
+    return exePath;
+  } catch (err) {
+    addLog('error', 'steam', `Failed to install SteamCMD: ${err.message}`);
+    io.emit('modInstallProgress', { workshopId: '_steamcmd', status: 'error', message: err.message });
+    throw err;
+  }
+}
+
+// Search all possible locations where SteamCMD might have placed workshop content
+function findWorkshopContent(workshopId) {
+  const appId = CONFIG.steam.appId;
+  const cmdDir = steamCmdPath ? path.dirname(steamCmdPath) : '';
+
+  // All known paths where SteamCMD puts workshop content
+  const searchPaths = [
+    // Inside force_install_dir
+    path.join(CONFIG.dayz.installDir, 'steamapps', 'workshop', 'content', appId, workshopId),
+    // Inside SteamCMD's own directory
+    cmdDir ? path.join(cmdDir, 'steamapps', 'workshop', 'content', appId, workshopId) : '',
+    // Standard Steam library location
+    path.join(path.dirname(CONFIG.dayz.installDir), '..', '..', 'workshop', 'content', appId, workshopId),
+    // Alongside steamapps/common
+    path.join(CONFIG.dayz.installDir, '..', '..', 'workshop', 'content', appId, workshopId),
+  ].filter(Boolean);
+
+  for (const p of searchPaths) {
+    try {
+      const resolved = path.resolve(p);
+      if (fs.existsSync(resolved)) {
+        const entries = fs.readdirSync(resolved);
+        if (entries.length > 0) {
+          addLog('info', 'steam', `Workshop content found at: ${resolved}`);
+          return resolved;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
+// Download a Workshop mod via SteamCMD
+async function downloadWorkshopMod(workshopId, modName) {
+  const cmdPath = await ensureSteamCMD();
+  const appId = CONFIG.steam.appId;  // 221100 for DayZ
+
+  // DayZ Workshop requires authenticated login
+  if (!steamCredentials.username || !steamCredentials.password) {
+    throw new Error(
+      'Steam credentials required! DayZ Workshop mods cannot be downloaded with anonymous login. ' +
+      'Go to Settings tab in Mods page or set STEAM_USERNAME and STEAM_PASSWORD in .env file. ' +
+      'The account must own DayZ.'
+    );
+  }
+
+  // Build SteamCMD arguments
+  // Login FIRST, then set force_install_dir, then download
+  const args = [];
+
+  // Login with credentials
+  if (steamCredentials.guardCode) {
+    args.push('+set_steam_guard_code', steamCredentials.guardCode);
+  }
+  args.push('+login', steamCredentials.username, steamCredentials.password);
+
+  // Set install dir after login
+  args.push('+force_install_dir', CONFIG.dayz.installDir);
+
+  // Download the workshop item
+  args.push('+workshop_download_item', appId, workshopId, 'validate');
+  args.push('+quit');
+
+  addLog('info', 'steam', `Downloading Workshop item ${workshopId} (${modName}) as ${steamCredentials.username}...`);
+  io.emit('modInstallProgress', {
+    workshopId,
+    status: 'downloading',
+    progress: 0,
+    message: `Logging into Steam as ${steamCredentials.username}...`,
+  });
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn(cmdPath, args, {
+      cwd: path.dirname(cmdPath),
+    });
+
+    let output = '';
+    let needsSteamGuard = false;
+
+    const handleData = (data) => {
+      const text = data.toString();
+      output += text;
+
+      const lines = text.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // Detect Steam Guard prompt
+        if (trimmed.includes('Steam Guard') || trimmed.includes('Two-factor') || trimmed.includes('two factor') || trimmed.includes('Enter the current code')) {
+          needsSteamGuard = true;
+          io.emit('modInstallProgress', {
+            workshopId,
+            status: 'steam_guard',
+            progress: 0,
+            message: 'Steam Guard code required. Enter it in the Mods > Settings tab.',
+          });
+          // Kill this process — user needs to enter code first
+          try { proc.kill(); } catch {}
+        }
+        // Detect invalid password
+        else if (trimmed.includes('Invalid Password') || trimmed.includes('FAILED login') || trimmed.includes('Login Failure')) {
+          io.emit('modInstallProgress', {
+            workshopId,
+            status: 'error',
+            progress: 0,
+            message: 'Invalid Steam credentials. Check username/password in Settings.',
+          });
+        }
+        // Download progress
+        else if (trimmed.includes('Downloading item') || trimmed.match(/\d+\.?\d*\s*%/)) {
+          const pct = trimmed.match(/(\d+\.?\d*)\s*%/);
+          const progress = pct ? parseFloat(pct[1]) : undefined;
+          io.emit('modInstallProgress', {
+            workshopId,
+            status: 'downloading',
+            progress,
+            message: progress ? `Downloading... ${progress.toFixed(0)}%` : trimmed,
+          });
+        }
+        // Success
+        else if (trimmed.includes('Success. Downloaded item') || trimmed.includes('workshop item') && trimmed.includes('successfully')) {
+          io.emit('modInstallProgress', { workshopId, status: 'downloaded', progress: 100, message: 'Download complete!' });
+        }
+        // Download failure
+        else if (trimmed.includes('ERROR') || trimmed.includes('FAILED') || trimmed.includes('Download item') && trimmed.includes('failed')) {
+          addLog('error', 'steam', `SteamCMD: ${trimmed}`);
+        }
+        // Waiting/connecting status
+        else if (trimmed.includes('Connecting') || trimmed.includes('Waiting') || trimmed.includes('Logging in')) {
+          io.emit('modInstallProgress', {
+            workshopId,
+            status: 'downloading',
+            progress: 0,
+            message: trimmed,
+          });
+        }
+      }
+    };
+
+    proc.stdout?.on('data', handleData);
+    proc.stderr?.on('data', handleData);
+
+    // Timeout: 30 minutes for large mods
+    const timeout = setTimeout(() => {
+      try { proc.kill(); } catch {}
+      reject(new Error('Download timed out after 30 minutes'));
+    }, 30 * 60 * 1000);
+
+    proc.on('exit', (code) => {
+      clearTimeout(timeout);
+
+      if (needsSteamGuard) {
+        steamLoginValidated = false;
+        return reject(new Error('Steam Guard code required. Enter code in Mods > Settings and retry.'));
+      }
+
+      // Check for invalid credentials in output
+      if (output.includes('Invalid Password') || output.includes('Login Failure')) {
+        steamLoginValidated = false;
+        return reject(new Error('Invalid Steam credentials. Check username and password.'));
+      }
+
+      // Search all possible content locations
+      const contentPath = findWorkshopContent(workshopId);
+      if (contentPath) {
+        steamLoginValidated = true;
+        resolve(contentPath);
+      } else {
+        // Parse the failure reason from output
+        let reason = 'Unknown error';
+        if (output.includes('Download item') && output.includes('failed')) {
+          const failMatch = output.match(/Download item \d+ failed \(([^)]+)\)/i);
+          reason = failMatch ? failMatch[1] : 'Download failed';
+        }
+        if (output.includes('No subscription')) {
+          reason = 'No subscription — the Steam account may not own DayZ';
+        }
+
+        reject(new Error(
+          `Download failed: ${reason}. ` +
+          `Ensure the Steam account "${steamCredentials.username}" owns DayZ. ` +
+          `SteamCMD output: ${output.slice(-300)}`
+        ));
+      }
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
+}
+
+// Validate Steam credentials via SteamCMD (quick login test)
+async function validateSteamLogin(username, password, guardCode) {
+  const cmdPath = await ensureSteamCMD();
+  const args = [];
+  if (guardCode) args.push('+set_steam_guard_code', guardCode);
+  args.push('+login', username, password, '+quit');
+
+  return new Promise((resolve) => {
+    const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
+    let output = '';
+
+    const handleData = (data) => { output += data.toString(); };
+    proc.stdout?.on('data', handleData);
+    proc.stderr?.on('data', handleData);
+
+    const timeout = setTimeout(() => { try { proc.kill(); } catch {} resolve({ success: false, error: 'Login timed out' }); }, 60000);
+
+    proc.on('exit', () => {
+      clearTimeout(timeout);
+      if (output.includes('Steam Guard') || output.includes('Two-factor') || output.includes('Enter the current code')) {
+        resolve({ success: false, needsGuard: true, error: 'Steam Guard code required' });
+      } else if (output.includes('Invalid Password') || output.includes('Login Failure')) {
+        resolve({ success: false, error: 'Invalid username or password' });
+      } else if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) {
+        resolve({ success: true });
+      } else {
+        // If it got to quitting without error, login likely worked
+        resolve({ success: !output.includes('FAILED'), error: output.includes('FAILED') ? 'Login failed' : undefined });
+      }
+    });
+
+    proc.on('error', (err) => { clearTimeout(timeout); resolve({ success: false, error: err.message }); });
+  });
+}
+
+// ─── Steam Credential Endpoints ──────────────────────────
+
+// Get current Steam config status (never returns the password)
+app.get('/api/steam/status', auth('admin'), async (req, res) => {
+  let steamCmdFound = false;
+  try { await ensureSteamCMD(); steamCmdFound = true; } catch {}
+
+  res.json({
+    steamCmdPath: steamCmdPath || null,
+    steamCmdReady: steamCmdFound,
+    username: steamCredentials.username || '',
+    hasPassword: !!steamCredentials.password,
+    hasGuardCode: !!steamCredentials.guardCode,
+    loginValidated: steamLoginValidated,
+  });
+});
+
+// Set Steam credentials (stores in memory for the session)
+app.post('/api/steam/credentials', auth('admin'), async (req, res) => {
+  const { username, password, guardCode } = req.body;
+
+  if (username !== undefined) steamCredentials.username = username;
+  if (password !== undefined) steamCredentials.password = password;
+  if (guardCode !== undefined) steamCredentials.guardCode = guardCode;
+
+  // Validate if we have both username and password
+  if (steamCredentials.username && steamCredentials.password) {
+    io.emit('modInstallProgress', { workshopId: '_login', status: 'downloading', message: 'Validating Steam login...' });
+    const result = await validateSteamLogin(steamCredentials.username, steamCredentials.password, steamCredentials.guardCode);
+
+    if (result.success) {
+      steamLoginValidated = true;
+      addLog('info', 'steam', `Steam login validated for: ${steamCredentials.username}`);
+      res.json({ success: true, message: `Logged in as ${steamCredentials.username}` });
+    } else if (result.needsGuard) {
+      steamLoginValidated = false;
+      res.json({ success: false, needsGuard: true, message: 'Steam Guard code required. Enter the code from your authenticator.' });
+    } else {
+      steamLoginValidated = false;
+      res.json({ success: false, message: result.error });
+    }
+  } else {
+    steamLoginValidated = false;
+    res.json({ success: false, message: 'Username and password required' });
+  }
+});
+
+// Copy downloaded workshop content to server directory as @ModName
+function installModToServer(workshopContentPath, modName, workshopId) {
+  const installDir = CONFIG.dayz.installDir;
+  // Ensure mod folder name starts with @
+  const folderName = modName.startsWith('@') ? modName : `@${modName}`;
+  // Clean folder name: replace special chars but keep spaces for DayZ compatibility
+  const safeName = folderName.replace(/[<>:"/\\|?*]/g, '').trim();
+  const destPath = path.join(installDir, safeName);
+
+  io.emit('modInstallProgress', { workshopId, status: 'installing', message: `Copying files to ${safeName}...` });
+
+  try {
+    // If destination already exists, remove it first for clean install
+    if (fs.existsSync(destPath)) {
+      fs.rmSync(destPath, { recursive: true, force: true });
+    }
+
+    // Copy the workshop content to the server directory
+    copyDirSync(workshopContentPath, destPath);
+
+    // Also create/update a meta.cpp with the workshop ID if it doesn't exist
+    const metaPath = path.join(destPath, 'meta.cpp');
+    if (!fs.existsSync(metaPath)) {
+      fs.writeFileSync(metaPath, `// Created by DayZ Panel\nprotocol = 1;\nname = "${modName}";\ntimestamp = ${Math.floor(Date.now() / 1000)};\npublishedid = ${workshopId};\n`);
+    }
+
+    // Create keys symlinks if the mod has a keys directory
+    const modKeysDir = path.join(destPath, 'keys');
+    const keysAlternatives = [path.join(destPath, 'Keys'), path.join(destPath, 'key'), path.join(destPath, 'Key')];
+    let keysSource = fs.existsSync(modKeysDir) ? modKeysDir : keysAlternatives.find(k => fs.existsSync(k));
+    if (keysSource) {
+      const serverKeysDir = path.join(installDir, 'keys');
+      if (!fs.existsSync(serverKeysDir)) fs.mkdirSync(serverKeysDir, { recursive: true });
+      try {
+        const keyFiles = fs.readdirSync(keysSource).filter(f => f.endsWith('.bikey'));
+        for (const keyFile of keyFiles) {
+          const src = path.join(keysSource, keyFile);
+          const dest = path.join(serverKeysDir, keyFile);
+          if (!fs.existsSync(dest)) {
+            fs.copyFileSync(src, dest);
+            addLog('info', 'mods', `Copied key: ${keyFile}`);
+          }
+        }
+      } catch (err) {
+        addLog('warn', 'mods', `Could not copy keys for ${modName}: ${err.message}`);
+      }
+    }
+
+    addLog('info', 'mods', `Installed mod files: ${safeName}`);
+    return safeName;
+  } catch (err) {
+    addLog('error', 'mods', `Failed to install ${modName}: ${err.message}`);
+    throw err;
+  }
+}
+
+// Recursive directory copy helper
+function copyDirSync(src, dest) {
+  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+// Update start.bat with current enabled mods in the -mod= parameter
+function updateStartBatMods() {
+  if (!CONFIG.dayz.startBat) return;
+  const batPath = path.join(CONFIG.dayz.installDir, CONFIG.dayz.startBat);
+  if (!fs.existsSync(batPath)) return;
+
+  try {
+    let content = fs.readFileSync(batPath, 'utf8');
+    const enabledMods = store.modList.filter(m => m.enabled).map(m => m.name).join(';');
+
+    // Backup before modifying
+    const backupDir = path.join(CONFIG.dayz.installDir, '.backups');
+    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+    fs.copyFileSync(batPath, path.join(backupDir, `${CONFIG.dayz.startBat}.${Date.now()}.bak`));
+
+    // Replace the -mod= parameter
+    if (content.match(/"-mod=[^"]*"/i)) {
+      content = content.replace(/"-mod=[^"]*"/i, `"-mod=${enabledMods}"`);
+    } else if (content.match(/-mod=[^\s"]+/i)) {
+      content = content.replace(/-mod=[^\s"]+/i, `-mod=${enabledMods}`);
+    } else {
+      // No -mod= found; try to add it before the last line
+      addLog('warn', 'mods', 'No -mod= parameter found in start.bat; could not update automatically');
+      return;
+    }
+
+    fs.writeFileSync(batPath, content);
+    addLog('info', 'mods', `Updated start.bat -mod= with ${store.modList.filter(m => m.enabled).length} mods`);
+  } catch (err) {
+    addLog('error', 'mods', `Failed to update start.bat: ${err.message}`);
+  }
+}
+
 // Mods
 app.get('/api/mods', auth(), (req, res) => {
   res.json(store.modList);
+});
+
+// Get current install status for active downloads
+app.get('/api/mods/install-status', auth(), (req, res) => {
+  res.json(activeInstalls);
+});
+
+// Install (download + copy) a new mod from Steam Workshop
+app.post('/api/mods/install', auth('admin'), async (req, res) => {
+  const { workshopId, name } = req.body;
+  if (!workshopId || !name) return res.status(400).json({ error: 'workshopId and name required' });
+
+  // Check if already installed
+  if (store.modList.find(m => m.workshopId === String(workshopId))) {
+    return res.status(400).json({ error: 'Mod already installed' });
+  }
+
+  // Check if already downloading
+  if (activeInstalls[workshopId] && activeInstalls[workshopId].status === 'downloading') {
+    return res.status(409).json({ error: 'Mod is already being downloaded' });
+  }
+
+  addLog('info', 'mods', `Install requested by ${req.user.username}: ${name} (${workshopId})`);
+  activeInstalls[workshopId] = { status: 'starting', progress: 0, name };
+  io.emit('modInstallProgress', { workshopId, status: 'starting', progress: 0, message: 'Starting download...' });
+
+  // Return immediately — download happens in background
+  res.json({ message: 'Download started', workshopId });
+
+  try {
+    // Step 1: Download via SteamCMD
+    activeInstalls[workshopId] = { status: 'downloading', progress: 0, name };
+    const contentPath = await downloadWorkshopMod(String(workshopId), name);
+
+    // Step 2: Copy to server directory
+    activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
+    const folderName = installModToServer(contentPath, name, String(workshopId));
+
+    // Step 3: Add to mod list
+    const mod = {
+      name: folderName,
+      workshopId: String(workshopId),
+      enabled: true,
+      order: store.modList.length,
+    };
+    store.modList.push(mod);
+
+    // Step 4: Update start.bat
+    updateStartBatMods();
+
+    activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
+    io.emit('modInstallProgress', { workshopId, status: 'complete', progress: 100, message: `${name} installed successfully!` });
+    io.emit('mods', store.modList);
+    addLog('info', 'mods', `Successfully installed: ${folderName} (${workshopId})`);
+    sendDiscordWebhook(`🧩 **Mod Installed:** ${name} (Workshop ID: ${workshopId})`);
+
+    // Clean up status after 30 seconds
+    setTimeout(() => { delete activeInstalls[workshopId]; }, 30000);
+
+  } catch (err) {
+    addLog('error', 'mods', `Install failed for ${name} (${workshopId}): ${err.message}`);
+    activeInstalls[workshopId] = { status: 'error', progress: 0, name, error: err.message };
+    io.emit('modInstallProgress', { workshopId, status: 'error', progress: 0, message: err.message });
+    // Clean up error status after 60 seconds
+    setTimeout(() => { delete activeInstalls[workshopId]; }, 60000);
+  }
+});
+
+// Uninstall a mod (remove files + update start.bat)
+app.delete('/api/mods/uninstall/:workshopId', auth('admin'), (req, res) => {
+  const workshopId = req.params.workshopId;
+  const mod = store.modList.find(m => m.workshopId === workshopId);
+  if (!mod) return res.status(404).json({ error: 'Mod not found' });
+
+  const installDir = CONFIG.dayz.installDir;
+  const modPath = path.join(installDir, mod.name);
+
+  try {
+    // Remove mod directory
+    if (fs.existsSync(modPath)) {
+      fs.rmSync(modPath, { recursive: true, force: true });
+      addLog('info', 'mods', `Deleted mod directory: ${mod.name}`);
+    }
+
+    // Remove from mod list
+    store.modList = store.modList.filter(m => m.workshopId !== workshopId);
+
+    // Update start.bat
+    updateStartBatMods();
+
+    io.emit('mods', store.modList);
+    addLog('info', 'mods', `Uninstalled: ${mod.name} (${workshopId})`);
+    sendDiscordWebhook(`🗑️ **Mod Uninstalled:** ${mod.name} (Workshop ID: ${workshopId})`);
+    res.json({ message: `${mod.name} uninstalled` });
+  } catch (err) {
+    addLog('error', 'mods', `Uninstall failed for ${mod.name}: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/mods', auth('admin'), (req, res) => {
@@ -1040,12 +1618,15 @@ app.patch('/api/mods/:workshopId', auth('admin'), (req, res) => {
   const mod = store.modList.find((m) => m.workshopId === req.params.workshopId);
   if (!mod) return res.status(404).json({ error: 'Mod not found' });
   Object.assign(mod, req.body);
+  // Update start.bat when mods are toggled
+  updateStartBatMods();
   addLog('info', 'mods', `Mod updated by ${req.user.username}: ${mod.name}`);
   res.json(mod);
 });
 
 app.delete('/api/mods/:workshopId', auth('admin'), (req, res) => {
   store.modList = store.modList.filter((m) => m.workshopId !== req.params.workshopId);
+  updateStartBatMods();
   addLog('info', 'mods', `Mod removed by ${req.user.username}: ${req.params.workshopId}`);
   res.json({ message: 'Mod removed' });
 });
@@ -1260,45 +1841,66 @@ app.get('/api/workshop/details/:id', auth(), async (req, res) => {
   }
 });
 
-// Get trending/popular DayZ mods (for browsing)
+// Get trending/popular DayZ mods (for browsing) — scrapes Steam Workshop page
 app.get('/api/workshop/popular', auth(), async (req, res) => {
   try {
     const fetch = (await import('node-fetch')).default;
     const { page = 1 } = req.query;
 
-    const url = `https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/` +
-      `?query_type=3` +  // 3 = most popular
-      `&page=${parseInt(page)}` +
-      `&numperpage=20` +
-      `&appid=${DAYZ_APP_ID}` +
-      `&return_short_description=true` +
-      `&return_previews=true` +
-      `&strip_description_bbcode=true` +
-      `&filetype=0` +
-      `&days=30` +
-      (process.env.STEAM_API_KEY ? `&key=${process.env.STEAM_API_KEY}` : '');
+    // Scrape the Workshop "most popular" browse page (no API key needed)
+    const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}` +
+      `&browsesort=trend&section=readytouseitems&actualsort=trend&p=${parseInt(page)}`;
 
-    const response = await fetch(url, { timeout: 10000 });
-    const data = await response.json();
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0' },
+      timeout: 15000,
+    });
+    const html = await response.text();
 
-    const results = (data.response?.publishedfiledetails || []).map(item => ({
-      workshopId: item.publishedfileid,
-      name: item.title || 'Unknown',
-      description: (item.short_description || '').substring(0, 200),
-      preview: item.preview_url || (item.previews?.[0]?.url) || '',
-      subscribers: item.subscriptions || 0,
-      favorites: item.favorited || 0,
-      fileSize: item.file_size || 0,
-      updated: item.time_updated ? new Date(item.time_updated * 1000).toISOString() : '',
-      tags: (item.tags || []).map(t => t.tag || t.display_name || ''),
-    }));
+    // Extract workshop item IDs and names from the HTML
+    const results = [];
+    const itemRegex = /SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+    let match;
+    while ((match = itemRegex.exec(html)) !== null) {
+      if (!results.find(r => r.workshopId === match[1])) {
+        results.push({
+          workshopId: match[1],
+          name: match[2].trim(),
+          description: '',
+          preview: '',
+          subscribers: 0,
+          favorites: 0,
+          fileSize: 0,
+          updated: '',
+          tags: [],
+        });
+      }
+    }
+
+    // Fallback regex
+    if (results.length === 0) {
+      const linkRegex = /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+      while ((match = linkRegex.exec(html)) !== null) {
+        if (!results.find(r => r.workshopId === match[1])) {
+          results.push({
+            workshopId: match[1],
+            name: match[2].trim(),
+            description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [],
+          });
+        }
+      }
+    }
+
+    // Enrich with real details (thumbnails, subscriber counts, etc.)
+    const enriched = await enrichWorkshopResults(results);
 
     res.json({
-      results,
-      total: data.response?.total || results.length,
+      results: enriched,
+      total: enriched.length,
       page: parseInt(page),
     });
   } catch (err) {
+    addLog('error', 'workshop', `Popular mods fetch failed: ${err.message}`);
     res.status(500).json({ error: 'Failed to fetch popular mods' });
   }
 });
@@ -1334,11 +1936,24 @@ app.get('/api/files', auth('admin'), (req, res) => {
 
   try {
     const entries = fs.readdirSync(targetDir, { withFileTypes: true });
-    res.json(entries.map((e) => ({
-      name: e.name,
-      type: e.isDirectory() ? 'directory' : 'file',
-      path: path.relative(basePath, path.join(targetDir, e.name)),
-    })));
+    const results = entries.map((e) => {
+      const fullPath = path.join(targetDir, e.name);
+      let size = 0, modified = 0;
+      try { const s = fs.statSync(fullPath); size = s.size; modified = s.mtimeMs; } catch {}
+      return {
+        name: e.name,
+        type: e.isDirectory() ? 'directory' : 'file',
+        path: path.relative(basePath, fullPath).replace(/\\/g, '/'),
+        size,
+        modified,
+      };
+    });
+    // Sort: directories first, then alphabetical
+    results.sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+    res.json(results);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1354,8 +1969,19 @@ app.get('/api/files/read', auth('admin'), (req, res) => {
   }
 
   try {
+    const stat = fs.statSync(filePath);
+    // Reject files larger than 5 MB
+    if (stat.size > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'File too large (>5MB). Cannot edit in browser.' });
+    }
+    // Reject binary files
+    const binaryExts = ['.exe', '.dll', '.pdb', '.pbo', '.pak', '.bin', '.so', '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.wav', '.ogg', '.mp3', '.zip', '.rar', '.7z', '.bikey', '.bisign'];
+    const ext = path.extname(filePath).toLowerCase();
+    if (binaryExts.includes(ext)) {
+      return res.status(400).json({ error: 'Binary file — cannot be edited in browser' });
+    }
     const content = fs.readFileSync(filePath, 'utf8');
-    res.json({ content, path: file });
+    res.json({ content, path: file, size: stat.size, modified: stat.mtimeMs });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

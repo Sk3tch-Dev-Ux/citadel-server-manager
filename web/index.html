@@ -1001,25 +1001,281 @@
       to { opacity: 1; transform: translateX(0); }
     }
 
-    /* File editor */
-    .file-tree {
-      max-height: 400px;
-      overflow-y: auto;
+    /* File Explorer - VS Code Style */
+    .file-explorer {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: calc(100vh - 140px);
+      gap: 0;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
     }
 
-    .file-item {
+    .file-sidebar {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .file-sidebar-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.1s;
+      justify-content: space-between;
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
     }
 
-    .file-item:hover { background: var(--bg-elevated); }
-    .file-item.dir { color: var(--accent-blue); font-weight: 500; }
-    .file-item.file { color: var(--text-secondary); }
+    .file-search {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .file-search input {
+      width: 100%;
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .file-search input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .file-sidebar-tree {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 2px 0;
+    }
+
+    .file-sidebar-tree::-webkit-scrollbar { width: 6px; }
+    .file-sidebar-tree::-webkit-scrollbar-track { background: transparent; }
+    .file-sidebar-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .tree-node {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      white-space: nowrap;
+      user-select: none;
+      transition: background 0.08s;
+    }
+
+    .tree-node:hover {
+      background: var(--bg-elevated);
+    }
+
+    .tree-node.selected {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--accent-blue);
+    }
+
+    .tree-arrow {
+      width: 16px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .tree-icon {
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+
+    .tree-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tree-loading {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 8px;
+      font-style: italic;
+    }
+
+    .file-editor-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #1e1e1e;
+    }
+
+    .editor-tabs {
+      display: flex;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      min-height: 36px;
+      flex-shrink: 0;
+    }
+
+    .editor-tabs::-webkit-scrollbar { height: 3px; }
+    .editor-tabs::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .editor-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 36px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+      transition: all 0.08s;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .editor-tab:hover {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+    }
+
+    .editor-tab.active {
+      background: #1e1e1e;
+      color: var(--text-primary);
+    }
+
+    .editor-tab.active::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-blue);
+    }
+
+    .tab-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-yellow);
+      flex-shrink: 0;
+    }
+
+    .editor-tab .tab-close {
+      font-size: 16px;
+      line-height: 1;
+      opacity: 0;
+      transition: opacity 0.1s;
+      padding: 1px 3px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .editor-tab:hover .tab-close {
+      opacity: 0.5;
+    }
+
+    .editor-tab .tab-close:hover {
+      opacity: 1;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .editor-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      background: #252526;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .editor-breadcrumb .sep {
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
+    .editor-container {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .editor-status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 16px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      background: #007acc;
+      flex-shrink: 0;
+      min-height: 24px;
+    }
+
+    .editor-status-bar .status-left,
+    .editor-status-bar .status-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .editor-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      font-size: 14px;
+      gap: 12px;
+      background: #1e1e1e;
+    }
+
+    .editor-empty .icon {
+      font-size: 52px;
+      opacity: 0.2;
+    }
+
+    .editor-empty .shortcuts {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .editor-empty .shortcuts kbd {
+      background: var(--bg-elevated);
+      padding: 2px 8px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
@@ -1028,6 +1284,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+
+  <!-- Monaco Editor (VS Code engine) -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <script>
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
+    // Pre-load Monaco in background
+    require(['vs/editor/editor.main'], function() {
+      window.monacoReady = true;
+      console.log('[MonacoEditor] Loaded successfully');
+    });
+  </script>
 
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, createContext, useContext } = React;
@@ -1541,13 +1808,51 @@
       const [searchQuery, setSearchQuery] = useState('');
       const [searchResults, setSearchResults] = useState([]);
       const [searching, setSearching] = useState(false);
-      const [activeTab, setActiveTab] = useState('installed'); // installed | search | popular
+      const [activeTab, setActiveTab] = useState('installed'); // installed | search | popular | settings
       const [popularMods, setPopularMods] = useState([]);
       const [loadingPopular, setLoadingPopular] = useState(false);
+      const [installProgress, setInstallProgress] = useState({}); // { workshopId: { status, progress, message } }
+      // Steam credential state
+      const [steamStatus, setSteamStatus] = useState(null);
+      const [steamUser, setSteamUser] = useState('');
+      const [steamPass, setSteamPass] = useState('');
+      const [steamGuard, setSteamGuard] = useState('');
+      const [steamSaving, setSteamSaving] = useState(false);
       const toast = useToast();
       const searchTimeout = useRef(null);
 
-      useEffect(() => { API.get('/api/mods').then(setMods).catch(() => {}); }, []);
+      useEffect(() => {
+        API.get('/api/mods').then(setMods).catch(() => {});
+        API.get('/api/mods/install-status').then(data => {
+          if (data && Object.keys(data).length > 0) setInstallProgress(data);
+        }).catch(() => {});
+        // Load Steam status
+        API.get('/api/steam/status').then(s => {
+          setSteamStatus(s);
+          if (s.username) setSteamUser(s.username);
+        }).catch(() => {});
+      }, []);
+
+      // Listen for real-time install progress via Socket.IO
+      useEffect(() => {
+        const socket = window._panelSocket;
+        if (!socket) return;
+        const handler = (data) => {
+          setInstallProgress(prev => ({
+            ...prev,
+            [data.workshopId]: { status: data.status, progress: data.progress, message: data.message },
+          }));
+          // If a mod completed, refresh the mod list
+          if (data.status === 'complete') {
+            API.get('/api/mods').then(setMods).catch(() => {});
+            toast(`✅ ${data.message}`, 'success');
+          } else if (data.status === 'error') {
+            toast(`❌ Install failed: ${data.message}`, 'error');
+          }
+        };
+        socket.on('modInstallProgress', handler);
+        return () => socket.off('modInstallProgress', handler);
+      }, []);
 
       // Debounced Workshop search
       const handleSearch = (query) => {
@@ -1575,14 +1880,32 @@
         setLoadingPopular(false);
       };
 
-      const isInstalled = (workshopId) => mods.some(m => m.workshopId === workshopId);
+      const isInstalled = (workshopId) => mods.some(m => m.workshopId === String(workshopId));
+      const isInstalling = (workshopId) => {
+        const p = installProgress[workshopId];
+        return p && ['starting', 'downloading', 'installing', 'downloaded'].includes(p.status);
+      };
 
-      const addFromWorkshop = async (item) => {
-        if (isInstalled(item.workshopId)) return;
+      const installFromWorkshop = async (item) => {
+        if (isInstalled(item.workshopId) || isInstalling(item.workshopId)) return;
         try {
-          const mod = await API.post('/api/mods', { name: item.name, workshopId: item.workshopId });
-          setMods(m => [...m, mod]);
-          toast(`Added: ${item.name}`, 'success');
+          setInstallProgress(prev => ({
+            ...prev,
+            [item.workshopId]: { status: 'starting', progress: 0, message: 'Requesting download...' },
+          }));
+          await API.post('/api/mods/install', { workshopId: item.workshopId, name: item.name });
+        } catch (err) {
+          toast(err.message, 'error');
+          setInstallProgress(prev => ({ ...prev, [item.workshopId]: { status: 'error', progress: 0, message: err.message } }));
+        }
+      };
+
+      const uninstallMod = async (mod) => {
+        if (!confirm(`Uninstall ${mod.name}?\n\nThis will DELETE the mod files from the server and update start.bat.`)) return;
+        try {
+          await API.del(`/api/mods/uninstall/${mod.workshopId}`);
+          setMods(ms => ms.filter(m => m.workshopId !== mod.workshopId));
+          toast(`${mod.name} uninstalled`, 'success');
         } catch (err) { toast(err.message, 'error'); }
       };
 
@@ -1590,15 +1913,7 @@
         try {
           await API.patch(`/api/mods/${mod.workshopId}`, { enabled: !mod.enabled });
           setMods(ms => ms.map(m => m.workshopId === mod.workshopId ? { ...m, enabled: !m.enabled } : m));
-        } catch (err) { toast(err.message, 'error'); }
-      };
-
-      const removeMod = async (mod) => {
-        if (!confirm(`Remove ${mod.name}?`)) return;
-        try {
-          await API.del(`/api/mods/${mod.workshopId}`);
-          setMods(ms => ms.filter(m => m.workshopId !== mod.workshopId));
-          toast('Mod removed', 'success');
+          toast(`${mod.name} ${!mod.enabled ? 'enabled' : 'disabled'} — start.bat updated`, 'success');
         } catch (err) { toast(err.message, 'error'); }
       };
 
@@ -1616,9 +1931,24 @@
         return String(n);
       };
 
-      // Render a workshop result item
+      // Render a workshop result item with install progress
       const WorkshopItem = ({ item }) => {
         const installed = isInstalled(item.workshopId);
+        const progress = installProgress[item.workshopId];
+        const installing = isInstalling(item.workshopId);
+        const failed = progress && progress.status === 'error';
+        const complete = progress && progress.status === 'complete';
+
+        const getButtonContent = () => {
+          if (installed || complete) return '✓ Installed';
+          if (installing) {
+            const pct = progress.progress != null ? `${Math.round(progress.progress)}%` : '';
+            return `⏳ ${progress.status === 'downloading' ? 'Downloading' : progress.status === 'installing' ? 'Installing' : 'Starting'}${pct ? ' ' + pct : '...'}`;
+          }
+          if (failed) return '⚠ Retry';
+          return '📥 Install';
+        };
+
         return (
           <div className={`workshop-result-item${installed ? ' already-installed' : ''}`}>
             {item.preview ? (
@@ -1634,13 +1964,36 @@
                 {item.fileSize > 0 && <span>📦 {formatSize(item.fileSize)}</span>}
                 {item.updated && <span>🕐 {new Date(item.updated).toLocaleDateString()}</span>}
               </div>
+              {/* Install progress bar */}
+              {installing && (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginBottom: 3 }}>
+                    {progress.message || 'Preparing...'}
+                  </div>
+                  <div style={{ background: 'var(--bg-deep)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${progress.progress || 5}%`,
+                      height: '100%',
+                      background: 'var(--accent-blue)',
+                      borderRadius: 4,
+                      transition: 'width 0.3s ease',
+                    }} />
+                  </div>
+                </div>
+              )}
+              {failed && (
+                <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 4 }}>
+                  ❌ {progress.message}
+                </div>
+              )}
             </div>
             <button
               className="workshop-add-btn"
-              disabled={installed}
-              onClick={() => addFromWorkshop(item)}
+              disabled={installed || complete || installing}
+              onClick={() => failed ? installFromWorkshop(item) : installFromWorkshop(item)}
+              style={installing ? { background: 'var(--accent-blue)', opacity: 0.7 } : failed ? { background: 'var(--accent-red)' } : {}}
             >
-              {installed ? '✓ Installed' : '+ Add'}
+              {getButtonContent()}
             </button>
           </div>
         );
@@ -1746,7 +2099,7 @@
                       >
                         {mod.workshopId || 'local'}
                       </a>
-                      <button className="btn btn-ghost btn-sm" onClick={() => removeMod(mod)}>✕</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => uninstallMod(mod)} title="Uninstall mod (delete files)">🗑</button>
                     </div>
                   ))}
                 </div>
@@ -1971,80 +2324,382 @@
       );
     }
 
-    // ─── Files Page ──────────────────────────────────────
+    // ─── Files Page (VS Code-style Editor) ─────────────────
     function FilesPage() {
-      const [files, setFiles] = useState([]);
-      const [currentDir, setCurrentDir] = useState('');
-      const [fileContent, setFileContent] = useState(null);
-      const [editingFile, setEditingFile] = useState('');
       const toast = useToast();
 
-      const loadDir = async (dir) => {
-        try {
-          const data = await API.get(`/api/files?dir=${encodeURIComponent(dir)}`);
-          setFiles(data);
-          setCurrentDir(dir);
-          setFileContent(null);
-        } catch (err) { toast(err.message, 'error'); }
+      // Tree state: { [dirPath]: entries[] }
+      const [tree, setTree] = useState({});
+      const [expandedDirs, setExpandedDirs] = useState(new Set());
+      const [loadingDirs, setLoadingDirs] = useState(new Set());
+
+      // Tabs & editor
+      const [tabs, setTabs] = useState([]);
+      const [activeTab, setActiveTab] = useState(null);
+      const [monacoLoaded, setMonacoLoaded] = useState(!!window.monaco);
+      const [searchTerm, setSearchTerm] = useState('');
+      const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+
+      const editorRef = useRef(null);
+      const containerRef = useRef(null);
+      const modelsRef = useRef({});
+      const tabsRef = useRef(tabs);
+      const activeTabRef = useRef(activeTab);
+      tabsRef.current = tabs;
+      activeTabRef.current = activeTab;
+
+      // ── Helpers ──
+      const getLanguage = (filename) => {
+        const ext = (filename || '').split('.').pop().toLowerCase();
+        return { js: 'javascript', json: 'json', xml: 'xml', html: 'html', css: 'css',
+          cfg: 'ini', ini: 'ini', bat: 'bat', cmd: 'bat', ps1: 'powershell',
+          c: 'c', cpp: 'cpp', h: 'c', hpp: 'cpp', py: 'python', sh: 'shell',
+          md: 'markdown', txt: 'plaintext', log: 'plaintext', csv: 'plaintext',
+          yaml: 'yaml', yml: 'yaml', sql: 'sql', types: 'xml' }[ext] || 'plaintext';
       };
 
-      const openFile = async (filePath) => {
-        try {
-          const data = await API.get(`/api/files/read?file=${encodeURIComponent(filePath)}`);
-          setFileContent(data.content);
-          setEditingFile(filePath);
-        } catch (err) { toast(err.message, 'error'); }
+      const getFileIcon = (filename, isDir, isExpanded) => {
+        if (isDir) return isExpanded ? '📂' : '📁';
+        const ext = (filename || '').split('.').pop().toLowerCase();
+        return { cfg: '⚙️', xml: '📋', json: '📊', bat: '⚡', cmd: '⚡',
+          c: '💻', cpp: '💻', h: '📎', hpp: '📎', log: '📃', txt: '📝',
+          md: '📝', js: '📜', py: '🐍', html: '🌐', css: '🎨' }[ext] || '📄';
       };
 
-      const saveFile = async () => {
+      const formatSize = (bytes) => {
+        if (!bytes || bytes <= 0) return '';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      };
+
+      // ── Directory loading with cache ──
+      const loadDir = useCallback(async (dirPath) => {
+        setLoadingDirs(prev => new Set(prev).add(dirPath));
         try {
-          await API.request('/api/files/write', { method: 'PUT', body: { file: editingFile, content: fileContent } });
+          const data = await API.get(`/api/files?dir=${encodeURIComponent(dirPath)}`);
+          setTree(prev => ({ ...prev, [dirPath]: data }));
+          return data;
+        } catch (err) {
+          toast(err.message, 'error');
+          return [];
+        } finally {
+          setLoadingDirs(prev => { const s = new Set(prev); s.delete(dirPath); return s; });
+        }
+      }, []);
+
+      const toggleDir = useCallback(async (dirPath) => {
+        const newExp = new Set(expandedDirs);
+        if (newExp.has(dirPath)) {
+          newExp.delete(dirPath);
+        } else {
+          newExp.add(dirPath);
+          if (!tree[dirPath]) await loadDir(dirPath);
+        }
+        setExpandedDirs(newExp);
+      }, [expandedDirs, tree, loadDir]);
+
+      const refreshTree = useCallback(() => {
+        setTree({});
+        loadDir('');
+      }, [loadDir]);
+
+      // ── Tab management ──
+      const openFile = useCallback(async (entry) => {
+        if (tabs.find(t => t.path === entry.path)) {
+          setActiveTab(entry.path);
+          return;
+        }
+        try {
+          const data = await API.get(`/api/files/read?file=${encodeURIComponent(entry.path)}`);
+          const newTab = {
+            path: entry.path,
+            name: entry.name,
+            content: data.content,
+            originalContent: data.content,
+            language: getLanguage(entry.name),
+            size: data.size || 0,
+          };
+          setTabs(prev => [...prev, newTab]);
+          setActiveTab(entry.path);
+        } catch (err) {
+          toast(err.message, 'error');
+        }
+      }, [tabs]);
+
+      const closeTab = useCallback((e, tabPath) => {
+        e.stopPropagation();
+        // Dispose model
+        if (modelsRef.current[tabPath]) {
+          modelsRef.current[tabPath].disposable.dispose();
+          modelsRef.current[tabPath].model.dispose();
+          delete modelsRef.current[tabPath];
+        }
+        setTabs(prev => {
+          const newTabs = prev.filter(t => t.path !== tabPath);
+          if (activeTabRef.current === tabPath) {
+            const idx = prev.findIndex(t => t.path === tabPath);
+            const next = newTabs[Math.min(idx, newTabs.length - 1)];
+            setActiveTab(next ? next.path : null);
+          }
+          return newTabs;
+        });
+      }, []);
+
+      const saveFile = useCallback(async () => {
+        const currentPath = activeTabRef.current;
+        const tab = tabsRef.current.find(t => t.path === currentPath);
+        if (!tab) return;
+        const content = editorRef.current ? editorRef.current.getValue() : tab.content;
+        try {
+          await API.request('/api/files/write', { method: 'PUT', body: { file: tab.path, content } });
+          setTabs(prev => prev.map(t => t.path === tab.path ? { ...t, content, originalContent: content } : t));
+          // Update the model's saved content tracking
+          if (modelsRef.current[tab.path]) {
+            modelsRef.current[tab.path].savedContent = content;
+          }
           toast('File saved (backup created)', 'success');
-        } catch (err) { toast(err.message, 'error'); }
+        } catch (err) {
+          toast(err.message, 'error');
+        }
+      }, []);
+
+      // ── Initialize ──
+      useEffect(() => {
+        loadDir('');
+        setExpandedDirs(new Set(['']));
+      }, []);
+
+      // ── Load Monaco editor ──
+      useEffect(() => {
+        if (window.monaco) { setMonacoLoaded(true); return; }
+        const checkMonaco = setInterval(() => {
+          if (window.monaco) { setMonacoLoaded(true); clearInterval(checkMonaco); }
+        }, 200);
+        return () => clearInterval(checkMonaco);
+      }, []);
+
+      // ── Configure Monaco theme ──
+      useEffect(() => {
+        if (!monacoLoaded) return;
+        monaco.editor.defineTheme('dayz-dark', {
+          base: 'vs-dark',
+          inherit: true,
+          rules: [],
+          colors: {
+            'editor.background': '#1e1e1e',
+            'editor.lineHighlightBackground': '#2a2d2e',
+            'editorLineNumber.foreground': '#5a6170',
+            'editorLineNumber.activeForeground': '#c6c6c6',
+          }
+        });
+        monaco.editor.setTheme('dayz-dark');
+      }, [monacoLoaded]);
+
+      // ── Monaco editor lifecycle ──
+      useEffect(() => {
+        if (!monacoLoaded || !containerRef.current) return;
+
+        const tab = tabs.find(t => t.path === activeTab);
+
+        if (!tab) {
+          if (editorRef.current) editorRef.current.setModel(null);
+          return;
+        }
+
+        // Create editor if it doesn't exist
+        if (!editorRef.current) {
+          editorRef.current = monaco.editor.create(containerRef.current, {
+            theme: 'dayz-dark',
+            automaticLayout: true,
+            minimap: { enabled: true, scale: 1 },
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontLigatures: true,
+            lineNumbers: 'on',
+            renderWhitespace: 'selection',
+            bracketPairColorization: { enabled: true },
+            smoothScrolling: true,
+            cursorBlinking: 'smooth',
+            cursorSmoothCaretAnimation: 'on',
+            padding: { top: 8 },
+            scrollBeyondLastLine: false,
+            wordWrap: 'off',
+            tabSize: 2,
+            suggest: { showWords: false },
+            quickSuggestions: false,
+          });
+
+          // Ctrl+S to save
+          editorRef.current.addCommand(
+            monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
+            () => saveFile()
+          );
+
+          // Track cursor position
+          editorRef.current.onDidChangeCursorPosition((e) => {
+            setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+          });
+        }
+
+        // Get or create model for this tab
+        const uri = monaco.Uri.parse('inmemory://model/' + tab.path);
+        let model = monaco.editor.getModel(uri);
+
+        if (!model) {
+          model = monaco.editor.createModel(tab.content || '', tab.language, uri);
+
+          // Track content changes for this model
+          const disposable = model.onDidChangeContent(() => {
+            const val = model.getValue();
+            setTabs(prev => prev.map(t => t.path === tab.path ? { ...t, content: val } : t));
+          });
+
+          modelsRef.current[tab.path] = { model, disposable, savedContent: tab.originalContent };
+        }
+
+        editorRef.current.setModel(model);
+        editorRef.current.focus();
+
+      }, [monacoLoaded, activeTab, tabs.length]);
+
+      // Cleanup on unmount
+      useEffect(() => {
+        return () => {
+          if (editorRef.current) { editorRef.current.dispose(); editorRef.current = null; }
+          Object.values(modelsRef.current).forEach(m => {
+            m.disposable.dispose();
+            m.model.dispose();
+          });
+          modelsRef.current = {};
+        };
+      }, []);
+
+      // ── Render tree recursively ──
+      const renderTree = (dirPath, depth) => {
+        const entries = tree[dirPath];
+        if (!entries) return null;
+
+        const filtered = searchTerm
+          ? entries.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.type === 'directory')
+          : entries;
+
+        return filtered.map(entry => {
+          const isDir = entry.type === 'directory';
+          const isExp = expandedDirs.has(entry.path);
+          const isActive = activeTab === entry.path;
+
+          return (
+            <React.Fragment key={entry.path}>
+              <div
+                className={`tree-node ${isActive ? 'selected' : ''}`}
+                style={{ paddingLeft: 8 + depth * 16 }}
+                onClick={() => isDir ? toggleDir(entry.path) : openFile(entry)}
+                title={isDir ? entry.path : `${entry.path} — ${formatSize(entry.size)}`}
+              >
+                <span className="tree-arrow">
+                  {isDir ? (loadingDirs.has(entry.path) ? '⟳' : (isExp ? '▾' : '▸')) : '\u00A0'}
+                </span>
+                <span className="tree-icon">{getFileIcon(entry.name, isDir, isExp)}</span>
+                <span className="tree-name">{entry.name}</span>
+              </div>
+              {isDir && isExp && renderTree(entry.path, depth + 1)}
+            </React.Fragment>
+          );
+        });
       };
 
-      useEffect(() => { loadDir(''); }, []);
+      const currentTab = tabs.find(t => t.path === activeTab);
+      const breadcrumb = currentTab ? currentTab.path.split('/') : [];
 
       return (
         <div className="fade-in">
-          <div className="grid grid-2" style={{ gridTemplateColumns: '300px 1fr' }}>
-            <div className="card">
-              <div className="card-header">
-                <div className="card-title">📁 Files</div>
-                {currentDir && (
-                  <button className="btn btn-ghost btn-sm" onClick={() => {
-                    const parent = currentDir.split('/').slice(0, -1).join('/');
-                    loadDir(parent);
-                  }}>⬆ Up</button>
-                )}
+          <div className="file-explorer">
+            {/* ── Sidebar ── */}
+            <div className="file-sidebar">
+              <div className="file-sidebar-header">
+                <span>Explorer</span>
+                <button className="btn btn-ghost btn-sm" onClick={refreshTree} title="Refresh" style={{ padding: '2px 6px', fontSize: 12 }}>🔄</button>
               </div>
-              <div className="file-tree">
-                {files.map(f => (
-                  <div key={f.name} className={`file-item ${f.type}`}
-                    onClick={() => f.type === 'directory' ? loadDir(f.path) : openFile(f.path)}>
-                    <span>{f.type === 'directory' ? '📁' : '📄'}</span>
-                    <span>{f.name}</span>
-                  </div>
-                ))}
-                {files.length === 0 && <div className="empty-state"><p>Empty directory</p></div>}
+              <div className="file-search">
+                <input
+                  type="text"
+                  placeholder="Filter files..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="file-sidebar-tree">
+                {renderTree('', 0)}
+                {loadingDirs.has('') && <div className="tree-loading" style={{ padding: '12px 16px' }}>Loading file tree...</div>}
               </div>
             </div>
 
-            <div className="card">
-              <div className="card-header">
-                <div className="card-title">📝 {editingFile || 'Select a file'}</div>
-                {fileContent !== null && <button className="btn btn-primary btn-sm" onClick={saveFile}>💾 Save</button>}
-              </div>
-              <div className="card-body">
-                {fileContent !== null ? (
-                  <textarea value={fileContent} onChange={e => setFileContent(e.target.value)} style={{ minHeight: 500 }} />
-                ) : (
-                  <div className="empty-state">
-                    <div className="icon">📄</div>
-                    <p>Select a file to edit</p>
+            {/* ── Editor Panel ── */}
+            <div className="file-editor-panel">
+              {/* Tab bar */}
+              {tabs.length > 0 && (
+                <div className="editor-tabs">
+                  {tabs.map(tab => (
+                    <div
+                      key={tab.path}
+                      className={`editor-tab ${activeTab === tab.path ? 'active' : ''}`}
+                      onClick={() => setActiveTab(tab.path)}
+                    >
+                      <span style={{ fontSize: 12 }}>{getFileIcon(tab.name)}</span>
+                      <span>{tab.name}</span>
+                      {tab.content !== tab.originalContent && <span className="tab-dot"></span>}
+                      <span className="tab-close" onClick={e => closeTab(e, tab.path)}>×</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Breadcrumb */}
+              {currentTab && (
+                <div className="editor-breadcrumb">
+                  {breadcrumb.map((part, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && <span className="sep">›</span>}
+                      <span>{part}</span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
+              {/* Monaco Editor container - always present */}
+              <div className="editor-container" ref={containerRef}
+                style={{ display: currentTab ? 'block' : 'none' }}></div>
+
+              {/* Status Bar */}
+              {currentTab && (
+                <div className="editor-status-bar">
+                  <div className="status-left">
+                    <span>{currentTab.language.toUpperCase()}</span>
+                    <span>Ln {cursorPos.line}, Col {cursorPos.col}</span>
+                    {currentTab.content !== currentTab.originalContent && (
+                      <span style={{ color: '#ffd700' }}>● Modified</span>
+                    )}
                   </div>
-                )}
-              </div>
+                  <div className="status-right">
+                    <span>{formatSize(currentTab.size) || ''}</span>
+                    <span style={{ cursor: 'pointer' }} onClick={saveFile}>💾 Save (Ctrl+S)</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!currentTab && (
+                <div className="editor-empty">
+                  <div className="icon">📝</div>
+                  <p>Select a file to edit</p>
+                  <div className="shortcuts">
+                    <span>Browse files in the explorer sidebar</span>
+                    <span>Use the filter to quickly find files</span>
+                    <span><kbd>Ctrl+S</kbd> to save changes</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2135,6 +2790,7 @@
         if (!user) return;
         try {
           const socket = io(API_URL);
+          window._panelSocket = socket;
           socket.on('serverStatus', setServerStatus);
           socket.on('players', setPlayers);
           socket.on('metrics', data => {
