@@ -54,7 +54,7 @@ const CONFIG = {
   guildId: process.env.DISCORD_GUILD_ID,
   adminRoleId: process.env.DISCORD_ADMIN_ROLE_ID,
   apiUrl: process.env.PANEL_API_URL || 'http://localhost:3001',
-  apiKey: process.env.DISCORD_BOT_API_KEY || 'bot-secret-key',
+  apiKey: process.env.DISCORD_BOT_API_KEY || (() => { console.error('FATAL: DISCORD_BOT_API_KEY environment variable is required. Set it in .env'); process.exit(1); })(),
 };
 
 // ─── API Helper ──────────────────────────────────────────
@@ -104,7 +104,11 @@ const STATUS_EMOJI = {
 
 // ─── Permission Check ────────────────────────────────────
 function isAdmin(interaction) {
-  if (!CONFIG.adminRoleId) return true; // No role configured = all users are admin
+  // Fail-closed: if no admin role is configured, deny all admin actions
+  if (!CONFIG.adminRoleId) {
+    console.warn('[security] DISCORD_ADMIN_ROLE_ID not configured - all admin actions denied. Set it in .env');
+    return false;
+  }
   return interaction.member.roles.cache.has(CONFIG.adminRoleId);
 }
 
@@ -904,3 +908,14 @@ async function main() {
 }
 
 main().catch(console.error);
+
+// ─── Graceful Shutdown ───────────────────────────────────
+function gracefulShutdown(signal) {
+  console.log(`\n${signal} received. Shutting down bot gracefully...`);
+  client.destroy();
+  console.log('Discord client destroyed');
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
