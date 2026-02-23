@@ -78,7 +78,7 @@ app.use(secureCookies(useHttps));
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 app.use('/api/discord/', discordLimiter);
-app.use(express.static(path.join(__dirname, '../web')));
+app.use(express.static(path.join(__dirname, '../web/dist')));
 
 // ─── Routes ──────────────────────────────────────────────
 require('./routes/auth.routes')(app);
@@ -116,6 +116,11 @@ io.on('connection', (socket) => {
     }
   }
   socket.on('disconnect', () => {});
+});
+
+// ─── SPA Fallback ────────────────────────────────────────
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../web/dist/index.html'));
 });
 
 // ─── Startup ─────────────────────────────────────────────
