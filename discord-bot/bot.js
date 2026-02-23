@@ -31,6 +31,7 @@ const {
   REST,
   Routes,
   PermissionFlagsBits,
+  MessageFlags,
 } = require('discord.js');
 // Ensure `fetch` is available in both Node (global) and when using `node-fetch` (CJS/ESM)
 let fetch;
@@ -77,7 +78,8 @@ async function safeReply(interaction, options) {
     if (!interaction.replied && !interaction.deferred) {
       return await interaction.reply(options);
     }
-    return await interaction.followUp(Object.assign({}, options, { ephemeral: options.ephemeral ?? true }));
+    const flags = options.flags ?? MessageFlags.Ephemeral;
+    return await interaction.followUp(Object.assign({}, options, { flags }));
   } catch (err) {
     console.error('[safeReply] error', err);
   }
@@ -299,51 +301,51 @@ client.on('interactionCreate', async (interaction) => {
 
       // Start → confirm
       else if (btnId === 'panel_start') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         await safeReply(interaction, {
           content: '⚠️ Are you sure you want to **start** the server?',
           components: [buildConfirmRow('start')],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
       // Stop → confirm
       else if (btnId === 'panel_stop') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         await safeReply(interaction, {
           content: '⚠️ Are you sure you want to **stop** the server?',
           components: [buildConfirmRow('stop')],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
       // Restart → options
       else if (btnId === 'panel_restart') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         await safeReply(interaction, {
           content: '🔄 Choose a restart option:',
           components: [buildRestartOptions()],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
       // Lock
       else if (btnId === 'panel_lock') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const result = await panelAction('lock');
-        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : '🔒 Server locked.', ephemeral: true });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : '🔒 Server locked.', flags: MessageFlags.Ephemeral });
       }
 
       // Unlock
       else if (btnId === 'panel_unlock') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const result = await panelAction('unlock');
-        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : '🔓 Server unlocked.', ephemeral: true });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : '🔓 Server unlocked.', flags: MessageFlags.Ephemeral });
       }
 
       // Broadcast → modal
       else if (btnId === 'panel_message') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const modal = new ModalBuilder()
           .setCustomId('modal_broadcast')
           .setTitle('📢 Broadcast Message');
@@ -361,16 +363,16 @@ client.on('interactionCreate', async (interaction) => {
       else if (btnId === 'panel_players') {
         const data = await panelAction('players');
         const embed = buildPlayerListEmbed(data.players || []);
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Kick menu
       else if (btnId === 'panel_kick_menu') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const data = await panelAction('players');
         const players = data.players || [];
         if (players.length === 0) {
-          return await safeReply(interaction, { content: 'No players online to kick.', ephemeral: true });
+          return await safeReply(interaction, { content: 'No players online to kick.', flags: MessageFlags.Ephemeral });
         }
         const select = new StringSelectMenuBuilder()
           .setCustomId('select_kick_player')
@@ -385,13 +387,13 @@ client.on('interactionCreate', async (interaction) => {
         await safeReply(interaction, {
           content: '👢 Select a player to kick:',
           components: [new ActionRowBuilder().addComponents(select)],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
       // RCON → modal
       else if (btnId === 'panel_rcon') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const modal = new ModalBuilder()
           .setCustomId('modal_rcon')
           .setTitle('🖥️ RCON Command');
@@ -415,7 +417,7 @@ client.on('interactionCreate', async (interaction) => {
           .setDescription(list.length ? list.map(m => `• **${m.name}** (${m.workshopId}) ${m.enabled ? '✅ Enabled' : '❌ Disabled'}`).join('\n') : '*No mods installed*')
           .setFooter({ text: `${list.length} mod(s) installed` })
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Mod status
@@ -426,12 +428,12 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x5865f2)
           .setDescription(status && Object.keys(status).length ? Object.entries(status).map(([id, s]) => `• **${s.name}** (${id}): ${s.status} (${s.progress}%)`).join('\n') : '*No active installs*')
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Mod install → modal
       else if (btnId === 'panel_mod_install') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const modal = new ModalBuilder()
           .setCustomId('modal_mod_install')
           .setTitle('➕ Install Mod');
@@ -454,7 +456,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Mod uninstall → modal
       else if (btnId === 'panel_mod_uninstall') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const modal = new ModalBuilder()
           .setCustomId('modal_mod_uninstall')
           .setTitle('🗑️ Uninstall Mod');
@@ -469,7 +471,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Mod enable → modal
       else if (btnId === 'panel_mod_enable') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const modal = new ModalBuilder()
           .setCustomId('modal_mod_enable')
           .setTitle('✅ Enable Mod');
@@ -484,7 +486,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Mod disable → modal
       else if (btnId === 'panel_mod_disable') {
-        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         const modal = new ModalBuilder()
           .setCustomId('modal_mod_disable')
           .setTitle('🚫 Disable Mod');
@@ -505,7 +507,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x5865f2)
           .setDescription(chat.messages && chat.messages.length ? chat.messages.map(m => `• **${m.player}**: ${m.text}`).join('\n') : '*No recent chat messages*')
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Watch list
@@ -516,7 +518,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xffaa00)
           .setDescription(watch.players && watch.players.length ? watch.players.map(p => `• **${p.name}** (${p.reason || 'No reason'})`).join('\n') : '*No players on watch list*')
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Killfeed
@@ -527,7 +529,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xff3333)
           .setDescription(feed.kills && feed.kills.length ? feed.kills.map(k => `• **${k.victim}** killed by **${k.killer}** (${k.method || 'unknown'})`).join('\n') : '*No recent kills*')
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Priority queue
@@ -538,7 +540,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x3b82f6)
           .setDescription(queue.entries && queue.entries.length ? queue.entries.map(q => `• **${q.name}** (${q.role || 'Player'})`).join('\n') : '*No players in queue*')
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Time/weather
@@ -549,7 +551,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x00bfff)
           .setDescription(tw && tw.info ? tw.info : '*No data available*')
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Leaderboard
@@ -560,7 +562,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xffd700)
           .setDescription(stats && stats.entries ? stats.entries.map(s => `• **${s.player}**: ${s.score} pts`).join('\n') : '*No leaderboard data*')
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Ban/whitelist
@@ -571,7 +573,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xff3333)
           .setDescription(bans && bans.entries ? bans.entries.map(b => `• **${b.player}**: ${b.status} (${b.reason || ''})`).join('\n') : '*No ban/whitelist data*')
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Confirm actions
@@ -662,16 +664,16 @@ client.on('interactionCreate', async (interaction) => {
       const { commandName } = interaction;
 
       if (commandName === 'panel') {
-        await safeReply(interaction, { content: 'Deploying control panel...', ephemeral: true });
+        await safeReply(interaction, { content: 'Deploying control panel...', flags: MessageFlags.Ephemeral });
         let data;
         try {
           data = await panelAction('status');
         } catch (err) {
-          await interaction.followUp({ content: '❌ Failed to fetch server status. Please try again later.', ephemeral: true });
+          await interaction.followUp({ content: '❌ Failed to fetch server status. Please try again later.', flags: MessageFlags.Ephemeral });
           return;
         }
         if (data && data.error) {
-          await interaction.followUp({ content: `❌ ${data.error}`, ephemeral: true });
+          await interaction.followUp({ content: `❌ ${data.error}`, flags: MessageFlags.Ephemeral });
           return;
         }
         const embed = buildStatusEmbed(data);
@@ -680,12 +682,12 @@ client.on('interactionCreate', async (interaction) => {
           '🟢 Green = Start  •  🔴 Red = Stop/Kick  •  🔵 Blue = Actions'
         );
         await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
-        await interaction.followUp({ content: '✅ Control panel deployed below.', ephemeral: true });
+        await interaction.followUp({ content: '✅ Control panel deployed below.', flags: MessageFlags.Ephemeral });
       }
 
       else if (commandName === 'setup') {
         if (!isAdmin(interaction)) {
-          return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+          return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         }
         const data = await panelAction('status');
         const embed = buildStatusEmbed(data);
@@ -696,7 +698,7 @@ client.on('interactionCreate', async (interaction) => {
           '`▶️` Start  •  `⏹️` Stop  •  `🔄` Restart  •  `🔒` Lock/Unlock\n' +
           '`👥` Players  •  `👢` Kick  •  `📢` Broadcast  •  `🖥️` RCON'
         );
-        await safeReply(interaction, { content: '✅ Control panel deployed below.', ephemeral: true });
+        await safeReply(interaction, { content: '✅ Control panel deployed below.', flags: MessageFlags.Ephemeral });
         await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
       }
 
@@ -718,7 +720,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (commandName === 'rcon') {
         if (!isAdmin(interaction)) {
-          return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+          return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         }
         const command = interaction.options.getString('command');
         const result = await panelAction('rcon', { command });
@@ -730,12 +732,12 @@ client.on('interactionCreate', async (interaction) => {
             { name: 'Response', value: `\`\`\`${result.result || result.error || 'Done'}\`\`\`` }
           )
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       else if (commandName === 'broadcast') {
         if (!isAdmin(interaction)) {
-          return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+          return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         }
         const message = interaction.options.getString('message');
         await panelAction('message', { message });
@@ -750,7 +752,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (commandName === 'restart') {
         if (!isAdmin(interaction)) {
-          return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+          return await safeReply(interaction, { content: '❌ Admin role required.', flags: MessageFlags.Ephemeral });
         }
         const countdown = interaction.options.getInteger('countdown');
         if (countdown) {
@@ -760,7 +762,7 @@ client.on('interactionCreate', async (interaction) => {
           await safeReply(interaction, {
             content: '🔄 Choose a restart option:',
             components: [buildRestartOptions()],
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
         }
       }
@@ -809,7 +811,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: 'Response', value: `\`\`\`${result.result || result.error || 'Done'}\`\`\`` }
           )
           .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       else if (interaction.customId.startsWith('modal_kick_')) {
@@ -832,25 +834,25 @@ client.on('interactionCreate', async (interaction) => {
         const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
         const name = interaction.fields.getTextInputValue('mod_name');
         const result = await panelAction('modInstall', { workshopId, name });
-        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod **${name}** (${workshopId}) install started.`, ephemeral: true });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod **${name}** (${workshopId}) install started.`, flags: MessageFlags.Ephemeral });
       }
 
       else if (interaction.customId === 'modal_mod_uninstall') {
         const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
         const result = await panelAction('modUninstall', { workshopId });
-        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod ${workshopId} uninstalled.`, ephemeral: true });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod ${workshopId} uninstalled.`, flags: MessageFlags.Ephemeral });
       }
 
       else if (interaction.customId === 'modal_mod_enable') {
         const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
         const result = await panelAction('modEnable', { workshopId });
-        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod ${workshopId} enabled.`, ephemeral: true });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod ${workshopId} enabled.`, flags: MessageFlags.Ephemeral });
       }
 
       else if (interaction.customId === 'modal_mod_disable') {
         const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
         const result = await panelAction('modDisable', { workshopId });
-        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `🚫 Mod ${workshopId} disabled.`, ephemeral: true });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `🚫 Mod ${workshopId} disabled.`, flags: MessageFlags.Ephemeral });
       }
     }
 
@@ -858,7 +860,7 @@ client.on('interactionCreate', async (interaction) => {
     console.error('[interaction] error', err);
     try {
       if (interaction && !interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: '❌ Error processing interaction. Check logs.', ephemeral: true });
+        await interaction.reply({ content: '❌ Error processing interaction. Check logs.', flags: MessageFlags.Ephemeral });
       }
     } catch (err2) {
       console.error('[interaction] failed to send error reply', err2);

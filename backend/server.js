@@ -520,14 +520,14 @@ function spawnDayZServer(serverConfig) {
     const batPath = path.join(installDir, serverConfig.startBat);
     if (!fs.existsSync(batPath)) throw new Error(`Start batch file not found: ${batPath}`);
     child = spawn('cmd.exe', ['/c', batPath], {
-      cwd: installDir, detached: true, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: false,
+      cwd: installDir, detached: true, stdio: 'ignore', windowsHide: false,
     });
     child.unref();
   } else {
     const execPath = path.join(installDir, serverConfig.executable);
     const params = (serverConfig.launchParams || '').split(' ').filter(Boolean);
     if (!fs.existsSync(execPath)) throw new Error(`Executable not found: ${execPath}`);
-    child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: 'ignore' });
     child.unref();
   }
   // Apply CPU affinity and priority after spawn
