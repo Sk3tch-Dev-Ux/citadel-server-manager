@@ -271,25 +271,18 @@ function detectRunningProcess(executable) {
 function getProcessMetrics(pid, executable) {
   return new Promise((resolve) => {
     if (!pid) return resolve(null);
-    exec(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, (err, stdout) => {
-      if (err || !stdout || !stdout.includes(executable)) return resolve(null);
-      const memMatch = stdout.match(/"([\d,]+)\s*K"/);
-      const ramKB = memMatch ? parseInt(memMatch[1].replace(/,/g, '')) : 0;
-      const ramMB = Math.round(ramKB / 1024);
-      exec(`wmic path Win32_PerfFormattedData_PerfProc_Process where "IDProcess=${pid}" get PercentProcessorTime /value`, (err2, stdout2) => {
-        let cpu = 0;
-        if (!err2 && stdout2) {
-          const cpuMatch = stdout2.match(/PercentProcessorTime=(\d+)/);
-          if (cpuMatch) cpu = parseInt(cpuMatch[1]);
-        }
-        exec('wmic ComputerSystem get TotalPhysicalMemory /value', (err3, stdout3) => {
-          let ramPct = 0;
-          if (!err3 && stdout3) {
-            const totalMatch = stdout3.match(/TotalPhysicalMemory=(\d+)/);
-            if (totalMatch) ramPct = parseFloat(((ramKB * 1024) / parseInt(totalMatch[1]) * 100).toFixed(1));
-          }
-          resolve({ cpu, ram: ramPct, ramMB });
-        });
+    // Use PowerShell to get CPU and memory for the process (wmic is deprecated/removed on modern Windows)
+    const psCmd = `powershell -NoProfile -Command "try { $p = Get-Process -Id ${pid} -ErrorAction Stop; $cpuCores = (Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum; if (-not $cpuCores) { $cpuCores = [Environment]::ProcessorCount }; $totalMem = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory; $ws = $p.WorkingSet64; $cpu = 0; try { $sample1 = $p.TotalProcessorTime.TotalMilliseconds; Start-Sleep -Milliseconds 500; $p.Refresh(); $sample2 = $p.TotalProcessorTime.TotalMilliseconds; $cpu = [math]::Round(($sample2 - $sample1) / 500 * 100 / $cpuCores, 1) } catch { $cpu = 0 }; $ramPct = [math]::Round($ws / $totalMem * 100, 1); Write-Output \\"CPU=$cpu,RAM=$ramPct,RAMMB=$([math]::Round($ws/1MB))\\" } catch { Write-Output 'ERROR' }"`;
+    exec(psCmd, { timeout: 8000 }, (err, stdout) => {
+      if (err || !stdout || stdout.trim() === 'ERROR') return resolve(null);
+      const output = stdout.trim();
+      const cpuMatch = output.match(/CPU=([\d.]+)/);
+      const ramMatch = output.match(/RAM=([\d.]+)/);
+      const ramMBMatch = output.match(/RAMMB=(\d+)/);
+      resolve({
+        cpu: cpuMatch ? parseFloat(cpuMatch[1]) : 0,
+        ram: ramMatch ? parseFloat(ramMatch[1]) : 0,
+        ramMB: ramMBMatch ? parseInt(ramMBMatch[1]) : 0
       });
     });
   });

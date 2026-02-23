@@ -787,10 +787,10 @@
         const complete = progress && progress.status === 'complete';
 
         const btnLabel = () => {
-          if (installed || complete) return '\u2713 Installed';
-          if (installing) return `\u23F3 ${progress.progress ? Math.round(progress.progress) + '%' : '...'}`;
-          if (failed) return '\u26A0 Retry';
-          return '\uD83D\uDCE5 Install';
+          if (installed || complete) return '✓ Installed';
+          if (installing) return `⏳ ${progress.progress ? Math.round(progress.progress) + '%' : '...'}`;
+          if (failed) return '⚠ Retry';
+          return '📥 Install';
         };
 
         return (
@@ -798,15 +798,15 @@
             {item.preview ? (
               <img className="workshop-thumb" src={item.preview} alt="" onError={e => e.target.style.display='none'} />
             ) : (
-              <div className="workshop-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>\uD83E\DDE9</div>
+              <div className="workshop-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🧩</div>
             )}
             <div className="workshop-info">
               <div className="workshop-info-name">{item.name || 'Unknown Mod'}</div>
               <div className="workshop-info-meta">
                 <span>ID: {item.workshopId}</span>
-                {item.subscribers > 0 && <span>\u2B07 {formatSubs(item.subscribers)}</span>}
-                {item.fileSize > 0 && <span>\uD83D\uDCE6 {formatBytes(item.fileSize)}</span>}
-                {item.updated && <span>\uD83D\uDD50 {new Date(item.updated).toLocaleDateString()}</span>}
+                {item.subscribers > 0 && <span>⬇ {formatSubs(item.subscribers)}</span>}
+                {item.fileSize > 0 && <span>📦 {formatBytes(item.fileSize)}</span>}
+                {item.updated && <span>🕐 {new Date(item.updated).toLocaleDateString()}</span>}
               </div>
               {item.description && <div className="workshop-info-desc">{item.description}</div>}
               {item.tags && item.tags.length > 0 && (
@@ -820,7 +820,7 @@
                   </div>
                 </div>
               )}
-              {failed && <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 4 }}>\u274C {progress.message}</div>}
+              {failed && <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 4 }}>❌ {progress.message}</div>}
             </div>
             <button className="workshop-btn" disabled={installed || complete || installing}
               onClick={() => install(item.workshopId, item.name)}
@@ -834,15 +834,15 @@
       return (
         <div>
           <div className="tabs">
-            <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>\uD83E\DDE9 Installed ({mods.length})</div>
-            <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}>\uD83D\uDD0D Workshop</div>
-            <div className={`tab ${tab === 'popular' ? 'active' : ''}`} onClick={() => { setTab('popular'); loadPopular(); }}>\uD83D\uDD25 Popular</div>
-            <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}>\u2699\uFE0F Steam</div>
+            <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>🧩 Installed ({mods.length})</div>
+            <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}>🔍 Workshop</div>
+            <div className={`tab ${tab === 'popular' ? 'active' : ''}`} onClick={() => { setTab('popular'); loadPopular(); }}>🔥 Popular</div>
+            <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}>⚙️ Steam</div>
           </div>
 
           {tab === 'installed' && (
             <div>
-              {mods.length === 0 ? <div className="empty-state"><div className="empty-icon">\uD83D\uDCE6</div><div className="empty-title">No Mods Installed</div><div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Search the Workshop tab to find and install mods</div></div> : (
+              {mods.length === 0 ? <div className="empty-state"><div className="empty-icon">📦</div><div className="empty-title">No Mods Installed</div><div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Search the Workshop tab to find and install mods</div></div> : (
                 <div>
                   {mods.map((mod, i) => (
                     <div className="mod-item" key={mod.workshopId || mod.name}>
@@ -853,7 +853,7 @@
                         target="_blank" rel="noopener" className="mod-id" title="Open on Steam Workshop">
                         {mod.workshopId || 'local'}
                       </a>
-                      <button className="btn btn-sm btn-danger" onClick={() => uninstall(mod.workshopId)} title="Uninstall">\uD83D\uDDD1</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => uninstall(mod.workshopId)} title="Uninstall">🗑</button>
                     </div>
                   ))}
                 </div>
@@ -864,10 +864,10 @@
           {tab === 'workshop' && (
             <div>
               <div className="card" style={{ marginBottom: 16 }}>
-                <div className="card-title" style={{ marginBottom: 12 }}>\uD83D\uDD0D Search Steam Workshop</div>
+                <div className="card-title" style={{ marginBottom: 12 }}>🔍 Search Steam Workshop</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div className="workshop-search-box" style={{ flex: 1 }}>
-                    <span className="workshop-search-icon">\uD83D\uDD0E</span>
+                    <span className="workshop-search-icon">🔎</span>
                     <input className="input" placeholder="Search DayZ mods on Steam Workshop..."
                       value={search} onChange={e => handleSearch(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && doSearch()} style={{ paddingLeft: 36 }} autoFocus />
@@ -890,7 +890,7 @@
 
           {tab === 'popular' && (
             <div>
-              <div className="card-title" style={{ marginBottom: 12 }}>\uD83D\uDD25 Popular DayZ Mods</div>
+              <div className="card-title" style={{ marginBottom: 12 }}>🔥 Popular DayZ Mods</div>
               {loadingPopular && <div className="workshop-loading">Loading popular mods...</div>}
               {!loadingPopular && popularMods.length > 0 && (
                 <div className="workshop-results">{popularMods.map(r => <WorkshopItem key={r.workshopId} item={r} />)}</div>
