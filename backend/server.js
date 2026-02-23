@@ -1010,13 +1010,16 @@ app.post('/api/servers/:id/restart', auth('server.restart'), async (req, res) =>
 
   addLog(srv.id, 'info', 'server', `Restart initiated by ${req.user.username}`);
   state.status = 'stopping'; io.emit('serverStatus', { serverId: srv.id, status: 'stopping' });
-  try {
-    if (state.pid) await killProcess(state.pid, srv.executable);
-    state.pid = null; state.process = null; state.players = [];
-    await new Promise(r => setTimeout(r, 3000));
-    state.status = 'starting'; io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
-    state.process = spawnDayZServer(srv); state.pid = state.process.pid;
-    setTimeout(async () => {
+  let restartSuccess = false;
+  let lastError = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      if (state.pid) await killProcess(state.pid, srv.executable);
+      state.pid = null; state.process = null; state.players = [];
+      await new Promise(r => setTimeout(r, 3000));
+      state.status = 'starting'; io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
+      state.process = spawnDayZServer(srv); state.pid = state.process.pid;
+      await new Promise(r => setTimeout(r, 8000));
       const pid = await detectRunningProcess(srv.executable);
       if (pid) {
         state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
@@ -1024,13 +1027,27 @@ app.post('/api/servers/:id/restart', auth('server.restart'), async (req, res) =>
         addNotification(srv.id, 'server.restarted', 'Server Restarted', `${srv.name} has been restarted`, 'info');
         fireWebhooks('server.restarted', { serverId: srv.id, serverName: srv.name });
         sendDiscordWebhook(`🔄 **${srv.name}** restarted`);
+        addLog(srv.id, 'info', 'server', `Restart succeeded on attempt ${attempt}`);
+        restartSuccess = true;
+        break;
+      } else {
+        lastError = `Process not detected after restart attempt ${attempt}`;
+        addLog(srv.id, 'error', 'server', lastError);
       }
-    }, 8000);
-    addAudit(req.user.id, req.user.username, 'server.restart', `Restarted: ${srv.name}`);
+    } catch (err) {
+      lastError = `Restart attempt ${attempt} failed: ${err.message}`;
+      addLog(srv.id, 'error', 'server', lastError);
+    }
+  }
+  addAudit(req.user.id, req.user.username, 'server.restart', `Restarted: ${srv.name} (success: ${restartSuccess})`);
+  if (restartSuccess) {
     res.json({ message: 'Restarting...' });
-  } catch (err) {
+  } else {
     state.status = 'crashed'; io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
-    res.status(500).json({ error: err.message });
+    addNotification(srv.id, 'server.crashed', 'Restart Failed', `${srv.name} failed to restart after 3 attempts`, 'error');
+    fireWebhooks('server.crashed', { serverId: srv.id, serverName: srv.name });
+    sendDiscordWebhook(`💥 **${srv.name}** failed to restart after 3 attempts`);
+    res.status(500).json({ error: lastError || 'Failed to restart after 3 attempts' });
   }
 });
 
