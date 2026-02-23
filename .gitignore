@@ -19,3 +19,7 @@ Desktop.ini
 /steamcmd
 .claude/worktrees/interesting-hermann/
 .claude/worktrees/quirky-shaw/
+
+# Frontend build
+web/frontend/node_modules/
+web/dist/
