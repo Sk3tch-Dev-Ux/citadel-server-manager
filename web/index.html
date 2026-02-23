@@ -229,6 +229,32 @@
     .toggle-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: transform 0.2s; }
     .toggle.on .toggle-knob { transform: translateX(18px); }
 
+    /* Workshop styles */
+    .workshop-search-box { position: relative; }
+    .workshop-search-box input { width: 100%; padding-left: 36px; }
+    .workshop-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; pointer-events: none; }
+    .workshop-results { display: grid; gap: 8px; margin-top: 12px; max-height: 500px; overflow-y: auto; }
+    .workshop-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); transition: all 0.15s ease; }
+    .workshop-item:hover { border-color: var(--accent-green); background: var(--bg-elevated); }
+    .workshop-item.installed { opacity: 0.5; border-color: var(--border); }
+    .workshop-thumb { width: 64px; height: 40px; border-radius: 4px; object-fit: cover; background: var(--bg-deep); flex-shrink: 0; }
+    .workshop-info { flex: 1; min-width: 0; }
+    .workshop-info-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .workshop-info-meta { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .workshop-info-desc { font-size: 11px; color: var(--text-secondary); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+    .workshop-info-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+    .workshop-info-tags span { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-muted); }
+    .workshop-btn { flex-shrink: 0; padding: 6px 14px; font-size: 12px; font-weight: 600; background: var(--accent-green); color: var(--bg-deep); border: none; border-radius: var(--radius); cursor: pointer; transition: opacity 0.15s; }
+    .workshop-btn:hover { opacity: 0.85; }
+    .workshop-btn:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
+    .workshop-loading { text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px; }
+    .mod-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; transition: all 0.15s; }
+    .mod-item:hover { border-color: var(--border-active); }
+    .mod-order { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); min-width: 28px; }
+    .mod-name { flex: 1; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mod-id { font-size: 11px; font-family: var(--font-mono); color: var(--accent-blue); text-decoration: none; }
+    .mod-id:hover { text-decoration: underline; }
+
     /* Permission chips */
     .perm-chip { display: inline-flex; padding: 3px 8px; margin: 2px; border-radius: 4px; font-size: 11px; font-family: var(--font-mono); background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); }
     .perm-chip.active { background: rgba(0,255,106,0.1); border-color: rgba(0,255,106,0.3); color: var(--accent-green); cursor: pointer; }
@@ -627,83 +653,219 @@
       const [results, setResults] = useState([]);
       const [searching, setSearching] = useState(false);
       const [tab, setTab] = useState('installed');
+      const [popularMods, setPopularMods] = useState([]);
+      const [loadingPopular, setLoadingPopular] = useState(false);
+      const [installProgress, setInstallProgress] = useState({});
+      const searchTimeout = useRef(null);
+
       useEffect(() => { API.get(`/api/servers/${serverId}/mods`).then(setMods); }, [serverId]);
       useEffect(() => {
         const handler = (data) => { if (data.serverId === serverId) setMods(data.mods); };
         socket.on('mods', handler);
         return () => socket.off('mods', handler);
       }, [serverId]);
+
+      // Debounced search
+      const handleSearch = (query) => {
+        setSearch(query);
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+        if (query.trim().length < 2) { setResults([]); return; }
+        searchTimeout.current = setTimeout(async () => {
+          setSearching(true);
+          try {
+            const data = await API.get(`/api/workshop/search?q=${encodeURIComponent(query.trim())}`);
+            setResults(data.results || []);
+          } catch { window.addToast('Workshop search failed', 'error'); }
+          setSearching(false);
+        }, 400);
+      };
+
       const doSearch = async () => {
-        if (!search.trim()) return;
+        if (!search.trim() || search.trim().length < 2) return;
         setSearching(true);
-        const data = await API.get(`/api/workshop/search?q=${encodeURIComponent(search)}`);
-        setResults(data.results || []);
+        try {
+          const data = await API.get(`/api/workshop/search?q=${encodeURIComponent(search.trim())}`);
+          setResults(data.results || []);
+        } catch { window.addToast('Workshop search failed', 'error'); }
         setSearching(false);
       };
-      const install = async (workshopId, name) => {
-        window.addToast(`Installing ${name}...`, 'info');
-        await API.post(`/api/servers/${serverId}/mods/install`, { workshopId, name });
+
+      const loadPopular = async () => {
+        if (popularMods.length > 0) return;
+        setLoadingPopular(true);
+        try {
+          const data = await API.get('/api/workshop/popular');
+          setPopularMods(data.results || []);
+        } catch { window.addToast('Failed to load popular mods', 'error'); }
+        setLoadingPopular(false);
       };
+
+      const isInstalled = (wid) => mods.some(m => String(m.workshopId) === String(wid));
+      const isInstalling = (wid) => { const p = installProgress[wid]; return p && ['starting','downloading','installing','downloaded'].includes(p.status); };
+
+      const install = async (workshopId, name) => {
+        if (isInstalled(workshopId) || isInstalling(workshopId)) return;
+        setInstallProgress(prev => ({ ...prev, [workshopId]: { status: 'starting', progress: 0, message: 'Requesting download...' } }));
+        try {
+          await API.post(`/api/servers/${serverId}/mods/install`, { workshopId, name });
+        } catch (err) {
+          window.addToast(`Install failed: ${err.message}`, 'error');
+          setInstallProgress(prev => ({ ...prev, [workshopId]: { status: 'error', progress: 0, message: err.message } }));
+        }
+      };
+
       const uninstall = async (workshopId) => {
         await API.del(`/api/servers/${serverId}/mods/uninstall/${workshopId}`);
+        setMods(ms => ms.filter(m => m.workshopId !== workshopId));
         window.addToast('Mod uninstalled', 'success');
       };
+
       const toggleMod = async (workshopId, enabled) => {
         await API.patch(`/api/servers/${serverId}/mods/${workshopId}`, { enabled: !enabled });
         setMods(m => m.map(mod => mod.workshopId === workshopId ? { ...mod, enabled: !enabled } : mod));
       };
+
+      // Listen for install progress
       useEffect(() => {
         const handler = (data) => {
-          if (data.serverId === serverId) {
-            if (data.status === 'complete') window.addToast(`${data.message}`, 'success');
-            else if (data.status === 'error') window.addToast(`${data.message}`, 'error');
+          if (data.serverId !== serverId) return;
+          setInstallProgress(prev => ({ ...prev, [data.workshopId]: { status: data.status, progress: data.progress, message: data.message } }));
+          if (data.status === 'complete') {
+            API.get(`/api/servers/${serverId}/mods`).then(setMods);
+            window.addToast(data.message, 'success');
+          } else if (data.status === 'error') {
+            window.addToast(`Install failed: ${data.message}`, 'error');
           }
         };
         socket.on('modInstallProgress', handler);
         return () => socket.off('modInstallProgress', handler);
       }, [serverId]);
 
+      const formatSubs = (n) => { if (!n) return '0'; if (n >= 1000000) return `${(n/1000000).toFixed(1)}M`; if (n >= 1000) return `${(n/1000).toFixed(1)}K`; return String(n); };
+
+      // Workshop item component with preview, metadata, progress
+      const WorkshopItem = ({ item }) => {
+        const installed = isInstalled(item.workshopId);
+        const progress = installProgress[item.workshopId];
+        const installing = isInstalling(item.workshopId);
+        const failed = progress && (progress.status === 'error' || progress.status === 'steam_guard');
+        const complete = progress && progress.status === 'complete';
+
+        const btnLabel = () => {
+          if (installed || complete) return '\u2713 Installed';
+          if (installing) return `\u23F3 ${progress.progress ? Math.round(progress.progress) + '%' : '...'}`;
+          if (failed) return '\u26A0 Retry';
+          return '\uD83D\uDCE5 Install';
+        };
+
+        return (
+          <div className={`workshop-item${installed ? ' installed' : ''}`}>
+            {item.preview ? (
+              <img className="workshop-thumb" src={item.preview} alt="" onError={e => e.target.style.display='none'} />
+            ) : (
+              <div className="workshop-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>\uD83E\DDE9</div>
+            )}
+            <div className="workshop-info">
+              <div className="workshop-info-name">{item.name || 'Unknown Mod'}</div>
+              <div className="workshop-info-meta">
+                <span>ID: {item.workshopId}</span>
+                {item.subscribers > 0 && <span>\u2B07 {formatSubs(item.subscribers)}</span>}
+                {item.fileSize > 0 && <span>\uD83D\uDCE6 {formatBytes(item.fileSize)}</span>}
+                {item.updated && <span>\uD83D\uDD50 {new Date(item.updated).toLocaleDateString()}</span>}
+              </div>
+              {item.description && <div className="workshop-info-desc">{item.description}</div>}
+              {item.tags && item.tags.length > 0 && (
+                <div className="workshop-info-tags">{item.tags.slice(0, 5).map(t => <span key={t}>{t}</span>)}</div>
+              )}
+              {installing && (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginBottom: 3 }}>{progress.message || 'Preparing...'}</div>
+                  <div style={{ background: 'var(--bg-deep)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                    <div style={{ width: `${progress.progress || 5}%`, height: '100%', background: 'var(--accent-blue)', borderRadius: 4, transition: 'width 0.3s ease' }} />
+                  </div>
+                </div>
+              )}
+              {failed && <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 4 }}>\u274C {progress.message}</div>}
+            </div>
+            <button className="workshop-btn" disabled={installed || complete || installing}
+              onClick={() => install(item.workshopId, item.name)}
+              style={installing ? { background: 'var(--accent-blue)', opacity: 0.7 } : failed ? { background: 'var(--accent-red)' } : {}}>
+              {btnLabel()}
+            </button>
+          </div>
+        );
+      };
+
       return (
         <div>
           <div className="tabs">
-            <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>Installed ({mods.length})</div>
-            <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}>Workshop</div>
-            <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}>Steam Settings</div>
+            <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>\uD83E\DDE9 Installed ({mods.length})</div>
+            <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}>\uD83D\uDD0D Workshop</div>
+            <div className={`tab ${tab === 'popular' ? 'active' : ''}`} onClick={() => { setTab('popular'); loadPopular(); }}>\uD83D\uDD25 Popular</div>
+            <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}>\u2699\uFE0F Steam</div>
           </div>
+
           {tab === 'installed' && (
-            <div>{mods.length === 0 ? <div className="empty-state"><div className="empty-icon">📦</div><div className="empty-title">No Mods Installed</div></div> : (
-              <div className="table-wrap"><table>
-                <thead><tr><th>Mod</th><th>Workshop ID</th><th>Enabled</th><th>Actions</th></tr></thead>
-                <tbody>{mods.map(m => (
-                  <tr key={m.workshopId || m.name}>
-                    <td style={{ fontWeight: 600 }}>{m.name}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{m.workshopId || '—'}</td>
-                    <td><div className={`toggle ${m.enabled ? 'on' : ''}`} onClick={() => toggleMod(m.workshopId, m.enabled)}><div className="toggle-knob" /></div></td>
-                    <td><button className="btn btn-sm btn-danger" onClick={() => uninstall(m.workshopId)}>Uninstall</button></td>
-                  </tr>
-                ))}</tbody>
-              </table></div>
-            )}</div>
-          )}
-          {tab === 'workshop' && (
             <div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                <input className="input" placeholder="Search Steam Workshop..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()} />
-                <button className="btn btn-blue" onClick={doSearch} disabled={searching}>{searching ? '...' : 'Search'}</button>
-              </div>
-              {results.length > 0 && <div className="table-wrap"><table>
-                <thead><tr><th>Mod</th><th>Subscribers</th><th>Size</th><th>Actions</th></tr></thead>
-                <tbody>{results.map(r => (
-                  <tr key={r.workshopId}>
-                    <td><div style={{ fontWeight: 600 }}>{r.name}</div><div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{r.description?.substring(0, 100)}</div></td>
-                    <td>{r.subscribers?.toLocaleString() || '—'}</td>
-                    <td>{formatBytes(r.fileSize)}</td>
-                    <td><button className="btn btn-sm btn-primary" onClick={() => install(r.workshopId, r.name)} disabled={mods.some(m => m.workshopId === r.workshopId)}>{mods.some(m => m.workshopId === r.workshopId) ? 'Installed' : 'Install'}</button></td>
-                  </tr>
-                ))}</tbody>
-              </table></div>}
+              {mods.length === 0 ? <div className="empty-state"><div className="empty-icon">\uD83D\uDCE6</div><div className="empty-title">No Mods Installed</div><div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Search the Workshop tab to find and install mods</div></div> : (
+                <div>
+                  {mods.map((mod, i) => (
+                    <div className="mod-item" key={mod.workshopId || mod.name}>
+                      <span className="mod-order">#{i + 1}</span>
+                      <div className={`toggle ${mod.enabled ? 'on' : ''}`} onClick={() => toggleMod(mod.workshopId, mod.enabled)}><div className="toggle-knob" /></div>
+                      <span className="mod-name" style={{ opacity: mod.enabled ? 1 : 0.4 }}>{mod.name}</span>
+                      <a href={mod.workshopId ? `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.workshopId}` : '#'}
+                        target="_blank" rel="noopener" className="mod-id" title="Open on Steam Workshop">
+                        {mod.workshopId || 'local'}
+                      </a>
+                      <button className="btn btn-sm btn-danger" onClick={() => uninstall(mod.workshopId)} title="Uninstall">\uD83D\uDDD1</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
+
+          {tab === 'workshop' && (
+            <div>
+              <div className="card" style={{ marginBottom: 16 }}>
+                <div className="card-title" style={{ marginBottom: 12 }}>\uD83D\uDD0D Search Steam Workshop</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div className="workshop-search-box" style={{ flex: 1 }}>
+                    <span className="workshop-search-icon">\uD83D\uDD0E</span>
+                    <input className="input" placeholder="Search DayZ mods on Steam Workshop..."
+                      value={search} onChange={e => handleSearch(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && doSearch()} style={{ paddingLeft: 36 }} autoFocus />
+                  </div>
+                  <button className="btn btn-blue" onClick={doSearch} disabled={searching}>{searching ? 'Searching...' : 'Search'}</button>
+                </div>
+              </div>
+              {searching && <div className="workshop-loading">Searching Steam Workshop...</div>}
+              {!searching && results.length > 0 && (
+                <div className="workshop-results">{results.map(r => <WorkshopItem key={r.workshopId} item={r} />)}</div>
+              )}
+              {!searching && search.length >= 2 && results.length === 0 && (
+                <div className="workshop-loading">No mods found for "{search}"</div>
+              )}
+              {!searching && search.length < 2 && results.length === 0 && (
+                <div className="workshop-loading">Type at least 2 characters to search</div>
+              )}
+            </div>
+          )}
+
+          {tab === 'popular' && (
+            <div>
+              <div className="card-title" style={{ marginBottom: 12 }}>\uD83D\uDD25 Popular DayZ Mods</div>
+              {loadingPopular && <div className="workshop-loading">Loading popular mods...</div>}
+              {!loadingPopular && popularMods.length > 0 && (
+                <div className="workshop-results">{popularMods.map(r => <WorkshopItem key={r.workshopId} item={r} />)}</div>
+              )}
+              {!loadingPopular && popularMods.length === 0 && (
+                <div className="workshop-loading">No popular mods available</div>
+              )}
+            </div>
+          )}
+
           {tab === 'steam' && <SteamSettingsPanel />}
         </div>
       );
