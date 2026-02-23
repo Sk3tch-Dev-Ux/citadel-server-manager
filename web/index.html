@@ -316,6 +316,25 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
+    // ─── Error Boundary ──────────────────────────────────
+    class ErrorBoundary extends React.Component {
+      constructor(props) { super(props); this.state = { hasError: false, error: null, errorInfo: null }; }
+      static getDerivedStateFromError(error) { return { hasError: true, error }; }
+      componentDidCatch(error, errorInfo) { this.setState({ errorInfo }); console.error('React ErrorBoundary caught:', error, errorInfo); }
+      render() {
+        if (this.state.hasError) {
+          return React.createElement('div', { style: { padding: 24, background: '#2a2e37', borderRadius: 8, border: '1px solid #e74c3c', margin: 16 } },
+            React.createElement('h3', { style: { color: '#e74c3c', marginBottom: 8 } }, 'Something went wrong'),
+            React.createElement('pre', { style: { color: '#ccc', fontSize: 12, whiteSpace: 'pre-wrap', marginBottom: 12, maxHeight: 200, overflow: 'auto' } },
+              String(this.state.error) + (this.state.errorInfo ? '\n' + this.state.errorInfo.componentStack : '')),
+            React.createElement('button', { onClick: () => this.setState({ hasError: false, error: null, errorInfo: null }),
+              style: { padding: '6px 16px', background: '#6cb4f0', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' } }, 'Try Again')
+          );
+        }
+        return this.props.children;
+      }
+    }
+
     // ─── API Client ──────────────────────────────────────
     const API_BASE = window.location.port === '3001' ? '' : 'http://localhost:3001';
     const socket = io(API_BASE || window.location.origin);
@@ -339,10 +358,11 @@
       return `${m}m`;
     }
     function formatBytes(b) {
-      if (!b) return '0 B';
+      b = Number(b);
+      if (!b || isNaN(b)) return '0 B';
       const u = ['B','KB','MB','GB']; let i = 0;
       while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
-      return `${b.toFixed(1)} ${u[i]}`;
+      return b.toFixed(1) + ' ' + u[i];
     }
     function timeAgo(d) {
       if (!d) return '';
@@ -708,9 +728,11 @@
         searchTimeout.current = setTimeout(async () => {
           setSearching(true);
           try {
-            const data = await API.get(`/api/workshop/search?q=${encodeURIComponent(query.trim())}`);
-            setResults(data.results || []);
-          } catch { window.addToast('Workshop search failed', 'error'); }
+            const data = await API.get('/api/workshop/search?q=' + encodeURIComponent(query.trim()));
+            const items = Array.isArray(data && data.results) ? data.results : [];
+            console.log('[Workshop] search returned', items.length, 'results');
+            setResults(items);
+          } catch(e) { console.error('[Workshop] search error:', e); window.addToast('Workshop search failed', 'error'); setResults([]); }
           setSearching(false);
         }, 400);
       };
@@ -719,9 +741,11 @@
         if (!search.trim() || search.trim().length < 2) return;
         setSearching(true);
         try {
-          const data = await API.get(`/api/workshop/search?q=${encodeURIComponent(search.trim())}`);
-          setResults(data.results || []);
-        } catch { window.addToast('Workshop search failed', 'error'); }
+          const data = await API.get('/api/workshop/search?q=' + encodeURIComponent(search.trim()));
+          const items = Array.isArray(data && data.results) ? data.results : [];
+          console.log('[Workshop] doSearch returned', items.length, 'results');
+          setResults(items);
+        } catch(e) { console.error('[Workshop] doSearch error:', e); window.addToast('Workshop search failed', 'error'); setResults([]); }
         setSearching(false);
       };
 
@@ -730,8 +754,9 @@
         setLoadingPopular(true);
         try {
           const data = await API.get('/api/workshop/popular');
-          setPopularMods(data.results || []);
-        } catch { window.addToast('Failed to load popular mods', 'error'); }
+          const items = Array.isArray(data && data.results) ? data.results : [];
+          setPopularMods(items);
+        } catch(e) { console.error('[Workshop] popular error:', e); window.addToast('Failed to load popular mods', 'error'); }
         setLoadingPopular(false);
       };
 
@@ -780,15 +805,24 @@
 
       // Workshop item component with preview, metadata, progress
       const WorkshopItem = ({ item }) => {
-        const installed = isInstalled(item.workshopId);
-        const progress = installProgress[item.workshopId];
-        const installing = isInstalling(item.workshopId);
+        if (!item || !item.workshopId) return null;
+        const wid = String(item.workshopId);
+        const installed = isInstalled(wid);
+        const progress = installProgress[wid];
+        const installing = isInstalling(wid);
         const failed = progress && (progress.status === 'error' || progress.status === 'steam_guard');
         const complete = progress && progress.status === 'complete';
+        const name = item.name || 'Unknown Mod';
+        const desc = typeof item.description === 'string' ? item.description : '';
+        const tags = Array.isArray(item.tags) ? item.tags.filter(Boolean) : [];
+        const subs = Number(item.subscribers) || 0;
+        const fSize = Number(item.fileSize) || 0;
+        let updatedStr = '';
+        try { if (item.updated) updatedStr = new Date(item.updated).toLocaleDateString(); } catch(e) { /* ignore */ }
 
         const btnLabel = () => {
           if (installed || complete) return '✓ Installed';
-          if (installing) return `⏳ ${progress.progress ? Math.round(progress.progress) + '%' : '...'}`;
+          if (installing) return ('⏳ ' + (progress.progress ? Math.round(progress.progress) + '%' : '...'));
           if (failed) return '⚠ Retry';
           return '📥 Install';
         };
@@ -796,21 +830,21 @@
         return (
           <div className={`workshop-item${installed ? ' installed' : ''}`}>
             {item.preview ? (
-              <img className="workshop-thumb" src={item.preview} alt="" onError={e => e.target.style.display='none'} />
+              <img className="workshop-thumb" src={item.preview} alt="" onError={function(e) { e.target.style.display='none'; }} />
             ) : (
               <div className="workshop-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🧩</div>
             )}
             <div className="workshop-info">
-              <div className="workshop-info-name">{item.name || 'Unknown Mod'}</div>
+              <div className="workshop-info-name">{name}</div>
               <div className="workshop-info-meta">
-                <span>ID: {item.workshopId}</span>
-                {item.subscribers > 0 && <span>⬇ {formatSubs(item.subscribers)}</span>}
-                {item.fileSize > 0 && <span>📦 {formatBytes(item.fileSize)}</span>}
-                {item.updated && <span>🕐 {new Date(item.updated).toLocaleDateString()}</span>}
+                <span>{'ID: ' + wid}</span>
+                {subs > 0 && <span>{'⬇ ' + formatSubs(subs)}</span>}
+                {fSize > 0 && <span>{'📦 ' + formatBytes(fSize)}</span>}
+                {updatedStr && <span>{'🕐 ' + updatedStr}</span>}
               </div>
-              {item.description && <div className="workshop-info-desc">{item.description}</div>}
-              {item.tags && item.tags.length > 0 && (
-                <div className="workshop-info-tags">{item.tags.slice(0, 5).map(t => <span key={t}>{t}</span>)}</div>
+              {desc && <div className="workshop-info-desc">{desc}</div>}
+              {tags.length > 0 && (
+                <div className="workshop-info-tags">{tags.slice(0, 5).map(function(t, i) { return <span key={i}>{String(t)}</span>; })}</div>
               )}
               {installing && (
                 <div style={{ marginTop: 6 }}>
@@ -823,7 +857,7 @@
               {failed && <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 4 }}>❌ {progress.message}</div>}
             </div>
             <button className="workshop-btn" disabled={installed || complete || installing}
-              onClick={() => install(item.workshopId, item.name)}
+              onClick={function() { install(wid, name); }}
               style={installing ? { background: 'var(--accent-blue)', opacity: 0.7 } : failed ? { background: 'var(--accent-red)' } : {}}>
               {btnLabel()}
             </button>
@@ -1968,12 +2002,13 @@
             </div>
 
             <div className="main-content">
+              <ErrorBoundary>
               {page === 'hub' && <ServerHubPage servers={servers} onSelect={selectServer} />}
               {page === 'deploy' && <DeployPage onDeployed={loadServers} />}
               {page === 'users' && <UsersPage />}
               {page === 'webhooks' && <WebhooksPage />}
               {page === 'server' && selectedServer && (
-                <>
+                <ErrorBoundary>
                   {serverTab === 'overview' && <ServerOverviewPage serverId={selectedServer} />}
                   {serverTab === 'metrics' && <ServerMetricsPage serverId={selectedServer} />}
                   {serverTab === 'console' && <ConsolePage serverId={selectedServer} />}
@@ -1985,8 +2020,9 @@
                   {serverTab === 'bans' && <BansPage serverId={selectedServer} />}
                   {serverTab === 'scheduler' && <SchedulerPage serverId={selectedServer} />}
                   {serverTab === 'settings' && <ServerSettingsPage serverId={selectedServer} />}
-                </>
+                </ErrorBoundary>
               )}
+              </ErrorBoundary>
             </div>
           </div>
           <ToastContainer />

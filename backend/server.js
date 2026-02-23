@@ -288,6 +288,42 @@ function getProcessMetrics(pid, executable) {
   });
 }
 
+// ─── FPS Scraping from RPT logs ──────────────────────────
+// DayZ with logAverageFps=N in serverDZ.cfg writes lines like:
+//   "Average server FPS: 3000.00 (for last 10 sec)"
+// to the .RPT file in the profiles directory.
+function scrapeRPTForFPS(server) {
+  try {
+    const profileDir = server.profileDir || server.installDir;
+    if (!profileDir || !fs.existsSync(profileDir)) return 0;
+    // RPT files are named like: DayZServer_x64_YYYY-MM-DD_HH-MM-SS.RPT
+    // or sometimes just script_YYYY-MM-DD.log — find the newest .RPT
+    const files = fs.readdirSync(profileDir)
+      .filter(f => f.toLowerCase().endsWith('.rpt'))
+      .map(f => ({ name: f, mtime: fs.statSync(path.join(profileDir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    if (files.length === 0) return 0;
+    const rptPath = path.join(profileDir, files[0].name);
+    // Read only the last 4KB of the file to find the most recent FPS line
+    const stat = fs.statSync(rptPath);
+    const readSize = Math.min(stat.size, 4096);
+    const fd = fs.openSync(rptPath, 'r');
+    const buf = Buffer.alloc(readSize);
+    fs.readSync(fd, buf, 0, readSize, Math.max(0, stat.size - readSize));
+    fs.closeSync(fd);
+    const tail = buf.toString('utf8');
+    // Match all FPS lines and take the last one
+    const matches = [...tail.matchAll(/Average server FPS:\s*([\d.]+)/gi)];
+    if (matches.length > 0) {
+      const fps = parseFloat(matches[matches.length - 1][1]);
+      return isNaN(fps) ? 0 : fps;
+    }
+    return 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
 function killProcess(pid, executable) {
   return new Promise((resolve, reject) => {
     if (pid) {
@@ -368,6 +404,7 @@ class RCONClient {
     this.socket = null; this.connected = false; this.loggedIn = false;
     this.sequenceNum = 0; this.pendingCommands = new Map();
     this.keepAliveInterval = null;
+    this.lastFPS = 0; this.monitorEnabled = false;
   }
   _buildPacket(payload) {
     const body = Buffer.concat([Buffer.from([0xFF]), payload]);
@@ -409,6 +446,9 @@ class RCONClient {
               const seq = payload[0]; const message = payload.slice(1).toString('utf8');
               const ack = this._buildAckPacket(seq);
               this.socket.send(ack, 0, ack.length, this.port, this.ip);
+              // Parse server FPS from #monitor messages (format: "Server FPS: XX" or "ServerFPS: XX")
+              const fpsMatch = message.match(/Server\s*FPS:\s*(\d+(?:\.\d+)?)/i);
+              if (fpsMatch) this.lastFPS = parseFloat(fpsMatch[1]);
               io.emit('rconMessage', { timestamp: new Date().toISOString(), message });
             }
             break;
@@ -453,6 +493,11 @@ class RCONClient {
   async restart() { return this.send('#restart'); }
   async lock() { return this.send('#lock'); }
   async unlock() { return this.send('#unlock'); }
+  async enableMonitor() {
+    if (this.monitorEnabled) return;
+    try { await this.send('#monitor 1'); this.monitorEnabled = true; } catch(e) { /* ignore */ }
+  }
+  getFPS() { return this.lastFPS; }
 }
 
 // ─── Initialize Server States ────────────────────────────
@@ -1569,7 +1614,15 @@ setInterval(async () => {
       state.pid = pid;
       if (state.status !== 'running') { state.status = 'running'; state.startedAt = state.startedAt || new Date().toISOString(); io.emit('serverStatus', { serverId: srv.id, status: 'running' }); }
       const metrics = await getProcessMetrics(pid, srv.executable);
-      if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, 0);
+      // Get FPS: prefer RPT log scraping (logAverageFps in serverDZ.cfg), fall back to RCON
+      let fps = scrapeRPTForFPS(srv);
+      if (!fps && state.rcon) {
+        try {
+          if (!state.rcon.monitorEnabled && state.rcon.loggedIn) await state.rcon.enableMonitor();
+          fps = state.rcon.getFPS() || 0;
+        } catch(e) { /* RCON not available */ }
+      }
+      if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps);
     } else if (state.status === 'running') {
       addLog(srv.id, 'error', 'server', 'Process no longer running');
       state.status = 'crashed'; state.players = []; state.pid = null; state.process = null;
