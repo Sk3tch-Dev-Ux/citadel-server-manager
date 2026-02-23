@@ -179,6 +179,12 @@ let roles = loadJSON('roles.json', [
 ]);
 let webhooks = loadJSON('webhooks.json', []);
 let auditLog = loadJSON('audit.json', []);
+let watchList = loadJSON('watchlist.json', []);
+let priorityQueue = loadJSON('priority_queue.json', []);
+let leaderboard = loadJSON('leaderboard.json', []);
+function saveWatchList() { saveJSON('watchlist.json', watchList); }
+function savePriorityQueue() { saveJSON('priority_queue.json', priorityQueue); }
+function saveLeaderboard() { saveJSON('leaderboard.json', leaderboard); }
 
 // Runtime state per server
 const serverStates = {};
@@ -440,6 +446,61 @@ function scrapeRPTForFPS(server) {
   } catch (e) {
     return 0;
   }
+}
+
+// ─── RPT Kill Log Scraping ────────────────────────────────
+// DayZ logs kills in RPT as:
+//   Player "Victim" (id=... pos=<...>) was killed by player "Killer" (id=... pos=<...>)
+//   Player "Victim" (id=... pos=<...>) was killed by Bear
+function scrapeRPTForKills(server, limit = 30) {
+  try {
+    const profileDir = server.profileDir || server.installDir;
+    if (!profileDir || !fs.existsSync(profileDir)) return [];
+    const files = fs.readdirSync(profileDir)
+      .filter(f => f.toLowerCase().endsWith('.rpt'))
+      .map(f => ({ name: f, mtime: fs.statSync(path.join(profileDir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    if (files.length === 0) return [];
+    const rptPath = path.join(profileDir, files[0].name);
+    const stat = fs.statSync(rptPath);
+    const readSize = Math.min(stat.size, 128 * 1024); // last 128KB
+    const fd = fs.openSync(rptPath, 'r');
+    const buf = Buffer.alloc(readSize);
+    fs.readSync(fd, buf, 0, readSize, Math.max(0, stat.size - readSize));
+    fs.closeSync(fd);
+    const content = buf.toString('utf8');
+    const kills = [];
+    // Capture timestamp prefix, victim, optional killer name, optional NPC type
+    const regex = /(\d{2}:\d{2}:\d{2})\s+Player "([^"]+)"[^]*?was killed by (?:player "([^"]+)"|(\S+))/g;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      kills.push({
+        time: match[1],
+        victim: match[2],
+        killer: match[3] || match[4] || 'Unknown',
+        method: match[3] ? 'PvP' : (match[4] || 'Environment'),
+      });
+    }
+    return kills.slice(-limit);
+  } catch { return []; }
+}
+
+function updateLeaderboard(serverId) {
+  const srv = servers.find(s => s.id === serverId);
+  if (!srv) return;
+  const kills = scrapeRPTForKills(srv, 5000);
+  const stats = {};
+  for (const k of kills) {
+    if (!stats[k.victim]) stats[k.victim] = { player: k.victim, kills: 0, deaths: 0, score: 0 };
+    stats[k.victim].deaths++;
+    if (k.method === 'PvP' && k.killer !== 'Unknown') {
+      if (!stats[k.killer]) stats[k.killer] = { player: k.killer, kills: 0, deaths: 0, score: 0 };
+      stats[k.killer].kills++;
+    }
+  }
+  for (const p of Object.values(stats)) p.score = Math.max(0, p.kills - p.deaths);
+  leaderboard = Object.values(stats).sort((a, b) => b.score - a.score);
+  saveLeaderboard();
 }
 
 function killProcess(pid, executable) {
@@ -1407,6 +1468,52 @@ app.patch('/api/servers/:id/mods/:workshopId', auth('mods.install'), (req, res) 
 
 app.get('/api/mods/install-status', auth(), (req, res) => { res.json(activeInstalls); });
 
+// ─── Watch List ───────────────────────────────────────────
+app.get('/api/watchlist', auth(), (req, res) => res.json(watchList));
+app.post('/api/watchlist', auth('players.ban'), (req, res) => {
+  const { name, steamId, reason } = req.body;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const entry = { id: uuid(), name, steamId: steamId || '', reason: reason || '', addedAt: new Date().toISOString() };
+  watchList.push(entry);
+  saveWatchList();
+  res.json(entry);
+});
+app.delete('/api/watchlist/:id', auth('players.ban'), (req, res) => {
+  watchList = watchList.filter(w => w.id !== req.params.id);
+  saveWatchList();
+  res.json({ message: 'Removed' });
+});
+
+// ─── Priority Queue ───────────────────────────────────────
+app.get('/api/priority-queue', auth(), (req, res) => res.json(priorityQueue));
+app.post('/api/priority-queue', auth('server.rcon'), (req, res) => {
+  const { name, steamId, role } = req.body;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const entry = { id: uuid(), name, steamId: steamId || '', role: role || 'VIP', addedAt: new Date().toISOString() };
+  priorityQueue.push(entry);
+  savePriorityQueue();
+  res.json(entry);
+});
+app.delete('/api/priority-queue/:id', auth('server.rcon'), (req, res) => {
+  priorityQueue = priorityQueue.filter(p => p.id !== req.params.id);
+  savePriorityQueue();
+  res.json({ message: 'Removed' });
+});
+
+// ─── Killfeed ─────────────────────────────────────────────
+app.get('/api/servers/:id/killfeed', auth(), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  res.json(scrapeRPTForKills(srv, parseInt(req.query.limit) || 30));
+});
+
+// ─── Leaderboard ──────────────────────────────────────────
+app.get('/api/leaderboard', auth(), (req, res) => res.json(leaderboard));
+app.post('/api/leaderboard/refresh', auth(), (req, res) => {
+  servers.forEach(s => updateLeaderboard(s.id));
+  res.json(leaderboard);
+});
+
 // ─── Files (per server) ─────────────────────────────────
 app.get('/api/servers/:id/files', auth('files.browse'), (req, res) => {
   const srv = servers.find(s => s.id === req.params.id);
@@ -2011,17 +2118,25 @@ app.post('/api/discord/action', async (req, res) => {
     case 'banWhitelist':
       return res.json({ entries: (state?.banList || []).map(b => ({ player: b.name || b.id, status: 'Banned', reason: b.reason || '' })) });
 
-    // ── Stubs (not yet implemented in backend) ──
+    // ── Live Data Feeds ──
     case 'killfeed':
-      return res.json({ kills: [] });
+      return res.json({ kills: scrapeRPTForKills(defaultSrv, 20) });
     case 'watchList':
-      return res.json({ players: [] });
+      return res.json({ players: watchList });
     case 'priorityQueue':
-      return res.json({ entries: [] });
-    case 'timeWeather':
-      return res.json({ info: null });
+      return res.json({ entries: priorityQueue });
+    case 'timeWeather': {
+      const cfg = state?.config || {};
+      const lines = [
+        cfg.serverTime           ? `🕐 Server Time: \`${cfg.serverTime}\``                        : null,
+        cfg.serverTimeAcceleration != null ? `⚡ Time Speed: \`${cfg.serverTimeAcceleration}x\`` : null,
+        cfg.serverTimePersistent != null   ? `💾 Persistent: \`${cfg.serverTimePersistent ? 'Yes' : 'No'}\`` : null,
+        cfg.weather              ? `🌤️ Weather: \`${cfg.weather}\``                               : null,
+      ].filter(Boolean);
+      return res.json({ info: lines.length ? lines.join('\n') : null });
+    }
     case 'leaderboard':
-      return res.json({ entries: [] });
+      return res.json({ entries: leaderboard.slice(0, 10) });
 
     default: return res.status(400).json({ error: `Unknown action: ${action}` });
   }
@@ -2177,6 +2292,10 @@ setInterval(async () => {
 
 servers.forEach(s => autoDetectMods(s.id));
 setInterval(() => servers.forEach(s => autoDetectMods(s.id)), 5 * 60 * 1000);
+
+// Build leaderboard from RPT on startup, then refresh every 5 minutes
+servers.forEach(s => updateLeaderboard(s.id));
+setInterval(() => servers.forEach(s => updateLeaderboard(s.id)), 5 * 60 * 1000);
 
 setTimeout(() => {
   for (const srv of servers) {
