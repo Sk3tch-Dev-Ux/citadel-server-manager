@@ -1936,7 +1936,8 @@
         const installed = isInstalled(item.workshopId);
         const progress = installProgress[item.workshopId];
         const installing = isInstalling(item.workshopId);
-        const failed = progress && progress.status === 'error';
+        const failed = progress && (progress.status === 'error' || progress.status === 'steam_guard');
+        const needsGuard = progress && progress.status === 'steam_guard';
         const complete = progress && progress.status === 'complete';
 
         const getButtonContent = () => {
@@ -1945,8 +1946,27 @@
             const pct = progress.progress != null ? `${Math.round(progress.progress)}%` : '';
             return `⏳ ${progress.status === 'downloading' ? 'Downloading' : progress.status === 'installing' ? 'Installing' : 'Starting'}${pct ? ' ' + pct : '...'}`;
           }
+          if (needsGuard) return '🔐 Guard Code';
           if (failed) return '⚠ Retry';
+          // If no credentials set, show hint
+          if (steamStatus && !steamStatus.hasPassword) return '⚙️ Setup Steam';
           return '📥 Install';
+        };
+
+        const handleClick = () => {
+          if (installed || complete || installing) return;
+          // If no Steam credentials, redirect to settings tab
+          if (steamStatus && !steamStatus.hasPassword) {
+            setActiveTab('settings');
+            toast('Steam credentials required to download mods', 'warn');
+            return;
+          }
+          if (needsGuard) {
+            setActiveTab('settings');
+            toast('Enter your Steam Guard code in Settings', 'warn');
+            return;
+          }
+          installFromWorkshop(item);
         };
 
         return (
@@ -1982,16 +2002,16 @@
                 </div>
               )}
               {failed && (
-                <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 4 }}>
-                  ❌ {progress.message}
+                <div style={{ fontSize: 11, color: needsGuard ? 'var(--accent-yellow)' : 'var(--accent-red)', marginTop: 4 }}>
+                  {needsGuard ? '🔐' : '❌'} {progress.message}
                 </div>
               )}
             </div>
             <button
               className="workshop-add-btn"
               disabled={installed || complete || installing}
-              onClick={() => failed ? installFromWorkshop(item) : installFromWorkshop(item)}
-              style={installing ? { background: 'var(--accent-blue)', opacity: 0.7 } : failed ? { background: 'var(--accent-red)' } : {}}
+              onClick={handleClick}
+              style={installing ? { background: 'var(--accent-blue)', opacity: 0.7 } : (needsGuard ? { background: 'var(--accent-yellow)', color: '#000' } : (failed ? { background: 'var(--accent-red)' } : (steamStatus && !steamStatus.hasPassword ? { background: '#555' } : {})))}
             >
               {getButtonContent()}
             </button>
@@ -2012,7 +2032,27 @@
             <div className={`workshop-tab${activeTab === 'popular' ? ' active' : ''}`} onClick={() => { setActiveTab('popular'); loadPopular(); }}>
               🔥 Popular
             </div>
+            <div className={`workshop-tab${activeTab === 'settings' ? ' active' : ''}`} onClick={() => setActiveTab('settings')}>
+              ⚙️ Steam {steamStatus && steamStatus.loginValidated ? '✅' : (steamStatus && steamStatus.hasPassword ? '🟡' : '🔴')}
+            </div>
           </div>
+
+          {/* Steam credentials not configured warning */}
+          {activeTab !== 'settings' && steamStatus && !steamStatus.hasPassword && (
+            <div style={{
+              background: 'rgba(255,184,0,0.1)', border: '1px solid var(--accent-yellow)',
+              borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: 16,
+              display: 'flex', alignItems: 'center', gap: 12, fontSize: 13,
+            }}>
+              <span style={{ fontSize: 20 }}>⚠️</span>
+              <div>
+                <strong>Steam credentials required.</strong> DayZ Workshop mods need a Steam account that owns DayZ to download.
+                <span style={{ color: 'var(--accent-blue)', cursor: 'pointer', marginLeft: 8 }} onClick={() => setActiveTab('settings')}>
+                  Configure Steam Login →
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Search Tab */}
           {activeTab === 'search' && (
@@ -2064,6 +2104,108 @@
                 {!loadingPopular && popularMods.length === 0 && (
                   <div className="workshop-loading">No popular mods available — Steam API may require an API key for this feature.</div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Settings Tab — Steam Credentials */}
+          {activeTab === 'settings' && (
+            <div className="card mb-24">
+              <div className="card-header">
+                <div className="card-title">⚙️ Steam Login Configuration</div>
+              </div>
+              <div className="card-body">
+                <div style={{ maxWidth: 500 }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
+                    DayZ Workshop mods require a <strong>Steam account that owns DayZ</strong> to download via SteamCMD.
+                    Anonymous login will not work. Your credentials are stored in memory only (not saved to disk) and
+                    are used solely for SteamCMD authentication.
+                  </p>
+
+                  {steamStatus && steamStatus.loginValidated && (
+                    <div style={{ background: 'rgba(0,255,106,0.1)', border: '1px solid var(--accent-green)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 16, fontSize: 13 }}>
+                      ✅ <strong>Logged in as {steamStatus.username}</strong> — Ready to download mods
+                    </div>
+                  )}
+
+                  {steamStatus && steamStatus.steamCmdReady && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                      📦 SteamCMD: {steamStatus.steamCmdPath}
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>Steam Username</label>
+                    <input
+                      type="text"
+                      value={steamUser}
+                      onChange={e => setSteamUser(e.target.value)}
+                      placeholder="your_steam_username"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>Steam Password</label>
+                    <input
+                      type="password"
+                      value={steamPass}
+                      onChange={e => setSteamPass(e.target.value)}
+                      placeholder="your_steam_password"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                      Steam Guard Code <span style={{ color: 'var(--text-muted)' }}>(only if prompted)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={steamGuard}
+                      onChange={e => setSteamGuard(e.target.value.toUpperCase())}
+                      placeholder="e.g. A1B2C"
+                      maxLength={5}
+                      style={{ width: 120, textAlign: 'center', letterSpacing: 4, fontFamily: 'var(--font-mono)' }}
+                    />
+                  </div>
+
+                  <button
+                    className="btn btn-primary"
+                    disabled={steamSaving || !steamUser || !steamPass}
+                    onClick={async () => {
+                      setSteamSaving(true);
+                      try {
+                        const result = await API.post('/api/steam/credentials', {
+                          username: steamUser,
+                          password: steamPass,
+                          guardCode: steamGuard || undefined,
+                        });
+                        if (result.success) {
+                          toast(`✅ ${result.message}`, 'success');
+                          setSteamStatus(prev => ({ ...prev, username: steamUser, hasPassword: true, loginValidated: true }));
+                          setSteamGuard('');
+                        } else if (result.needsGuard) {
+                          toast('🔐 Steam Guard code required — check your email or authenticator app', 'warn');
+                          setSteamStatus(prev => ({ ...prev, username: steamUser, hasPassword: true, loginValidated: false }));
+                        } else {
+                          toast(`❌ ${result.message}`, 'error');
+                          setSteamStatus(prev => ({ ...prev, loginValidated: false }));
+                        }
+                      } catch (err) {
+                        toast(err.message, 'error');
+                      }
+                      setSteamSaving(false);
+                    }}
+                  >
+                    {steamSaving ? '⚙️ Validating...' : '🔐 Login & Validate'}
+                  </button>
+
+                  <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 16, lineHeight: 1.5 }}>
+                    💡 <strong>Tip:</strong> For permanent configuration, set <code>STEAM_USERNAME</code> and <code>STEAM_PASSWORD</code> in
+                    your <code>.env</code> file. The Steam Guard code can only be entered here (it changes each time).
+                  </p>
+                </div>
               </div>
             </div>
           )}

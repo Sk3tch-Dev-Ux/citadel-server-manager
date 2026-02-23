@@ -1,14 +1,16 @@
 /**
- * DayZ Server Panel - Backend API
+ * DayZ Server Panel - Backend API v2.0
  * 
- * This Express server acts as the central hub connecting:
- *   - The Web Dashboard (React frontend)
- *   - The Discord Bot (button-based controls)
- *   - The actual DayZ server (via RCON / BattlEye / file system)
- * 
- * Environment Variables (see .env.example):
- *   PORT, DAYZ_SERVER_IP, DAYZ_RCON_PORT, RCON_PASSWORD,
- *   DAYZ_INSTALL_DIR, JWT_SECRET, DISCORD_WEBHOOK_URL
+ * Features:
+ *   - Multi-server instance management (Server Hub)
+ *   - User/Role management with Audit Log
+ *   - Webhook system (server events → Discord/HTTP)
+ *   - Server deployment via SteamCMD
+ *   - Enhanced metrics with real-time streaming
+ *   - Steam Workshop search, download & install
+ *   - BattlEye RCON integration
+ *   - File explorer with Monaco Editor support
+ *   - serverDZ.cfg parser/writer
  */
 
 const express = require('express');
@@ -20,7 +22,8 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 const { spawn, exec } = require('child_process');
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+const { v4: uuid } = require('uuid');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
 const server = http.createServer(app);
@@ -30,414 +33,98 @@ const io = new SocketIO(server, { cors: { origin: '*' } });
 const CONFIG = {
   port: process.env.PORT || 3001,
   jwtSecret: process.env.JWT_SECRET || 'change-me-in-production',
+  dataDir: path.join(__dirname, '..', 'data'),
   dayz: {
     ip: process.env.DAYZ_SERVER_IP || '127.0.0.1',
     rconPort: parseInt(process.env.DAYZ_RCON_PORT || '2305'),
     rconPassword: process.env.RCON_PASSWORD || '',
-    installDir: process.env.DAYZ_INSTALL_DIR || '/home/dayz/server',
-    profileDir: process.env.DAYZ_PROFILE_DIR || '/home/dayz/server/profiles',
+    installDir: process.env.DAYZ_INSTALL_DIR || 'C:\\DayZServer',
+    profileDir: process.env.DAYZ_PROFILE_DIR || '',
     executable: process.env.DAYZ_EXECUTABLE || 'DayZServer_x64.exe',
-    startBat: process.env.DAYZ_START_BAT || '',  // e.g. 'start.bat' — if set, uses this instead of launching exe directly
+    startBat: process.env.DAYZ_START_BAT || '',
     launchParams: process.env.DAYZ_LAUNCH_PARAMS || '-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck',
   },
   webhookUrl: process.env.DISCORD_WEBHOOK_URL || '',
   steam: {
-    cmdPath: process.env.STEAMCMD_PATH || '',  // auto-detected/downloaded if empty
-    username: process.env.STEAM_USERNAME || '',  // Steam account for Workshop downloads (leave blank for anonymous)
+    cmdPath: process.env.STEAMCMD_PATH || '',
+    username: process.env.STEAM_USERNAME || '',
     password: process.env.STEAM_PASSWORD || '',
-    appId: '221100',  // DayZ
-    serverAppId: '223350',  // DayZ Server (dedicated)
+    appId: '221100',
+    serverAppId: '223350',
   },
 };
+
+// Ensure data directory exists
+if (!fs.existsSync(CONFIG.dataDir)) fs.mkdirSync(CONFIG.dataDir, { recursive: true });
 
 // ─── Middleware ───────────────────────────────────────────
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../web')));
 
-// ─── In-Memory Store (replace with DB in production) ─────
-let store = {
-  users: [],                // { id, username, passwordHash, role }
-  serverStatus: 'stopped',  // stopped | starting | running | stopping | crashed
-  players: [],              // { id, name, ip, ping, joinedAt }
-  logs: [],                 // { timestamp, level, source, message }
-  scheduledRestarts: [],    // { id, cronExpression, label, enabled }
-  modList: [],              // { name, workshopId, enabled, order }
-  metrics: {                // rolling window of server metrics
-    cpu: [],
-    ram: [],
-    players: [],
-    fps: [],
-    timestamps: [],
-  },
-  chatMessages: [],         // { timestamp, player, message }
-  banList: [],              // { id, name, reason, bannedAt, expiresAt }
-  config: {},               // populated from serverDZ.cfg at startup
+// ─── Persistent JSON Data Store ──────────────────────────
+function loadJSON(filename, defaultVal) {
+  const p = path.join(CONFIG.dataDir, filename);
+  try { if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
+  return defaultVal;
+}
+function saveJSON(filename, data) {
+  const p = path.join(CONFIG.dataDir, filename);
+  fs.writeFileSync(p, JSON.stringify(data, null, 2));
+}
+
+// ─── Data ────────────────────────────────────────────────
+let servers = loadJSON('servers.json', []);
+let users = loadJSON('users.json', []);
+let roles = loadJSON('roles.json', [
+  { id: 'admin', name: 'Admin', permissions: ['*'], color: '#ff3b3b', builtIn: true },
+  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','mods.view','logs.view','metrics.view','chat.send'], color: '#3b82f6', builtIn: true },
+  { id: 'viewer', name: 'Viewer', permissions: ['server.view','players.view','mods.view','logs.view','metrics.view'], color: '#00ff6a', builtIn: true },
+]);
+let webhooks = loadJSON('webhooks.json', []);
+let auditLog = loadJSON('audit.json', []);
+
+// Runtime state per server
+const serverStates = {};
+
+// Global state
+let steamCmdPath = CONFIG.steam.cmdPath;
+const activeInstalls = {};
+let steamCredentials = {
+  username: CONFIG.steam.username || '',
+  password: CONFIG.steam.password || '',
+  guardCode: '',
 };
+let steamLoginValidated = false;
 
-// ─── serverDZ.cfg Parser & Writer ────────────────────────
-// Reads the actual DayZ server config file and maps values to store.config.
-// Also writes changes back to the file preserving comments and structure.
-
-function getServerCfgPath() {
-  return path.join(CONFIG.dayz.installDir, 'serverDZ.cfg');
-}
-
-// Parse serverDZ.cfg into a JS object
-function readServerConfig() {
-  const cfgPath = getServerCfgPath();
-  const config = {};
-
-  if (!fs.existsSync(cfgPath)) {
-    addLog('warn', 'config', `serverDZ.cfg not found at ${cfgPath}`);
-    return config;
-  }
-
-  try {
-    const content = fs.readFileSync(cfgPath, 'utf8');
-    const lines = content.split('\n');
-
-    for (const line of lines) {
-      // Skip comments, empty lines, class blocks
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('class') || trimmed === '{' || trimmed === '};') continue;
-
-      // Match: key = value; or key = "value";
-      const match = trimmed.match(/^([\w]+)\s*=\s*(.+?)\s*;/);
-      if (match) {
-        const key = match[1];
-        let value = match[2].trim();
-
-        // Strip inline comments: "value" // comment  OR  value // comment
-        const commentIdx = value.indexOf('//');
-        if (commentIdx > 0) {
-          value = value.substring(0, commentIdx).trim();
-        }
-
-        // Remove surrounding quotes
-        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-          value = value.slice(1, -1);
-        }
-
-        // Convert numeric strings to numbers
-        if (/^\d+$/.test(value)) {
-          value = parseInt(value, 10);
-        } else if (/^\d+\.\d+$/.test(value)) {
-          value = parseFloat(value);
-        }
-
-        config[key] = value;
-      }
-    }
-
-    addLog('info', 'config', `Loaded serverDZ.cfg: ${Object.keys(config).length} settings parsed`);
-  } catch (err) {
-    addLog('error', 'config', `Failed to read serverDZ.cfg: ${err.message}`);
-  }
-
-  return config;
-}
-
-// Write config changes back to serverDZ.cfg, preserving comments and structure
-function writeServerConfig(updates) {
-  const cfgPath = getServerCfgPath();
-
-  if (!fs.existsSync(cfgPath)) {
-    addLog('error', 'config', `Cannot write — serverDZ.cfg not found at ${cfgPath}`);
-    return false;
-  }
-
-  try {
-    // Backup first
-    const backupDir = path.join(CONFIG.dayz.installDir, '.backups');
-    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-    fs.copyFileSync(cfgPath, path.join(backupDir, `serverDZ.cfg.${Date.now()}.bak`));
-
-    let content = fs.readFileSync(cfgPath, 'utf8');
-
-    for (const [key, value] of Object.entries(updates)) {
-      // Build the replacement value
-      const strValue = typeof value === 'string' ? `"${value}"` : String(value);
-
-      // Match the existing line: key = value; // optional comment
-      const regex = new RegExp(`^(\\s*${key}\\s*=\\s*).+?(\\s*;.*)$`, 'm');
-      if (regex.test(content)) {
-        content = content.replace(regex, `$1${strValue}$2`);
-      } else {
-        addLog('warn', 'config', `Key "${key}" not found in serverDZ.cfg, skipping`);
-      }
-    }
-
-    fs.writeFileSync(cfgPath, content, 'utf8');
-    addLog('info', 'config', `serverDZ.cfg updated: ${Object.keys(updates).join(', ')}`);
-    return true;
-  } catch (err) {
-    addLog('error', 'config', `Failed to write serverDZ.cfg: ${err.message}`);
-    return false;
-  }
-}
-
-// Load config from serverDZ.cfg at startup
-store.config = readServerConfig();
-
-// Initialize default admin account
-(async () => {
-  const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin', 10);
-  store.users.push({
-    id: '1',
-    username: process.env.ADMIN_USERNAME || 'admin',
-    passwordHash: hash,
-    role: 'admin',
-  });
-})();
-// ─── Process Tracking ────────────────────────────────
-let dayzProcess = null;       // child_process reference when we launch the server
-let dayzProcessPID = null;    // PID of the DayZ server (may be externally launched)
-
-// Check if DayZServer_x64.exe is running (Windows)
-function detectRunningProcess() {
-  return new Promise((resolve) => {
-    exec(`tasklist /FI "IMAGENAME eq ${CONFIG.dayz.executable}" /FO CSV /NH`, (err, stdout) => {
-      if (err || !stdout) return resolve(null);
-      // tasklist CSV output: "DayZServer_x64.exe","12345","Console","1","2,048,000 K"
-      const lines = stdout.trim().split('\n').filter(l => l.includes(CONFIG.dayz.executable));
-      if (lines.length > 0) {
-        const match = lines[0].match(/"[^"]+","(\d+)"/);
-        return resolve(match ? parseInt(match[1]) : null);
-      }
-      resolve(null);
-    });
-  });
-}
-
-// Get real CPU and RAM usage of the DayZ server process (Windows)
-function getProcessMetrics(pid) {
-  return new Promise((resolve) => {
-    if (!pid) return resolve(null);
-    // Use WMIC to get WorkingSetSize (bytes) and PercentProcessorTime
-    exec(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, (err, stdout) => {
-      if (err || !stdout || !stdout.includes(CONFIG.dayz.executable)) {
-        return resolve(null);
-      }
-      // Parse memory from tasklist: "DayZServer_x64.exe","PID","Console","1","2,048,000 K"
-      const memMatch = stdout.match(/"([\d,]+)\s*K"/);
-      const ramKB = memMatch ? parseInt(memMatch[1].replace(/,/g, '')) : 0;
-      const ramMB = Math.round(ramKB / 1024);
-
-      // Get CPU via wmic (percentage of one core)
-      exec(`wmic path Win32_PerfFormattedData_PerfProc_Process where "IDProcess=${pid}" get PercentProcessorTime /value`, (err2, stdout2) => {
-        let cpu = 0;
-        if (!err2 && stdout2) {
-          const cpuMatch = stdout2.match(/PercentProcessorTime=(\d+)/);
-          if (cpuMatch) cpu = parseInt(cpuMatch[1]);
-        }
-        resolve({ cpu, ram: ramMB });
-      });
-    });
-  });
-}
-
-// Spawn the actual DayZ server process
-function spawnDayZServer() {
-  const installDir = CONFIG.dayz.installDir;
-
-  // Prefer start.bat if configured — it contains all mod loading, CPU, config, etc.
-  if (CONFIG.dayz.startBat) {
-    const batPath = path.join(installDir, CONFIG.dayz.startBat);
-    if (!fs.existsSync(batPath)) {
-      throw new Error(`Start batch file not found at: ${batPath}`);
-    }
-
-    addLog('info', 'server', `Launching via batch file: ${batPath}`);
-
-    // Run the batch file via cmd.exe. The start.bat itself uses "start" to launch
-    // DayZServer_x64.exe, so we run the bat and let it handle everything.
-    // We strip the auto-restart loop by launching only the core start command.
-    const child = spawn('cmd.exe', ['/c', batPath], {
-      cwd: installDir,
-      detached: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: false,
-    });
-
-    child.stdout?.on('data', (data) => {
-      const msg = data.toString().trim();
-      if (msg) addLog('info', 'server', msg);
-    });
-    child.stderr?.on('data', (data) => {
-      const msg = data.toString().trim();
-      if (msg) addLog('error', 'server', msg);
-    });
-
-    // Note: The bat file uses "start" which spawns DayZServer_x64.exe as a separate
-    // process. The cmd.exe child will stay alive (due to the timeout/restart loop in
-    // the bat). We track the actual DayZServer exe via detectRunningProcess().
-    child.on('exit', (code) => {
-      addLog('info', 'server', `Batch launcher exited with code ${code}`);
-      // Don't mark as crashed — the DayZ exe runs independently.
-      // The polling interval will detect if the exe itself dies.
-    });
-
-    child.on('error', (err) => {
-      addLog('error', 'server', `Failed to launch batch file: ${err.message}`);
-      store.serverStatus = 'crashed';
-      io.emit('serverStatus', store.serverStatus);
-    });
-
-    child.unref();
-    return child;
-  }
-
-  // Fallback: launch exe directly with params from .env
-  const execPath = path.join(installDir, CONFIG.dayz.executable);
-  const params = CONFIG.dayz.launchParams.split(' ').filter(Boolean);
-
-  if (!fs.existsSync(execPath)) {
-    throw new Error(`DayZ executable not found at: ${execPath}`);
-  }
-
-  addLog('info', 'server', `Launching directly: ${execPath} ${params.join(' ')}`);
-
-  const child = spawn(execPath, params, {
-    cwd: installDir,
-    detached: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-
-  child.stdout?.on('data', (data) => {
-    addLog('info', 'server', data.toString().trim());
-  });
-  child.stderr?.on('data', (data) => {
-    addLog('error', 'server', data.toString().trim());
-  });
-
-  child.on('exit', (code) => {
-    addLog('warn', 'server', `DayZ process exited with code ${code}`);
-    dayzProcess = null;
-    dayzProcessPID = null;
-    if (store.serverStatus !== 'stopping' && store.serverStatus !== 'stopped') {
-      store.serverStatus = 'crashed';
-      io.emit('serverStatus', store.serverStatus);
-      sendDiscordWebhook('💥 **DayZ Server Crashed** (process exited unexpectedly)');
-    }
-  });
-
-  child.on('error', (err) => {
-    addLog('error', 'server', `Failed to launch process: ${err.message}`);
-    dayzProcess = null;
-    dayzProcessPID = null;
-    store.serverStatus = 'crashed';
-    io.emit('serverStatus', store.serverStatus);
-  });
-
-  child.unref();
-  return child;
-}
-
-// ─── Mod Auto-Detection ──────────────────────────────────
-// Scans the server directory for @mod folders and checks start.bat for active mods.
-function autoDetectMods() {
-  const installDir = CONFIG.dayz.installDir;
-
-  // 1. Find all @folders in the server directory (these are installed mods)
-  let installedMods = [];
-  try {
-    const entries = fs.readdirSync(installDir, { withFileTypes: true });
-    installedMods = entries
-      .filter(e => e.isDirectory() && e.name.startsWith('@'))
-      .map(e => e.name);
-  } catch (err) {
-    addLog('error', 'mods', `Failed to scan mod directory: ${err.message}`);
-    return;
-  }
-
-  // 2. Parse start.bat to find which mods are actually loaded (-mod= parameter)
-  let activeMods = new Set();
-  if (CONFIG.dayz.startBat) {
-    const batPath = path.join(installDir, CONFIG.dayz.startBat);
-    try {
-      const batContent = fs.readFileSync(batPath, 'utf8');
-      // Match -mod= or "-mod= parameter (handles quoted and unquoted)
-      const modMatch = batContent.match(/["\s]-mod=([^"\n]+)/i) || batContent.match(/-mod=([^\s]+)/i);
-      if (modMatch) {
-        const modString = modMatch[1].replace(/["]/g, '').trim();
-        modString.split(';').forEach(m => {
-          const trimmed = m.trim();
-          if (trimmed) activeMods.add(trimmed);
-        });
-      }
-    } catch (err) {
-      addLog('warn', 'mods', `Could not parse start.bat for mods: ${err.message}`);
-    }
-  }
-
-  // 3. Build mod list: installed mods with active status from start.bat
-  store.modList = installedMods.map((name, index) => {
-    const isActive = activeMods.size === 0 ? true : activeMods.has(name);
-    // Try to read mod meta.cpp for Workshop ID
-    let workshopId = '';
-    try {
-      const metaPath = path.join(installDir, name, 'meta.cpp');
-      if (fs.existsSync(metaPath)) {
-        const meta = fs.readFileSync(metaPath, 'utf8');
-        const idMatch = meta.match(/publishedid\s*=\s*(\d+)/i);
-        if (idMatch) workshopId = idMatch[1];
-      }
-    } catch { /* ignore */ }
-
-    return {
-      name,
-      workshopId,
-      enabled: isActive,
-      order: index,
-    };
-  });
-
-  addLog('info', 'mods', `Detected ${installedMods.length} installed mods, ${activeMods.size} active in start.bat`);
-  io.emit('mods', store.modList);
-}
-
-// Kill the DayZ server process (Windows)
-function killDayZServer(pid) {
-  return new Promise((resolve, reject) => {
-    const targetPid = pid || dayzProcessPID;
-    if (!targetPid) {
-      // Fallback: kill by executable name
-      exec(`taskkill /F /IM ${CONFIG.dayz.executable}`, (err) => {
-        if (err) return reject(new Error(`Failed to kill ${CONFIG.dayz.executable}: ${err.message}`));
-        resolve();
-      });
-      return;
-    }
-    exec(`taskkill /F /PID ${targetPid}`, (err) => {
-      if (err) return reject(new Error(`Failed to kill PID ${targetPid}: ${err.message}`));
-      resolve();
-    });
-  });
-}
 // ─── Helpers ─────────────────────────────────────────────
-function addLog(level, source, message) {
+function addLog(serverId, level, source, message) {
   const entry = { timestamp: new Date().toISOString(), level, source, message };
-  store.logs.unshift(entry);
-  if (store.logs.length > 5000) store.logs.pop();
-  io.emit('log', entry);
+  if (serverId && serverStates[serverId]) {
+    serverStates[serverId].logs.unshift(entry);
+    if (serverStates[serverId].logs.length > 5000) serverStates[serverId].logs.pop();
+  }
+  io.emit('log', { serverId, ...entry });
   return entry;
 }
 
-function pushMetrics(cpu, ram, playerCount, fps) {
+function addAudit(userId, username, action, details) {
+  const entry = { id: uuid(), timestamp: new Date().toISOString(), userId, username, action, details };
+  auditLog.unshift(entry);
+  if (auditLog.length > 10000) auditLog = auditLog.slice(0, 10000);
+  saveJSON('audit.json', auditLog.slice(0, 2000));
+  return entry;
+}
+
+function pushMetrics(serverId, cpu, ram, playerCount, fps) {
+  const state = serverStates[serverId];
+  if (!state) return;
   const now = new Date().toISOString();
-  const m = store.metrics;
-  m.cpu.push(cpu);
-  m.ram.push(ram);
-  m.players.push(playerCount);
-  m.fps.push(fps);
-  m.timestamps.push(now);
-  // Keep last 360 entries (6 hours at 1/min)
+  const m = state.metricsHistory;
+  m.cpu.push(cpu); m.ram.push(ram); m.players.push(playerCount); m.fps.push(fps); m.timestamps.push(now);
   const max = 360;
-  Object.keys(m).forEach((k) => {
-    if (m[k].length > max) m[k] = m[k].slice(-max);
-  });
-  io.emit('metrics', { cpu, ram, players: playerCount, fps, timestamp: now });
+  Object.keys(m).forEach(k => { if (m[k].length > max) m[k] = m[k].slice(-max); });
+  io.emit('metrics', { serverId, cpu, ram, players: playerCount, fps, timestamp: now });
 }
 
 async function sendDiscordWebhook(content, embeds) {
@@ -450,20 +137,66 @@ async function sendDiscordWebhook(content, embeds) {
       body: JSON.stringify({ content, embeds }),
     });
   } catch (err) {
-    addLog('error', 'webhook', `Discord webhook failed: ${err.message}`);
+    console.error('Discord webhook failed:', err.message);
   }
 }
 
+// Fire all matching webhooks for an event
+async function fireWebhooks(eventType, data) {
+  const matching = webhooks.filter(w => w.enabled && w.event === eventType);
+  for (const wh of matching) {
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const payload = { event: eventType, timestamp: new Date().toISOString(), data };
+      // Discord webhook format
+      if (wh.url.includes('discord.com/api/webhooks')) {
+        let body;
+        try { body = JSON.parse(wh.template || '{}'); } catch { body = {}; }
+        let content = body.content || `**${eventType}** event fired`;
+        content = content.replace(/\{server\.name\}/g, data.serverName || 'Unknown');
+        content = content.replace(/\{server\.id\}/g, data.serverId || '');
+        content = content.replace(/\{timestamp\}/g, new Date().toLocaleString());
+        body.content = content;
+        await fetch(wh.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(wh.timeout || 60000) });
+      } else {
+        await fetch(wh.url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(wh.headers || {}) }, body: JSON.stringify(payload), signal: AbortSignal.timeout(wh.timeout || 60000) });
+      }
+      if (!wh.deliveries) wh.deliveries = [];
+      wh.deliveries.unshift({ timestamp: new Date().toISOString(), status: 'success', event: eventType });
+      if (wh.deliveries.length > 50) wh.deliveries = wh.deliveries.slice(0, 50);
+    } catch (err) {
+      if (!wh.deliveries) wh.deliveries = [];
+      wh.deliveries.unshift({ timestamp: new Date().toISOString(), status: 'failed', event: eventType, error: err.message });
+      if (wh.deliveries.length > 50) wh.deliveries = wh.deliveries.slice(0, 50);
+      if (wh.retryEnabled && (!wh._retryCount || wh._retryCount < 3)) {
+        wh._retryCount = (wh._retryCount || 0) + 1;
+        setTimeout(() => fireWebhooks(eventType, data), 5000 * wh._retryCount);
+      }
+    }
+  }
+  saveJSON('webhooks.json', webhooks);
+}
+
+function saveServers() { saveJSON('servers.json', servers); }
+function saveUsers() { saveJSON('users.json', users.map(u => ({ ...u }))); }
+function saveRoles() { saveJSON('roles.json', roles); }
+
 // ─── Auth Middleware ──────────────────────────────────────
-function auth(requiredRole) {
+function auth(requiredPermission) {
   return (req, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'No token provided' });
     try {
       const decoded = jwt.verify(token, CONFIG.jwtSecret);
       req.user = decoded;
-      if (requiredRole && decoded.role !== requiredRole && decoded.role !== 'admin') {
-        return res.status(403).json({ error: 'Insufficient permissions' });
+      if (requiredPermission) {
+        const user = users.find(u => u.id === decoded.id);
+        if (!user) return res.status(401).json({ error: 'User not found' });
+        const role = roles.find(r => r.id === user.role);
+        if (!role) return res.status(403).json({ error: 'Role not found' });
+        if (!role.permissions.includes('*') && !role.permissions.includes(requiredPermission)) {
+          return res.status(403).json({ error: 'Insufficient permissions' });
+        }
       }
       next();
     } catch {
@@ -472,1739 +205,1372 @@ function auth(requiredRole) {
   };
 }
 
-// ─── RCON Client (BattlEye RCON UDP Protocol) ───────────
-// Implements the BattlEye RCon protocol directly via Node.js dgram.
-// Protocol spec: https://www.battleye.com/downloads/BERConProtocol.txt
-//
-// Packet structure:
-//   'B'(0x42) 'E'(0x45) [4-byte CRC32] [payload]
-//
-// Payload types (first byte):
-//   0x00 = Login        → password (null-terminated)
-//   0x01 = Command      → seq(1 byte) + command string
-//   0x02 = Acknowledge  → seq(1 byte) (server→client message ack)
-//
-// Server responses:
-//   0x00 = Login result → 0x01 success, 0x00 failure
-//   0x01 = Command response → seq(1 byte) + body
-//   0x02 = Server message   → seq(1 byte) + message text
+// ─── serverDZ.cfg Parser ─────────────────────────────────
+function getServerCfgPath(installDir) {
+  return path.join(installDir, 'serverDZ.cfg');
+}
+
+function readServerConfig(installDir) {
+  const cfgPath = getServerCfgPath(installDir);
+  const config = {};
+  if (!fs.existsSync(cfgPath)) return config;
+  try {
+    const content = fs.readFileSync(cfgPath, 'utf8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('class') || trimmed === '{' || trimmed === '};') continue;
+      const match = trimmed.match(/^([\w]+)\s*=\s*(.+?)\s*;/);
+      if (match) {
+        const key = match[1];
+        let value = match[2].trim();
+        const ci = value.indexOf('//');
+        if (ci > 0) value = value.substring(0, ci).trim();
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
+        if (/^\d+$/.test(value)) value = parseInt(value, 10);
+        else if (/^\d+\.\d+$/.test(value)) value = parseFloat(value);
+        config[key] = value;
+      }
+    }
+  } catch {}
+  return config;
+}
+
+function writeServerConfig(installDir, updates) {
+  const cfgPath = getServerCfgPath(installDir);
+  if (!fs.existsSync(cfgPath)) return false;
+  try {
+    const backupDir = path.join(installDir, '.backups');
+    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+    fs.copyFileSync(cfgPath, path.join(backupDir, `serverDZ.cfg.${Date.now()}.bak`));
+    let content = fs.readFileSync(cfgPath, 'utf8');
+    for (const [key, value] of Object.entries(updates)) {
+      const strValue = typeof value === 'string' ? `"${value}"` : String(value);
+      const regex = new RegExp(`^(\\s*${key}\\s*=\\s*).+?(\\s*;.*)$`, 'm');
+      if (regex.test(content)) content = content.replace(regex, `$1${strValue}$2`);
+    }
+    fs.writeFileSync(cfgPath, content, 'utf8');
+    return true;
+  } catch { return false; }
+}
+
+// ─── Process Tracking (Windows) ──────────────────────────
+function detectRunningProcess(executable) {
+  return new Promise((resolve) => {
+    exec(`tasklist /FI "IMAGENAME eq ${executable}" /FO CSV /NH`, (err, stdout) => {
+      if (err || !stdout) return resolve(null);
+      const lines = stdout.trim().split('\n').filter(l => l.includes(executable));
+      if (lines.length > 0) {
+        const match = lines[0].match(/"[^"]+","(\d+)"/);
+        return resolve(match ? parseInt(match[1]) : null);
+      }
+      resolve(null);
+    });
+  });
+}
+
+function getProcessMetrics(pid, executable) {
+  return new Promise((resolve) => {
+    if (!pid) return resolve(null);
+    exec(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, (err, stdout) => {
+      if (err || !stdout || !stdout.includes(executable)) return resolve(null);
+      const memMatch = stdout.match(/"([\d,]+)\s*K"/);
+      const ramKB = memMatch ? parseInt(memMatch[1].replace(/,/g, '')) : 0;
+      const ramMB = Math.round(ramKB / 1024);
+      exec(`wmic path Win32_PerfFormattedData_PerfProc_Process where "IDProcess=${pid}" get PercentProcessorTime /value`, (err2, stdout2) => {
+        let cpu = 0;
+        if (!err2 && stdout2) {
+          const cpuMatch = stdout2.match(/PercentProcessorTime=(\d+)/);
+          if (cpuMatch) cpu = parseInt(cpuMatch[1]);
+        }
+        exec('wmic ComputerSystem get TotalPhysicalMemory /value', (err3, stdout3) => {
+          let ramPct = 0;
+          if (!err3 && stdout3) {
+            const totalMatch = stdout3.match(/TotalPhysicalMemory=(\d+)/);
+            if (totalMatch) ramPct = parseFloat(((ramKB * 1024) / parseInt(totalMatch[1]) * 100).toFixed(1));
+          }
+          resolve({ cpu, ram: ramPct, ramMB });
+        });
+      });
+    });
+  });
+}
+
+function killProcess(pid, executable) {
+  return new Promise((resolve, reject) => {
+    if (pid) {
+      exec(`taskkill /F /PID ${pid}`, (err) => err ? reject(err) : resolve());
+    } else {
+      exec(`taskkill /F /IM ${executable}`, (err) => err ? reject(err) : resolve());
+    }
+  });
+}
+
+function spawnDayZServer(serverConfig) {
+  const installDir = serverConfig.installDir;
+  if (serverConfig.startBat) {
+    const batPath = path.join(installDir, serverConfig.startBat);
+    if (!fs.existsSync(batPath)) throw new Error(`Start batch file not found: ${batPath}`);
+    const child = spawn('cmd.exe', ['/c', batPath], {
+      cwd: installDir, detached: true, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: false,
+    });
+    child.unref();
+    return child;
+  }
+  const execPath = path.join(installDir, serverConfig.executable);
+  const params = (serverConfig.launchParams || '').split(' ').filter(Boolean);
+  if (!fs.existsSync(execPath)) throw new Error(`Executable not found: ${execPath}`);
+  const child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  child.unref();
+  return child;
+}
+
+// ─── Mod Detection ───────────────────────────────────────
+function autoDetectMods(serverId) {
+  const srv = servers.find(s => s.id === serverId);
+  if (!srv) return;
+  const state = serverStates[serverId];
+  if (!state) return;
+  const installDir = srv.installDir;
+  let installedMods = [];
+  try {
+    const entries = fs.readdirSync(installDir, { withFileTypes: true });
+    installedMods = entries.filter(e => e.isDirectory() && e.name.startsWith('@')).map(e => e.name);
+  } catch { return; }
+  let activeMods = new Set();
+  if (srv.startBat) {
+    try {
+      const batContent = fs.readFileSync(path.join(installDir, srv.startBat), 'utf8');
+      const modMatch = batContent.match(/["\s]-mod=([^"\n]+)/i) || batContent.match(/-mod=([^\s]+)/i);
+      if (modMatch) modMatch[1].replace(/["]/g, '').trim().split(';').forEach(m => { if (m.trim()) activeMods.add(m.trim()); });
+    } catch {}
+  }
+  state.modList = installedMods.map((name, index) => {
+    let workshopId = '';
+    try {
+      const metaPath = path.join(installDir, name, 'meta.cpp');
+      if (fs.existsSync(metaPath)) { const meta = fs.readFileSync(metaPath, 'utf8'); const m = meta.match(/publishedid\s*=\s*(\d+)/i); if (m) workshopId = m[1]; }
+    } catch {}
+    return { name, workshopId, enabled: activeMods.size === 0 ? true : activeMods.has(name), order: index };
+  });
+  io.emit('mods', { serverId, mods: state.modList });
+}
+
+// ─── RCON (BattlEye UDP) ─────────────────────────────────
 const dgram = require('dgram');
 const { Buffer } = require('buffer');
-
-// CRC32 lookup table (standard CRC-32/ISO-HDLC)
 const crc32Table = (() => {
   const table = new Uint32Array(256);
-  for (let i = 0; i < 256; i++) {
-    let crc = i;
-    for (let j = 0; j < 8; j++) {
-      crc = (crc & 1) ? (0xEDB88320 ^ (crc >>> 1)) : (crc >>> 1);
-    }
-    table[i] = crc;
-  }
+  for (let i = 0; i < 256; i++) { let crc = i; for (let j = 0; j < 8; j++) crc = (crc & 1) ? (0xEDB88320 ^ (crc >>> 1)) : (crc >>> 1); table[i] = crc; }
   return table;
 })();
-
 function computeCRC32(buffer) {
   let crc = 0xFFFFFFFF;
-  for (let i = 0; i < buffer.length; i++) {
-    crc = crc32Table[(crc ^ buffer[i]) & 0xFF] ^ (crc >>> 8);
-  }
+  for (let i = 0; i < buffer.length; i++) crc = crc32Table[(crc ^ buffer[i]) & 0xFF] ^ (crc >>> 8);
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
 class RCONClient {
   constructor(ip, port, password) {
-    this.ip = ip;
-    this.port = port;
-    this.password = password;
-    this.socket = null;
-    this.connected = false;
-    this.loggedIn = false;
-    this.sequenceNum = 0;
-    this.pendingCommands = new Map();  // seq → { resolve, reject, timeout }
+    this.ip = ip; this.port = port; this.password = password;
+    this.socket = null; this.connected = false; this.loggedIn = false;
+    this.sequenceNum = 0; this.pendingCommands = new Map();
     this.keepAliveInterval = null;
-    this.reconnectTimeout = null;
   }
-
-  // Build a BattlEye RCON packet: 'B' 'E' [CRC32-LE] [0xFF] [payload]
   _buildPacket(payload) {
     const body = Buffer.concat([Buffer.from([0xFF]), payload]);
     const crc = computeCRC32(body);
     const header = Buffer.alloc(6);
-    header[0] = 0x42; // 'B'
-    header[1] = 0x45; // 'E'
-    header.writeUInt32LE(crc, 2);
+    header[0] = 0x42; header[1] = 0x45; header.writeUInt32LE(crc, 2);
     return Buffer.concat([header, body]);
   }
-
-  // Build login packet: type 0x00 + password bytes
-  _buildLoginPacket() {
-    const payload = Buffer.concat([
-      Buffer.from([0x00]),
-      Buffer.from(this.password, 'utf8'),
-    ]);
-    return this._buildPacket(payload);
-  }
-
-  // Build command packet: type 0x01 + seq + command string
+  _buildLoginPacket() { return this._buildPacket(Buffer.concat([Buffer.from([0x00]), Buffer.from(this.password, 'utf8')])); }
   _buildCommandPacket(command) {
-    const seq = this.sequenceNum % 256;
-    this.sequenceNum++;
-    const payload = Buffer.concat([
-      Buffer.from([0x01, seq]),
-      Buffer.from(command, 'utf8'),
-    ]);
-    return { packet: this._buildPacket(payload), seq };
+    const seq = this.sequenceNum % 256; this.sequenceNum++;
+    return { packet: this._buildPacket(Buffer.concat([Buffer.from([0x01, seq]), Buffer.from(command, 'utf8')])), seq };
   }
-
-  // Build acknowledge packet: type 0x02 + seq
-  _buildAckPacket(seq) {
-    const payload = Buffer.from([0x02, seq]);
-    return this._buildPacket(payload);
-  }
-
+  _buildAckPacket(seq) { return this._buildPacket(Buffer.from([0x02, seq])); }
   connect() {
     return new Promise((resolve, reject) => {
       if (this.connected && this.loggedIn) return resolve(true);
-
-      // Clean up any existing socket
       this.disconnect();
-
       this.socket = dgram.createSocket('udp4');
-
-      const loginTimeout = setTimeout(() => {
-        addLog('error', 'rcon', 'Login timed out');
-        reject(new Error('RCON login timed out'));
-      }, 10000);
-
+      const loginTimeout = setTimeout(() => reject(new Error('RCON login timed out')), 10000);
       this.socket.on('message', (msg) => {
         if (msg.length < 7 || msg[0] !== 0x42 || msg[1] !== 0x45) return;
-
-        // Skip header (B E [4-byte CRC] 0xFF) → payload starts at index 7
-        const type = msg[6];
-        const payload = msg.slice(7);
-
+        const type = msg[6]; const payload = msg.slice(7);
         switch (type) {
-          case 0x00: // Login response
+          case 0x00:
             clearTimeout(loginTimeout);
-            if (payload[0] === 0x01) {
-              this.loggedIn = true;
-              addLog('info', 'rcon', `Connected to RCON at ${this.ip}:${this.port}`);
-              this._startKeepAlive();
-              resolve(true);
-            } else {
-              addLog('error', 'rcon', 'RCON login failed — bad password');
-              reject(new Error('RCON login failed: invalid password'));
-            }
+            if (payload[0] === 0x01) { this.loggedIn = true; this._startKeepAlive(); resolve(true); }
+            else reject(new Error('RCON login failed: invalid password'));
             break;
-
-          case 0x01: // Command response
+          case 0x01:
             if (payload.length >= 1) {
-              const seq = payload[0];
-              const body = payload.slice(1).toString('utf8');
+              const seq = payload[0]; const body = payload.slice(1).toString('utf8');
               const pending = this.pendingCommands.get(seq);
-              if (pending) {
-                clearTimeout(pending.timeout);
-                pending.resolve(body);
-                this.pendingCommands.delete(seq);
-              }
-              if (body) addLog('info', 'rcon', `Response: ${body.substring(0, 500)}`);
+              if (pending) { clearTimeout(pending.timeout); pending.resolve(body); this.pendingCommands.delete(seq); }
             }
             break;
-
-          case 0x02: // Server message (chat, connects, etc.)
+          case 0x02:
             if (payload.length >= 1) {
-              const seq = payload[0];
-              const message = payload.slice(1).toString('utf8');
-              // Acknowledge the server message
+              const seq = payload[0]; const message = payload.slice(1).toString('utf8');
               const ack = this._buildAckPacket(seq);
               this.socket.send(ack, 0, ack.length, this.port, this.ip);
-              addLog('info', 'rcon', `Server: ${message.substring(0, 500)}`);
-              // Emit to WebSocket clients
               io.emit('rconMessage', { timestamp: new Date().toISOString(), message });
             }
             break;
         }
       });
-
-      this.socket.on('error', (err) => {
-        addLog('error', 'rcon', `Socket error: ${err.message}`);
-        this.connected = false;
-        this.loggedIn = false;
-      });
-
-      this.socket.on('close', () => {
-        this.connected = false;
-        this.loggedIn = false;
-        this._stopKeepAlive();
-        addLog('warn', 'rcon', 'RCON socket closed');
-      });
-
-      // Bind to a random local port and send login
+      this.socket.on('error', () => { this.connected = false; this.loggedIn = false; });
+      this.socket.on('close', () => { this.connected = false; this.loggedIn = false; this._stopKeepAlive(); });
       this.socket.bind(0, () => {
         this.connected = true;
-        const loginPkt = this._buildLoginPacket();
-        this.socket.send(loginPkt, 0, loginPkt.length, this.port, this.ip);
+        const pkt = this._buildLoginPacket();
+        this.socket.send(pkt, 0, pkt.length, this.port, this.ip);
       });
     });
   }
-
   disconnect() {
-    this._stopKeepAlive();
-    this.loggedIn = false;
-    this.connected = false;
-    // Reject any pending commands
-    for (const [, pending] of this.pendingCommands) {
-      clearTimeout(pending.timeout);
-      pending.reject(new Error('Disconnected'));
-    }
+    this._stopKeepAlive(); this.loggedIn = false; this.connected = false;
+    for (const [, p] of this.pendingCommands) { clearTimeout(p.timeout); p.reject(new Error('Disconnected')); }
     this.pendingCommands.clear();
-    if (this.socket) {
-      try { this.socket.close(); } catch { /* ignore */ }
-      this.socket = null;
-    }
+    if (this.socket) { try { this.socket.close(); } catch {} this.socket = null; }
   }
-
-  // Keep-alive: send an empty command every 30s to prevent timeout
   _startKeepAlive() {
     this._stopKeepAlive();
     this.keepAliveInterval = setInterval(() => {
-      if (this.loggedIn && this.socket) {
-        const { packet } = this._buildCommandPacket('');
-        this.socket.send(packet, 0, packet.length, this.port, this.ip);
-      }
+      if (this.loggedIn && this.socket) { const { packet } = this._buildCommandPacket(''); this.socket.send(packet, 0, packet.length, this.port, this.ip); }
     }, 30000);
   }
-
-  _stopKeepAlive() {
-    if (this.keepAliveInterval) {
-      clearInterval(this.keepAliveInterval);
-      this.keepAliveInterval = null;
-    }
-  }
-
+  _stopKeepAlive() { if (this.keepAliveInterval) { clearInterval(this.keepAliveInterval); this.keepAliveInterval = null; } }
   async send(command) {
-    if (!this.loggedIn) {
-      try {
-        await this.connect();
-      } catch (err) {
-        addLog('error', 'rcon', `Cannot send — not connected: ${err.message}`);
-        return `[Error] ${err.message}`;
-      }
-    }
-
-    return new Promise((resolve, reject) => {
+    if (!this.loggedIn) { try { await this.connect(); } catch (err) { return `[Error] ${err.message}`; } }
+    return new Promise((resolve) => {
       const { packet, seq } = this._buildCommandPacket(command);
-
-      const timeout = setTimeout(() => {
-        this.pendingCommands.delete(seq);
-        resolve('[No response — command may have been executed]');
-      }, 5000);
-
-      this.pendingCommands.set(seq, { resolve, reject, timeout });
+      const timeout = setTimeout(() => { this.pendingCommands.delete(seq); resolve('[No response]'); }, 5000);
+      this.pendingCommands.set(seq, { resolve, reject: () => {}, timeout });
       this.socket.send(packet, 0, packet.length, this.port, this.ip);
-      addLog('info', 'rcon', `Command sent: ${command}`);
     });
   }
-
-  // ─── Convenience Methods ─────────────────────────────
-  async getPlayers()       { return this.send('players'); }
-  async kick(id, reason)   { return this.send(`kick ${id} ${reason}`); }
-  async ban(id, reason)    { return this.send(`ban ${id} 0 ${reason}`); }
-  async say(message)       { return this.send(`say -1 ${message}`); }
-  async shutdown()         { return this.send('#shutdown'); }
-  async restart()          { return this.send('#restart'); }
-  async lock()             { return this.send('#lock'); }
-  async unlock()           { return this.send('#unlock'); }
+  async getPlayers() { return this.send('players'); }
+  async kick(id, reason) { return this.send(`kick ${id} ${reason}`); }
+  async ban(id, reason) { return this.send(`ban ${id} 0 ${reason}`); }
+  async say(message) { return this.send(`say -1 ${message}`); }
+  async shutdown() { return this.send('#shutdown'); }
+  async restart() { return this.send('#restart'); }
+  async lock() { return this.send('#lock'); }
+  async unlock() { return this.send('#unlock'); }
 }
 
-const rcon = new RCONClient(CONFIG.dayz.ip, CONFIG.dayz.rconPort, CONFIG.dayz.rconPassword);
+// ─── Initialize Server States ────────────────────────────
+// Migrate: if no servers exist but .env has a DayZ install, create the default one
+if (servers.length === 0 && CONFIG.dayz.installDir && fs.existsSync(CONFIG.dayz.installDir)) {
+  const defaultServer = {
+    id: uuid(),
+    name: readServerConfig(CONFIG.dayz.installDir).hostname || 'DayZ Server',
+    installDir: CONFIG.dayz.installDir,
+    executable: CONFIG.dayz.executable || 'DayZServer_x64.exe',
+    startBat: CONFIG.dayz.startBat || '',
+    launchParams: CONFIG.dayz.launchParams || '',
+    ip: CONFIG.dayz.ip || '127.0.0.1',
+    gamePort: 2302, queryPort: 2303,
+    rconPort: CONFIG.dayz.rconPort || 2305,
+    rconPassword: CONFIG.dayz.rconPassword || '',
+    maxPlayers: 60, map: 'chernarusplus',
+    gameTitle: 'DayZ, PC', profileDir: CONFIG.dayz.profileDir || '',
+    createdAt: new Date().toISOString(),
+  };
+  servers.push(defaultServer);
+  saveServers();
+}
 
-// ─── API Routes ──────────────────────────────────────────
-
-// Auth
-app.post('/api/auth/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = store.users.find((u) => u.username === username);
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
-
-  const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, CONFIG.jwtSecret, { expiresIn: '24h' });
-  addLog('info', 'auth', `User ${username} logged in`);
-  res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
-});
-
-app.post('/api/auth/register', auth('admin'), async (req, res) => {
-  const { username, password, role } = req.body;
-  if (store.users.find((u) => u.username === username)) {
-    return res.status(400).json({ error: 'Username already exists' });
-  }
-  const hash = await bcrypt.hash(password, 10);
-  const user = { id: Date.now().toString(), username, passwordHash: hash, role: role || 'moderator' };
-  store.users.push(user);
-  addLog('info', 'auth', `User ${username} created by ${req.user.username}`);
-  res.json({ id: user.id, username: user.username, role: user.role });
-});
-
-// Server Control
-app.get('/api/server/status', auth(), (req, res) => {
-  res.json({
-    status: store.serverStatus,
-    players: store.players,
-    playerCount: store.players.length,
-    maxPlayers: store.config.maxPlayers || 60,
-    serverName: store.config.hostname || 'DayZ Server',
-    uptime: store.serverStatus === 'running' ? process.uptime() : 0,
-  });
-});
-
-app.post('/api/server/start', auth('admin'), async (req, res) => {
-  if (store.serverStatus === 'running') return res.status(400).json({ error: 'Server already running' });
-
-  // Check if already running externally
-  const existingPid = await detectRunningProcess();
-  if (existingPid) {
-    dayzProcessPID = existingPid;
-    store.serverStatus = 'running';
-    io.emit('serverStatus', store.serverStatus);
-    addLog('info', 'server', `Found already-running DayZ server (PID: ${existingPid})`);
-    return res.json({ message: `Server already running (PID: ${existingPid})` });
-  }
-
-  store.serverStatus = 'starting';
-  io.emit('serverStatus', store.serverStatus);
-  addLog('info', 'server', `Server start initiated by ${req.user.username}`);
-
-  try {
-    dayzProcess = spawnDayZServer();
-    dayzProcessPID = dayzProcess.pid;
-    addLog('info', 'server', `DayZ server launched with PID: ${dayzProcessPID}`);
-
-    // Give the process a moment to either crash or start
-    setTimeout(async () => {
-      const pid = await detectRunningProcess();
-      if (pid) {
-        store.serverStatus = 'running';
-        io.emit('serverStatus', store.serverStatus);
-        addLog('info', 'server', 'DayZ server is now running');
-        sendDiscordWebhook('🟢 **DayZ Server Started**');
-      } else if (store.serverStatus === 'starting') {
-        store.serverStatus = 'crashed';
-        io.emit('serverStatus', store.serverStatus);
-        addLog('error', 'server', 'DayZ server failed to stay running');
-      }
-    }, 8000);
-
-    res.json({ message: `Server starting... (PID: ${dayzProcessPID})` });
-  } catch (err) {
-    store.serverStatus = 'crashed';
-    io.emit('serverStatus', store.serverStatus);
-    addLog('error', 'server', `Failed to start: ${err.message}`);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/server/stop', auth('admin'), async (req, res) => {
-  if (store.serverStatus !== 'running') return res.status(400).json({ error: 'Server not running' });
-
-  store.serverStatus = 'stopping';
-  io.emit('serverStatus', store.serverStatus);
-  addLog('info', 'server', `Server stop initiated by ${req.user.username}`);
-
-  try {
-    // Try graceful RCON shutdown first (only works if RCON is connected)
-    if (rcon.loggedIn) {
-      try {
-        await rcon.shutdown();
-        addLog('info', 'server', 'Sent RCON #shutdown, waiting for graceful exit...');
-      } catch { /* ignore RCON errors, we\'ll force-kill below */ }
-      // Wait a few seconds for graceful shutdown
-      await new Promise(r => setTimeout(r, 5000));
-    }
-
-    // Check if still running, force-kill if needed
-    const pid = await detectRunningProcess();
-    if (pid) {
-      addLog('info', 'server', `Force-killing DayZ server (PID: ${pid})`);
-      await killDayZServer(pid);
-    }
-
-    store.serverStatus = 'stopped';
-    store.players = [];
-    dayzProcess = null;
-    dayzProcessPID = null;
-    io.emit('serverStatus', store.serverStatus);
-    io.emit('players', store.players);
-    addLog('info', 'server', 'Server stopped');
-    sendDiscordWebhook('🔴 **DayZ Server Stopped**');
-    res.json({ message: 'Server stopped' });
-  } catch (err) {
-    addLog('error', 'server', `Failed to stop: ${err.message}`);
-    // Force status update even on error
-    const stillRunning = await detectRunningProcess();
-    if (!stillRunning) {
-      store.serverStatus = 'stopped';
-      io.emit('serverStatus', store.serverStatus);
-    }
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/server/restart', auth('admin'), async (req, res) => {
-  addLog('info', 'server', `Server restart initiated by ${req.user.username}`);
-  
-  const { countdown } = req.body;
-  
-  if (countdown && store.serverStatus === 'running' && rcon.loggedIn) {
-    // If RCON is available, warn players first
-    await rcon.say(`SERVER RESTART IN ${countdown} SECONDS`);
-    setTimeout(async () => {
-      await performRestart(req.user.username);
-    }, countdown * 1000);
-    res.json({ message: `Restart scheduled in ${countdown}s` });
-  } else {
-    await performRestart(req.user.username);
-    res.json({ message: 'Server restarting...' });
-  }
-});
-
-// Shared restart logic
-async function performRestart(initiator) {
-  store.serverStatus = 'stopping';
-  io.emit('serverStatus', store.serverStatus);
-
-  // Kill existing process
-  try {
-    const pid = await detectRunningProcess();
-    if (pid) {
-      await killDayZServer(pid);
-      addLog('info', 'server', 'Old server process killed');
-    }
-  } catch (err) {
-    addLog('warn', 'server', `Error stopping for restart: ${err.message}`);
-  }
-
-  dayzProcess = null;
-  dayzProcessPID = null;
-  store.players = [];
-  io.emit('players', store.players);
-
-  // Wait a moment, then start fresh
-  await new Promise(r => setTimeout(r, 3000));
-
-  store.serverStatus = 'starting';
-  io.emit('serverStatus', store.serverStatus);
-
-  try {
-    dayzProcess = spawnDayZServer();
-    dayzProcessPID = dayzProcess.pid;
-    addLog('info', 'server', `DayZ server relaunched with PID: ${dayzProcessPID}`);
-
-    setTimeout(async () => {
-      const pid = await detectRunningProcess();
-      if (pid) {
-        store.serverStatus = 'running';
-        io.emit('serverStatus', store.serverStatus);
-        addLog('info', 'server', 'DayZ server restarted successfully');
-        sendDiscordWebhook('🔄 **DayZ Server Restarted**');
-      } else if (store.serverStatus === 'starting') {
-        store.serverStatus = 'crashed';
-        io.emit('serverStatus', store.serverStatus);
-        addLog('error', 'server', 'DayZ server failed to restart');
-      }
-    }, 8000);
-  } catch (err) {
-    store.serverStatus = 'crashed';
-    io.emit('serverStatus', store.serverStatus);
-    addLog('error', 'server', `Failed to restart: ${err.message}`);
+function initServerState(serverId) {
+  if (serverStates[serverId]) return;
+  const srv = servers.find(s => s.id === serverId);
+  if (!srv) return;
+  serverStates[serverId] = {
+    status: 'stopped', pid: null, process: null, players: [],
+    logs: [], metricsHistory: { cpu: [], ram: [], players: [], fps: [], timestamps: [] },
+    modList: [], config: {}, scheduledRestarts: [], chatMessages: [], banList: [],
+    rcon: srv.rconPassword ? new RCONClient(srv.ip, srv.rconPort, srv.rconPassword) : null,
+    startedAt: null,
+  };
+  if (fs.existsSync(srv.installDir)) {
+    serverStates[serverId].config = readServerConfig(srv.installDir);
+    autoDetectMods(serverId);
   }
 }
 
-app.post('/api/server/lock', auth('admin'), async (req, res) => {
-  await rcon.lock();
-  addLog('info', 'server', `Server locked by ${req.user.username}`);
-  res.json({ message: 'Server locked' });
-});
+servers.forEach(s => initServerState(s.id));
 
-app.post('/api/server/unlock', auth('admin'), async (req, res) => {
-  await rcon.unlock();
-  addLog('info', 'server', `Server unlocked by ${req.user.username}`);
-  res.json({ message: 'Server unlocked' });
-});
-
-// RCON Command
-app.post('/api/server/rcon', auth('admin'), async (req, res) => {
-  const { command } = req.body;
-  try {
-    const result = await rcon.send(command);
-    addLog('info', 'rcon', `Command by ${req.user.username}: ${command}`);
-    res.json({ result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+// Initialize default admin user
+(async () => {
+  if (users.length === 0) {
+    const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin', 10);
+    users.push({
+      id: uuid(), username: process.env.ADMIN_USERNAME || 'admin',
+      passwordHash: hash, role: 'admin', isRoot: true, createdAt: new Date().toISOString(),
+      description: 'This is the root user. It can not be modified or deleted.',
+    });
+    saveUsers();
   }
-});
+})();
 
-// Global Message
-app.post('/api/server/message', auth(), async (req, res) => {
-  const { message } = req.body;
-  await rcon.say(message);
-  addLog('info', 'chat', `Global message by ${req.user.username}: ${message}`);
-  res.json({ message: 'Sent' });
-});
-
-// Players
-app.get('/api/players', auth(), (req, res) => {
-  res.json(store.players);
-});
-
-app.post('/api/players/:id/kick', auth(), async (req, res) => {
-  const { reason } = req.body;
-  await rcon.kick(req.params.id, reason || 'Kicked by admin');
-  addLog('warn', 'player', `Player ${req.params.id} kicked by ${req.user.username}: ${reason}`);
-  store.players = store.players.filter((p) => p.id !== req.params.id);
-  io.emit('players', store.players);
-  res.json({ message: 'Player kicked' });
-});
-
-app.post('/api/players/:id/ban', auth('admin'), async (req, res) => {
-  const { reason, duration } = req.body;
-  await rcon.ban(req.params.id, reason || 'Banned by admin');
-  const player = store.players.find((p) => p.id === req.params.id);
-  store.banList.push({
-    id: req.params.id,
-    name: player?.name || 'Unknown',
-    reason: reason || 'Banned by admin',
-    bannedAt: new Date().toISOString(),
-    expiresAt: duration ? new Date(Date.now() + duration * 1000).toISOString() : null,
-  });
-  store.players = store.players.filter((p) => p.id !== req.params.id);
-  addLog('warn', 'player', `Player ${req.params.id} banned by ${req.user.username}: ${reason}`);
-  io.emit('players', store.players);
-  res.json({ message: 'Player banned' });
-});
-
-app.get('/api/bans', auth(), (req, res) => {
-  res.json(store.banList);
-});
-
-app.delete('/api/bans/:id', auth('admin'), (req, res) => {
-  store.banList = store.banList.filter((b) => b.id !== req.params.id);
-  addLog('info', 'player', `Ban removed for ${req.params.id} by ${req.user.username}`);
-  res.json({ message: 'Ban removed' });
-});
-
-// Logs
-app.get('/api/logs', auth(), (req, res) => {
-  const { level, source, limit = 200 } = req.query;
-  let logs = store.logs;
-  if (level) logs = logs.filter((l) => l.level === level);
-  if (source) logs = logs.filter((l) => l.source === source);
-  res.json(logs.slice(0, parseInt(limit)));
-});
-
-// Metrics
-app.get('/api/metrics', auth(), (req, res) => {
-  res.json(store.metrics);
-});
-
-// Server Config
-app.get('/api/config', auth('admin'), (req, res) => {
-  // Re-read from disk to ensure freshness
-  store.config = readServerConfig();
-  res.json(store.config);
-});
-
-app.patch('/api/config', auth('admin'), (req, res) => {
-  const updates = req.body;
-  const success = writeServerConfig(updates);
-
-  if (success) {
-    // Re-read the full config from disk after writing
-    store.config = readServerConfig();
-    addLog('info', 'config', `Config updated by ${req.user.username}: ${JSON.stringify(updates)}`);
-    res.json(store.config);
-  } else {
-    res.status(500).json({ error: 'Failed to write serverDZ.cfg' });
-  }
-});
-
-// ─── SteamCMD Management ─────────────────────────────────
-// Handles auto-downloading SteamCMD if not found, and running workshop downloads.
-// IMPORTANT: DayZ Workshop items require a Steam account that OWNS DayZ.
-// Anonymous login will NOT work for DayZ mod downloads.
-
-let steamCmdPath = CONFIG.steam.cmdPath;
-const activeInstalls = {};  // { workshopId: { status, progress, error } }
-let steamCredentials = {
-  username: CONFIG.steam.username || '',
-  password: CONFIG.steam.password || '',
-  guardCode: '',  // Steam Guard code (temporary, entered per-session)
-};
-let steamLoginValidated = false;
-
-// Find or download SteamCMD
+// ─── SteamCMD ────────────────────────────────────────────
 async function ensureSteamCMD() {
-  // If already found, return
   if (steamCmdPath && fs.existsSync(steamCmdPath)) return steamCmdPath;
-
-  // Check common locations
   const searchPaths = [
-    'C:\\SteamCMD\\steamcmd.exe',
-    'C:\\steamcmd\\steamcmd.exe',
-    path.join(CONFIG.dayz.installDir, 'steamcmd', 'steamcmd.exe'),
+    'C:\\SteamCMD\\steamcmd.exe', 'C:\\steamcmd\\steamcmd.exe',
     path.join(__dirname, '..', 'steamcmd', 'steamcmd.exe'),
-    // Check alongside Steam installation
-    path.join(path.dirname(CONFIG.dayz.installDir), '..', '..', 'steamcmd.exe'),
   ];
-
-  for (const p of searchPaths) {
-    if (fs.existsSync(p)) {
-      steamCmdPath = p;
-      addLog('info', 'steam', `SteamCMD found at: ${p}`);
-      return p;
-    }
-  }
-
-  // Not found — download SteamCMD
-  addLog('info', 'steam', 'SteamCMD not found. Downloading...');
-  io.emit('modInstallProgress', { workshopId: '_steamcmd', status: 'downloading', message: 'Downloading SteamCMD...' });
-
+  for (const p of searchPaths) { if (fs.existsSync(p)) { steamCmdPath = p; return p; } }
+  // Auto-download
   const steamCmdDir = path.join(__dirname, '..', 'steamcmd');
   const zipPath = path.join(steamCmdDir, 'steamcmd.zip');
-
   if (!fs.existsSync(steamCmdDir)) fs.mkdirSync(steamCmdDir, { recursive: true });
-
-  try {
-    // Download steamcmd.zip
-    const fetch = (await import('node-fetch')).default;
-    const resp = await fetch('https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip');
-    if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
-    const buffer = Buffer.from(await resp.arrayBuffer());
-    fs.writeFileSync(zipPath, buffer);
-    addLog('info', 'steam', 'SteamCMD zip downloaded, extracting...');
-
-    // Extract using PowerShell (Windows)
-    await new Promise((resolve, reject) => {
-      exec(
-        `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${steamCmdDir}' -Force"`,
-        { timeout: 60000 },
-        (err, stdout, stderr) => err ? reject(new Error(stderr || err.message)) : resolve()
-      );
-    });
-
-    const exePath = path.join(steamCmdDir, 'steamcmd.exe');
-    if (!fs.existsSync(exePath)) throw new Error('steamcmd.exe not found after extraction');
-
-    // Run steamcmd once to self-update
-    addLog('info', 'steam', 'Running SteamCMD initial update...');
-    io.emit('modInstallProgress', { workshopId: '_steamcmd', status: 'updating', message: 'SteamCMD self-updating...' });
-
-    await new Promise((resolve, reject) => {
-      const proc = spawn(exePath, ['+quit'], { cwd: steamCmdDir });
-      proc.on('exit', (code) => code === 0 || code === 7 ? resolve() : reject(new Error(`SteamCMD update exit code: ${code}`)));
-      proc.on('error', reject);
-      setTimeout(() => { try { proc.kill(); } catch {} resolve(); }, 120000);
-    });
-
-    steamCmdPath = exePath;
-    addLog('info', 'steam', `SteamCMD ready at: ${exePath}`);
-    io.emit('modInstallProgress', { workshopId: '_steamcmd', status: 'ready', message: 'SteamCMD ready' });
-
-    // Cleanup zip
-    try { fs.unlinkSync(zipPath); } catch {}
-
-    return exePath;
-  } catch (err) {
-    addLog('error', 'steam', `Failed to install SteamCMD: ${err.message}`);
-    io.emit('modInstallProgress', { workshopId: '_steamcmd', status: 'error', message: err.message });
-    throw err;
-  }
+  const fetch = (await import('node-fetch')).default;
+  const resp = await fetch('https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip');
+  if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+  fs.writeFileSync(zipPath, Buffer.from(await resp.arrayBuffer()));
+  await new Promise((resolve, reject) => {
+    exec(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${steamCmdDir}' -Force"`, { timeout: 60000 }, (err) => err ? reject(err) : resolve());
+  });
+  const exePath = path.join(steamCmdDir, 'steamcmd.exe');
+  if (!fs.existsSync(exePath)) throw new Error('steamcmd.exe not found after extraction');
+  await new Promise((resolve) => {
+    const proc = spawn(exePath, ['+quit'], { cwd: steamCmdDir });
+    proc.on('exit', () => resolve()); proc.on('error', () => resolve());
+    setTimeout(() => { try { proc.kill(); } catch {} resolve(); }, 120000);
+  });
+  steamCmdPath = exePath;
+  try { fs.unlinkSync(zipPath); } catch {}
+  return exePath;
 }
 
-// Search all possible locations where SteamCMD might have placed workshop content
 function findWorkshopContent(workshopId) {
   const appId = CONFIG.steam.appId;
   const cmdDir = steamCmdPath ? path.dirname(steamCmdPath) : '';
-
-  // All known paths where SteamCMD puts workshop content
   const searchPaths = [
-    // Inside force_install_dir
     path.join(CONFIG.dayz.installDir, 'steamapps', 'workshop', 'content', appId, workshopId),
-    // Inside SteamCMD's own directory
     cmdDir ? path.join(cmdDir, 'steamapps', 'workshop', 'content', appId, workshopId) : '',
-    // Standard Steam library location
-    path.join(path.dirname(CONFIG.dayz.installDir), '..', '..', 'workshop', 'content', appId, workshopId),
-    // Alongside steamapps/common
     path.join(CONFIG.dayz.installDir, '..', '..', 'workshop', 'content', appId, workshopId),
   ].filter(Boolean);
-
   for (const p of searchPaths) {
-    try {
-      const resolved = path.resolve(p);
-      if (fs.existsSync(resolved)) {
-        const entries = fs.readdirSync(resolved);
-        if (entries.length > 0) {
-          addLog('info', 'steam', `Workshop content found at: ${resolved}`);
-          return resolved;
-        }
-      }
-    } catch {}
+    try { const resolved = path.resolve(p); if (fs.existsSync(resolved) && fs.readdirSync(resolved).length > 0) return resolved; } catch {}
   }
   return null;
 }
 
-// Download a Workshop mod via SteamCMD
-async function downloadWorkshopMod(workshopId, modName) {
+async function downloadWorkshopMod(workshopId, modName, serverId) {
   const cmdPath = await ensureSteamCMD();
-  const appId = CONFIG.steam.appId;  // 221100 for DayZ
-
-  // DayZ Workshop requires authenticated login
-  if (!steamCredentials.username || !steamCredentials.password) {
-    throw new Error(
-      'Steam credentials required! DayZ Workshop mods cannot be downloaded with anonymous login. ' +
-      'Go to Settings tab in Mods page or set STEAM_USERNAME and STEAM_PASSWORD in .env file. ' +
-      'The account must own DayZ.'
-    );
-  }
-
-  // Build SteamCMD arguments
-  // Login FIRST, then set force_install_dir, then download
+  const appId = CONFIG.steam.appId;
+  if (!steamCredentials.username || !steamCredentials.password) throw new Error('Steam credentials required.');
   const args = [];
-
-  // Login with credentials
-  if (steamCredentials.guardCode) {
-    args.push('+set_steam_guard_code', steamCredentials.guardCode);
-  }
+  if (steamCredentials.guardCode) args.push('+set_steam_guard_code', steamCredentials.guardCode);
   args.push('+login', steamCredentials.username, steamCredentials.password);
+  const srv = servers.find(s => s.id === serverId);
+  if (srv) args.push('+force_install_dir', srv.installDir);
+  args.push('+workshop_download_item', appId, workshopId, 'validate', '+quit');
 
-  // Set install dir after login
-  args.push('+force_install_dir', CONFIG.dayz.installDir);
-
-  // Download the workshop item
-  args.push('+workshop_download_item', appId, workshopId, 'validate');
-  args.push('+quit');
-
-  addLog('info', 'steam', `Downloading Workshop item ${workshopId} (${modName}) as ${steamCredentials.username}...`);
-  io.emit('modInstallProgress', {
-    workshopId,
-    status: 'downloading',
-    progress: 0,
-    message: `Logging into Steam as ${steamCredentials.username}...`,
-  });
+  io.emit('modInstallProgress', { serverId, workshopId, status: 'downloading', progress: 0, message: `Logging into Steam as ${steamCredentials.username}...` });
 
   return new Promise((resolve, reject) => {
-    const proc = spawn(cmdPath, args, {
-      cwd: path.dirname(cmdPath),
-    });
-
-    let output = '';
-    let needsSteamGuard = false;
-
+    const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
+    let output = ''; let needsSteamGuard = false;
     const handleData = (data) => {
-      const text = data.toString();
-      output += text;
-
-      const lines = text.split('\n');
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-
-        // Detect Steam Guard prompt
-        if (trimmed.includes('Steam Guard') || trimmed.includes('Two-factor') || trimmed.includes('two factor') || trimmed.includes('Enter the current code')) {
+      const text = data.toString(); output += text;
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim(); if (!trimmed) continue;
+        if (trimmed.includes('Steam Guard') || trimmed.includes('Two-factor') || trimmed.includes('Enter the current code')) {
           needsSteamGuard = true;
-          io.emit('modInstallProgress', {
-            workshopId,
-            status: 'steam_guard',
-            progress: 0,
-            message: 'Steam Guard code required. Enter it in the Mods > Settings tab.',
-          });
-          // Kill this process — user needs to enter code first
+          io.emit('modInstallProgress', { serverId, workshopId, status: 'steam_guard', progress: 0, message: 'Steam Guard code required.' });
           try { proc.kill(); } catch {}
-        }
-        // Detect invalid password
-        else if (trimmed.includes('Invalid Password') || trimmed.includes('FAILED login') || trimmed.includes('Login Failure')) {
-          io.emit('modInstallProgress', {
-            workshopId,
-            status: 'error',
-            progress: 0,
-            message: 'Invalid Steam credentials. Check username/password in Settings.',
-          });
-        }
-        // Download progress
-        else if (trimmed.includes('Downloading item') || trimmed.match(/\d+\.?\d*\s*%/)) {
-          const pct = trimmed.match(/(\d+\.?\d*)\s*%/);
-          const progress = pct ? parseFloat(pct[1]) : undefined;
-          io.emit('modInstallProgress', {
-            workshopId,
-            status: 'downloading',
-            progress,
-            message: progress ? `Downloading... ${progress.toFixed(0)}%` : trimmed,
-          });
-        }
-        // Success
-        else if (trimmed.includes('Success. Downloaded item') || trimmed.includes('workshop item') && trimmed.includes('successfully')) {
-          io.emit('modInstallProgress', { workshopId, status: 'downloaded', progress: 100, message: 'Download complete!' });
-        }
-        // Download failure
-        else if (trimmed.includes('ERROR') || trimmed.includes('FAILED') || trimmed.includes('Download item') && trimmed.includes('failed')) {
-          addLog('error', 'steam', `SteamCMD: ${trimmed}`);
-        }
-        // Waiting/connecting status
-        else if (trimmed.includes('Connecting') || trimmed.includes('Waiting') || trimmed.includes('Logging in')) {
-          io.emit('modInstallProgress', {
-            workshopId,
-            status: 'downloading',
-            progress: 0,
-            message: trimmed,
-          });
+        } else if (trimmed.includes('Invalid Password') || trimmed.includes('Login Failure')) {
+          io.emit('modInstallProgress', { serverId, workshopId, status: 'error', progress: 0, message: 'Invalid Steam credentials.' });
+        } else if (trimmed.match(/(\d+\.?\d*)\s*%/)) {
+          const pct = parseFloat(trimmed.match(/(\d+\.?\d*)\s*%/)[1]);
+          io.emit('modInstallProgress', { serverId, workshopId, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
+        } else if (trimmed.includes('Success. Downloaded item')) {
+          io.emit('modInstallProgress', { serverId, workshopId, status: 'downloaded', progress: 100, message: 'Download complete!' });
         }
       }
     };
-
-    proc.stdout?.on('data', handleData);
-    proc.stderr?.on('data', handleData);
-
-    // Timeout: 30 minutes for large mods
-    const timeout = setTimeout(() => {
-      try { proc.kill(); } catch {}
-      reject(new Error('Download timed out after 30 minutes'));
-    }, 30 * 60 * 1000);
-
-    proc.on('exit', (code) => {
+    proc.stdout?.on('data', handleData); proc.stderr?.on('data', handleData);
+    const timeout = setTimeout(() => { try { proc.kill(); } catch {} reject(new Error('Download timed out')); }, 30 * 60 * 1000);
+    proc.on('exit', () => {
       clearTimeout(timeout);
-
-      if (needsSteamGuard) {
-        steamLoginValidated = false;
-        return reject(new Error('Steam Guard code required. Enter code in Mods > Settings and retry.'));
-      }
-
-      // Check for invalid credentials in output
-      if (output.includes('Invalid Password') || output.includes('Login Failure')) {
-        steamLoginValidated = false;
-        return reject(new Error('Invalid Steam credentials. Check username and password.'));
-      }
-
-      // Search all possible content locations
+      if (needsSteamGuard) { steamLoginValidated = false; return reject(new Error('Steam Guard code required.')); }
+      if (output.includes('Invalid Password') || output.includes('Login Failure')) { steamLoginValidated = false; return reject(new Error('Invalid Steam credentials.')); }
       const contentPath = findWorkshopContent(workshopId);
-      if (contentPath) {
-        steamLoginValidated = true;
-        resolve(contentPath);
-      } else {
-        // Parse the failure reason from output
-        let reason = 'Unknown error';
-        if (output.includes('Download item') && output.includes('failed')) {
-          const failMatch = output.match(/Download item \d+ failed \(([^)]+)\)/i);
-          reason = failMatch ? failMatch[1] : 'Download failed';
-        }
-        if (output.includes('No subscription')) {
-          reason = 'No subscription — the Steam account may not own DayZ';
-        }
-
-        reject(new Error(
-          `Download failed: ${reason}. ` +
-          `Ensure the Steam account "${steamCredentials.username}" owns DayZ. ` +
-          `SteamCMD output: ${output.slice(-300)}`
-        ));
-      }
+      if (contentPath) { steamLoginValidated = true; resolve(contentPath); }
+      else reject(new Error('Download failed — content not found.'));
     });
-
-    proc.on('error', (err) => {
-      clearTimeout(timeout);
-      reject(err);
-    });
+    proc.on('error', (err) => { clearTimeout(timeout); reject(err); });
   });
 }
 
-// Validate Steam credentials via SteamCMD (quick login test)
 async function validateSteamLogin(username, password, guardCode) {
   const cmdPath = await ensureSteamCMD();
   const args = [];
   if (guardCode) args.push('+set_steam_guard_code', guardCode);
   args.push('+login', username, password, '+quit');
-
   return new Promise((resolve) => {
     const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
-    let output = '';
-
-    const handleData = (data) => { output += data.toString(); };
-    proc.stdout?.on('data', handleData);
-    proc.stderr?.on('data', handleData);
-
-    const timeout = setTimeout(() => { try { proc.kill(); } catch {} resolve({ success: false, error: 'Login timed out' }); }, 60000);
-
+    let output = ''; let resolved = false;
+    const done = (result) => { if (resolved) return; resolved = true; clearTimeout(timeout); try { proc.kill(); } catch {} resolve(result); };
+    const handleData = (data) => {
+      const text = data.toString(); output += text;
+      if (text.includes('Steam Guard') || text.includes('Two-factor') || text.includes('authenticator') || text.includes('Enter the current code'))
+        done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
+      else if (text.includes('Logged in OK') || text.includes('Waiting for user info...OK'))
+        done({ success: true });
+      else if (text.includes('Invalid Password') || text.includes('Login Failure'))
+        done({ success: false, error: 'Invalid username or password' });
+      else if (text.includes('rate limit') || text.includes('too many'))
+        done({ success: false, error: 'Too many attempts — wait and retry' });
+    };
+    proc.stdout?.on('data', handleData); proc.stderr?.on('data', handleData);
+    const timeout = setTimeout(() => {
+      if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) done({ success: true });
+      else done({ success: false, error: 'Login timed out' });
+    }, 30000);
     proc.on('exit', () => {
-      clearTimeout(timeout);
-      if (output.includes('Steam Guard') || output.includes('Two-factor') || output.includes('Enter the current code')) {
-        resolve({ success: false, needsGuard: true, error: 'Steam Guard code required' });
-      } else if (output.includes('Invalid Password') || output.includes('Login Failure')) {
-        resolve({ success: false, error: 'Invalid username or password' });
-      } else if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) {
-        resolve({ success: true });
-      } else {
-        // If it got to quitting without error, login likely worked
-        resolve({ success: !output.includes('FAILED'), error: output.includes('FAILED') ? 'Login failed' : undefined });
-      }
+      if (resolved) return;
+      if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) done({ success: true });
+      else if (output.includes('Steam Guard') || output.includes('Enter the current code')) done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
+      else if (output.includes('Invalid Password')) done({ success: false, error: 'Invalid username or password' });
+      else done({ success: true });
     });
-
-    proc.on('error', (err) => { clearTimeout(timeout); resolve({ success: false, error: err.message }); });
+    proc.on('error', (err) => done({ success: false, error: err.message }));
   });
 }
 
-// ─── Steam Credential Endpoints ──────────────────────────
-
-// Get current Steam config status (never returns the password)
-app.get('/api/steam/status', auth('admin'), async (req, res) => {
-  let steamCmdFound = false;
-  try { await ensureSteamCMD(); steamCmdFound = true; } catch {}
-
-  res.json({
-    steamCmdPath: steamCmdPath || null,
-    steamCmdReady: steamCmdFound,
-    username: steamCredentials.username || '',
-    hasPassword: !!steamCredentials.password,
-    hasGuardCode: !!steamCredentials.guardCode,
-    loginValidated: steamLoginValidated,
-  });
-});
-
-// Set Steam credentials (stores in memory for the session)
-app.post('/api/steam/credentials', auth('admin'), async (req, res) => {
-  const { username, password, guardCode } = req.body;
-
-  if (username !== undefined) steamCredentials.username = username;
-  if (password !== undefined) steamCredentials.password = password;
-  if (guardCode !== undefined) steamCredentials.guardCode = guardCode;
-
-  // Validate if we have both username and password
-  if (steamCredentials.username && steamCredentials.password) {
-    io.emit('modInstallProgress', { workshopId: '_login', status: 'downloading', message: 'Validating Steam login...' });
-    const result = await validateSteamLogin(steamCredentials.username, steamCredentials.password, steamCredentials.guardCode);
-
-    if (result.success) {
-      steamLoginValidated = true;
-      addLog('info', 'steam', `Steam login validated for: ${steamCredentials.username}`);
-      res.json({ success: true, message: `Logged in as ${steamCredentials.username}` });
-    } else if (result.needsGuard) {
-      steamLoginValidated = false;
-      res.json({ success: false, needsGuard: true, message: 'Steam Guard code required. Enter the code from your authenticator.' });
-    } else {
-      steamLoginValidated = false;
-      res.json({ success: false, message: result.error });
-    }
-  } else {
-    steamLoginValidated = false;
-    res.json({ success: false, message: 'Username and password required' });
-  }
-});
-
-// Copy downloaded workshop content to server directory as @ModName
-function installModToServer(workshopContentPath, modName, workshopId) {
-  const installDir = CONFIG.dayz.installDir;
-  // Ensure mod folder name starts with @
+function installModToServer(workshopContentPath, modName, workshopId, installDir) {
   const folderName = modName.startsWith('@') ? modName : `@${modName}`;
-  // Clean folder name: replace special chars but keep spaces for DayZ compatibility
   const safeName = folderName.replace(/[<>:"/\\|?*]/g, '').trim();
   const destPath = path.join(installDir, safeName);
-
-  io.emit('modInstallProgress', { workshopId, status: 'installing', message: `Copying files to ${safeName}...` });
-
-  try {
-    // If destination already exists, remove it first for clean install
-    if (fs.existsSync(destPath)) {
-      fs.rmSync(destPath, { recursive: true, force: true });
-    }
-
-    // Copy the workshop content to the server directory
-    copyDirSync(workshopContentPath, destPath);
-
-    // Also create/update a meta.cpp with the workshop ID if it doesn't exist
-    const metaPath = path.join(destPath, 'meta.cpp');
-    if (!fs.existsSync(metaPath)) {
-      fs.writeFileSync(metaPath, `// Created by DayZ Panel\nprotocol = 1;\nname = "${modName}";\ntimestamp = ${Math.floor(Date.now() / 1000)};\npublishedid = ${workshopId};\n`);
-    }
-
-    // Create keys symlinks if the mod has a keys directory
-    const modKeysDir = path.join(destPath, 'keys');
-    const keysAlternatives = [path.join(destPath, 'Keys'), path.join(destPath, 'key'), path.join(destPath, 'Key')];
-    let keysSource = fs.existsSync(modKeysDir) ? modKeysDir : keysAlternatives.find(k => fs.existsSync(k));
-    if (keysSource) {
-      const serverKeysDir = path.join(installDir, 'keys');
-      if (!fs.existsSync(serverKeysDir)) fs.mkdirSync(serverKeysDir, { recursive: true });
-      try {
-        const keyFiles = fs.readdirSync(keysSource).filter(f => f.endsWith('.bikey'));
-        for (const keyFile of keyFiles) {
-          const src = path.join(keysSource, keyFile);
-          const dest = path.join(serverKeysDir, keyFile);
-          if (!fs.existsSync(dest)) {
-            fs.copyFileSync(src, dest);
-            addLog('info', 'mods', `Copied key: ${keyFile}`);
-          }
-        }
-      } catch (err) {
-        addLog('warn', 'mods', `Could not copy keys for ${modName}: ${err.message}`);
-      }
-    }
-
-    addLog('info', 'mods', `Installed mod files: ${safeName}`);
-    return safeName;
-  } catch (err) {
-    addLog('error', 'mods', `Failed to install ${modName}: ${err.message}`);
-    throw err;
+  if (fs.existsSync(destPath)) fs.rmSync(destPath, { recursive: true, force: true });
+  copyDirSync(workshopContentPath, destPath);
+  const metaPath = path.join(destPath, 'meta.cpp');
+  if (!fs.existsSync(metaPath)) {
+    fs.writeFileSync(metaPath, `protocol = 1;\nname = "${modName}";\ntimestamp = ${Math.floor(Date.now() / 1000)};\npublishedid = ${workshopId};\n`);
   }
+  const keysSource = [path.join(destPath, 'keys'), path.join(destPath, 'Keys'), path.join(destPath, 'key')].find(k => fs.existsSync(k));
+  if (keysSource) {
+    const serverKeysDir = path.join(installDir, 'keys');
+    if (!fs.existsSync(serverKeysDir)) fs.mkdirSync(serverKeysDir, { recursive: true });
+    try { fs.readdirSync(keysSource).filter(f => f.endsWith('.bikey')).forEach(f => { if (!fs.existsSync(path.join(serverKeysDir, f))) fs.copyFileSync(path.join(keysSource, f), path.join(serverKeysDir, f)); }); } catch {}
+  }
+  return safeName;
 }
 
-// Recursive directory copy helper
 function copyDirSync(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
-  const entries = fs.readdirSync(src, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDirSync(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, entry.name), d = path.join(dest, entry.name);
+    entry.isDirectory() ? copyDirSync(s, d) : fs.copyFileSync(s, d);
   }
 }
 
-// Update start.bat with current enabled mods in the -mod= parameter
-function updateStartBatMods() {
-  if (!CONFIG.dayz.startBat) return;
-  const batPath = path.join(CONFIG.dayz.installDir, CONFIG.dayz.startBat);
+function updateStartBatMods(serverId) {
+  const srv = servers.find(s => s.id === serverId);
+  const state = serverStates[serverId];
+  if (!srv || !state || !srv.startBat) return;
+  const batPath = path.join(srv.installDir, srv.startBat);
   if (!fs.existsSync(batPath)) return;
-
   try {
     let content = fs.readFileSync(batPath, 'utf8');
-    const enabledMods = store.modList.filter(m => m.enabled).map(m => m.name).join(';');
-
-    // Backup before modifying
-    const backupDir = path.join(CONFIG.dayz.installDir, '.backups');
+    const enabledMods = state.modList.filter(m => m.enabled).map(m => m.name).join(';');
+    const backupDir = path.join(srv.installDir, '.backups');
     if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-    fs.copyFileSync(batPath, path.join(backupDir, `${CONFIG.dayz.startBat}.${Date.now()}.bak`));
-
-    // Replace the -mod= parameter
-    if (content.match(/"-mod=[^"]*"/i)) {
-      content = content.replace(/"-mod=[^"]*"/i, `"-mod=${enabledMods}"`);
-    } else if (content.match(/-mod=[^\s"]+/i)) {
-      content = content.replace(/-mod=[^\s"]+/i, `-mod=${enabledMods}`);
-    } else {
-      // No -mod= found; try to add it before the last line
-      addLog('warn', 'mods', 'No -mod= parameter found in start.bat; could not update automatically');
-      return;
-    }
-
+    fs.copyFileSync(batPath, path.join(backupDir, `${srv.startBat}.${Date.now()}.bak`));
+    if (content.match(/"-mod=[^"]*"/i)) content = content.replace(/"-mod=[^"]*"/i, `"-mod=${enabledMods}"`);
+    else if (content.match(/-mod=[^\s"]+/i)) content = content.replace(/-mod=[^\s"]+/i, `-mod=${enabledMods}`);
     fs.writeFileSync(batPath, content);
-    addLog('info', 'mods', `Updated start.bat -mod= with ${store.modList.filter(m => m.enabled).length} mods`);
-  } catch (err) {
-    addLog('error', 'mods', `Failed to update start.bat: ${err.message}`);
-  }
+  } catch {}
 }
 
-// Mods
-app.get('/api/mods', auth(), (req, res) => {
-  res.json(store.modList);
-});
-
-// Get current install status for active downloads
-app.get('/api/mods/install-status', auth(), (req, res) => {
-  res.json(activeInstalls);
-});
-
-// Install (download + copy) a new mod from Steam Workshop
-app.post('/api/mods/install', auth('admin'), async (req, res) => {
-  const { workshopId, name } = req.body;
-  if (!workshopId || !name) return res.status(400).json({ error: 'workshopId and name required' });
-
-  // Check if already installed
-  if (store.modList.find(m => m.workshopId === String(workshopId))) {
-    return res.status(400).json({ error: 'Mod already installed' });
-  }
-
-  // Check if already downloading
-  if (activeInstalls[workshopId] && activeInstalls[workshopId].status === 'downloading') {
-    return res.status(409).json({ error: 'Mod is already being downloaded' });
-  }
-
-  addLog('info', 'mods', `Install requested by ${req.user.username}: ${name} (${workshopId})`);
-  activeInstalls[workshopId] = { status: 'starting', progress: 0, name };
-  io.emit('modInstallProgress', { workshopId, status: 'starting', progress: 0, message: 'Starting download...' });
-
-  // Return immediately — download happens in background
-  res.json({ message: 'Download started', workshopId });
-
-  try {
-    // Step 1: Download via SteamCMD
-    activeInstalls[workshopId] = { status: 'downloading', progress: 0, name };
-    const contentPath = await downloadWorkshopMod(String(workshopId), name);
-
-    // Step 2: Copy to server directory
-    activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
-    const folderName = installModToServer(contentPath, name, String(workshopId));
-
-    // Step 3: Add to mod list
-    const mod = {
-      name: folderName,
-      workshopId: String(workshopId),
-      enabled: true,
-      order: store.modList.length,
-    };
-    store.modList.push(mod);
-
-    // Step 4: Update start.bat
-    updateStartBatMods();
-
-    activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
-    io.emit('modInstallProgress', { workshopId, status: 'complete', progress: 100, message: `${name} installed successfully!` });
-    io.emit('mods', store.modList);
-    addLog('info', 'mods', `Successfully installed: ${folderName} (${workshopId})`);
-    sendDiscordWebhook(`🧩 **Mod Installed:** ${name} (Workshop ID: ${workshopId})`);
-
-    // Clean up status after 30 seconds
-    setTimeout(() => { delete activeInstalls[workshopId]; }, 30000);
-
-  } catch (err) {
-    addLog('error', 'mods', `Install failed for ${name} (${workshopId}): ${err.message}`);
-    activeInstalls[workshopId] = { status: 'error', progress: 0, name, error: err.message };
-    io.emit('modInstallProgress', { workshopId, status: 'error', progress: 0, message: err.message });
-    // Clean up error status after 60 seconds
-    setTimeout(() => { delete activeInstalls[workshopId]; }, 60000);
-  }
-});
-
-// Uninstall a mod (remove files + update start.bat)
-app.delete('/api/mods/uninstall/:workshopId', auth('admin'), (req, res) => {
-  const workshopId = req.params.workshopId;
-  const mod = store.modList.find(m => m.workshopId === workshopId);
-  if (!mod) return res.status(404).json({ error: 'Mod not found' });
-
-  const installDir = CONFIG.dayz.installDir;
-  const modPath = path.join(installDir, mod.name);
-
-  try {
-    // Remove mod directory
-    if (fs.existsSync(modPath)) {
-      fs.rmSync(modPath, { recursive: true, force: true });
-      addLog('info', 'mods', `Deleted mod directory: ${mod.name}`);
-    }
-
-    // Remove from mod list
-    store.modList = store.modList.filter(m => m.workshopId !== workshopId);
-
-    // Update start.bat
-    updateStartBatMods();
-
-    io.emit('mods', store.modList);
-    addLog('info', 'mods', `Uninstalled: ${mod.name} (${workshopId})`);
-    sendDiscordWebhook(`🗑️ **Mod Uninstalled:** ${mod.name} (Workshop ID: ${workshopId})`);
-    res.json({ message: `${mod.name} uninstalled` });
-  } catch (err) {
-    addLog('error', 'mods', `Uninstall failed for ${mod.name}: ${err.message}`);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/mods', auth('admin'), (req, res) => {
-  const { name, workshopId } = req.body;
-  const mod = { name, workshopId, enabled: true, order: store.modList.length };
-  store.modList.push(mod);
-  addLog('info', 'mods', `Mod added by ${req.user.username}: ${name} (${workshopId})`);
-  res.json(mod);
-});
-
-app.patch('/api/mods/:workshopId', auth('admin'), (req, res) => {
-  const mod = store.modList.find((m) => m.workshopId === req.params.workshopId);
-  if (!mod) return res.status(404).json({ error: 'Mod not found' });
-  Object.assign(mod, req.body);
-  // Update start.bat when mods are toggled
-  updateStartBatMods();
-  addLog('info', 'mods', `Mod updated by ${req.user.username}: ${mod.name}`);
-  res.json(mod);
-});
-
-app.delete('/api/mods/:workshopId', auth('admin'), (req, res) => {
-  store.modList = store.modList.filter((m) => m.workshopId !== req.params.workshopId);
-  updateStartBatMods();
-  addLog('info', 'mods', `Mod removed by ${req.user.username}: ${req.params.workshopId}`);
-  res.json({ message: 'Mod removed' });
-});
-
-// Scheduled Restarts
-app.get('/api/schedule', auth(), (req, res) => {
-  res.json(store.scheduledRestarts);
-});
-
-// ─── Steam Workshop Search & Browse ──────────────────────
-// Searches the Steam Workshop for DayZ mods (AppID 221100).
-// Uses Steam's public API endpoints — no API key required.
-
+// ─── Workshop Search ─────────────────────────────────────
 const DAYZ_APP_ID = 221100;
 
-// Search Workshop by text query
-app.get('/api/workshop/search', auth(), async (req, res) => {
-  const { q, page = 1 } = req.query;
-  if (!q || q.trim().length < 2) {
-    return res.status(400).json({ error: 'Search query must be at least 2 characters' });
-  }
-
-  try {
-    const fetch = (await import('node-fetch')).default;
-
-    // Use Steam's public search page and parse results
-    // The IPublishedFileService/QueryFiles works without key for basic searches
-    const url = `https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/` +
-      `?query_type=1` +
-      `&page=${parseInt(page)}` +
-      `&numperpage=20` +
-      `&appid=${DAYZ_APP_ID}` +
-      `&search_text=${encodeURIComponent(q.trim())}` +
-      `&return_short_description=true` +
-      `&return_metadata=true` +
-      `&return_previews=true` +
-      `&strip_description_bbcode=true` +
-      `&filetype=0` +
-      `&match_all_tags=false` +
-      (process.env.STEAM_API_KEY ? `&key=${process.env.STEAM_API_KEY}` : '');
-
-    const response = await fetch(url, { timeout: 10000 });
-    const data = await response.json();
-
-    if (!data.response || !data.response.publishedfiledetails) {
-      // Fallback: scrape the Workshop HTML search page
-      return await scrapeWorkshopSearch(req, res, q, page);
-    }
-
-    const results = data.response.publishedfiledetails.map(item => ({
-      workshopId: item.publishedfileid,
-      name: item.title || 'Unknown',
-      description: (item.short_description || '').substring(0, 200),
-      preview: item.preview_url || (item.previews?.[0]?.url) || '',
-      subscribers: item.subscriptions || 0,
-      favorites: item.favorited || 0,
-      fileSize: item.file_size || 0,
-      updated: item.time_updated ? new Date(item.time_updated * 1000).toISOString() : '',
-      tags: (item.tags || []).map(t => t.tag || t.display_name || ''),
-    }));
-
-    res.json({
-      results,
-      total: data.response.total || results.length,
-      page: parseInt(page),
-    });
-  } catch (err) {
-    addLog('error', 'workshop', `Search failed: ${err.message}`);
-    // Try scraping as fallback
-    try {
-      await scrapeWorkshopSearch(req, res, q, page);
-    } catch (fallbackErr) {
-      res.status(500).json({ error: 'Workshop search failed. Steam may be temporarily unavailable.' });
-    }
-  }
-});
-
-// Fallback: Scrape the Steam Workshop HTML search page
-async function scrapeWorkshopSearch(req, res, query, page) {
-  const fetch = (await import('node-fetch')).default;
-  const pageNum = parseInt(page) || 1;
-  const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}` +
-    `&searchtext=${encodeURIComponent(query)}` +
-    `&browsesort=textsearch&section=readytouseitems` +
-    `&actualsort=textsearch&p=${pageNum}`;
-
-  const response = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0' },
-    timeout: 15000,
-  });
-  const html = await response.text();
-
-  const results = [];
-  // Match workshop items from the HTML
-  const itemRegex = /workshopItem[^>]*>[\s\S]*?SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?<div class="workshopItemTitle[^"]*">([^<]+)<\/div>/g;
-  let match;
-  while ((match = itemRegex.exec(html)) !== null) {
-    results.push({
-      workshopId: match[1],
-      name: match[2].trim(),
-      description: '',
-      preview: '',
-      subscribers: 0,
-      favorites: 0,
-      fileSize: 0,
-      updated: '',
-      tags: [],
-    });
-  }
-
-  // Simpler fallback regex if above doesn't match
-  if (results.length === 0) {
-    const linkRegex = /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
-    while ((match = linkRegex.exec(html)) !== null) {
-      if (!results.find(r => r.workshopId === match[1])) {
-        results.push({
-          workshopId: match[1],
-          name: match[2].trim(),
-          description: '',
-          preview: '',
-          subscribers: 0,
-          favorites: 0,
-          fileSize: 0,
-          updated: '',
-          tags: [],
-        });
-      }
-    }
-  }
-
-  res.json({ results: await enrichWorkshopResults(results), total: results.length, page: pageNum });
-}
-
-// Batch-fetch details for workshop items using the free GetPublishedFileDetails API
 async function enrichWorkshopResults(items) {
   if (items.length === 0) return items;
   try {
     const fetch = (await import('node-fetch')).default;
-    // Build form body: itemcount=N&publishedfileids[0]=ID1&publishedfileids[1]=ID2...
     const params = new URLSearchParams();
     params.append('itemcount', items.length);
     items.forEach((item, i) => params.append(`publishedfileids[${i}]`, item.workshopId));
-
     const response = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-      timeout: 10000,
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString(), timeout: 10000,
     });
     const data = await response.json();
     const details = data.response?.publishedfiledetails || [];
-
-    // Merge details into our items
     return items.map(item => {
-      const detail = details.find(d => d.publishedfileid === item.workshopId);
-      if (detail && detail.result === 1) {
-        return {
-          ...item,
-          name: detail.title || item.name,
-          description: (detail.description || '').replace(/\[.*?\]/g, '').substring(0, 200),
-          preview: detail.preview_url || item.preview,
-          subscribers: detail.subscriptions || item.subscribers,
-          favorites: detail.favorited || item.favorites,
-          fileSize: detail.file_size || item.fileSize,
-          updated: detail.time_updated ? new Date(detail.time_updated * 1000).toISOString() : item.updated,
-          tags: (detail.tags || []).map(t => t.tag),
-        };
-      }
+      const d = details.find(x => x.publishedfileid === item.workshopId);
+      if (d && d.result === 1) return {
+        ...item, name: d.title || item.name,
+        description: (d.description || '').replace(/\[.*?\]/g, '').substring(0, 200),
+        preview: d.preview_url || item.preview, subscribers: d.subscriptions || 0,
+        favorites: d.favorited || 0, fileSize: d.file_size || 0,
+        updated: d.time_updated ? new Date(d.time_updated * 1000).toISOString() : '',
+        tags: (d.tags || []).map(t => t.tag),
+      };
       return item;
     });
-  } catch (err) {
-    addLog('warn', 'workshop', `Enrichment failed, returning basic results: ${err.message}`);
-    return items;
-  }
+  } catch { return items; }
 }
 
-// Get details for a specific Workshop item (no API key needed)
-app.get('/api/workshop/details/:id', auth(), async (req, res) => {
-  try {
-    const fetch = (await import('node-fetch')).default;
-    const workshopId = req.params.id;
-
-    const response = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `itemcount=1&publishedfileids[0]=${workshopId}`,
-      timeout: 10000,
-    });
-
-    const data = await response.json();
-    const item = data.response?.publishedfiledetails?.[0];
-
-    if (!item || item.result !== 1) {
-      return res.status(404).json({ error: 'Workshop item not found' });
+async function scrapeWorkshopSearch(query, page) {
+  const fetch = (await import('node-fetch')).default;
+  const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&searchtext=${encodeURIComponent(query)}&browsesort=textsearch&section=readytouseitems&p=${page}`;
+  const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120.0.0.0' }, timeout: 15000 });
+  const html = await response.text();
+  const results = [];
+  const regex = /SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
+  }
+  if (results.length === 0) {
+    const fallback = /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+    while ((match = fallback.exec(html)) !== null) {
+      if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
     }
+  }
+  return enrichWorkshopResults(results);
+}
 
-    res.json({
-      workshopId: item.publishedfileid,
-      name: item.title,
-      description: (item.description || '').substring(0, 500),
-      preview: item.preview_url || '',
-      subscribers: item.subscriptions || 0,
-      favorites: item.favorited || 0,
-      fileSize: item.file_size || 0,
-      updated: item.time_updated ? new Date(item.time_updated * 1000).toISOString() : '',
-      tags: (item.tags || []).map(t => t.tag),
-      steamUrl: `https://steamcommunity.com/sharedfiles/filedetails/?id=${item.publishedfileid}`,
-    });
+// ════════════════════════════════════════════════════════════
+// ─── API ROUTES ────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+
+// ─── Auth ────────────────────────────────────────────────
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username);
+  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+  const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, CONFIG.jwtSecret, { expiresIn: '24h' });
+  addAudit(user.id, user.username, 'login', 'User logged in');
+  res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+});
+
+// ─── Server Hub ──────────────────────────────────────────
+app.get('/api/servers', auth(), (req, res) => {
+  const result = servers.map(s => {
+    const state = serverStates[s.id] || {};
+    return {
+      ...s, rconPassword: undefined,
+      status: state.status || 'stopped',
+      playerCount: state.players?.length || 0,
+      maxPlayers: state.config?.maxPlayers || s.maxPlayers || 60,
+      cpu: state.metricsHistory?.cpu?.slice(-1)[0] || 0,
+      ram: state.metricsHistory?.ram?.slice(-1)[0] || 0,
+      uptime: state.startedAt ? Math.floor((Date.now() - new Date(state.startedAt).getTime()) / 1000) : 0,
+      modCount: state.modList?.length || 0,
+    };
+  });
+  res.json(result);
+});
+
+app.post('/api/servers', auth('server.deploy'), async (req, res) => {
+  const { name, installDir, executable, startBat, launchParams, ip, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map, gameTitle } = req.body;
+  if (!name || !installDir) return res.status(400).json({ error: 'Name and installDir required' });
+  const srv = {
+    id: uuid(), name, installDir: installDir.replace(/\//g, '\\'),
+    executable: executable || 'DayZServer_x64.exe', startBat: startBat || '',
+    launchParams: launchParams || '-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck',
+    ip: ip || '127.0.0.1', gamePort: gamePort || 2302, queryPort: queryPort || 2303,
+    rconPort: rconPort || 2305, rconPassword: rconPassword || '',
+    maxPlayers: maxPlayers || 60, map: map || 'chernarusplus',
+    gameTitle: gameTitle || 'DayZ, PC', profileDir: '', createdAt: new Date().toISOString(),
+  };
+  servers.push(srv); saveServers(); initServerState(srv.id);
+  addAudit(req.user.id, req.user.username, 'server.create', `Created server: ${name}`);
+  res.json(srv);
+});
+
+app.patch('/api/servers/:id', auth('server.deploy'), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const allowed = ['name','installDir','executable','startBat','launchParams','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir'];
+  for (const key of allowed) { if (req.body[key] !== undefined) srv[key] = req.body[key]; }
+  saveServers();
+  addAudit(req.user.id, req.user.username, 'server.update', `Updated server: ${srv.name}`);
+  res.json(srv);
+});
+
+app.delete('/api/servers/:id', auth('server.deploy'), (req, res) => {
+  const idx = servers.findIndex(s => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Server not found' });
+  const name = servers[idx].name;
+  if (serverStates[req.params.id]?.status === 'running') return res.status(400).json({ error: 'Stop the server first' });
+  delete serverStates[req.params.id];
+  servers.splice(idx, 1); saveServers();
+  addAudit(req.user.id, req.user.username, 'server.delete', `Deleted server: ${name}`);
+  res.json({ message: 'Server deleted' });
+});
+
+// ─── Server Control (per server) ─────────────────────────
+app.get('/api/servers/:id/status', auth(), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const state = serverStates[srv.id] || {};
+  res.json({
+    status: state.status || 'stopped',
+    players: state.players || [], playerCount: state.players?.length || 0,
+    maxPlayers: state.config?.maxPlayers || srv.maxPlayers || 60,
+    serverName: state.config?.hostname || srv.name,
+    map: state.config?.template || srv.map || 'chernarusplus',
+    gameVersion: state.config?.gameVersion || '',
+    uptime: state.startedAt ? Math.floor((Date.now() - new Date(state.startedAt).getTime()) / 1000) : 0,
+    ports: { game: srv.gamePort, query: srv.queryPort, rcon: srv.rconPort },
+    cpu: state.metricsHistory?.cpu?.slice(-1)[0] || 0,
+    ram: state.metricsHistory?.ram?.slice(-1)[0] || 0,
+  });
+});
+
+app.post('/api/servers/:id/start', auth('server.start'), async (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const state = serverStates[srv.id];
+  if (!state) return res.status(500).json({ error: 'State not initialized' });
+  if (state.status === 'running') return res.status(400).json({ error: 'Already running' });
+
+  const existingPid = await detectRunningProcess(srv.executable);
+  if (existingPid) {
+    state.pid = existingPid; state.status = 'running'; state.startedAt = new Date().toISOString();
+    io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+    return res.json({ message: `Already running (PID: ${existingPid})` });
+  }
+
+  state.status = 'starting'; io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
+  addLog(srv.id, 'info', 'server', `Start initiated by ${req.user.username}`);
+  try {
+    state.process = spawnDayZServer(srv); state.pid = state.process.pid;
+    setTimeout(async () => {
+      const pid = await detectRunningProcess(srv.executable);
+      if (pid) {
+        state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
+        io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+        addLog(srv.id, 'info', 'server', 'Server is now running');
+        fireWebhooks('server.started', { serverId: srv.id, serverName: srv.name });
+        sendDiscordWebhook(`🟢 **${srv.name}** started`);
+      } else if (state.status === 'starting') {
+        state.status = 'crashed'; io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+      }
+    }, 8000);
+    addAudit(req.user.id, req.user.username, 'server.start', `Started: ${srv.name}`);
+    res.json({ message: 'Starting...' });
   } catch (err) {
-    addLog('error', 'workshop', `Details fetch failed: ${err.message}`);
-    res.status(500).json({ error: 'Failed to fetch workshop item details' });
+    state.status = 'crashed'; io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Get trending/popular DayZ mods (for browsing) — scrapes Steam Workshop page
+app.post('/api/servers/:id/stop', auth('server.stop'), async (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const state = serverStates[srv.id];
+  if (!state || state.status === 'stopped') return res.status(400).json({ error: 'Not running' });
+
+  state.status = 'stopping'; io.emit('serverStatus', { serverId: srv.id, status: 'stopping' });
+  addLog(srv.id, 'info', 'server', `Stop initiated by ${req.user.username}`);
+  try {
+    if (state.rcon?.loggedIn) { try { await state.rcon.shutdown(); await new Promise(r => setTimeout(r, 5000)); } catch {} }
+    await killProcess(state.pid, srv.executable);
+    state.status = 'stopped'; state.pid = null; state.process = null; state.players = []; state.startedAt = null;
+    io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
+    io.emit('players', { serverId: srv.id, players: [] });
+    addAudit(req.user.id, req.user.username, 'server.stop', `Stopped: ${srv.name}`);
+    fireWebhooks('server.stopped', { serverId: srv.id, serverName: srv.name });
+    sendDiscordWebhook(`🔴 **${srv.name}** stopped`);
+    res.json({ message: 'Stopped' });
+  } catch {
+    state.status = 'stopped'; state.pid = null;
+    io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
+    res.json({ message: 'Stopped (force)' });
+  }
+});
+
+app.post('/api/servers/:id/restart', auth('server.restart'), async (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const state = serverStates[srv.id];
+  if (!state) return res.status(500).json({ error: 'State not initialized' });
+
+  addLog(srv.id, 'info', 'server', `Restart initiated by ${req.user.username}`);
+  state.status = 'stopping'; io.emit('serverStatus', { serverId: srv.id, status: 'stopping' });
+  try {
+    if (state.pid) await killProcess(state.pid, srv.executable);
+    state.pid = null; state.process = null; state.players = [];
+    await new Promise(r => setTimeout(r, 3000));
+    state.status = 'starting'; io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
+    state.process = spawnDayZServer(srv); state.pid = state.process.pid;
+    setTimeout(async () => {
+      const pid = await detectRunningProcess(srv.executable);
+      if (pid) {
+        state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
+        io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+        fireWebhooks('server.restarted', { serverId: srv.id, serverName: srv.name });
+        sendDiscordWebhook(`🔄 **${srv.name}** restarted`);
+      }
+    }, 8000);
+    addAudit(req.user.id, req.user.username, 'server.restart', `Restarted: ${srv.name}`);
+    res.json({ message: 'Restarting...' });
+  } catch (err) {
+    state.status = 'crashed'; io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/servers/:id/lock', auth('server.rcon'), async (req, res) => {
+  const state = serverStates[req.params.id];
+  if (state?.rcon) { await state.rcon.lock(); res.json({ message: 'Locked' }); }
+  else res.status(400).json({ error: 'RCON not available' });
+});
+
+app.post('/api/servers/:id/unlock', auth('server.rcon'), async (req, res) => {
+  const state = serverStates[req.params.id];
+  if (state?.rcon) { await state.rcon.unlock(); res.json({ message: 'Unlocked' }); }
+  else res.status(400).json({ error: 'RCON not available' });
+});
+
+// ─── RCON / Players / Bans (per server) ──────────────────
+app.post('/api/servers/:id/rcon', auth('server.rcon'), async (req, res) => {
+  const state = serverStates[req.params.id];
+  if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
+  try { const result = await state.rcon.send(req.body.command); res.json({ result }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/servers/:id/message', auth('chat.send'), async (req, res) => {
+  const state = serverStates[req.params.id];
+  if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
+  await state.rcon.say(req.body.message);
+  res.json({ message: 'Sent' });
+});
+
+app.get('/api/servers/:id/players', auth('players.view'), (req, res) => {
+  res.json(serverStates[req.params.id]?.players || []);
+});
+
+app.post('/api/servers/:id/players/:playerId/kick', auth('players.kick'), async (req, res) => {
+  const state = serverStates[req.params.id];
+  if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
+  await state.rcon.kick(req.params.playerId, req.body.reason || 'Kicked');
+  state.players = state.players.filter(p => p.id !== req.params.playerId);
+  io.emit('players', { serverId: req.params.id, players: state.players });
+  addAudit(req.user.id, req.user.username, 'player.kick', `Kicked player ${req.params.playerId}`);
+  res.json({ message: 'Kicked' });
+});
+
+app.post('/api/servers/:id/players/:playerId/ban', auth('players.ban'), async (req, res) => {
+  const state = serverStates[req.params.id];
+  if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
+  await state.rcon.ban(req.params.playerId, req.body.reason || 'Banned');
+  const player = state.players.find(p => p.id === req.params.playerId);
+  state.banList.push({ id: req.params.playerId, name: player?.name || 'Unknown', reason: req.body.reason || 'Banned', bannedAt: new Date().toISOString(), expiresAt: null });
+  state.players = state.players.filter(p => p.id !== req.params.playerId);
+  io.emit('players', { serverId: req.params.id, players: state.players });
+  addAudit(req.user.id, req.user.username, 'player.ban', `Banned player ${req.params.playerId}`);
+  res.json({ message: 'Banned' });
+});
+
+app.get('/api/servers/:id/bans', auth(), (req, res) => { res.json(serverStates[req.params.id]?.banList || []); });
+app.delete('/api/servers/:id/bans/:banId', auth('players.ban'), (req, res) => {
+  const state = serverStates[req.params.id];
+  if (state) state.banList = state.banList.filter(b => b.id !== req.params.banId);
+  res.json({ message: 'Ban removed' });
+});
+
+// ─── Server Logs & Metrics ───────────────────────────────
+app.get('/api/servers/:id/logs', auth('logs.view'), (req, res) => {
+  const { level, source, limit = 200 } = req.query;
+  let logs = serverStates[req.params.id]?.logs || [];
+  if (level) logs = logs.filter(l => l.level === level);
+  if (source) logs = logs.filter(l => l.source === source);
+  res.json(logs.slice(0, parseInt(limit)));
+});
+
+app.get('/api/servers/:id/metrics', auth('metrics.view'), (req, res) => {
+  res.json(serverStates[req.params.id]?.metricsHistory || { cpu: [], ram: [], players: [], fps: [], timestamps: [] });
+});
+
+// Metrics streaming via Socket.IO
+app.get('/api/servers/:id/metrics/stream', auth('metrics.view'), (req, res) => {
+  res.json({ message: 'Use Socket.IO events: metrics' });
+});
+
+// ─── Server Config ───────────────────────────────────────
+app.get('/api/servers/:id/config', auth('server.config'), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const state = serverStates[srv.id];
+  if (state) state.config = readServerConfig(srv.installDir);
+  res.json(state?.config || {});
+});
+
+app.patch('/api/servers/:id/config', auth('server.config'), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  if (writeServerConfig(srv.installDir, req.body)) {
+    if (serverStates[srv.id]) serverStates[srv.id].config = readServerConfig(srv.installDir);
+    addAudit(req.user.id, req.user.username, 'config.update', `Updated config for ${srv.name}`);
+    res.json(serverStates[srv.id]?.config || {});
+  } else res.status(500).json({ error: 'Failed to write config' });
+});
+
+// ─── Mods (per server) ──────────────────────────────────
+app.get('/api/servers/:id/mods', auth('mods.view'), (req, res) => {
+  res.json(serverStates[req.params.id]?.modList || []);
+});
+
+app.post('/api/servers/:id/mods/install', auth('mods.install'), async (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const state = serverStates[srv.id];
+  const { workshopId, name } = req.body;
+  if (!workshopId || !name) return res.status(400).json({ error: 'workshopId and name required' });
+  if (state?.modList.find(m => m.workshopId === String(workshopId))) return res.status(400).json({ error: 'Already installed' });
+  if (activeInstalls[workshopId]?.status === 'downloading') return res.status(409).json({ error: 'Already downloading' });
+
+  activeInstalls[workshopId] = { status: 'starting', progress: 0, name };
+  res.json({ message: 'Download started', workshopId });
+
+  try {
+    activeInstalls[workshopId] = { status: 'downloading', progress: 0, name };
+    const contentPath = await downloadWorkshopMod(String(workshopId), name, srv.id);
+    activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
+    const folderName = installModToServer(contentPath, name, String(workshopId), srv.installDir);
+    state.modList.push({ name: folderName, workshopId: String(workshopId), enabled: true, order: state.modList.length });
+    updateStartBatMods(srv.id);
+    activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
+    io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
+    io.emit('mods', { serverId: srv.id, mods: state.modList });
+    addAudit(req.user.id, req.user.username, 'mod.install', `Installed ${name} on ${srv.name}`);
+    setTimeout(() => delete activeInstalls[workshopId], 30000);
+  } catch (err) {
+    activeInstalls[workshopId] = { status: 'error', progress: 0, name, error: err.message };
+    io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'error', progress: 0, message: err.message });
+    setTimeout(() => delete activeInstalls[workshopId], 60000);
+  }
+});
+
+app.delete('/api/servers/:id/mods/uninstall/:workshopId', auth('mods.install'), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const state = serverStates[srv.id];
+  const mod = state?.modList.find(m => m.workshopId === req.params.workshopId);
+  if (!mod) return res.status(404).json({ error: 'Mod not found' });
+  try {
+    const modPath = path.join(srv.installDir, mod.name);
+    if (fs.existsSync(modPath)) fs.rmSync(modPath, { recursive: true, force: true });
+    state.modList = state.modList.filter(m => m.workshopId !== req.params.workshopId);
+    updateStartBatMods(srv.id);
+    io.emit('mods', { serverId: srv.id, mods: state.modList });
+    addAudit(req.user.id, req.user.username, 'mod.uninstall', `Uninstalled ${mod.name} from ${srv.name}`);
+    res.json({ message: `${mod.name} uninstalled` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch('/api/servers/:id/mods/:workshopId', auth('mods.install'), (req, res) => {
+  const state = serverStates[req.params.id];
+  if (!state) return res.status(404).json({ error: 'Server not found' });
+  const mod = state.modList.find(m => m.workshopId === req.params.workshopId);
+  if (!mod) return res.status(404).json({ error: 'Mod not found' });
+  Object.assign(mod, req.body);
+  updateStartBatMods(req.params.id);
+  res.json(mod);
+});
+
+app.get('/api/mods/install-status', auth(), (req, res) => { res.json(activeInstalls); });
+
+// ─── Files (per server) ─────────────────────────────────
+app.get('/api/servers/:id/files', auth('files.browse'), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const { dir } = req.query;
+  const basePath = srv.installDir;
+  const targetDir = dir ? path.resolve(basePath, dir) : basePath;
+  if (!targetDir.startsWith(basePath)) return res.status(403).json({ error: 'Access denied' });
+  try {
+    const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+    const results = entries.map(e => {
+      const fullPath = path.join(targetDir, e.name);
+      let size = 0, modified = 0;
+      try { const s = fs.statSync(fullPath); size = s.size; modified = s.mtimeMs; } catch {}
+      return { name: e.name, type: e.isDirectory() ? 'directory' : 'file', path: path.relative(basePath, fullPath).replace(/\\/g, '/'), size, modified };
+    });
+    results.sort((a, b) => a.type !== b.type ? (a.type === 'directory' ? -1 : 1) : a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    res.json(results);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/servers/:id/files/read', auth('files.edit'), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const { file } = req.query;
+  const filePath = path.resolve(srv.installDir, file);
+  if (!filePath.startsWith(srv.installDir)) return res.status(403).json({ error: 'Access denied' });
+  try {
+    const stat = fs.statSync(filePath);
+    if (stat.size > 5 * 1024 * 1024) return res.status(400).json({ error: 'File too large' });
+    const binaryExts = ['.exe','.dll','.pdb','.pbo','.pak','.bin','.so','.png','.jpg','.jpeg','.gif','.bmp','.ico','.wav','.ogg','.mp3','.zip','.rar','.7z','.bikey','.bisign'];
+    if (binaryExts.includes(path.extname(filePath).toLowerCase())) return res.status(400).json({ error: 'Binary file' });
+    res.json({ content: fs.readFileSync(filePath, 'utf8'), path: file, size: stat.size, modified: stat.mtimeMs });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/servers/:id/files/write', auth('files.edit'), (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const { file, content } = req.body;
+  const filePath = path.resolve(srv.installDir, file);
+  if (!filePath.startsWith(srv.installDir)) return res.status(403).json({ error: 'Access denied' });
+  try {
+    const bd = path.join(srv.installDir, '.backups');
+    if (!fs.existsSync(bd)) fs.mkdirSync(bd, { recursive: true });
+    if (fs.existsSync(filePath)) fs.copyFileSync(filePath, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`));
+    fs.writeFileSync(filePath, content);
+    addAudit(req.user.id, req.user.username, 'file.edit', `Edited ${file} on ${srv.name}`);
+    res.json({ message: 'Saved' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── Schedule (per server) ───────────────────────────────
+app.get('/api/servers/:id/schedule', auth(), (req, res) => {
+  res.json(serverStates[req.params.id]?.scheduledRestarts || []);
+});
+
+app.post('/api/servers/:id/schedule', auth('server.restart'), (req, res) => {
+  const state = serverStates[req.params.id];
+  if (!state) return res.status(404).json({ error: 'Server not found' });
+  const task = { id: uuid(), cronExpression: req.body.cronExpression, label: req.body.label, enabled: req.body.enabled !== false };
+  state.scheduledRestarts.push(task);
+  res.json(task);
+});
+
+app.delete('/api/servers/:id/schedule/:taskId', auth('server.restart'), (req, res) => {
+  const state = serverStates[req.params.id];
+  if (state) state.scheduledRestarts = state.scheduledRestarts.filter(s => s.id !== req.params.taskId);
+  res.json({ message: 'Removed' });
+});
+
+// ─── Users & Roles ───────────────────────────────────────
+app.get('/api/users', auth('users.manage'), (req, res) => {
+  res.json(users.map(u => ({ id: u.id, username: u.username, role: u.role, isRoot: u.isRoot || false, description: u.description || '', createdAt: u.createdAt })));
+});
+
+app.post('/api/users', auth('users.manage'), async (req, res) => {
+  const { username, password, role, description } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (users.find(u => u.username === username)) return res.status(400).json({ error: 'Username already exists' });
+  const hash = await bcrypt.hash(password, 10);
+  const user = { id: uuid(), username, passwordHash: hash, role: role || 'viewer', description: description || '', createdAt: new Date().toISOString() };
+  users.push(user); saveUsers();
+  addAudit(req.user.id, req.user.username, 'user.create', `Created user: ${username}`);
+  res.json({ id: user.id, username: user.username, role: user.role });
+});
+
+app.patch('/api/users/:id', auth('users.manage'), async (req, res) => {
+  const user = users.find(u => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (user.isRoot) return res.status(403).json({ error: 'Cannot modify root user' });
+  if (req.body.username) user.username = req.body.username;
+  if (req.body.role) user.role = req.body.role;
+  if (req.body.description !== undefined) user.description = req.body.description;
+  if (req.body.password) user.passwordHash = await bcrypt.hash(req.body.password, 10);
+  saveUsers();
+  addAudit(req.user.id, req.user.username, 'user.update', `Updated user: ${user.username}`);
+  res.json({ id: user.id, username: user.username, role: user.role });
+});
+
+app.delete('/api/users/:id', auth('users.manage'), (req, res) => {
+  const user = users.find(u => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (user.isRoot) return res.status(403).json({ error: 'Cannot delete root user' });
+  users = users.filter(u => u.id !== req.params.id); saveUsers();
+  addAudit(req.user.id, req.user.username, 'user.delete', `Deleted user: ${user.username}`);
+  res.json({ message: 'User deleted' });
+});
+
+// ─── Roles ───────────────────────────────────────────────
+app.get('/api/roles', auth(), (req, res) => { res.json(roles); });
+
+app.post('/api/roles', auth('users.manage'), (req, res) => {
+  const { name, permissions, color } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name required' });
+  const role = { id: uuid(), name, permissions: permissions || [], color: color || '#8b919a', builtIn: false };
+  roles.push(role); saveRoles();
+  addAudit(req.user.id, req.user.username, 'role.create', `Created role: ${name}`);
+  res.json(role);
+});
+
+app.patch('/api/roles/:id', auth('users.manage'), (req, res) => {
+  const role = roles.find(r => r.id === req.params.id);
+  if (!role) return res.status(404).json({ error: 'Role not found' });
+  if (role.builtIn && req.body.name) return res.status(403).json({ error: 'Cannot rename built-in role' });
+  if (req.body.permissions) role.permissions = req.body.permissions;
+  if (req.body.color) role.color = req.body.color;
+  if (req.body.name && !role.builtIn) role.name = req.body.name;
+  saveRoles();
+  res.json(role);
+});
+
+app.delete('/api/roles/:id', auth('users.manage'), (req, res) => {
+  const role = roles.find(r => r.id === req.params.id);
+  if (!role) return res.status(404).json({ error: 'Role not found' });
+  if (role.builtIn) return res.status(403).json({ error: 'Cannot delete built-in role' });
+  roles = roles.filter(r => r.id !== req.params.id); saveRoles();
+  res.json({ message: 'Role deleted' });
+});
+
+// ─── Audit Log ───────────────────────────────────────────
+app.get('/api/audit', auth('users.manage'), (req, res) => {
+  const { limit = 100, offset = 0 } = req.query;
+  res.json({ entries: auditLog.slice(parseInt(offset), parseInt(offset) + parseInt(limit)), total: auditLog.length });
+});
+
+// ─── Webhooks ────────────────────────────────────────────
+app.get('/api/webhooks', auth('webhooks.manage'), (req, res) => { res.json(webhooks); });
+
+app.post('/api/webhooks', auth('webhooks.manage'), (req, res) => {
+  const { event, url, template, retryEnabled, timeout, headers } = req.body;
+  if (!event || !url) return res.status(400).json({ error: 'Event and URL required' });
+  const isDiscord = url.includes('discord.com/api/webhooks');
+  let isValidJson = false;
+  if (template) { try { JSON.parse(template); isValidJson = true; } catch {} }
+  const wh = {
+    id: uuid(), event, url, template: template || (isDiscord ? JSON.stringify({ content: '**{server.name}** — {timestamp}' }) : ''),
+    retryEnabled: retryEnabled !== false, timeout: timeout || 60000,
+    headers: headers || {}, enabled: true, isDiscord, isValidJson,
+    deliveries: [], createdAt: new Date().toISOString(),
+  };
+  webhooks.push(wh); saveJSON('webhooks.json', webhooks);
+  addAudit(req.user.id, req.user.username, 'webhook.create', `Created webhook for ${event}`);
+  res.json(wh);
+});
+
+app.patch('/api/webhooks/:id', auth('webhooks.manage'), (req, res) => {
+  const wh = webhooks.find(w => w.id === req.params.id);
+  if (!wh) return res.status(404).json({ error: 'Webhook not found' });
+  const allowed = ['event','url','template','retryEnabled','timeout','headers','enabled'];
+  for (const key of allowed) { if (req.body[key] !== undefined) wh[key] = req.body[key]; }
+  wh.isDiscord = wh.url.includes('discord.com/api/webhooks');
+  if (wh.template) { try { JSON.parse(wh.template); wh.isValidJson = true; } catch { wh.isValidJson = false; } }
+  saveJSON('webhooks.json', webhooks);
+  res.json(wh);
+});
+
+app.delete('/api/webhooks/:id', auth('webhooks.manage'), (req, res) => {
+  webhooks = webhooks.filter(w => w.id !== req.params.id);
+  saveJSON('webhooks.json', webhooks);
+  addAudit(req.user.id, req.user.username, 'webhook.delete', 'Deleted webhook');
+  res.json({ message: 'Deleted' });
+});
+
+app.get('/api/webhooks/:id/deliveries', auth('webhooks.manage'), (req, res) => {
+  const wh = webhooks.find(w => w.id === req.params.id);
+  res.json(wh?.deliveries || []);
+});
+
+app.post('/api/webhooks/:id/test', auth('webhooks.manage'), async (req, res) => {
+  const wh = webhooks.find(w => w.id === req.params.id);
+  if (!wh) return res.status(404).json({ error: 'Not found' });
+  try { await fireWebhooks(wh.event, { serverId: 'test', serverName: 'Test Server' }); res.json({ message: 'Test fired' }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── Server Deployment ───────────────────────────────────
+app.post('/api/deploy', auth('server.deploy'), async (req, res) => {
+  const { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map } = req.body;
+  if (!name || !installDir) return res.status(400).json({ error: 'Name and install directory required' });
+
+  const appId = gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
+  const resolvedDir = path.resolve(installDir);
+
+  addAudit(req.user.id, req.user.username, 'server.deploy', `Deploying ${name} to ${resolvedDir}`);
+  io.emit('deployProgress', { status: 'starting', message: 'Preparing deployment...' });
+
+  const srv = {
+    id: uuid(), name, installDir: resolvedDir,
+    executable: 'DayZServer_x64.exe', startBat: '',
+    launchParams: `-config=serverDZ.cfg -port=${gamePort || 2302} -dologs -adminlog -netlog -freezecheck`,
+    ip: '127.0.0.1', gamePort: gamePort || 2302, queryPort: queryPort || 2303,
+    rconPort: rconPort || 2305, rconPassword: rconPassword || '',
+    maxPlayers: maxPlayers || 60, map: map || 'chernarusplus',
+    gameTitle: gameTitle || 'DayZ, PC', profileDir: '', createdAt: new Date().toISOString(), deploying: true,
+  };
+  servers.push(srv); saveServers(); initServerState(srv.id);
+  res.json({ message: 'Deployment started', server: srv });
+
+  // Background download
+  try {
+    const cmdPath = await ensureSteamCMD();
+    if (!fs.existsSync(resolvedDir)) fs.mkdirSync(resolvedDir, { recursive: true });
+    io.emit('deployProgress', { serverId: srv.id, status: 'downloading', message: 'Downloading DayZ Server via SteamCMD...' });
+
+    const args = ['+force_install_dir', resolvedDir];
+    if (steamCredentials.username && steamCredentials.password) {
+      if (steamCredentials.guardCode) args.push('+set_steam_guard_code', steamCredentials.guardCode);
+      args.push('+login', steamCredentials.username, steamCredentials.password);
+    } else { args.push('+login', 'anonymous'); }
+    args.push('+app_update', appId, 'validate', '+quit');
+
+    await new Promise((resolve, reject) => {
+      const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
+      proc.stdout?.on('data', (data) => {
+        for (const line of data.toString().split('\n')) {
+          const trimmed = line.trim();
+          if (trimmed.match(/(\d+\.?\d*)\s*%/)) {
+            const pct = parseFloat(trimmed.match(/(\d+\.?\d*)\s*%/)[1]);
+            io.emit('deployProgress', { serverId: srv.id, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
+          } else if (trimmed.includes('Update state')) {
+            io.emit('deployProgress', { serverId: srv.id, status: 'downloading', message: trimmed });
+          }
+        }
+      });
+      proc.stderr?.on('data', () => {});
+      const timeout = setTimeout(() => { try { proc.kill(); } catch {} reject(new Error('Deploy timed out')); }, 60 * 60 * 1000);
+      proc.on('exit', (code) => {
+        clearTimeout(timeout);
+        if (code === 0 || fs.existsSync(path.join(resolvedDir, 'DayZServer_x64.exe'))) resolve();
+        else reject(new Error(`SteamCMD exit code: ${code}`));
+      });
+      proc.on('error', (err) => { clearTimeout(timeout); reject(err); });
+    });
+
+    // Create default config
+    const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
+    if (!fs.existsSync(cfgPath)) {
+      fs.writeFileSync(cfgPath, `hostname = "${name}";\npassword = "";\npasswordAdmin = "";\nmaxPlayers = ${maxPlayers || 60};\nverifySignatures = 2;\nforceSameBuild = 1;\ndisableThirdPerson = 0;\nserverTime = "SystemTime";\nserverTimeAcceleration = 1;\nserverTimePersistent = 0;\nguaranteedUpdates = 1;\nloginQueueConcurrentPlayers = 5;\nloginQueueMaxPlayers = 500;\ninstanceId = 1;\nstorageAutoFix = 1;\nrespawnTime = 5;\ntimeStampFormat = "Short";\ntemplate = "${map || 'chernarusplus'}";\n`);
+    }
+    srv.deploying = false; saveServers();
+    serverStates[srv.id].config = readServerConfig(resolvedDir);
+    io.emit('deployProgress', { serverId: srv.id, status: 'complete', message: 'Deployment complete!' });
+  } catch (err) {
+    io.emit('deployProgress', { serverId: srv.id, status: 'error', message: err.message });
+    srv.deploying = false; srv.deployError = err.message; saveServers();
+  }
+});
+
+// ─── Steam Settings ──────────────────────────────────────
+app.get('/api/steam/status', auth(), async (req, res) => {
+  let steamCmdFound = false;
+  try { await ensureSteamCMD(); steamCmdFound = true; } catch {}
+  res.json({ steamCmdReady: steamCmdFound, username: steamCredentials.username || '', hasPassword: !!steamCredentials.password, hasGuardCode: !!steamCredentials.guardCode, loginValidated: steamLoginValidated });
+});
+
+app.post('/api/steam/credentials', auth('mods.install'), async (req, res) => {
+  const { username, password, guardCode } = req.body;
+  if (username !== undefined) steamCredentials.username = username;
+  if (password !== undefined) steamCredentials.password = password;
+  if (guardCode !== undefined) steamCredentials.guardCode = guardCode;
+  if (steamCredentials.username && steamCredentials.password) {
+    const result = await validateSteamLogin(steamCredentials.username, steamCredentials.password, steamCredentials.guardCode);
+    if (result.success) { steamLoginValidated = true; res.json({ success: true, message: `Logged in as ${steamCredentials.username}` }); }
+    else if (result.needsGuard) { steamLoginValidated = false; res.json({ success: false, needsGuard: true, message: 'Steam Guard code required.' }); }
+    else { steamLoginValidated = false; res.json({ success: false, message: result.error }); }
+  } else { steamLoginValidated = false; res.json({ success: false, message: 'Username and password required' }); }
+});
+
+// ─── Workshop ────────────────────────────────────────────
+app.get('/api/workshop/search', auth(), async (req, res) => {
+  const { q, page = 1 } = req.query;
+  if (!q || q.trim().length < 2) return res.status(400).json({ error: 'Query too short' });
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const url = `https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?query_type=1&page=${page}&numperpage=20&appid=${DAYZ_APP_ID}&search_text=${encodeURIComponent(q.trim())}&return_short_description=true&return_previews=true&strip_description_bbcode=true&filetype=0` + (process.env.STEAM_API_KEY ? `&key=${process.env.STEAM_API_KEY}` : '');
+    const response = await fetch(url, { timeout: 10000 });
+    const data = await response.json();
+    if (data.response?.publishedfiledetails) {
+      const results = data.response.publishedfiledetails.map(item => ({
+        workshopId: item.publishedfileid, name: item.title || 'Unknown',
+        description: (item.short_description || '').substring(0, 200),
+        preview: item.preview_url || item.previews?.[0]?.url || '',
+        subscribers: item.subscriptions || 0, favorites: item.favorited || 0,
+        fileSize: item.file_size || 0, updated: item.time_updated ? new Date(item.time_updated * 1000).toISOString() : '',
+        tags: (item.tags || []).map(t => t.tag || t.display_name || ''),
+      }));
+      return res.json({ results, total: data.response.total || results.length, page: parseInt(page) });
+    }
+    const results = await scrapeWorkshopSearch(q, page);
+    res.json({ results, total: results.length, page: parseInt(page) });
+  } catch {
+    try { const results = await scrapeWorkshopSearch(q, page); res.json({ results, total: results.length, page: parseInt(page) }); }
+    catch { res.status(500).json({ error: 'Workshop search failed' }); }
+  }
+});
+
+app.get('/api/workshop/details/:id', auth(), async (req, res) => {
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `itemcount=1&publishedfileids[0]=${req.params.id}`, timeout: 10000,
+    });
+    const data = await response.json();
+    const item = data.response?.publishedfiledetails?.[0];
+    if (!item || item.result !== 1) return res.status(404).json({ error: 'Not found' });
+    res.json({
+      workshopId: item.publishedfileid, name: item.title, description: (item.description || '').substring(0, 500),
+      preview: item.preview_url || '', subscribers: item.subscriptions || 0, favorites: item.favorited || 0,
+      fileSize: item.file_size || 0, updated: item.time_updated ? new Date(item.time_updated * 1000).toISOString() : '',
+      tags: (item.tags || []).map(t => t.tag), steamUrl: `https://steamcommunity.com/sharedfiles/filedetails/?id=${item.publishedfileid}`,
+    });
+  } catch { res.status(500).json({ error: 'Failed to fetch details' }); }
+});
+
 app.get('/api/workshop/popular', auth(), async (req, res) => {
   try {
     const fetch = (await import('node-fetch')).default;
     const { page = 1 } = req.query;
-
-    // Scrape the Workshop "most popular" browse page (no API key needed)
-    const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}` +
-      `&browsesort=trend&section=readytouseitems&actualsort=trend&p=${parseInt(page)}`;
-
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0' },
-      timeout: 15000,
-    });
+    const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&browsesort=trend&section=readytouseitems&p=${page}`;
+    const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120.0.0.0' }, timeout: 15000 });
     const html = await response.text();
-
-    // Extract workshop item IDs and names from the HTML
     const results = [];
-    const itemRegex = /SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+    const regex = /SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
     let match;
-    while ((match = itemRegex.exec(html)) !== null) {
-      if (!results.find(r => r.workshopId === match[1])) {
-        results.push({
-          workshopId: match[1],
-          name: match[2].trim(),
-          description: '',
-          preview: '',
-          subscribers: 0,
-          favorites: 0,
-          fileSize: 0,
-          updated: '',
-          tags: [],
-        });
-      }
+    while ((match = regex.exec(html)) !== null) {
+      if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
     }
-
-    // Fallback regex
     if (results.length === 0) {
-      const linkRegex = /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
-      while ((match = linkRegex.exec(html)) !== null) {
-        if (!results.find(r => r.workshopId === match[1])) {
-          results.push({
-            workshopId: match[1],
-            name: match[2].trim(),
-            description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [],
-          });
-        }
-      }
+      const fb = /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+      while ((match = fb.exec(html)) !== null) { if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] }); }
     }
-
-    // Enrich with real details (thumbnails, subscriber counts, etc.)
-    const enriched = await enrichWorkshopResults(results);
-
-    res.json({
-      results: enriched,
-      total: enriched.length,
-      page: parseInt(page),
-    });
-  } catch (err) {
-    addLog('error', 'workshop', `Popular mods fetch failed: ${err.message}`);
-    res.status(500).json({ error: 'Failed to fetch popular mods' });
-  }
+    res.json({ results: await enrichWorkshopResults(results), total: results.length, page: parseInt(page) });
+  } catch { res.status(500).json({ error: 'Failed to fetch popular mods' }); }
 });
 
-app.post('/api/schedule', auth('admin'), (req, res) => {
-  const { cronExpression, label, enabled } = req.body;
-  const task = {
-    id: Date.now().toString(),
-    cronExpression,
-    label,
-    enabled: enabled !== false,
-  };
-  store.scheduledRestarts.push(task);
-  addLog('info', 'schedule', `Restart scheduled by ${req.user.username}: ${label} (${cronExpression})`);
-  res.json(task);
-});
-
-app.delete('/api/schedule/:id', auth('admin'), (req, res) => {
-  store.scheduledRestarts = store.scheduledRestarts.filter((s) => s.id !== req.params.id);
-  res.json({ message: 'Schedule removed' });
-});
-
-// File Browser (limited to DayZ directories)
-app.get('/api/files', auth('admin'), (req, res) => {
-  const { dir } = req.query;
-  const basePath = CONFIG.dayz.installDir;
-  const targetDir = dir ? path.resolve(basePath, dir) : basePath;
-  
-  // Security: ensure we stay within the install directory
-  if (!targetDir.startsWith(basePath)) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
-
-  try {
-    const entries = fs.readdirSync(targetDir, { withFileTypes: true });
-    const results = entries.map((e) => {
-      const fullPath = path.join(targetDir, e.name);
-      let size = 0, modified = 0;
-      try { const s = fs.statSync(fullPath); size = s.size; modified = s.mtimeMs; } catch {}
-      return {
-        name: e.name,
-        type: e.isDirectory() ? 'directory' : 'file',
-        path: path.relative(basePath, fullPath).replace(/\\/g, '/'),
-        size,
-        modified,
-      };
-    });
-    // Sort: directories first, then alphabetical
-    results.sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-    });
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/files/read', auth('admin'), (req, res) => {
-  const { file } = req.query;
-  const basePath = CONFIG.dayz.installDir;
-  const filePath = path.resolve(basePath, file);
-  
-  if (!filePath.startsWith(basePath)) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
-
-  try {
-    const stat = fs.statSync(filePath);
-    // Reject files larger than 5 MB
-    if (stat.size > 5 * 1024 * 1024) {
-      return res.status(400).json({ error: 'File too large (>5MB). Cannot edit in browser.' });
-    }
-    // Reject binary files
-    const binaryExts = ['.exe', '.dll', '.pdb', '.pbo', '.pak', '.bin', '.so', '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.wav', '.ogg', '.mp3', '.zip', '.rar', '.7z', '.bikey', '.bisign'];
-    const ext = path.extname(filePath).toLowerCase();
-    if (binaryExts.includes(ext)) {
-      return res.status(400).json({ error: 'Binary file — cannot be edited in browser' });
-    }
-    const content = fs.readFileSync(filePath, 'utf8');
-    res.json({ content, path: file, size: stat.size, modified: stat.mtimeMs });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/files/write', auth('admin'), (req, res) => {
-  const { file, content } = req.body;
-  const basePath = CONFIG.dayz.installDir;
-  const filePath = path.resolve(basePath, file);
-  
-  if (!filePath.startsWith(basePath)) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
-
-  try {
-    // Backup before writing
-    const backupDir = path.join(basePath, '.backups');
-    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-    if (fs.existsSync(filePath)) {
-      fs.copyFileSync(filePath, path.join(backupDir, `${path.basename(file)}.${Date.now()}.bak`));
-    }
-    
-    fs.writeFileSync(filePath, content);
-    addLog('info', 'files', `File edited by ${req.user.username}: ${file}`);
-    res.json({ message: 'File saved' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Discord Bot Endpoint (internal, for the bot to call)
+// ─── Discord Bot Endpoint ────────────────────────────────
 app.post('/api/discord/action', async (req, res) => {
   const { action, apiKey, params } = req.body;
-  
-  // Verify the bot's API key
-  if (apiKey !== (process.env.DISCORD_BOT_API_KEY || 'bot-secret-key')) {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
-
-  addLog('info', 'discord', `Discord action: ${action}`);
+  const expectedKey = process.env.DISCORD_BOT_API_KEY || 'bot-secret-key';
+  if (apiKey !== expectedKey) return res.status(403).json({ error: 'Invalid API key' });
+  const defaultSrv = servers[0];
+  const state = defaultSrv ? serverStates[defaultSrv.id] : null;
 
   switch (action) {
     case 'status':
-      return res.json({
-        status: store.serverStatus,
-        playerCount: store.players.length,
-        maxPlayers: store.config.maxPlayers || 60,
-        serverName: store.config.hostname || 'DayZ Server',
-        players: store.players.map((p) => ({ name: p.name, ping: p.ping })),
-      });
-    case 'start': {
-      const existingPid = await detectRunningProcess();
-      if (existingPid) {
-        dayzProcessPID = existingPid;
-        store.serverStatus = 'running';
-        io.emit('serverStatus', store.serverStatus);
-        return res.json({ message: `Server already running (PID: ${existingPid})` });
-      }
-      store.serverStatus = 'starting';
-      io.emit('serverStatus', store.serverStatus);
-      try {
-        dayzProcess = spawnDayZServer();
-        dayzProcessPID = dayzProcess.pid;
-        setTimeout(async () => {
-          const pid = await detectRunningProcess();
-          if (pid) {
-            store.serverStatus = 'running';
-            io.emit('serverStatus', store.serverStatus);
-            sendDiscordWebhook('🟢 **DayZ Server Started** (via Discord)');
-          }
-        }, 8000);
-      } catch (err) {
-        store.serverStatus = 'crashed';
-        io.emit('serverStatus', store.serverStatus);
-        return res.json({ error: err.message });
-      }
-      return res.json({ message: 'Server starting...' });
-    }
-    case 'stop': {
-      store.serverStatus = 'stopping';
-      io.emit('serverStatus', store.serverStatus);
-      try {
-        const pid = await detectRunningProcess();
-        if (pid) await killDayZServer(pid);
-        store.serverStatus = 'stopped';
-        store.players = [];
-        dayzProcess = null;
-        dayzProcessPID = null;
-        io.emit('serverStatus', store.serverStatus);
-        io.emit('players', store.players);
-        sendDiscordWebhook('🔴 **DayZ Server Stopped** (via Discord)');
-      } catch (err) {
-        return res.json({ error: err.message });
-      }
-      return res.json({ message: 'Server stopped' });
-    }
-    case 'restart': {
-      store.serverStatus = 'stopping';
-      io.emit('serverStatus', store.serverStatus);
-      try {
-        const pid = await detectRunningProcess();
-        if (pid) await killDayZServer(pid);
-        dayzProcess = null;
-        dayzProcessPID = null;
-        store.players = [];
-        io.emit('players', store.players);
-        await new Promise(r => setTimeout(r, 3000));
-        store.serverStatus = 'starting';
-        io.emit('serverStatus', store.serverStatus);
-        dayzProcess = spawnDayZServer();
-        dayzProcessPID = dayzProcess.pid;
-        setTimeout(async () => {
-          const newPid = await detectRunningProcess();
-          if (newPid) {
-            store.serverStatus = 'running';
-            io.emit('serverStatus', store.serverStatus);
-            sendDiscordWebhook('🔄 **DayZ Server Restarted** (via Discord)');
-          }
-        }, 8000);
-      } catch (err) {
-        store.serverStatus = 'crashed';
-        io.emit('serverStatus', store.serverStatus);
-        return res.json({ error: err.message });
-      }
-      return res.json({ message: 'Server restarting...' });
-    }
-    case 'kick':
-      if (params?.playerId) {
-        await rcon.kick(params.playerId, params.reason || 'Kicked via Discord');
-        store.players = store.players.filter((p) => p.id !== params.playerId);
-        io.emit('players', store.players);
-      }
-      return res.json({ message: 'Player kicked' });
-    case 'message':
-      if (params?.message) await rcon.say(params.message);
-      return res.json({ message: 'Message sent' });
-    case 'lock':
-      await rcon.lock();
-      return res.json({ message: 'Server locked' });
-    case 'unlock':
-      await rcon.unlock();
-      return res.json({ message: 'Server unlocked' });
-    case 'players':
-      return res.json({ players: store.players });
-    default:
-      return res.status(400).json({ error: `Unknown action: ${action}` });
+      return res.json({ status: state?.status || 'unknown', players: state?.players || [], playerCount: state?.players?.length || 0, maxPlayers: state?.config?.maxPlayers || 60, serverName: defaultSrv?.name || 'DayZ Server' });
+    case 'start':
+      if (!defaultSrv || !state) return res.status(400).json({ error: 'No server' });
+      if (state.status === 'running') return res.json({ message: 'Already running' });
+      state.status = 'starting'; io.emit('serverStatus', { serverId: defaultSrv.id, status: 'starting' });
+      try { state.process = spawnDayZServer(defaultSrv); state.pid = state.process.pid;
+        setTimeout(async () => { const pid = await detectRunningProcess(defaultSrv.executable); if (pid) { state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString(); io.emit('serverStatus', { serverId: defaultSrv.id, status: 'running' }); } }, 8000);
+      } catch (err) { state.status = 'crashed'; return res.json({ error: err.message }); }
+      return res.json({ message: 'Starting...' });
+    case 'stop':
+      if (!state || state.status !== 'running') return res.json({ message: 'Not running' });
+      try { await killProcess(state.pid, defaultSrv.executable); state.status = 'stopped'; state.pid = null; state.players = []; state.startedAt = null; io.emit('serverStatus', { serverId: defaultSrv.id, status: 'stopped' }); }
+      catch (err) { return res.json({ error: err.message }); }
+      return res.json({ message: 'Stopped' });
+    case 'restart':
+      if (!state) return res.json({ error: 'No server' });
+      try { if (state.pid) await killProcess(state.pid, defaultSrv.executable); state.status = 'starting'; state.pid = null; state.players = []; io.emit('serverStatus', { serverId: defaultSrv.id, status: 'starting' });
+        await new Promise(r => setTimeout(r, 3000)); state.process = spawnDayZServer(defaultSrv); state.pid = state.process.pid;
+        setTimeout(async () => { const pid = await detectRunningProcess(defaultSrv.executable); if (pid) { state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString(); io.emit('serverStatus', { serverId: defaultSrv.id, status: 'running' }); } }, 8000);
+      } catch (err) { return res.json({ error: err.message }); }
+      return res.json({ message: 'Restarting...' });
+    case 'players': return res.json({ players: state?.players || [] });
+    default: return res.status(400).json({ error: `Unknown action: ${action}` });
   }
 });
 
-// ─── WebSocket Events ────────────────────────────────────
+// ═══ BACKWARD COMPATIBILITY ══════════════════════════════
+app.get('/api/server/status', auth(), (req, res) => {
+  const srv = servers[0]; const state = srv ? serverStates[srv.id] : null;
+  res.json({ status: state?.status || 'stopped', players: state?.players || [], playerCount: state?.players?.length || 0, maxPlayers: state?.config?.maxPlayers || 60, serverName: state?.config?.hostname || 'DayZ Server', uptime: state?.startedAt ? Math.floor((Date.now() - new Date(state.startedAt).getTime()) / 1000) : 0 });
+});
+app.get('/api/mods', auth(), (req, res) => { res.json(serverStates[servers[0]?.id]?.modList || []); });
+app.get('/api/metrics', auth(), (req, res) => { res.json(serverStates[servers[0]?.id]?.metricsHistory || { cpu: [], ram: [], players: [], fps: [], timestamps: [] }); });
+app.get('/api/config', auth(), (req, res) => { const srv = servers[0]; if (!srv) return res.json({}); const st = serverStates[srv.id]; if (st) st.config = readServerConfig(srv.installDir); res.json(st?.config || {}); });
+app.patch('/api/config', auth('server.config'), (req, res) => { const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); if (writeServerConfig(srv.installDir, req.body)) { if (serverStates[srv.id]) serverStates[srv.id].config = readServerConfig(srv.installDir); res.json(serverStates[srv.id]?.config || {}); } else res.status(500).json({ error: 'Failed' }); });
+app.get('/api/logs', auth(), (req, res) => { const { level, source, limit = 200 } = req.query; let logs = serverStates[servers[0]?.id]?.logs || []; if (level) logs = logs.filter(l => l.level === level); if (source) logs = logs.filter(l => l.source === source); res.json(logs.slice(0, parseInt(limit))); });
+app.get('/api/players', auth(), (req, res) => { res.json(serverStates[servers[0]?.id]?.players || []); });
+app.get('/api/bans', auth(), (req, res) => { res.json(serverStates[servers[0]?.id]?.banList || []); });
+app.get('/api/schedule', auth(), (req, res) => { res.json(serverStates[servers[0]?.id]?.scheduledRestarts || []); });
+app.get('/api/files', auth('files.browse'), (req, res) => {
+  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { dir } = req.query; const bp = srv.installDir;
+  const td = dir ? path.resolve(bp, dir) : bp; if (!td.startsWith(bp)) return res.status(403).json({ error: 'Access denied' });
+  try { const entries = fs.readdirSync(td, { withFileTypes: true }); const results = entries.map(e => { const fp = path.join(td, e.name); let size = 0, modified = 0; try { const s = fs.statSync(fp); size = s.size; modified = s.mtimeMs; } catch {} return { name: e.name, type: e.isDirectory() ? 'directory' : 'file', path: path.relative(bp, fp).replace(/\\/g, '/'), size, modified }; }); results.sort((a, b) => a.type !== b.type ? (a.type === 'directory' ? -1 : 1) : a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })); res.json(results); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.get('/api/files/read', auth('files.edit'), (req, res) => {
+  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { file } = req.query; const fp = path.resolve(srv.installDir, file);
+  if (!fp.startsWith(srv.installDir)) return res.status(403).json({ error: 'Access denied' });
+  try { const stat = fs.statSync(fp); if (stat.size > 5 * 1024 * 1024) return res.status(400).json({ error: 'File too large' }); const binaryExts = ['.exe','.dll','.pdb','.pbo','.pak','.bin','.so','.png','.jpg','.jpeg','.gif','.bmp','.ico','.wav','.ogg','.mp3','.zip','.rar','.7z','.bikey','.bisign']; if (binaryExts.includes(path.extname(fp).toLowerCase())) return res.status(400).json({ error: 'Binary file' }); res.json({ content: fs.readFileSync(fp, 'utf8'), path: file, size: stat.size, modified: stat.mtimeMs }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.put('/api/files/write', auth('files.edit'), (req, res) => {
+  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { file, content } = req.body; const fp = path.resolve(srv.installDir, file);
+  if (!fp.startsWith(srv.installDir)) return res.status(403).json({ error: 'Access denied' });
+  try { const bd = path.join(srv.installDir, '.backups'); if (!fs.existsSync(bd)) fs.mkdirSync(bd, { recursive: true }); if (fs.existsSync(fp)) fs.copyFileSync(fp, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`)); fs.writeFileSync(fp, content); res.json({ message: 'Saved' }); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── WebSocket ───────────────────────────────────────────
 io.on('connection', (socket) => {
-  addLog('info', 'ws', 'Client connected');
-  
-  socket.emit('serverStatus', store.serverStatus);
-  socket.emit('players', store.players);
-
-  socket.on('disconnect', () => {
-    addLog('info', 'ws', 'Client disconnected');
-  });
-});
-
-// ─── Real Process Metrics & Status Polling ────────────────
-// Polls the actual process to get real CPU/RAM usage and detect crashes.
-setInterval(async () => {
-  if (store.serverStatus === 'running' || store.serverStatus === 'starting') {
-    const pid = await detectRunningProcess();
-    if (pid) {
-      dayzProcessPID = pid;
-      if (store.serverStatus !== 'running') {
-        store.serverStatus = 'running';
-        io.emit('serverStatus', store.serverStatus);
-      }
-      // Get real metrics
-      const metrics = await getProcessMetrics(pid);
-      if (metrics) {
-        pushMetrics(metrics.cpu, metrics.ram, store.players.length, 0);
-      }
-    } else if (store.serverStatus === 'running') {
-      // Process disappeared — server crashed or was killed externally
-      addLog('error', 'server', 'DayZ server process is no longer running!');
-      store.serverStatus = 'crashed';
-      store.players = [];
-      dayzProcess = null;
-      dayzProcessPID = null;
-      io.emit('serverStatus', store.serverStatus);
-      io.emit('players', store.players);
-      sendDiscordWebhook('💥 **DayZ Server Down** — process no longer detected');
+  for (const srv of servers) {
+    const state = serverStates[srv.id];
+    if (state) {
+      socket.emit('serverStatus', { serverId: srv.id, status: state.status });
+      socket.emit('players', { serverId: srv.id, players: state.players });
     }
   }
-}, 15000); // Every 15 seconds
+  socket.on('disconnect', () => {});
+});
 
-// ─── Startup: Detect Already-Running Server ────────────────
+// ─── Metrics & Status Polling ─────────────────────────────
+setInterval(async () => {
+  for (const srv of servers) {
+    const state = serverStates[srv.id];
+    if (!state || (state.status !== 'running' && state.status !== 'starting')) continue;
+    const pid = await detectRunningProcess(srv.executable);
+    if (pid) {
+      state.pid = pid;
+      if (state.status !== 'running') { state.status = 'running'; state.startedAt = state.startedAt || new Date().toISOString(); io.emit('serverStatus', { serverId: srv.id, status: 'running' }); }
+      const metrics = await getProcessMetrics(pid, srv.executable);
+      if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, 0);
+    } else if (state.status === 'running') {
+      addLog(srv.id, 'error', 'server', 'Process no longer running');
+      state.status = 'crashed'; state.players = []; state.pid = null; state.process = null;
+      io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+      io.emit('players', { serverId: srv.id, players: [] });
+      fireWebhooks('server.crashed', { serverId: srv.id, serverName: srv.name });
+      sendDiscordWebhook(`💥 **${srv.name}** crashed`);
+    }
+  }
+}, 15000);
+
+// ─── Startup ─────────────────────────────────────────────
 (async () => {
-  const pid = await detectRunningProcess();
-  if (pid) {
-    dayzProcessPID = pid;
-    store.serverStatus = 'running';
-    addLog('info', 'server', `Detected already-running DayZ server (PID: ${pid})`);
-    io.emit('serverStatus', store.serverStatus);
+  for (const srv of servers) {
+    const pid = await detectRunningProcess(srv.executable);
+    if (pid) {
+      const state = serverStates[srv.id];
+      if (state) { state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString(); io.emit('serverStatus', { serverId: srv.id, status: 'running' }); }
+    }
   }
 })();
 
-// ─── Startup: Auto-Detect Mods ─────────────────────────────
-autoDetectMods();
-// Re-scan mods every 5 minutes (picks up newly installed mods)
-setInterval(() => autoDetectMods(), 5 * 60 * 1000);
+servers.forEach(s => autoDetectMods(s.id));
+setInterval(() => servers.forEach(s => autoDetectMods(s.id)), 5 * 60 * 1000);
 
-// ─── Optional RCON: Try to connect but don't fail ──────────
-if (CONFIG.dayz.rconPassword) {
-  setTimeout(async () => {
-    try {
-      await rcon.connect();
-      addLog('info', 'rcon', 'RCON connected successfully');
-    } catch (err) {
-      addLog('warn', 'rcon', `RCON not available (this is normal for local servers): ${err.message}`);
-    }
-  }, 5000);
-}
+setTimeout(() => {
+  for (const srv of servers) {
+    const state = serverStates[srv.id];
+    if (state?.rcon && srv.rconPassword) state.rcon.connect().catch(() => {});
+  }
+}, 5000);
 
 // ─── Start ───────────────────────────────────────────────
 server.listen(CONFIG.port, () => {
-  addLog('info', 'server', `DayZ Panel API running on port ${CONFIG.port}`);
-  console.log(`🎮 DayZ Panel API running on http://localhost:${CONFIG.port}`);
+  console.log(`🎮 DayZ Panel API v2.0 running on http://localhost:${CONFIG.port}`);
+  console.log(`   ${servers.length} server(s) configured, ${users.length} user(s)`);
 });
 
-module.exports = { app, io, store, CONFIG };
+module.exports = { app, io, servers, CONFIG };
