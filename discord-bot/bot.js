@@ -143,6 +143,11 @@ function buildControlPanel() {
     new ButtonBuilder().setCustomId('panel_watch_list').setLabel('🔔 Watch List').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('panel_killfeed').setLabel('☠️ Delayed Killfeed').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('panel_priority_queue').setLabel('🚦 Priority Queue').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('panel_time_weather').setLabel('⏰ Time/Weather').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_item_spawn').setLabel('🎁 Item Spawn/Teleport').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('panel_leaderboard').setLabel('🏆 Leaderboard/Stats').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_ban_whitelist').setLabel('🚫 Ban/Whitelist').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId('panel_heatmap').setLabel('🔥 Heatmap').setStyle(ButtonStyle.Primary),
   );
 
   return [row1, row2, row3];
@@ -242,26 +247,76 @@ client.once('ready', () => {
 
 // ─── Slash Command Handlers ──────────────────────────────
 client.on('interactionCreate', async (interaction) => {
-              else if (customId === 'panel_priority_queue') {
-                // Priority queue: fetch queue info from API and display
-                const queue = await panelAction('priorityQueue');
-                const embed = new EmbedBuilder()
-                  .setTitle('🚦 Priority Queue')
-                  .setColor(0x3b82f6)
-                  .setDescription(queue.entries && queue.entries.length ? queue.entries.map(q => `• **${q.name}** (${q.role || 'Player'})`).join('\n') : '*No players in queue*')
-                  .setTimestamp();
-                await interaction.reply({ embeds: [embed], ephemeral: true });
-              }
-        else if (customId === 'panel_killfeed') {
-          // Delayed killfeed: fetch recent kill events from API and display
-          const feed = await panelAction('killfeed');
-          const embed = new EmbedBuilder()
-            .setTitle('☠️ Delayed Killfeed')
-            .setColor(0xff3333)
-            .setDescription(feed.kills && feed.kills.length ? feed.kills.map(k => `• **${k.victim}** killed by **${k.killer}** (${k.method || 'unknown'})`).join('\n') : '*No recent kills*')
-            .setTimestamp();
-          await interaction.reply({ embeds: [embed], ephemeral: true });
-        }
+      if (customId === 'panel_time_weather') {
+        // Time/weather: fetch info from API and display
+        const tw = await panelAction('timeWeather');
+        const embed = new EmbedBuilder()
+          .setTitle('⏰ Time & Weather')
+          .setColor(0x00bfff)
+          .setDescription(tw && tw.info ? tw.info : '*No data available*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+      else if (customId === 'panel_item_spawn') {
+        // Item spawn/teleport: fetch info from API and display
+        const items = await panelAction('itemSpawn');
+        const embed = new EmbedBuilder()
+          .setTitle('🎁 Item Spawn / Teleport')
+          .setColor(0x00ff6a)
+          .setDescription(items && items.entries ? items.entries.map(i => `• **${i.player}**: ${i.action} ${i.item || ''} ${i.location || ''}`).join('\n') : '*No recent item spawns/teleports*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+      else if (customId === 'panel_leaderboard') {
+        // Leaderboard/stats: fetch info from API and display
+        const stats = await panelAction('leaderboard');
+        const embed = new EmbedBuilder()
+          .setTitle('🏆 Leaderboard / Stats')
+          .setColor(0xffd700)
+          .setDescription(stats && stats.entries ? stats.entries.map(s => `• **${s.player}**: ${s.score} pts`).join('\n') : '*No leaderboard data*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+      else if (customId === 'panel_ban_whitelist') {
+        // Ban/whitelist: fetch info from API and display
+        const bans = await panelAction('banWhitelist');
+        const embed = new EmbedBuilder()
+          .setTitle('🚫 Ban / Whitelist')
+          .setColor(0xff3333)
+          .setDescription(bans && bans.entries ? bans.entries.map(b => `• **${b.player}**: ${b.status} (${b.reason || ''})`).join('\n') : '*No ban/whitelist data*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+      else if (customId === 'panel_heatmap') {
+        // Heatmap: fetch info from API and display
+        const heat = await panelAction('heatmap');
+        const embed = new EmbedBuilder()
+          .setTitle('🔥 Player Heatmap')
+          .setColor(0xff6600)
+          .setDescription(heat && heat.entries ? heat.entries.map(h => `• **${h.player}**: ${h.location}`).join('\n') : '*No heatmap data*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+      else if (customId === 'panel_priority_queue') {
+        // Priority queue: fetch queue info from API and display
+        const queue = await panelAction('priorityQueue');
+        const embed = new EmbedBuilder()
+          .setTitle('🚦 Priority Queue')
+          .setColor(0x3b82f6)
+          .setDescription(queue.entries && queue.entries.length ? queue.entries.map(q => `• **${q.name}** (${q.role || 'Player'})`).join('\n') : '*No players in queue*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+      else if (customId === 'panel_killfeed') {
+        // Delayed killfeed: fetch recent kill events from API and display
+        const feed = await panelAction('killfeed');
+        const embed = new EmbedBuilder()
+          .setTitle('☠️ Delayed Killfeed')
+          .setColor(0xff3333)
+          .setDescription(feed.kills && feed.kills.length ? feed.kills.map(k => `• **${k.victim}** killed by **${k.killer}** (${k.method || 'unknown'})`).join('\n') : '*No recent kills*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
   // ── Slash Commands ──
   if (interaction.isChatInputCommand()) {
     const { commandName } = interaction;
