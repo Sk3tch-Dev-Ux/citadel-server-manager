@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle } from './Icon';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -18,14 +19,17 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 24, background: '#2a2e37', borderRadius: 8, border: '1px solid #e74c3c', margin: 16 }}>
-          <h3 style={{ color: '#e74c3c', marginBottom: 8 }}>Something went wrong</h3>
-          <pre style={{ color: '#ccc', fontSize: 12, whiteSpace: 'pre-wrap', marginBottom: 12, maxHeight: 200, overflow: 'auto' }}>
+        <div style={{ padding: 24, background: 'var(--bg-card)', borderRadius: 8, border: '1px solid var(--accent-red)', margin: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent-red)', marginBottom: 8 }}>
+            <AlertTriangle size={20} />
+            <h3 style={{ margin: 0 }}>Something went wrong</h3>
+          </div>
+          <pre style={{ color: 'var(--text-secondary)', fontSize: 12, whiteSpace: 'pre-wrap', marginBottom: 12, maxHeight: 200, overflow: 'auto' }}>
             {String(this.state.error)}{this.state.errorInfo ? '\n' + this.state.errorInfo.componentStack : ''}
           </pre>
           <button
             onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
-            style={{ padding: '6px 16px', background: '#6cb4f0', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+            className="btn btn-primary btn-sm"
           >
             Try Again
           </button>
