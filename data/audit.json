@@ -1,5 +1,45 @@
 [
   {
+    "id": "b60b4b4d-07b1-477f-a1b6-cf6cf8aaef23",
+    "timestamp": "2026-02-23T07:03:59.838Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: EXAMPLE NAME"
+  },
+  {
+    "id": "16652b0e-8796-4770-847b-771530464e75",
+    "timestamp": "2026-02-23T07:03:46.314Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "file.edit",
+    "details": "Edited serverDZ.cfg on EXAMPLE NAME"
+  },
+  {
+    "id": "462bf878-9299-4ff5-bce3-fbdba3351c84",
+    "timestamp": "2026-02-23T07:02:51.688Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: EXAMPLE NAME"
+  },
+  {
+    "id": "db0e8a4a-899f-411e-a141-c20f8066e0c3",
+    "timestamp": "2026-02-23T06:59:46.015Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "2bd700e6-3c58-4800-a456-f694e51b3803",
+    "timestamp": "2026-02-23T06:48:15.857Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
     "id": "fc87da04-e5a6-4e65-b81d-a08221dd6430",
     "timestamp": "2026-02-23T06:37:20.388Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",
