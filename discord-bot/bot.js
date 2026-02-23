@@ -142,6 +142,7 @@ function buildControlPanel() {
     new ButtonBuilder().setCustomId('panel_chat_feed').setLabel('💬 Live Chat Feed').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('panel_watch_list').setLabel('🔔 Watch List').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('panel_killfeed').setLabel('☠️ Delayed Killfeed').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_priority_queue').setLabel('🚦 Priority Queue').setStyle(ButtonStyle.Primary),
   );
 
   return [row1, row2, row3];
@@ -241,6 +242,16 @@ client.once('ready', () => {
 
 // ─── Slash Command Handlers ──────────────────────────────
 client.on('interactionCreate', async (interaction) => {
+              else if (customId === 'panel_priority_queue') {
+                // Priority queue: fetch queue info from API and display
+                const queue = await panelAction('priorityQueue');
+                const embed = new EmbedBuilder()
+                  .setTitle('🚦 Priority Queue')
+                  .setColor(0x3b82f6)
+                  .setDescription(queue.entries && queue.entries.length ? queue.entries.map(q => `• **${q.name}** (${q.role || 'Player'})`).join('\n') : '*No players in queue*')
+                  .setTimestamp();
+                await interaction.reply({ embeds: [embed], ephemeral: true });
+              }
         else if (customId === 'panel_killfeed') {
           // Delayed killfeed: fetch recent kill events from API and display
           const feed = await panelAction('killfeed');
