@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import { timeAgo } from '../utils';
+import { Bell, Info } from './Icon';
 
 export default function NotificationCenter() {
   const socket = useSocket();
@@ -39,7 +40,7 @@ export default function NotificationCenter() {
   return (
     <div style={{ position: 'relative' }}>
       <button className="notif-bell" onClick={() => setOpen(!open)} title="Notifications">
-        {'\uD83D\uDD14'}
+        <Bell size={18} />
         {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
       {open && <div className="notif-overlay" onClick={() => setOpen(false)} />}
@@ -57,7 +58,7 @@ export default function NotificationCenter() {
           <div className="notif-list">
             {items.length === 0 ? (
               <div className="notif-empty">
-                <div className="notif-empty-icon">{'\uD83D\uDD14'}</div>
+                <div className="notif-empty-icon"><Bell size={28} /></div>
                 <div>No notifications yet</div>
               </div>
             ) : items.map(n => (
@@ -66,7 +67,7 @@ export default function NotificationCenter() {
                 className={'notif-item' + (!n.read ? ' unread' : '') + (n.severity ? ' severity-' + n.severity : '')}
                 onClick={() => { if (!n.read) markOneRead(n.id); }}
               >
-                <div className="notif-item-icon">{n.icon || '\uD83D\uDD14'}</div>
+                <div className="notif-item-icon"><Info size={16} /></div>
                 <div className="notif-item-body">
                   <div className="notif-item-title">{n.title}</div>
                   <div className="notif-item-msg">{n.message}</div>
