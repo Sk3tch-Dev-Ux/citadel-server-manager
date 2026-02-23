@@ -88,6 +88,7 @@ steamUpdatePolling();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const https = require('https');
 const { Server: SocketIO } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -98,8 +99,21 @@ const { v4: uuid } = require('uuid');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
-const server = http.createServer(app);
-const io = new SocketIO(server, { cors: { origin: '*' } });
+let server, io;
+let useHttps = false;
+let httpsOptions = {};
+try {
+  const certPath = path.join(__dirname, '..', 'cert');
+  httpsOptions = {
+    key: fs.readFileSync(path.join(certPath, 'key.pem')),
+    cert: fs.readFileSync(path.join(certPath, 'cert.pem')),
+  };
+  server = https.createServer(httpsOptions, app);
+  useHttps = true;
+} catch {
+  server = http.createServer(app);
+}
+io = new SocketIO(server, { cors: { origin: '*' } });
 
 // ─── Config ──────────────────────────────────────────────
 const CONFIG = {
@@ -132,6 +146,16 @@ if (!fs.existsSync(CONFIG.dataDir)) fs.mkdirSync(CONFIG.dataDir, { recursive: tr
 // ─── Middleware ───────────────────────────────────────────
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+// Secure cookies middleware
+app.use((req, res, next) => {
+  res.cookie = function(name, value, options = {}) {
+    options.httpOnly = true;
+    options.sameSite = 'strict';
+    if (useHttps) options.secure = true;
+    return require('cookie').serialize(name, value, options);
+  };
+  next();
+});
 app.use(express.static(path.join(__dirname, '../web')));
 
 // ─── Persistent JSON Data Store ──────────────────────────
@@ -925,6 +949,49 @@ async function scrapeWorkshopSearch(query, page) {
 
 // ════════════════════════════════════════════════════════════
 // ─── API ROUTES ────────────────────────────────────────────
+// ─── Backup & Restore Endpoints ────────────────────────────
+app.get('/api/backup/:type', auth('admin'), (req, res) => {
+  const { type } = req.params;
+  let data, filename;
+  switch (type) {
+    case 'servers': data = servers; filename = 'servers-backup.json'; break;
+    case 'users': data = users; filename = 'users-backup.json'; break;
+    case 'roles': data = roles; filename = 'roles-backup.json'; break;
+    case 'webhooks': data = webhooks; filename = 'webhooks-backup.json'; break;
+    default: return res.status(400).json({ error: 'Invalid backup type' });
+  }
+  res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(data, null, 2));
+});
+
+app.post('/api/restore/:type', auth('admin'), (req, res) => {
+  const { type } = req.params;
+  const { data } = req.body;
+  if (!Array.isArray(data)) return res.status(400).json({ error: 'Data must be an array' });
+  switch (type) {
+    case 'servers': servers = data; saveServers(); break;
+    case 'users': users = data; saveUsers(); break;
+    case 'roles': roles = data; saveRoles(); break;
+    case 'webhooks': webhooks = data; saveJSON('webhooks.json', webhooks); break;
+    default: return res.status(400).json({ error: 'Invalid restore type' });
+  }
+  addAudit(req.user.id, req.user.username, 'backup.restore', `Restored ${type} from backup`);
+  res.json({ message: `Restored ${type}` });
+});
+// Input validation utility
+function validateFields(obj, schema) {
+  for (const key in schema) {
+    const rule = schema[key];
+    const value = obj[key];
+    if (rule.required && (value === undefined || value === null || value === '')) return `${key} is required`;
+    if (rule.type && typeof value !== rule.type) return `${key} must be a ${rule.type}`;
+    if (rule.minLength && typeof value === 'string' && value.length < rule.minLength) return `${key} must be at least ${rule.minLength} characters`;
+    if (rule.maxLength && typeof value === 'string' && value.length > rule.maxLength) return `${key} must be at most ${rule.maxLength} characters`;
+    if (rule.pattern && typeof value === 'string' && !rule.pattern.test(value)) return `${key} is invalid`;
+  }
+  return null;
+}
 // ════════════════════════════════════════════════════════════
 
 // ─── Auth ────────────────────────────────────────────────
@@ -1418,7 +1485,14 @@ app.get('/api/users', auth('users.manage'), (req, res) => {
 
 app.post('/api/users', auth('users.manage'), async (req, res) => {
   const { username, password, role, description, mfaEnabled } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  const error = validateFields(req.body, {
+    username: { required: true, type: 'string', minLength: 3, maxLength: 32, pattern: /^[a-zA-Z0-9_]+$/ },
+    password: { required: true, type: 'string', minLength: 8 },
+    role: { required: false, type: 'string' },
+    description: { required: false, type: 'string', maxLength: 128 },
+    mfaEnabled: { required: false, type: 'boolean' },
+  });
+  if (error) return res.status(400).json({ error });
   if (users.find(u => u.username === username)) return res.status(400).json({ error: 'Username already exists' });
   if (!checkPasswordPolicy(password)) {
     return res.status(400).json({ error: 'Password does not meet policy requirements.' });
@@ -1494,7 +1568,15 @@ app.get('/api/webhooks', auth('webhooks.manage'), (req, res) => { res.json(webho
 
 app.post('/api/webhooks', auth('webhooks.manage'), (req, res) => {
   const { event, url, template, retryEnabled, timeout, headers } = req.body;
-  if (!event || !url) return res.status(400).json({ error: 'Event and URL required' });
+  const error = validateFields(req.body, {
+    event: { required: true, type: 'string', minLength: 2 },
+    url: { required: true, type: 'string', pattern: /^https?:\/\// },
+    template: { required: false, type: 'string' },
+    retryEnabled: { required: false, type: 'boolean' },
+    timeout: { required: false, type: 'number' },
+    headers: { required: false, type: 'object' },
+  });
+  if (error) return res.status(400).json({ error });
   const isDiscord = url.includes('discord.com/api/webhooks');
   let isValidJson = false;
   if (template) { try { JSON.parse(template); isValidJson = true; } catch {} }
