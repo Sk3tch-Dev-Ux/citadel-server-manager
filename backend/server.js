@@ -127,6 +127,28 @@ function pushMetrics(serverId, cpu, ram, playerCount, fps) {
   io.emit('metrics', { serverId, cpu, ram, players: playerCount, fps, timestamp: now });
 }
 
+// ─── Notification System ─────────────────────────────────
+const notifications = []; // In-memory notification store (max 200)
+const NOTIFICATION_ICONS = {
+  'server.started': '🟢', 'server.stopped': '🔴', 'server.crashed': '💥', 'server.restarted': '🔄',
+  'server.health': '⚠️', 'player.join': '👋', 'player.leave': '👤', 'player.kick': '🦶',
+  'player.ban': '🔨', 'mod.installed': '📦', 'mod.updated': '📦', 'mod.removed': '🗑️',
+  'scheduler.task': '📅', 'backup.created': '💾', 'update.available': '🆕', 'rcon.command': '🖥️',
+};
+
+function addNotification(serverId, type, title, message, severity) {
+  severity = severity || 'info'; // info, success, warning, error
+  const n = {
+    id: uuid(), serverId, type, title, message, severity,
+    icon: NOTIFICATION_ICONS[type] || '🔔',
+    timestamp: new Date().toISOString(), read: false,
+  };
+  notifications.unshift(n);
+  if (notifications.length > 200) notifications.length = 200;
+  io.emit('notification', n);
+  return n;
+}
+
 async function sendDiscordWebhook(content, embeds) {
   if (!CONFIG.webhookUrl) return;
   try {
@@ -336,21 +358,44 @@ function killProcess(pid, executable) {
 
 function spawnDayZServer(serverConfig) {
   const installDir = serverConfig.installDir;
+  let child;
   if (serverConfig.startBat) {
     const batPath = path.join(installDir, serverConfig.startBat);
     if (!fs.existsSync(batPath)) throw new Error(`Start batch file not found: ${batPath}`);
-    const child = spawn('cmd.exe', ['/c', batPath], {
+    child = spawn('cmd.exe', ['/c', batPath], {
       cwd: installDir, detached: true, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: false,
     });
     child.unref();
-    return child;
+  } else {
+    const execPath = path.join(installDir, serverConfig.executable);
+    const params = (serverConfig.launchParams || '').split(' ').filter(Boolean);
+    if (!fs.existsSync(execPath)) throw new Error(`Executable not found: ${execPath}`);
+    child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    child.unref();
   }
-  const execPath = path.join(installDir, serverConfig.executable);
-  const params = (serverConfig.launchParams || '').split(' ').filter(Boolean);
-  if (!fs.existsSync(execPath)) throw new Error(`Executable not found: ${execPath}`);
-  const child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
-  child.unref();
+  // Apply CPU affinity and priority after spawn
+  if (child && child.pid) {
+    applyProcessSettings(child.pid, serverConfig);
+  }
   return child;
+}
+
+function applyProcessSettings(pid, serverConfig) {
+  if (!pid) return;
+  const priorityMap = { Idle: 64, BelowNormal: 16384, Normal: 32, AboveNormal: 32768, High: 128, RealTime: 256 };
+  const parts = [];
+  if (serverConfig.cpuAffinity && serverConfig.cpuAffinity > 0) {
+    parts.push(`$p = Get-Process -Id ${pid} -ErrorAction Stop; $p.ProcessorAffinity = ${serverConfig.cpuAffinity}`);
+  }
+  if (serverConfig.priorityLevel && serverConfig.priorityLevel !== 'Normal') {
+    const cls = priorityMap[serverConfig.priorityLevel];
+    if (cls) parts.push(`$p = Get-Process -Id ${pid} -ErrorAction Stop; $p.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::${serverConfig.priorityLevel}`);
+  }
+  if (parts.length > 0) {
+    exec(`powershell -NoProfile -Command "${parts.join('; ')}"`, { timeout: 5000 }, (err) => {
+      if (err) console.error(`Failed to apply process settings for PID ${pid}:`, err.message);
+    });
+  }
 }
 
 // ─── Mod Detection ───────────────────────────────────────
@@ -855,7 +900,7 @@ app.post('/api/servers', auth('server.deploy'), async (req, res) => {
 app.patch('/api/servers/:id', auth('server.deploy'), (req, res) => {
   const srv = servers.find(s => s.id === req.params.id);
   if (!srv) return res.status(404).json({ error: 'Server not found' });
-  const allowed = ['name','installDir','executable','startBat','launchParams','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir'];
+  const allowed = ['name','installDir','executable','startBat','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreServerModUpdates'];
   for (const key of allowed) { if (req.body[key] !== undefined) srv[key] = req.body[key]; }
   saveServers();
   addAudit(req.user.id, req.user.username, 'server.update', `Updated server: ${srv.name}`);
@@ -916,6 +961,7 @@ app.post('/api/servers/:id/start', auth('server.start'), async (req, res) => {
         state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
         io.emit('serverStatus', { serverId: srv.id, status: 'running' });
         addLog(srv.id, 'info', 'server', 'Server is now running');
+        addNotification(srv.id, 'server.started', 'Server Started', `${srv.name} is now running`, 'success');
         fireWebhooks('server.started', { serverId: srv.id, serverName: srv.name });
         sendDiscordWebhook(`🟢 **${srv.name}** started`);
       } else if (state.status === 'starting') {
@@ -945,6 +991,7 @@ app.post('/api/servers/:id/stop', auth('server.stop'), async (req, res) => {
     io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
     io.emit('players', { serverId: srv.id, players: [] });
     addAudit(req.user.id, req.user.username, 'server.stop', `Stopped: ${srv.name}`);
+    addNotification(srv.id, 'server.stopped', 'Server Stopped', `${srv.name} has been stopped`, 'info');
     fireWebhooks('server.stopped', { serverId: srv.id, serverName: srv.name });
     sendDiscordWebhook(`🔴 **${srv.name}** stopped`);
     res.json({ message: 'Stopped' });
@@ -974,6 +1021,7 @@ app.post('/api/servers/:id/restart', auth('server.restart'), async (req, res) =>
       if (pid) {
         state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
         io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+        addNotification(srv.id, 'server.restarted', 'Server Restarted', `${srv.name} has been restarted`, 'info');
         fireWebhooks('server.restarted', { serverId: srv.id, serverName: srv.name });
         sendDiscordWebhook(`🔄 **${srv.name}** restarted`);
       }
@@ -1024,6 +1072,8 @@ app.post('/api/servers/:id/players/:playerId/kick', auth('players.kick'), async 
   state.players = state.players.filter(p => p.id !== req.params.playerId);
   io.emit('players', { serverId: req.params.id, players: state.players });
   addAudit(req.user.id, req.user.username, 'player.kick', `Kicked player ${req.params.playerId}`);
+  addNotification(req.params.id, 'player.kick', 'Player Kicked', `Player ${req.params.playerId} was kicked`, 'warning');
+  fireWebhooks('player.kick', { serverId: req.params.id, playerId: req.params.playerId, reason: req.body.reason || 'Kicked' });
   res.json({ message: 'Kicked' });
 });
 
@@ -1036,6 +1086,8 @@ app.post('/api/servers/:id/players/:playerId/ban', auth('players.ban'), async (r
   state.players = state.players.filter(p => p.id !== req.params.playerId);
   io.emit('players', { serverId: req.params.id, players: state.players });
   addAudit(req.user.id, req.user.username, 'player.ban', `Banned player ${req.params.playerId}`);
+  addNotification(req.params.id, 'player.ban', 'Player Banned', `Player ${req.params.playerId} was banned`, 'error');
+  fireWebhooks('player.ban', { serverId: req.params.id, playerId: req.params.playerId, reason: req.body.reason || 'Banned' });
   res.json({ message: 'Banned' });
 });
 
@@ -1111,6 +1163,8 @@ app.post('/api/servers/:id/mods/install', auth('mods.install'), async (req, res)
     io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
     io.emit('mods', { serverId: srv.id, mods: state.modList });
     addAudit(req.user.id, req.user.username, 'mod.install', `Installed ${name} on ${srv.name}`);
+    addNotification(srv.id, 'mod.installed', 'Mod Installed', `${name} installed on ${srv.name}`, 'success');
+    fireWebhooks('mod.installed', { serverId: srv.id, modName: name });
     setTimeout(() => delete activeInstalls[workshopId], 30000);
   } catch (err) {
     activeInstalls[workshopId] = { status: 'error', progress: 0, name, error: err.message };
@@ -1132,6 +1186,8 @@ app.delete('/api/servers/:id/mods/uninstall/:workshopId', auth('mods.install'), 
     updateStartBatMods(srv.id);
     io.emit('mods', { serverId: srv.id, mods: state.modList });
     addAudit(req.user.id, req.user.username, 'mod.uninstall', `Uninstalled ${mod.name} from ${srv.name}`);
+    addNotification(srv.id, 'mod.removed', 'Mod Uninstalled', `${mod.name} removed from ${srv.name}`, 'info');
+    fireWebhooks('mod.removed', { serverId: srv.id, modName: mod.name });
     res.json({ message: `${mod.name} uninstalled` });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1342,6 +1398,27 @@ app.post('/api/webhooks/:id/test', auth('webhooks.manage'), async (req, res) => 
   if (!wh) return res.status(404).json({ error: 'Not found' });
   try { await fireWebhooks(wh.event, { serverId: 'test', serverName: 'Test Server' }); res.json({ message: 'Test fired' }); }
   catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── Notifications ───────────────────────────────────────
+app.get('/api/notifications', auth(), (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  res.json(notifications.slice(0, limit));
+});
+
+app.patch('/api/notifications/read', auth(), (req, res) => {
+  const { ids } = req.body; // array of IDs, or omit to mark all read
+  if (ids && Array.isArray(ids)) {
+    ids.forEach(id => { const n = notifications.find(x => x.id === id); if (n) n.read = true; });
+  } else {
+    notifications.forEach(n => n.read = true);
+  }
+  res.json({ message: 'Marked as read' });
+});
+
+app.delete('/api/notifications', auth(), (req, res) => {
+  notifications.length = 0;
+  res.json({ message: 'Cleared' });
 });
 
 // ─── Server Deployment ───────────────────────────────────
@@ -1623,11 +1700,44 @@ setInterval(async () => {
         } catch(e) { /* RCON not available */ }
       }
       if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps);
+      // Health monitoring checks (5-minute cooldown between alerts)
+      if (srv.healthMonitoring && metrics) {
+        const minFPS = srv.healthMinFPS || 5;
+        const maxRAM = srv.healthMaxRAM || 90;
+        const action = srv.healthAction || 'log';
+        let triggered = false;
+        let reason = '';
+        if (fps > 0 && fps < minFPS) { triggered = true; reason = `FPS (${fps.toFixed(1)}) below threshold (${minFPS})`; }
+        if (metrics.ram > maxRAM) { triggered = true; reason += (reason ? ' & ' : '') + `RAM (${metrics.ram.toFixed(1)}%) above threshold (${maxRAM}%)`; }
+        const now = Date.now();
+        const cooldown = 5 * 60 * 1000; // 5 minutes
+        if (triggered && (!state.lastHealthAlert || now - state.lastHealthAlert > cooldown)) {
+          state.lastHealthAlert = now;
+          addLog(srv.id, 'warn', 'health', 'Health alert: ' + reason);
+          addNotification(srv.id, 'server.health', 'Health Alert', `${srv.name}: ${reason}`, 'warning');
+          if (action === 'webhook') {
+            fireWebhooks('server.health', { serverId: srv.id, serverName: srv.name, reason });
+            sendDiscordWebhook(`⚠️ **${srv.name}** health alert: ${reason}`);
+          } else if (action === 'restart') {
+            addLog(srv.id, 'warn', 'health', 'Auto-restarting due to health threshold');
+            try { await killProcess(state.pid, srv.executable); } catch {}
+            state.pid = null; state.process = null; state.players = [];
+            state.status = 'starting'; io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
+            await new Promise(r => setTimeout(r, 3000));
+            state.process = spawnDayZServer(srv); state.pid = state.process.pid;
+            setTimeout(async () => {
+              const newPid = await detectRunningProcess(srv.executable);
+              if (newPid) { state.pid = newPid; state.status = 'running'; state.startedAt = new Date().toISOString(); io.emit('serverStatus', { serverId: srv.id, status: 'running' }); }
+            }, srv.startGracePeriod ? srv.startGracePeriod * 1000 : 8000);
+          }
+        }
+      }
     } else if (state.status === 'running') {
       addLog(srv.id, 'error', 'server', 'Process no longer running');
       state.status = 'crashed'; state.players = []; state.pid = null; state.process = null;
       io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
       io.emit('players', { serverId: srv.id, players: [] });
+      addNotification(srv.id, 'server.crashed', 'Server Crashed', `${srv.name} is no longer running`, 'error');
       fireWebhooks('server.crashed', { serverId: srv.id, serverName: srv.name });
       sendDiscordWebhook(`💥 **${srv.name}** crashed`);
     }
@@ -1640,7 +1750,35 @@ setInterval(async () => {
     const pid = await detectRunningProcess(srv.executable);
     if (pid) {
       const state = serverStates[srv.id];
-      if (state) { state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString(); io.emit('serverStatus', { serverId: srv.id, status: 'running' }); }
+      if (state) {
+        state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
+        io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+        // Re-apply process settings to already-running processes
+        applyProcessSettings(pid, srv);
+      }
+    }
+  }
+  // Auto-start servers that have autoStart enabled and aren't already running
+  for (const srv of servers) {
+    if (srv.autoStart && serverStates[srv.id]?.status !== 'running') {
+      console.log(`[AutoStart] Starting ${srv.name}...`);
+      try {
+        const state = serverStates[srv.id];
+        state.status = 'starting'; io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
+        state.process = spawnDayZServer(srv); state.pid = state.process.pid;
+        addLog(srv.id, 'info', 'server', 'Auto-start initiated');
+        setTimeout(async () => {
+          const detectedPid = await detectRunningProcess(srv.executable);
+          if (detectedPid) {
+            state.pid = detectedPid; state.status = 'running'; state.startedAt = new Date().toISOString();
+            io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+            addLog(srv.id, 'info', 'server', 'Auto-start: server is now running');
+          }
+        }, srv.startGracePeriod ? srv.startGracePeriod * 1000 : 8000);
+      } catch (err) {
+        console.error(`[AutoStart] Failed to start ${srv.name}:`, err.message);
+        addLog(srv.id, 'error', 'server', 'Auto-start failed: ' + err.message);
+      }
     }
   }
 })();
