@@ -688,6 +688,124 @@
       color: var(--text-muted);
     }
 
+    /* Workshop Search */
+    .workshop-search-box {
+      position: relative;
+    }
+    .workshop-search-box input {
+      width: 100%;
+      padding-left: 36px;
+    }
+    .workshop-search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+      pointer-events: none;
+    }
+    .workshop-results {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    .workshop-result-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .workshop-result-item:hover {
+      border-color: var(--accent-green);
+      background: var(--bg-elevated);
+    }
+    .workshop-result-item.already-installed {
+      opacity: 0.5;
+      border-color: var(--border);
+      cursor: default;
+    }
+    .workshop-thumb {
+      width: 64px;
+      height: 40px;
+      border-radius: 4px;
+      object-fit: cover;
+      background: var(--bg-deep);
+      flex-shrink: 0;
+    }
+    .workshop-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .workshop-info-name {
+      font-weight: 600;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .workshop-info-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+      display: flex;
+      gap: 12px;
+    }
+    .workshop-add-btn {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--accent-green);
+      color: var(--bg-deep);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .workshop-add-btn:hover { opacity: 0.85; }
+    .workshop-add-btn:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: default;
+    }
+    .workshop-loading {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .workshop-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .workshop-tab {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .workshop-tab:hover { border-color: var(--border-active); }
+    .workshop-tab.active {
+      background: var(--accent-green);
+      color: var(--bg-deep);
+      border-color: var(--accent-green);
+    }
+
     /* Login Screen */
     .login-screen {
       display: flex;
@@ -1420,19 +1538,51 @@
     // ─── Mods Page ───────────────────────────────────────
     function ModsPage() {
       const [mods, setMods] = useState([]);
-      const [name, setName] = useState('');
-      const [workshopId, setWorkshopId] = useState('');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [searchResults, setSearchResults] = useState([]);
+      const [searching, setSearching] = useState(false);
+      const [activeTab, setActiveTab] = useState('installed'); // installed | search | popular
+      const [popularMods, setPopularMods] = useState([]);
+      const [loadingPopular, setLoadingPopular] = useState(false);
       const toast = useToast();
+      const searchTimeout = useRef(null);
 
       useEffect(() => { API.get('/api/mods').then(setMods).catch(() => {}); }, []);
 
-      const addMod = async () => {
-        if (!name || !workshopId) return;
+      // Debounced Workshop search
+      const handleSearch = (query) => {
+        setSearchQuery(query);
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+        if (query.trim().length < 2) { setSearchResults([]); return; }
+        searchTimeout.current = setTimeout(async () => {
+          setSearching(true);
+          try {
+            const data = await API.get(`/api/workshop/search?q=${encodeURIComponent(query.trim())}`);
+            setSearchResults(data.results || []);
+          } catch (err) { toast('Workshop search failed', 'error'); }
+          setSearching(false);
+        }, 400);
+      };
+
+      // Load popular mods
+      const loadPopular = async () => {
+        if (popularMods.length > 0) return;
+        setLoadingPopular(true);
         try {
-          const mod = await API.post('/api/mods', { name, workshopId });
+          const data = await API.get('/api/workshop/popular');
+          setPopularMods(data.results || []);
+        } catch (err) { toast('Failed to load popular mods', 'error'); }
+        setLoadingPopular(false);
+      };
+
+      const isInstalled = (workshopId) => mods.some(m => m.workshopId === workshopId);
+
+      const addFromWorkshop = async (item) => {
+        if (isInstalled(item.workshopId)) return;
+        try {
+          const mod = await API.post('/api/mods', { name: item.name, workshopId: item.workshopId });
           setMods(m => [...m, mod]);
-          setName(''); setWorkshopId('');
-          toast('Mod added', 'success');
+          toast(`Added: ${item.name}`, 'success');
         } catch (err) { toast(err.message, 'error'); }
       };
 
@@ -1452,47 +1602,157 @@
         } catch (err) { toast(err.message, 'error'); }
       };
 
+      const formatSize = (bytes) => {
+        if (!bytes) return '';
+        if (bytes > 1024 * 1024 * 1024) return `${(bytes / (1024*1024*1024)).toFixed(1)} GB`;
+        if (bytes > 1024 * 1024) return `${(bytes / (1024*1024)).toFixed(1)} MB`;
+        return `${(bytes / 1024).toFixed(0)} KB`;
+      };
+
+      const formatSubs = (n) => {
+        if (!n) return '0';
+        if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+        if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+        return String(n);
+      };
+
+      // Render a workshop result item
+      const WorkshopItem = ({ item }) => {
+        const installed = isInstalled(item.workshopId);
+        return (
+          <div className={`workshop-result-item${installed ? ' already-installed' : ''}`}>
+            {item.preview ? (
+              <img className="workshop-thumb" src={item.preview} alt="" onError={e => e.target.style.display='none'} />
+            ) : (
+              <div className="workshop-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🧩</div>
+            )}
+            <div className="workshop-info">
+              <div className="workshop-info-name">{item.name}</div>
+              <div className="workshop-info-meta">
+                <span>ID: {item.workshopId}</span>
+                {item.subscribers > 0 && <span>⬇ {formatSubs(item.subscribers)}</span>}
+                {item.fileSize > 0 && <span>📦 {formatSize(item.fileSize)}</span>}
+                {item.updated && <span>🕐 {new Date(item.updated).toLocaleDateString()}</span>}
+              </div>
+            </div>
+            <button
+              className="workshop-add-btn"
+              disabled={installed}
+              onClick={() => addFromWorkshop(item)}
+            >
+              {installed ? '✓ Installed' : '+ Add'}
+            </button>
+          </div>
+        );
+      };
+
       return (
         <div className="fade-in">
-          <div className="card mb-24">
-            <div className="card-header">
-              <div className="card-title">➕ Add Mod</div>
+          {/* Tab bar */}
+          <div className="workshop-tabs">
+            <div className={`workshop-tab${activeTab === 'installed' ? ' active' : ''}`} onClick={() => setActiveTab('installed')}>
+              🧩 Installed ({mods.length})
             </div>
-            <div className="card-body">
-              <div className="input-group">
-                <input type="text" placeholder="Mod Name" value={name} onChange={e => setName(e.target.value)} style={{ flex: 2 }} />
-                <input type="text" placeholder="Workshop ID" value={workshopId} onChange={e => setWorkshopId(e.target.value)} style={{ flex: 1 }} />
-                <button className="btn btn-primary" onClick={addMod}>Add</button>
-              </div>
+            <div className={`workshop-tab${activeTab === 'search' ? ' active' : ''}`} onClick={() => setActiveTab('search')}>
+              🔍 Workshop Search
+            </div>
+            <div className={`workshop-tab${activeTab === 'popular' ? ' active' : ''}`} onClick={() => { setActiveTab('popular'); loadPopular(); }}>
+              🔥 Popular
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">🧩 Installed Mods ({mods.length})</div>
-            </div>
-            {mods.length === 0 ? (
-              <div className="empty-state">
-                <div className="icon">🧩</div>
-                <p>No mods installed yet</p>
+          {/* Search Tab */}
+          {activeTab === 'search' && (
+            <div className="card mb-24">
+              <div className="card-header">
+                <div className="card-title">🔍 Search Steam Workshop</div>
               </div>
-            ) : (
-              <div>
-                {mods.map((mod, i) => (
-                  <div className="mod-item" key={mod.workshopId}>
-                    <span className="mod-order">#{i + 1}</span>
-                    <label className="toggle">
-                      <input type="checkbox" checked={mod.enabled} onChange={() => toggleMod(mod)} />
-                      <span className="toggle-slider" />
-                    </label>
-                    <span className="mod-name" style={{ opacity: mod.enabled ? 1 : 0.4 }}>{mod.name}</span>
-                    <span className="mod-id">{mod.workshopId}</span>
-                    <button className="btn btn-ghost btn-sm" onClick={() => removeMod(mod)}>✕</button>
+              <div className="card-body">
+                <div className="workshop-search-box">
+                  <span className="workshop-search-icon">🔎</span>
+                  <input
+                    type="text"
+                    placeholder="Search DayZ mods on Steam Workshop..."
+                    value={searchQuery}
+                    onChange={e => handleSearch(e.target.value)}
+                    style={{ paddingLeft: '36px' }}
+                    autoFocus
+                  />
+                </div>
+                {searching && <div className="workshop-loading">Searching Steam Workshop...</div>}
+                {!searching && searchResults.length > 0 && (
+                  <div className="workshop-results">
+                    {searchResults.map(item => <WorkshopItem key={item.workshopId} item={item} />)}
                   </div>
-                ))}
+                )}
+                {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                  <div className="workshop-loading">No mods found for "{searchQuery}"</div>
+                )}
+                {!searching && searchQuery.length < 2 && (
+                  <div className="workshop-loading">Type at least 2 characters to search the Workshop</div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Popular Tab */}
+          {activeTab === 'popular' && (
+            <div className="card mb-24">
+              <div className="card-header">
+                <div className="card-title">🔥 Popular DayZ Mods (Last 30 Days)</div>
+              </div>
+              <div className="card-body">
+                {loadingPopular && <div className="workshop-loading">Loading popular mods...</div>}
+                {!loadingPopular && popularMods.length > 0 && (
+                  <div className="workshop-results">
+                    {popularMods.map(item => <WorkshopItem key={item.workshopId} item={item} />)}
+                  </div>
+                )}
+                {!loadingPopular && popularMods.length === 0 && (
+                  <div className="workshop-loading">No popular mods available — Steam API may require an API key for this feature.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Installed Mods (always visible, or as tab) */}
+          {activeTab === 'installed' && (
+            <div className="card">
+              <div className="card-header">
+                <div className="card-title">🧩 Installed Mods ({mods.length})</div>
+              </div>
+              {mods.length === 0 ? (
+                <div className="empty-state">
+                  <div className="icon">🧩</div>
+                  <p>No mods detected — check your server directory</p>
+                </div>
+              ) : (
+                <div>
+                  {mods.map((mod, i) => (
+                    <div className="mod-item" key={mod.workshopId || mod.name}>
+                      <span className="mod-order">#{i + 1}</span>
+                      <label className="toggle">
+                        <input type="checkbox" checked={mod.enabled} onChange={() => toggleMod(mod)} />
+                        <span className="toggle-slider" />
+                      </label>
+                      <span className="mod-name" style={{ opacity: mod.enabled ? 1 : 0.4 }}>{mod.name}</span>
+                      <a
+                        href={mod.workshopId ? `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.workshopId}` : '#'}
+                        target="_blank"
+                        rel="noopener"
+                        className="mod-id"
+                        style={{ textDecoration: 'none', cursor: mod.workshopId ? 'pointer' : 'default' }}
+                        title="Open on Steam Workshop"
+                      >
+                        {mod.workshopId || 'local'}
+                      </a>
+                      <button className="btn btn-ghost btn-sm" onClick={() => removeMod(mod)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       );
     }

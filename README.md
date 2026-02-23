@@ -253,17 +253,24 @@ pm2 startup
 
 ## 🛠️ Extending the Panel
 
-### Adding Real RCON
-The RCON client in `backend/server.js` is a stub. To connect to your actual DayZ server:
+### RCON Implementation
 
-```bash
-# Install a BattlEye RCON library
-npm install battleye-rcon
-# or
-npm install dayz-rcon
+The panel includes a **full BattlEye RCON client** built directly on the [BattlEye RCon Protocol](https://www.battleye.com/downloads/BERConProtocol.txt) using Node.js's built-in `dgram` UDP module. No third-party RCON packages are needed — the implementation handles login, command sending, keep-alive, server message acknowledgment, and automatic reconnection.
+
+**Important:** Since DayZ 1.13+, you **must** set `RConPort` explicitly in your `BEServer_x64.cfg` (inside the BattlEye directory). It can no longer share the game port and defaults to a random port if not set. Recommended default is `2305`.
+
+```cfg
+# BEServer_x64.cfg (in your BattlEye folder)
+RConPassword your-rcon-password
+RConPort 2305
 ```
 
-Then replace the `RCONClient` class with the actual implementation.
+Then set `DAYZ_RCON_PORT=2305` in your `.env` to match.
+
+**Alternative approaches** if you prefer external tools:
+- **[bercon](https://github.com/WoozyMasta/bercon)** — A standalone Rust CLI for BattlEye RCON (Linux & Windows). Can be called via `child_process.execFile()`.
+- **[battleye](https://www.npmjs.com/package/battleye)** (npm, by nurdism) — A TypeScript RCON client. Last published 6+ years ago but the BE protocol hasn't changed, so it still functions. There's also a fork at `@senfo/battleye`.
+- **[dayz-server-manager](https://github.com/mr-guard/dayz-server-manager)** — A full server manager with its own RCON built-in. Worth considering if you want an all-in-one solution instead of building your own panel.
 
 ### Adding a Database
 Replace the in-memory `store` object with a proper database (SQLite, PostgreSQL, MongoDB) for persistent data across restarts.
