@@ -265,7 +265,7 @@ const client = new Client({
   ],
 });
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`🤖 Discord bot logged in as ${client.user.tag}`);
   client.user.setPresence({
     status: 'online',
@@ -587,18 +587,26 @@ client.on('interactionCreate', async (interaction) => {
 
       // Confirm actions
       else if (btnId === 'confirm_start') {
-        await panelAction('start');
+        const result = await panelAction('start');
+        if (result.error) {
+          await interaction.update({ content: `❌ ${result.error}`, embeds: [], components: [] });
+          return;
+        }
         const embed = new EmbedBuilder()
           .setTitle('🟡 Server Starting...')
           .setColor(0xffaa00)
-          .setDescription('The server is booting up. This may take a minute.')
+          .setDescription(result.message === 'Starting...' ? 'The server is booting up. This may take a minute.' : result.message)
           .setFooter({ text: `Started by ${interaction.user.tag}` })
           .setTimestamp();
         await interaction.update({ embeds: [embed], components: [] });
       }
 
       else if (btnId === 'confirm_stop') {
-        await panelAction('stop');
+        const result = await panelAction('stop');
+        if (result.error) {
+          await interaction.update({ content: `❌ ${result.error}`, embeds: [], components: [] });
+          return;
+        }
         const embed = new EmbedBuilder()
           .setTitle('🟡 Server Stopping...')
           .setColor(0xffaa00)
@@ -614,7 +622,11 @@ client.on('interactionCreate', async (interaction) => {
 
       // Restart options
       else if (btnId === 'restart_now') {
-        await panelAction('restart');
+        const result = await panelAction('restart');
+        if (result.error) {
+          await interaction.update({ content: `❌ ${result.error}`, embeds: [], components: [] });
+          return;
+        }
         const embed = new EmbedBuilder()
           .setTitle('🔄 Restarting Now')
           .setColor(0xffaa00)
