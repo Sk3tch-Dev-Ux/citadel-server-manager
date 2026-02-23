@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -c:*)"
+      "Bash(node -c:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)"
     ]
   }
 }
