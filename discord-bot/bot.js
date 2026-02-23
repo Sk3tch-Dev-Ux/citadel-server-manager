@@ -157,25 +157,28 @@ function buildControlPanel() {
   const row3 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('panel_kick_menu').setLabel('👢 Kick Player').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('panel_rcon').setLabel('🖥️ RCON').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('panel_refresh').setLabel('🔃 Refresh').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('panel_mod_list').setLabel('📦 Mods').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('panel_mod_status').setLabel('⏳ Mod Status').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('panel_mod_install').setLabel('➕ Install Mod').setStyle(ButtonStyle.Success),
+  );
+
+  const row4 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('panel_mod_uninstall').setLabel('🗑️ Uninstall Mod').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('panel_mod_enable').setLabel('✅ Enable Mod').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId('panel_mod_disable').setLabel('🚫 Disable Mod').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('panel_chat_feed').setLabel('💬 Live Chat Feed').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('panel_chat_feed').setLabel('💬 Chat Feed').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('panel_watch_list').setLabel('🔔 Watch List').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('panel_killfeed').setLabel('☠️ Delayed Killfeed').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('panel_priority_queue').setLabel('🚦 Priority Queue').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('panel_time_weather').setLabel('⏰ Time/Weather').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('panel_item_spawn').setLabel('🎁 Item Spawn/Teleport').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('panel_leaderboard').setLabel('🏆 Leaderboard/Stats').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('panel_ban_whitelist').setLabel('🚫 Ban/Whitelist').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId('panel_heatmap').setLabel('🔥 Heatmap').setStyle(ButtonStyle.Primary),
   );
 
-  return [row1, row2, row3];
+  const row5 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('panel_killfeed').setLabel('☠️ Killfeed').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_priority_queue').setLabel('🚦 Priority Queue').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('panel_time_weather').setLabel('⏰ Time/Weather').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_leaderboard').setLabel('🏆 Leaderboard').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_ban_whitelist').setLabel('🚫 Ban/Whitelist').setStyle(ButtonStyle.Danger),
+  );
+
+  return [row1, row2, row3, row4, row5];
 }
 
 function buildRestartOptions() {
@@ -274,153 +277,18 @@ client.on('error', (err) => {
   console.error('[client] error', err);
 });
 
-// ─── Slash Command Handlers ──────────────────────────────
+// ─── Interaction Handler ─────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
   try {
     const customId = interaction.customId || null;
     console.log(`[interaction] id=${interaction.id} user=${interaction.user?.tag} type=${interaction.type}`);
 
+    // ── Button Interactions ──
     if (interaction.isButton && interaction.isButton()) {
       const btnId = customId;
-      if (btnId === 'panel_time_weather') {
-      // Time/weather: fetch info from API and display
-      const tw = await panelAction('timeWeather');
-      const embed = new EmbedBuilder()
-        .setTitle('⏰ Time & Weather')
-        .setColor(0x00bfff)
-        .setDescription(tw && tw.info ? tw.info : '*No data available*')
-        .setTimestamp();
-      await safeReply(interaction, { embeds: [embed], ephemeral: true });
-    }
-    else if (btnId === 'panel_item_spawn') {
-      // Item spawn/teleport: fetch info from API and display
-      const items = await panelAction('itemSpawn');
-      const embed = new EmbedBuilder()
-        .setTitle('🎁 Item Spawn / Teleport')
-        .setColor(0x00ff6a)
-        .setDescription(items && items.entries ? items.entries.map(i => `• **${i.player}**: ${i.action} ${i.item || ''} ${i.location || ''}`).join('\n') : '*No recent item spawns/teleports*')
-        .setTimestamp();
-      await safeReply(interaction, { embeds: [embed], ephemeral: true });
-    }
-    else if (btnId === 'panel_leaderboard') {
-      // Leaderboard/stats: fetch info from API and display
-      const stats = await panelAction('leaderboard');
-      const embed = new EmbedBuilder()
-        .setTitle('🏆 Leaderboard / Stats')
-        .setColor(0xffd700)
-        .setDescription(stats && stats.entries ? stats.entries.map(s => `• **${s.player}**: ${s.score} pts`).join('\n') : '*No leaderboard data*')
-        .setTimestamp();
-      await safeReply(interaction, { embeds: [embed], ephemeral: true });
-    }
-    else if (btnId === 'panel_ban_whitelist') {
-      // Ban/whitelist: fetch info from API and display
-      const bans = await panelAction('banWhitelist');
-      const embed = new EmbedBuilder()
-        .setTitle('🚫 Ban / Whitelist')
-        .setColor(0xff3333)
-        .setDescription(bans && bans.entries ? bans.entries.map(b => `• **${b.player}**: ${b.status} (${b.reason || ''})`).join('\n') : '*No ban/whitelist data*')
-        .setTimestamp();
-      await safeReply(interaction, { embeds: [embed], ephemeral: true });
-    }
-    else if (btnId === 'panel_heatmap') {
-      // Heatmap: fetch info from API and display
-      const heat = await panelAction('heatmap');
-      const embed = new EmbedBuilder()
-        .setTitle('🔥 Player Heatmap')
-        .setColor(0xff6600)
-        .setDescription(heat && heat.entries ? heat.entries.map(h => `• **${h.player}**: ${h.location}`).join('\n') : '*No heatmap data*')
-        .setTimestamp();
-      await safeReply(interaction, { embeds: [embed], ephemeral: true });
-    }
-    else if (btnId === 'panel_priority_queue') {
-        // Priority queue: fetch queue info from API and display
-        const queue = await panelAction('priorityQueue');
-        const embed = new EmbedBuilder()
-          .setTitle('🚦 Priority Queue')
-          .setColor(0x3b82f6)
-          .setDescription(queue.entries && queue.entries.length ? queue.entries.map(q => `• **${q.name}** (${q.role || 'Player'})`).join('\n') : '*No players in queue*')
-          .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
-      }
-      else if (btnId === 'panel_killfeed') {
-        // Delayed killfeed: fetch recent kill events from API and display
-        const feed = await panelAction('killfeed');
-        const embed = new EmbedBuilder()
-          .setTitle('☠️ Delayed Killfeed')
-          .setColor(0xff3333)
-          .setDescription(feed.kills && feed.kills.length ? feed.kills.map(k => `• **${k.victim}** killed by **${k.killer}** (${k.method || 'unknown'})`).join('\n') : '*No recent kills*')
-          .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
-      }
-    }
 
-    // ── Slash Commands ──
-    if (interaction.isChatInputCommand && interaction.isChatInputCommand()) {
-      const { commandName } = interaction;
-
-    if (commandName === 'panel') {
-      // Respond immediately to avoid Discord timeout
-      await safeReply(interaction, { content: 'Deploying control panel...', ephemeral: true });
-      let data;
-      try {
-        data = await panelAction('status');
-      } catch (err) {
-        await interaction.followUp({ content: '❌ Failed to fetch server status. Please try again later.', ephemeral: true });
-        return;
-      }
-      if (data && data.error) {
-        await interaction.followUp({ content: `❌ ${data.error}`, ephemeral: true });
-        return;
-      }
-      const embed = buildStatusEmbed(data);
-      embed.setDescription(
-        '**Server Control Panel**\nUse the buttons below to manage your DayZ server.\n\n' +
-        '🟢 Green = Start  •  🔴 Red = Stop/Kick  •  🔵 Blue = Actions'
-      );
-      await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
-      await interaction.followUp({ content: '✅ Control panel deployed below.', ephemeral: true });
-    }
-
-    else if (commandName === 'setup') {
-      if (!isAdmin(interaction)) {
-        return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
-      }
-      const data = await panelAction('status');
-      const embed = buildStatusEmbed(data);
-      embed.setDescription(
-        '**🎮 DayZ Server Control Panel**\n\n' +
-        'Use the buttons below to manage the server.\n' +
-        'Status updates automatically when actions are taken.\n\n' +
-        '`▶️` Start  •  `⏹️` Stop  •  `🔄` Restart  •  `🔒` Lock/Unlock\n' +
-        '`👥` Players  •  `👢` Kick  •  `📢` Broadcast  •  `🖥️` RCON'
-      );
-      // Send as a regular message (not ephemeral) so it persists
-      await safeReply(interaction, { content: '✅ Control panel deployed below.' , ephemeral: true });
-      await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
-    }
-
-    else if (commandName === 'status') {
-      const data = await panelAction('status');
-      const embed = buildStatusEmbed(data);
-      if (data.players && data.players.length > 0) {
-        const playerList = data.players.map(p => `• ${p.name}`).join('\n');
-        embed.addFields({ name: 'Online Players', value: playerList.slice(0, 1024) });
-      }
-      await safeReply(interaction, { embeds: [embed] });
-    }
-
-    else if (commandName === 'players') {
-      const data = await panelAction('players');
-      const embed = buildPlayerListEmbed(data.players || []);
-      await safeReply(interaction, { embeds: [embed] });
-    }
-
-    else if (commandName === 'rcon') {
-      if (!isAdmin(interaction)) {
-        return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
-      }
-      // Panel buttons
-      if (customId === 'panel_status' || customId === 'panel_refresh') {
+      // Status / Refresh
+      if (btnId === 'panel_status' || btnId === 'panel_refresh') {
         const data = await panelAction('status');
         const embed = buildStatusEmbed(data);
         embed.setDescription(
@@ -428,26 +296,141 @@ client.on('interactionCreate', async (interaction) => {
         );
         await interaction.update({ embeds: [embed], components: buildControlPanel() });
       }
-      else if (customId === 'panel_mod_list') {
+
+      // Start → confirm
+      else if (btnId === 'panel_start') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        await safeReply(interaction, {
+          content: '⚠️ Are you sure you want to **start** the server?',
+          components: [buildConfirmRow('start')],
+          ephemeral: true,
+        });
+      }
+
+      // Stop → confirm
+      else if (btnId === 'panel_stop') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        await safeReply(interaction, {
+          content: '⚠️ Are you sure you want to **stop** the server?',
+          components: [buildConfirmRow('stop')],
+          ephemeral: true,
+        });
+      }
+
+      // Restart → options
+      else if (btnId === 'panel_restart') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        await safeReply(interaction, {
+          content: '🔄 Choose a restart option:',
+          components: [buildRestartOptions()],
+          ephemeral: true,
+        });
+      }
+
+      // Lock
+      else if (btnId === 'panel_lock') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        const result = await panelAction('lock');
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : '🔒 Server locked.', ephemeral: true });
+      }
+
+      // Unlock
+      else if (btnId === 'panel_unlock') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        const result = await panelAction('unlock');
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : '🔓 Server unlocked.', ephemeral: true });
+      }
+
+      // Broadcast → modal
+      else if (btnId === 'panel_message') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        const modal = new ModalBuilder()
+          .setCustomId('modal_broadcast')
+          .setTitle('📢 Broadcast Message');
+        const input = new TextInputBuilder()
+          .setCustomId('broadcast_text')
+          .setLabel('Message')
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder('Enter the message to broadcast to all players')
+          .setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(input));
+        await interaction.showModal(modal);
+      }
+
+      // Players
+      else if (btnId === 'panel_players') {
+        const data = await panelAction('players');
+        const embed = buildPlayerListEmbed(data.players || []);
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+      }
+
+      // Kick menu
+      else if (btnId === 'panel_kick_menu') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        const data = await panelAction('players');
+        const players = data.players || [];
+        if (players.length === 0) {
+          return await safeReply(interaction, { content: 'No players online to kick.', ephemeral: true });
+        }
+        const select = new StringSelectMenuBuilder()
+          .setCustomId('select_kick_player')
+          .setPlaceholder('Select a player to kick')
+          .addOptions(
+            players.slice(0, 25).map(p => ({
+              label: p.name || `Player ${p.id}`,
+              value: p.id || p.name,
+              description: `Ping: ${p.ping || '?'}ms`,
+            }))
+          );
+        await safeReply(interaction, {
+          content: '👢 Select a player to kick:',
+          components: [new ActionRowBuilder().addComponents(select)],
+          ephemeral: true,
+        });
+      }
+
+      // RCON → modal
+      else if (btnId === 'panel_rcon') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        const modal = new ModalBuilder()
+          .setCustomId('modal_rcon')
+          .setTitle('🖥️ RCON Command');
+        const input = new TextInputBuilder()
+          .setCustomId('rcon_command')
+          .setLabel('Command')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('e.g. #restart, kick 5, say -1 Hello')
+          .setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(input));
+        await interaction.showModal(modal);
+      }
+
+      // Mod list
+      else if (btnId === 'panel_mod_list') {
         const mods = await panelAction('mods');
+        const list = Array.isArray(mods) ? mods : (mods.mods || []);
         const embed = new EmbedBuilder()
           .setTitle('📦 Installed Mods')
           .setColor(0x5865f2)
-          .setDescription(mods.length ? mods.map(m => `• **${m.name}** (${m.workshopId}) ${m.enabled ? '✅ Enabled' : '❌ Disabled'}`).join('\n') : '*No mods installed*')
-          .setFooter({ text: `${mods.length} mod(s) installed` })
+          .setDescription(list.length ? list.map(m => `• **${m.name}** (${m.workshopId}) ${m.enabled ? '✅ Enabled' : '❌ Disabled'}`).join('\n') : '*No mods installed*')
+          .setFooter({ text: `${list.length} mod(s) installed` })
           .setTimestamp();
         await safeReply(interaction, { embeds: [embed], ephemeral: true });
       }
-      else if (customId === 'panel_mod_status') {
+
+      // Mod status
+      else if (btnId === 'panel_mod_status') {
         const status = await panelAction('modStatus');
         const embed = new EmbedBuilder()
           .setTitle('⏳ Mod Install Status')
           .setColor(0x5865f2)
-          .setDescription(Object.keys(status).length ? Object.entries(status).map(([id, s]) => `• **${s.name}** (${id}): ${s.status} (${s.progress}%)`).join('\n') : '*No active installs*')
+          .setDescription(status && Object.keys(status).length ? Object.entries(status).map(([id, s]) => `• **${s.name}** (${id}): ${s.status} (${s.progress}%)`).join('\n') : '*No active installs*')
           .setTimestamp();
         await safeReply(interaction, { embeds: [embed], ephemeral: true });
       }
-      else if (customId === 'panel_mod_install') {
+
+      // Mod install → modal
+      else if (btnId === 'panel_mod_install') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
         const modal = new ModalBuilder()
           .setCustomId('modal_mod_install')
@@ -468,7 +451,9 @@ client.on('interactionCreate', async (interaction) => {
         );
         await interaction.showModal(modal);
       }
-      else if (customId === 'panel_mod_uninstall') {
+
+      // Mod uninstall → modal
+      else if (btnId === 'panel_mod_uninstall') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
         const modal = new ModalBuilder()
           .setCustomId('modal_mod_uninstall')
@@ -481,7 +466,9 @@ client.on('interactionCreate', async (interaction) => {
         modal.addComponents(new ActionRowBuilder().addComponents(inputId));
         await interaction.showModal(modal);
       }
-      else if (customId === 'panel_mod_enable') {
+
+      // Mod enable → modal
+      else if (btnId === 'panel_mod_enable') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
         const modal = new ModalBuilder()
           .setCustomId('modal_mod_enable')
@@ -494,8 +481,10 @@ client.on('interactionCreate', async (interaction) => {
         modal.addComponents(new ActionRowBuilder().addComponents(inputId));
         await interaction.showModal(modal);
       }
-      else if (customId === 'panel_mod_disable') {
-        if (!isAdmin(interaction)) return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+
+      // Mod disable → modal
+      else if (btnId === 'panel_mod_disable') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
         const modal = new ModalBuilder()
           .setCustomId('modal_mod_disable')
           .setTitle('🚫 Disable Mod');
@@ -507,8 +496,9 @@ client.on('interactionCreate', async (interaction) => {
         modal.addComponents(new ActionRowBuilder().addComponents(inputId));
         await interaction.showModal(modal);
       }
-      else if (customId === 'panel_chat_feed') {
-        // Live chat feed: fetch recent chat messages from API and display
+
+      // Chat feed
+      else if (btnId === 'panel_chat_feed') {
         const chat = await panelAction('chatFeed');
         const embed = new EmbedBuilder()
           .setTitle('💬 Live Chat Feed')
@@ -517,121 +507,258 @@ client.on('interactionCreate', async (interaction) => {
           .setTimestamp();
         await safeReply(interaction, { embeds: [embed], ephemeral: true });
       }
-      else if (customId === 'panel_watch_list') {
-        // Watch list notification: fetch watch list from API and display
+
+      // Watch list
+      else if (btnId === 'panel_watch_list') {
         const watch = await panelAction('watchList');
         const embed = new EmbedBuilder()
           .setTitle('🔔 Watch List Notifications')
           .setColor(0xffaa00)
           .setDescription(watch.players && watch.players.length ? watch.players.map(p => `• **${p.name}** (${p.reason || 'No reason'})`).join('\n') : '*No players on watch list*')
           .setTimestamp();
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
       }
-      // ...existing code...
+
+      // Killfeed
+      else if (btnId === 'panel_killfeed') {
+        const feed = await panelAction('killfeed');
+        const embed = new EmbedBuilder()
+          .setTitle('☠️ Delayed Killfeed')
+          .setColor(0xff3333)
+          .setDescription(feed.kills && feed.kills.length ? feed.kills.map(k => `• **${k.victim}** killed by **${k.killer}** (${k.method || 'unknown'})`).join('\n') : '*No recent kills*')
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
       }
-      const data = await panelAction('players');
-      const players = data.players || [];
-      if (players.length === 0) {
-        return await safeReply(interaction, { content: 'No players online to kick.', ephemeral: true });
+
+      // Priority queue
+      else if (btnId === 'panel_priority_queue') {
+        const queue = await panelAction('priorityQueue');
+        const embed = new EmbedBuilder()
+          .setTitle('🚦 Priority Queue')
+          .setColor(0x3b82f6)
+          .setDescription(queue.entries && queue.entries.length ? queue.entries.map(q => `• **${q.name}** (${q.role || 'Player'})`).join('\n') : '*No players in queue*')
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
       }
-      const select = new StringSelectMenuBuilder()
-        .setCustomId('select_kick_player')
-        .setPlaceholder('Select a player to kick')
-        .addOptions(
-          players.slice(0, 25).map(p => ({
-            label: p.name || `Player ${p.id}`,
-            value: p.id || p.name,
-            description: `Ping: ${p.ping || '?'}ms`,
-          }))
+
+      // Time/weather
+      else if (btnId === 'panel_time_weather') {
+        const tw = await panelAction('timeWeather');
+        const embed = new EmbedBuilder()
+          .setTitle('⏰ Time & Weather')
+          .setColor(0x00bfff)
+          .setDescription(tw && tw.info ? tw.info : '*No data available*')
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+      }
+
+      // Item spawn/teleport
+      else if (btnId === 'panel_item_spawn') {
+        const items = await panelAction('itemSpawn');
+        const embed = new EmbedBuilder()
+          .setTitle('🎁 Item Spawn / Teleport')
+          .setColor(0x00ff6a)
+          .setDescription(items && items.entries ? items.entries.map(i => `• **${i.player}**: ${i.action} ${i.item || ''} ${i.location || ''}`).join('\n') : '*No recent item spawns/teleports*')
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+      }
+
+      // Leaderboard
+      else if (btnId === 'panel_leaderboard') {
+        const stats = await panelAction('leaderboard');
+        const embed = new EmbedBuilder()
+          .setTitle('🏆 Leaderboard / Stats')
+          .setColor(0xffd700)
+          .setDescription(stats && stats.entries ? stats.entries.map(s => `• **${s.player}**: ${s.score} pts`).join('\n') : '*No leaderboard data*')
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+      }
+
+      // Ban/whitelist
+      else if (btnId === 'panel_ban_whitelist') {
+        const bans = await panelAction('banWhitelist');
+        const embed = new EmbedBuilder()
+          .setTitle('🚫 Ban / Whitelist')
+          .setColor(0xff3333)
+          .setDescription(bans && bans.entries ? bans.entries.map(b => `• **${b.player}**: ${b.status} (${b.reason || ''})`).join('\n') : '*No ban/whitelist data*')
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+      }
+
+      // Confirm actions
+      else if (btnId === 'confirm_start') {
+        await panelAction('start');
+        const embed = new EmbedBuilder()
+          .setTitle('🟡 Server Starting...')
+          .setColor(0xffaa00)
+          .setDescription('The server is booting up. This may take a minute.')
+          .setFooter({ text: `Started by ${interaction.user.tag}` })
+          .setTimestamp();
+        await interaction.update({ embeds: [embed], components: [] });
+      }
+
+      else if (btnId === 'confirm_stop') {
+        await panelAction('stop');
+        const embed = new EmbedBuilder()
+          .setTitle('🟡 Server Stopping...')
+          .setColor(0xffaa00)
+          .setDescription('Shutting down gracefully...')
+          .setFooter({ text: `Stopped by ${interaction.user.tag}` })
+          .setTimestamp();
+        await interaction.update({ embeds: [embed], components: [] });
+      }
+
+      else if (btnId === 'confirm_cancel') {
+        await interaction.update({ content: '❌ Action cancelled.', embeds: [], components: [] });
+      }
+
+      // Restart options
+      else if (btnId === 'restart_now') {
+        await panelAction('restart');
+        const embed = new EmbedBuilder()
+          .setTitle('🔄 Restarting Now')
+          .setColor(0xffaa00)
+          .setFooter({ text: `Restarted by ${interaction.user.tag}` })
+          .setTimestamp();
+        await interaction.update({ embeds: [embed], components: [] });
+      }
+
+      else if (btnId === 'restart_60') {
+        await panelAction('restart', { countdown: 60 });
+        const embed = new EmbedBuilder()
+          .setTitle('🔄 Restart in 60 Seconds')
+          .setColor(0xffaa00)
+          .setDescription('Players have been warned.')
+          .setTimestamp();
+        await interaction.update({ embeds: [embed], components: [] });
+      }
+
+      else if (btnId === 'restart_300') {
+        await panelAction('restart', { countdown: 300 });
+        const embed = new EmbedBuilder()
+          .setTitle('🔄 Restart in 5 Minutes')
+          .setColor(0xffaa00)
+          .setDescription('Players have been warned.')
+          .setTimestamp();
+        await interaction.update({ embeds: [embed], components: [] });
+      }
+
+      else if (btnId === 'restart_cancel') {
+        await interaction.update({ content: '❌ Restart cancelled.', embeds: [], components: [] });
+      }
+    }
+
+    // ── Slash Commands ──
+    else if (interaction.isChatInputCommand && interaction.isChatInputCommand()) {
+      const { commandName } = interaction;
+
+      if (commandName === 'panel') {
+        await safeReply(interaction, { content: 'Deploying control panel...', ephemeral: true });
+        let data;
+        try {
+          data = await panelAction('status');
+        } catch (err) {
+          await interaction.followUp({ content: '❌ Failed to fetch server status. Please try again later.', ephemeral: true });
+          return;
+        }
+        if (data && data.error) {
+          await interaction.followUp({ content: `❌ ${data.error}`, ephemeral: true });
+          return;
+        }
+        const embed = buildStatusEmbed(data);
+        embed.setDescription(
+          '**Server Control Panel**\nUse the buttons below to manage your DayZ server.\n\n' +
+          '🟢 Green = Start  •  🔴 Red = Stop/Kick  •  🔵 Blue = Actions'
         );
-      await safeReply(interaction, {
-        content: '👢 Select a player to kick:',
-        components: [new ActionRowBuilder().addComponents(select)],
-        ephemeral: true,
-      });
-    }
-
-    else if (customId === 'panel_rcon') {
-      if (!isAdmin(interaction)) {
-        return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+        await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
+        await interaction.followUp({ content: '✅ Control panel deployed below.', ephemeral: true });
       }
-      const modal = new ModalBuilder()
-        .setCustomId('modal_rcon')
-        .setTitle('🖥️ RCON Command');
-      const input = new TextInputBuilder()
-        .setCustomId('rcon_command')
-        .setLabel('Command')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder('e.g. #restart, kick 5, say -1 Hello')
-        .setRequired(true);
-      modal.addComponents(new ActionRowBuilder().addComponents(input));
-      await interaction.showModal(modal);
-    }
 
-    // Confirm actions
-    else if (customId === 'confirm_start') {
-      await panelAction('start');
-      const embed = new EmbedBuilder()
-        .setTitle('🟡 Server Starting...')
-        .setColor(0xffaa00)
-        .setDescription('The server is booting up. This may take a minute.')
-        .setFooter({ text: `Started by ${interaction.user.tag}` })
-        .setTimestamp();
-      await interaction.update({ embeds: [embed], components: [] });
-    }
+      else if (commandName === 'setup') {
+        if (!isAdmin(interaction)) {
+          return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        }
+        const data = await panelAction('status');
+        const embed = buildStatusEmbed(data);
+        embed.setDescription(
+          '**🎮 DayZ Server Control Panel**\n\n' +
+          'Use the buttons below to manage the server.\n' +
+          'Status updates automatically when actions are taken.\n\n' +
+          '`▶️` Start  •  `⏹️` Stop  •  `🔄` Restart  •  `🔒` Lock/Unlock\n' +
+          '`👥` Players  •  `👢` Kick  •  `📢` Broadcast  •  `🖥️` RCON'
+        );
+        await safeReply(interaction, { content: '✅ Control panel deployed below.', ephemeral: true });
+        await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
+      }
 
-    else if (customId === 'confirm_stop') {
-      await panelAction('stop');
-      const embed = new EmbedBuilder()
-        .setTitle('🟡 Server Stopping...')
-        .setColor(0xffaa00)
-        .setDescription('Shutting down gracefully...')
-        .setFooter({ text: `Stopped by ${interaction.user.tag}` })
-        .setTimestamp();
-      await interaction.update({ embeds: [embed], components: [] });
-    }
+      else if (commandName === 'status') {
+        const data = await panelAction('status');
+        const embed = buildStatusEmbed(data);
+        if (data.players && data.players.length > 0) {
+          const playerList = data.players.map(p => `• ${p.name}`).join('\n');
+          embed.addFields({ name: 'Online Players', value: playerList.slice(0, 1024) });
+        }
+        await safeReply(interaction, { embeds: [embed] });
+      }
 
-    else if (customId === 'confirm_cancel') {
-      await interaction.update({ content: '❌ Action cancelled.', embeds: [], components: [] });
-    }
+      else if (commandName === 'players') {
+        const data = await panelAction('players');
+        const embed = buildPlayerListEmbed(data.players || []);
+        await safeReply(interaction, { embeds: [embed] });
+      }
 
-    // Restart options
-    else if (customId === 'restart_now') {
-      await panelAction('restart');
-      const embed = new EmbedBuilder()
-        .setTitle('🔄 Restarting Now')
-        .setColor(0xffaa00)
-        .setFooter({ text: `Restarted by ${interaction.user.tag}` })
-        .setTimestamp();
-      await interaction.update({ embeds: [embed], components: [] });
-    }
+      else if (commandName === 'rcon') {
+        if (!isAdmin(interaction)) {
+          return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        }
+        const command = interaction.options.getString('command');
+        const result = await panelAction('rcon', { command });
+        const embed = new EmbedBuilder()
+          .setTitle('🖥️ RCON')
+          .setColor(0x5865f2)
+          .addFields(
+            { name: 'Command', value: `\`${command}\`` },
+            { name: 'Response', value: `\`\`\`${result.result || result.error || 'Done'}\`\`\`` }
+          )
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
+      }
 
-    else if (customId === 'restart_60') {
-      await panelAction('restart', { countdown: 60 });
-      const embed = new EmbedBuilder()
-        .setTitle('🔄 Restart in 60 Seconds')
-        .setColor(0xffaa00)
-        .setDescription('Players have been warned.')
-        .setTimestamp();
-      await interaction.update({ embeds: [embed], components: [] });
-    }
+      else if (commandName === 'broadcast') {
+        if (!isAdmin(interaction)) {
+          return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        }
+        const message = interaction.options.getString('message');
+        await panelAction('message', { message });
+        const embed = new EmbedBuilder()
+          .setTitle('📢 Message Broadcast')
+          .setColor(0x00ff6a)
+          .setDescription(`\`\`\`${message}\`\`\``)
+          .setFooter({ text: `Sent by ${interaction.user.tag}` })
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed] });
+      }
 
-    else if (customId === 'restart_300') {
-      await panelAction('restart', { countdown: 300 });
-      const embed = new EmbedBuilder()
-        .setTitle('🔄 Restart in 5 Minutes')
-        .setColor(0xffaa00)
-        .setDescription('Players have been warned.')
-        .setTimestamp();
-      await interaction.update({ embeds: [embed], components: [] });
-    }
-
-    else if (customId === 'restart_cancel') {
-      await interaction.update({ content: '❌ Restart cancelled.', embeds: [], components: [] });
+      else if (commandName === 'restart') {
+        if (!isAdmin(interaction)) {
+          return await safeReply(interaction, { content: '❌ Admin role required.', ephemeral: true });
+        }
+        const countdown = interaction.options.getInteger('countdown');
+        if (countdown) {
+          await panelAction('restart', { countdown });
+          await safeReply(interaction, { content: `🔄 Server restarting in **${countdown}** seconds. Players have been warned.` });
+        } else {
+          await safeReply(interaction, {
+            content: '🔄 Choose a restart option:',
+            components: [buildRestartOptions()],
+            ephemeral: true,
+          });
+        }
+      }
     }
 
     // ── Select Menu Interactions ──
-    else if (interaction.isStringSelectMenu()) {
+    else if (interaction.isStringSelectMenu && interaction.isStringSelectMenu()) {
       if (interaction.customId === 'select_kick_player') {
         const playerId = interaction.values[0];
         const modal = new ModalBuilder()
@@ -649,7 +776,7 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     // ── Modal Submissions ──
-    else if (interaction.isModalSubmit()) {
+    else if (interaction.isModalSubmit && interaction.isModalSubmit()) {
       if (interaction.customId === 'modal_broadcast') {
         const message = interaction.fields.getTextInputValue('broadcast_text');
         await panelAction('message', { message });
@@ -659,7 +786,7 @@ client.on('interactionCreate', async (interaction) => {
           .setDescription(`\`\`\`${message}\`\`\``)
           .setFooter({ text: `Sent by ${interaction.user.tag}` })
           .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await safeReply(interaction, { embeds: [embed] });
       }
 
       else if (interaction.customId === 'modal_rcon') {
@@ -673,7 +800,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: 'Response', value: `\`\`\`${result.result || result.error || 'Done'}\`\`\`` }
           )
           .setTimestamp();
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed], ephemeral: true });
       }
 
       else if (interaction.customId.startsWith('modal_kick_')) {
@@ -689,9 +816,35 @@ client.on('interactionCreate', async (interaction) => {
           )
           .setFooter({ text: `Kicked by ${interaction.user.tag}` })
           .setTimestamp();
-        await interaction.reply({ embeds: [embed] });
+        await safeReply(interaction, { embeds: [embed] });
+      }
+
+      else if (interaction.customId === 'modal_mod_install') {
+        const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
+        const name = interaction.fields.getTextInputValue('mod_name');
+        const result = await panelAction('modInstall', { workshopId, name });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod **${name}** (${workshopId}) install started.`, ephemeral: true });
+      }
+
+      else if (interaction.customId === 'modal_mod_uninstall') {
+        const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
+        const result = await panelAction('modUninstall', { workshopId });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod ${workshopId} uninstalled.`, ephemeral: true });
+      }
+
+      else if (interaction.customId === 'modal_mod_enable') {
+        const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
+        const result = await panelAction('modEnable', { workshopId });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `✅ Mod ${workshopId} enabled.`, ephemeral: true });
+      }
+
+      else if (interaction.customId === 'modal_mod_disable') {
+        const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
+        const result = await panelAction('modDisable', { workshopId });
+        await safeReply(interaction, { content: result.error ? `❌ ${result.error}` : `🚫 Mod ${workshopId} disabled.`, ephemeral: true });
       }
     }
+
   } catch (err) {
     console.error('[interaction] error', err);
     try {
