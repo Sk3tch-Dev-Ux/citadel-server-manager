@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DayZ Server Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-deep: #0a0c0f;
+      --bg-surface: #111418;
+      --bg-card: #181c22;
+      --bg-elevated: #1e2329;
+      --border: #2a2f38;
+      --border-active: #3a4150;
+      --text-primary: #e8eaed;
+      --text-secondary: #8b919a;
+      --text-muted: #5a6170;
+      --accent-green: #00ff6a;
+      --accent-green-dim: #00cc55;
+      --accent-red: #ff3b3b;
+      --accent-red-dim: #cc2222;
+      --accent-yellow: #ffb800;
+      --accent-blue: #3b82f6;
+      --accent-blue-dim: #2563eb;
+      --accent-purple: #8b5cf6;
+      --accent-orange: #f97316;
+      --font-display: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --glow-green: 0 0 20px rgba(0,255,106,0.15);
+      --glow-red: 0 0 20px rgba(255,59,59,0.15);
+      --glow-blue: 0 0 20px rgba(59,130,246,0.15);
+    }
+    html, body, #root { height: 100%; }
+    body { background: var(--bg-deep); color: var(--text-primary); font-family: var(--font-display); -webkit-font-smoothing: antialiased; overflow: hidden; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
+
+    .app { display: flex; height: 100vh; }
+    .sidebar { width: 260px; min-width: 260px; background: var(--bg-surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
+    .sidebar-header { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
+    .sidebar-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, var(--accent-green), var(--accent-blue)); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: var(--bg-deep); }
+    .logo-text { font-weight: 700; font-size: 17px; }
+    .logo-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    .server-selector { margin-top: 8px; }
+    .server-selector select { width: 100%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 12px; border-radius: var(--radius); font-family: var(--font-display); font-size: 13px; cursor: pointer; outline: none; }
+    .server-selector select:focus { border-color: var(--accent-blue); }
+
+    .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 600; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 20px; cursor: pointer; transition: all 0.15s; color: var(--text-secondary); font-size: 13.5px; font-weight: 500; border-left: 3px solid transparent; }
+    .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text-primary); }
+    .nav-item.active { color: var(--accent-green); background: rgba(0,255,106,0.05); border-left-color: var(--accent-green); }
+    .nav-icon { width: 20px; text-align: center; font-size: 15px; }
+    .nav-badge { margin-left: auto; background: var(--accent-green); color: var(--bg-deep); font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .sidebar-footer .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--accent-green); }
+    .sidebar-footer .user-info { flex: 1; }
+    .sidebar-footer .user-name { font-size: 13px; font-weight: 600; }
+    .sidebar-footer .user-role { font-size: 11px; color: var(--text-muted); }
+    .logout-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px; }
+    .logout-btn:hover { color: var(--accent-red); }
+
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .main-header { padding: 16px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); }
+    .main-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+    .main-subtitle { font-size: 12px; color: var(--text-muted); }
+    .main-content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+    /* Cards & Grid */
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 1200px) { .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 14px; font-weight: 600; }
+    .card-value { font-size: 28px; font-weight: 700; font-family: var(--font-mono); }
+
+    /* Stat boxes */
+    .stat-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-box { flex: 1; min-width: 140px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+    .stat-value { font-size: 24px; font-weight: 700; font-family: var(--font-mono); }
+    .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Status badges */
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .status-running { background: rgba(0,255,106,0.1); color: var(--accent-green); }
+    .status-stopped { background: rgba(139,145,154,0.1); color: var(--text-muted); }
+    .status-starting { background: rgba(255,184,0,0.1); color: var(--accent-yellow); }
+    .status-stopping { background: rgba(255,184,0,0.1); color: var(--accent-yellow); }
+    .status-crashed { background: rgba(255,59,59,0.1); color: var(--accent-red); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-running .status-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    .status-stopped .status-dot { background: var(--text-muted); }
+    .status-starting .status-dot { background: var(--accent-yellow); animation: pulse 1s infinite; }
+    .status-stopping .status-dot { background: var(--accent-yellow); animation: pulse 1s infinite; }
+    .status-crashed .status-dot { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: var(--radius); font-family: var(--font-display); font-size: 13px; font-weight: 600; border: 1px solid transparent; cursor: pointer; transition: all 0.15s; }
+    .btn-primary { background: var(--accent-green); color: var(--bg-deep); }
+    .btn-primary:hover { background: var(--accent-green-dim); }
+    .btn-danger { background: var(--accent-red); color: white; }
+    .btn-danger:hover { background: var(--accent-red-dim); }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border-color: var(--border); }
+    .btn-secondary:hover { border-color: var(--border-active); background: var(--bg-card); }
+    .btn-blue { background: var(--accent-blue); color: white; }
+    .btn-blue:hover { background: var(--accent-blue-dim); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-icon { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius); background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; font-size: 14px; }
+    .btn-icon:hover { border-color: var(--border-active); color: var(--text-primary); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-group { display: flex; gap: 8px; }
+
+    /* Inputs */
+    .input { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); padding: 9px 14px; border-radius: var(--radius); font-family: var(--font-display); font-size: 13px; outline: none; width: 100%; transition: border 0.15s; }
+    .input:focus { border-color: var(--accent-blue); }
+    .input-group { margin-bottom: 14px; }
+    .input-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    select.input { cursor: pointer; }
+    textarea.input { resize: vertical; min-height: 80px; font-family: var(--font-mono); font-size: 12px; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 600; }
+    td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border); }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .tab { padding: 10px 20px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .tab:hover { color: var(--text-secondary); }
+    .tab.active { color: var(--accent-green); border-bottom-color: var(--accent-green); }
+
+    /* Server Hub Cards */
+    .server-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+    .server-card:hover { border-color: var(--border-active); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .server-card.running { border-color: rgba(0,255,106,0.2); }
+    .server-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .server-card-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .server-card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .server-card-stat { }
+    .server-card-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
+    .server-card-stat-value { font-size: 15px; font-weight: 600; font-family: var(--font-mono); }
+    .server-card-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); }
+    .server-card-bar-fill { height: 100%; background: var(--accent-green); transition: width 0.5s; }
+
+    /* Console */
+    .console-wrap { background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-lg); height: calc(100vh - 250px); display: flex; flex-direction: column; }
+    .console-output { flex: 1; padding: 16px; overflow-y: auto; font-family: var(--font-mono); font-size: 12px; line-height: 1.7; }
+    .console-line { padding: 1px 0; }
+    .console-line.info { color: var(--accent-blue); }
+    .console-line.error { color: var(--accent-red); }
+    .console-line.warn { color: var(--accent-yellow); }
+    .console-time { color: var(--text-muted); margin-right: 10px; }
+    .console-input { display: flex; border-top: 1px solid var(--border); }
+    .console-input input { flex: 1; background: transparent; border: none; padding: 14px 16px; color: var(--text-primary); font-family: var(--font-mono); font-size: 13px; outline: none; }
+    .console-input button { background: var(--accent-green); color: var(--bg-deep); border: none; padding: 0 20px; font-weight: 700; cursor: pointer; font-family: var(--font-display); }
+
+    /* Login */
+    .login-screen { display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg-deep); }
+    .login-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; width: 380px; }
+    .login-title { font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+    .login-sub { text-align: center; color: var(--text-muted); font-size: 13px; margin-bottom: 28px; }
+    .login-error { background: rgba(255,59,59,0.1); border: 1px solid rgba(255,59,59,0.2); color: var(--accent-red); padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 16px; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; width: 480px; max-width: 90vw; max-height: 85vh; overflow-y: auto; }
+    .modal-lg { width: 640px; }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+
+    /* File tree */
+    .file-tree { background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; display: flex; height: calc(100vh - 200px); }
+    .file-sidebar { width: 280px; border-right: 1px solid var(--border); overflow-y: auto; padding: 8px 0; }
+    .file-content { flex: 1; display: flex; flex-direction: column; }
+    .file-item { display: flex; align-items: center; gap: 8px; padding: 6px 16px; cursor: pointer; font-size: 13px; color: var(--text-secondary); transition: all 0.1s; }
+    .file-item:hover { background: rgba(255,255,255,0.03); color: var(--text-primary); }
+    .file-item.active { background: rgba(0,255,106,0.06); color: var(--accent-green); }
+    .file-item-icon { width: 16px; text-align: center; font-size: 13px; }
+
+    /* Charts */
+    .chart-container { position: relative; height: 200px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    .chart-canvas { width: 100%; height: 100%; }
+
+    /* Toast */
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 18px; font-size: 13px; display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s; min-width: 280px; }
+    .toast.success { border-color: rgba(0,255,106,0.3); }
+    .toast.error { border-color: rgba(255,59,59,0.3); }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* Deploy wizard */
+    .deploy-steps { display: flex; gap: 8px; margin-bottom: 28px; }
+    .deploy-step { flex: 1; text-align: center; padding: 10px; border-radius: var(--radius); font-size: 12px; font-weight: 600; background: var(--bg-elevated); color: var(--text-muted); }
+    .deploy-step.active { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+    .deploy-step.done { background: rgba(0,255,106,0.1); color: var(--accent-green); }
+    .game-card { background: var(--bg-elevated); border: 2px solid var(--border); border-radius: var(--radius-lg); padding: 24px; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .game-card:hover { border-color: var(--border-active); }
+    .game-card.selected { border-color: var(--accent-blue); background: rgba(59,130,246,0.05); }
+    .game-card-icon { font-size: 40px; margin-bottom: 12px; }
+    .game-card-title { font-size: 15px; font-weight: 700; }
+    .game-card-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Role badge */
+    .role-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+
+    /* Progress bar */
+    .progress-bar { height: 6px; background: var(--bg-deep); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent-blue); border-radius: 3px; transition: width 0.5s; }
+
+    /* Toggle */
+    .toggle { position: relative; width: 40px; height: 22px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 11px; cursor: pointer; transition: all 0.2s; }
+    .toggle.on { background: var(--accent-green); border-color: var(--accent-green); }
+    .toggle-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: transform 0.2s; }
+    .toggle.on .toggle-knob { transform: translateX(18px); }
+
+    /* Permission chips */
+    .perm-chip { display: inline-flex; padding: 3px 8px; margin: 2px; border-radius: 4px; font-size: 11px; font-family: var(--font-mono); background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); }
+    .perm-chip.active { background: rgba(0,255,106,0.1); border-color: rgba(0,255,106,0.3); color: var(--accent-green); cursor: pointer; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-title { font-size: 18px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+
+    /* Webhook */
+    .webhook-event-badge { display: inline-flex; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); }
+    .webhook-event-badge.started { background: rgba(0,255,106,0.1); color: var(--accent-green); }
+    .webhook-event-badge.stopped { background: rgba(255,59,59,0.1); color: var(--accent-red); }
+    .webhook-event-badge.crashed { background: rgba(255,184,0,0.1); color: var(--accent-yellow); }
+    .webhook-event-badge.restarted { background: rgba(59,130,246,0.1); color: var(--accent-blue); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    // ─── API Client ──────────────────────────────────────
+    const API_BASE = window.location.port === '3001' ? '' : 'http://localhost:3001';
+    const socket = io(API_BASE || window.location.origin);
+
+    class API {
+      static token = localStorage.getItem('token') || '';
+      static headers() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` }; }
+      static async get(url) { const r = await fetch(`${API_BASE}${url}`, { headers: this.headers() }); if (r.status === 401) { this.token = ''; localStorage.removeItem('token'); window.location.reload(); } return r.json(); }
+      static async post(url, data) { const r = await fetch(`${API_BASE}${url}`, { method: 'POST', headers: this.headers(), body: JSON.stringify(data) }); return r.json(); }
+      static async patch(url, data) { const r = await fetch(`${API_BASE}${url}`, { method: 'PATCH', headers: this.headers(), body: JSON.stringify(data) }); return r.json(); }
+      static async put(url, data) { const r = await fetch(`${API_BASE}${url}`, { method: 'PUT', headers: this.headers(), body: JSON.stringify(data) }); return r.json(); }
+      static async del(url) { const r = await fetch(`${API_BASE}${url}`, { method: 'DELETE', headers: this.headers() }); return r.json(); }
+    }
+
+    // ─── Helpers ──────────────────────────────────────────
+    function formatUptime(s) {
+      if (!s || s <= 0) return '—';
+      const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+      if (d > 0) return `${d}d ${h}h`;
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+    }
+    function formatBytes(b) {
+      if (!b) return '0 B';
+      const u = ['B','KB','MB','GB']; let i = 0;
+      while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+      return `${b.toFixed(1)} ${u[i]}`;
+    }
+    function timeAgo(d) {
+      if (!d) return '';
+      const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+      if (s < 60) return 'just now';
+      if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+      if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+      return `${Math.floor(s / 86400)}d ago`;
+    }
+
+    // ─── Toast System ────────────────────────────────────
+    let toastId = 0;
+    function ToastContainer() {
+      const [toasts, setToasts] = useState([]);
+      useEffect(() => {
+        window.addToast = (msg, type = 'info') => {
+          const id = ++toastId;
+          setToasts(t => [...t, { id, msg, type }]);
+          setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500);
+        };
+      }, []);
+      return <div className="toast-container">{toasts.map(t => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'success' ? '✅' : t.type === 'error' ? '❌' : 'ℹ️'} {t.msg}</div>)}</div>;
+    }
+
+    // ─── Mini Canvas Chart ───────────────────────────────
+    function MiniChart({ data, color = '#00ff6a', height = 200, label }) {
+      const canvasRef = useRef(null);
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !data || data.length === 0) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width = canvas.offsetWidth * 2;
+        const h = canvas.height = canvas.offsetHeight * 2;
+        ctx.scale(2, 2);
+        const cw = canvas.offsetWidth, ch = canvas.offsetHeight;
+        ctx.clearRect(0, 0, cw, ch);
+
+        const max = Math.max(...data, 1);
+        const points = data.map((v, i) => ({ x: (i / (data.length - 1 || 1)) * cw, y: ch - (v / max) * (ch - 20) - 10 }));
+
+        // Grid lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          const y = (ch / 4) * i + 10;
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cw, y); ctx.stroke();
+        }
+
+        // Fill
+        ctx.beginPath();
+        ctx.moveTo(points[0]?.x || 0, ch);
+        points.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(points[points.length - 1]?.x || cw, ch);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, 0, 0, ch);
+        grad.addColorStop(0, color + '30');
+        grad.addColorStop(1, color + '05');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Line
+        ctx.beginPath();
+        points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Current value
+        if (data.length > 0) {
+          const last = data[data.length - 1];
+          ctx.fillStyle = color;
+          ctx.font = 'bold 14px Outfit';
+          ctx.fillText(`${typeof last === 'number' ? last.toFixed(1) : last}%`, 8, 18);
+          if (label) { ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '11px Outfit'; ctx.fillText(label, 8, 34); }
+        }
+      }, [data, color, label]);
+      return <div className="chart-container" style={{ height }}><canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} /></div>;
+    }
+
+    // ─── Login Screen ────────────────────────────────────
+    function LoginScreen({ onLogin }) {
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+      const handleSubmit = async (e) => {
+        e.preventDefault(); setLoading(true); setError('');
+        try {
+          const data = await API.post('/api/auth/login', { username, password });
+          if (data.token) { API.token = data.token; localStorage.setItem('token', data.token); localStorage.setItem('user', JSON.stringify(data.user)); onLogin(data.user); }
+          else setError(data.error || 'Login failed');
+        } catch { setError('Connection failed'); }
+        setLoading(false);
+      };
+      return (
+        <div className="login-screen">
+          <form className="login-box" onSubmit={handleSubmit}>
+            <div className="sidebar-logo" style={{ justifyContent: 'center', marginBottom: 8 }}>
+              <div className="logo-icon">DZ</div>
+            </div>
+            <div className="login-title">Server Panel</div>
+            <div className="login-sub">Sign in to manage your servers</div>
+            {error && <div className="login-error">{error}</div>}
+            <div className="input-group"><label className="input-label">Username</label><input className="input" value={username} onChange={e => setUsername(e.target.value)} autoFocus /></div>
+            <div className="input-group"><label className="input-label">Password</label><input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} /></div>
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }} disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</button>
+          </form>
+        </div>
+      );
+    }
+
+    // ─── SERVER HUB ──────────────────────────────────────
+    function ServerHubPage({ servers, onSelect }) {
+      return (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div><div className="main-title">Server Hub</div><div className="main-subtitle">{servers.length} server instance{servers.length !== 1 ? 's' : ''} configured</div></div>
+          </div>
+          <div className="stat-row">
+            <div className="stat-box"><div className="stat-label">Total Servers</div><div className="stat-value">{servers.length}</div></div>
+            <div className="stat-box"><div className="stat-label">Running</div><div className="stat-value" style={{ color: 'var(--accent-green)' }}>{servers.filter(s => s.status === 'running').length}</div></div>
+            <div className="stat-box"><div className="stat-label">Total Players</div><div className="stat-value" style={{ color: 'var(--accent-blue)' }}>{servers.reduce((a, s) => a + (s.playerCount || 0), 0)}</div></div>
+            <div className="stat-box"><div className="stat-label">Avg CPU</div><div className="stat-value">{servers.length ? (servers.reduce((a, s) => a + (s.cpu || 0), 0) / servers.length).toFixed(0) : 0}%</div></div>
+          </div>
+          {servers.length === 0 ? (
+            <div className="empty-state"><div className="empty-icon">🎮</div><div className="empty-title">No Servers</div><p>Deploy your first DayZ server to get started.</p></div>
+          ) : (
+            <div className="grid grid-3">
+              {servers.map(srv => (
+                <div key={srv.id} className={`server-card ${srv.status}`} onClick={() => onSelect(srv.id)}>
+                  <div className="server-card-header">
+                    <div>
+                      <div className="server-card-name">{srv.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{srv.gameTitle || 'DayZ, PC'}</div>
+                    </div>
+                    <span className={`status-badge status-${srv.status || 'stopped'}`}><span className="status-dot" />{srv.status || 'stopped'}</span>
+                  </div>
+                  <div className="server-card-stats">
+                    <div className="server-card-stat"><div className="server-card-stat-label">CPU</div><div className="server-card-stat-value">{(srv.cpu || 0).toFixed(0)}%</div></div>
+                    <div className="server-card-stat"><div className="server-card-stat-label">RAM</div><div className="server-card-stat-value">{(srv.ram || 0).toFixed(1)}%</div></div>
+                    <div className="server-card-stat"><div className="server-card-stat-label">Players</div><div className="server-card-stat-value">{srv.playerCount || 0}/{srv.maxPlayers || 60}</div></div>
+                    <div className="server-card-stat"><div className="server-card-stat-label">Uptime</div><div className="server-card-stat-value">{formatUptime(srv.uptime)}</div></div>
+                  </div>
+                  <div className="server-card-bar"><div className="server-card-bar-fill" style={{ width: `${Math.min(srv.cpu || 0, 100)}%` }} /></div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── SERVER OVERVIEW (per server) ────────────────────
+    function ServerOverviewPage({ serverId }) {
+      const [status, setStatus] = useState(null);
+      const [metrics, setMetrics] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const load = useCallback(async () => {
+        const [s, m] = await Promise.all([API.get(`/api/servers/${serverId}/status`), API.get(`/api/servers/${serverId}/metrics`)]);
+        setStatus(s); setMetrics(m); setLoading(false);
+      }, [serverId]);
+      useEffect(() => { load(); const i = setInterval(load, 10000); return () => clearInterval(i); }, [load]);
+      useEffect(() => {
+        const handler = (data) => { if (data.serverId === serverId) setStatus(s => ({ ...s, status: data.status })); };
+        socket.on('serverStatus', handler);
+        return () => socket.off('serverStatus', handler);
+      }, [serverId]);
+
+      if (loading || !status) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>;
+      return (
+        <div>
+          <div className="stat-row">
+            <div className="stat-box"><div className="stat-label">Status</div><span className={`status-badge status-${status.status}`}><span className="status-dot" />{status.status}</span></div>
+            <div className="stat-box"><div className="stat-label">Players</div><div className="stat-value">{status.playerCount}<span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/{status.maxPlayers}</span></div></div>
+            <div className="stat-box"><div className="stat-label">CPU</div><div className="stat-value">{(status.cpu || 0).toFixed(0)}%</div></div>
+            <div className="stat-box"><div className="stat-label">RAM</div><div className="stat-value">{(status.ram || 0).toFixed(1)}%</div></div>
+            <div className="stat-box"><div className="stat-label">Uptime</div><div className="stat-value">{formatUptime(status.uptime)}</div></div>
+          </div>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+            <div className="card" style={{ flex: 1 }}>
+              <div className="card-title" style={{ marginBottom: 8 }}>Server Name</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{status.serverName || 'DayZ Server'}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Map: {status.map || 'chernarusplus'}</div>
+            </div>
+            <div className="card" style={{ flex: 1 }}>
+              <div className="card-title" style={{ marginBottom: 8 }}>Network Ports</div>
+              <div style={{ fontSize: 13, fontFamily: 'var(--font-mono)' }}>
+                <div>Game: <span style={{ color: 'var(--accent-green)' }}>{status.ports?.game || 2302}</span></div>
+                <div>Query: <span style={{ color: 'var(--accent-blue)' }}>{status.ports?.query || 2303}</span></div>
+                <div>RCON: <span style={{ color: 'var(--accent-yellow)' }}>{status.ports?.rcon || 2305}</span></div>
+              </div>
+            </div>
+          </div>
+          {metrics && (
+            <div className="grid grid-2">
+              <MiniChart data={metrics.cpu || []} color="#3b82f6" label="CPU %" />
+              <MiniChart data={metrics.ram || []} color="#8b5cf6" label="RAM %" />
+              <MiniChart data={metrics.players || []} color="#00ff6a" label="Players" />
+              <MiniChart data={metrics.fps || []} color="#ffb800" label="FPS" />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── CONSOLE ─────────────────────────────────────────
+    function ConsolePage({ serverId }) {
+      const [logs, setLogs] = useState([]);
+      const [cmd, setCmd] = useState('');
+      const outputRef = useRef(null);
+      useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(setLogs); }, [serverId]);
+      useEffect(() => {
+        const handler = (data) => { if (data.serverId === serverId) setLogs(l => [data, ...l].slice(0, 500)); };
+        socket.on('log', handler);
+        return () => socket.off('log', handler);
+      }, [serverId]);
+      useEffect(() => { if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight; }, [logs]);
+      const sendCmd = async () => {
+        if (!cmd.trim()) return;
+        await API.post(`/api/servers/${serverId}/rcon`, { command: cmd });
+        setCmd('');
+      };
+      return (
+        <div className="console-wrap">
+          <div className="console-output" ref={outputRef}>
+            {[...logs].reverse().map((log, i) => (
+              <div key={i} className={`console-line ${log.level || ''}`}>
+                <span className="console-time">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                <span>[{log.source || 'system'}]</span> {log.message}
+              </div>
+            ))}
+          </div>
+          <div className="console-input">
+            <input value={cmd} onChange={e => setCmd(e.target.value)} placeholder="Enter RCON command..." onKeyDown={e => e.key === 'Enter' && sendCmd()} />
+            <button onClick={sendCmd}>SEND</button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── PLAYERS ─────────────────────────────────────────
+    function PlayersPage({ serverId }) {
+      const [players, setPlayers] = useState([]);
+      useEffect(() => { API.get(`/api/servers/${serverId}/players`).then(setPlayers); }, [serverId]);
+      useEffect(() => {
+        const handler = (data) => { if (data.serverId === serverId) setPlayers(data.players); };
+        socket.on('players', handler);
+        return () => socket.off('players', handler);
+      }, [serverId]);
+      const kick = async (id) => { await API.post(`/api/servers/${serverId}/players/${id}/kick`, { reason: 'Kicked by admin' }); window.addToast('Player kicked', 'success'); };
+      const ban = async (id) => { await API.post(`/api/servers/${serverId}/players/${id}/ban`, { reason: 'Banned by admin' }); window.addToast('Player banned', 'success'); };
+      return (
+        <div>
+          <div style={{ marginBottom: 16 }}><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{players.length} player(s) online</span></div>
+          {players.length === 0 ? <div className="empty-state"><div className="empty-icon">👥</div><div className="empty-title">No Players Online</div></div> : (
+            <div className="table-wrap"><table>
+              <thead><tr><th>Name</th><th>ID</th><th>IP</th><th>Ping</th><th>Actions</th></tr></thead>
+              <tbody>{players.map(p => (
+                <tr key={p.id}><td style={{ fontWeight: 600 }}>{p.name}</td><td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{p.id}</td><td>{p.ip || '—'}</td><td>{p.ping || '—'}</td>
+                  <td><div className="btn-group"><button className="btn btn-sm btn-secondary" onClick={() => kick(p.id)}>Kick</button><button className="btn btn-sm btn-danger" onClick={() => ban(p.id)}>Ban</button></div></td></tr>
+              ))}</tbody>
+            </table></div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── MODS ────────────────────────────────────────────
+    function ModsPage({ serverId }) {
+      const [mods, setMods] = useState([]);
+      const [search, setSearch] = useState('');
+      const [results, setResults] = useState([]);
+      const [searching, setSearching] = useState(false);
+      const [tab, setTab] = useState('installed');
+      useEffect(() => { API.get(`/api/servers/${serverId}/mods`).then(setMods); }, [serverId]);
+      useEffect(() => {
+        const handler = (data) => { if (data.serverId === serverId) setMods(data.mods); };
+        socket.on('mods', handler);
+        return () => socket.off('mods', handler);
+      }, [serverId]);
+      const doSearch = async () => {
+        if (!search.trim()) return;
+        setSearching(true);
+        const data = await API.get(`/api/workshop/search?q=${encodeURIComponent(search)}`);
+        setResults(data.results || []);
+        setSearching(false);
+      };
+      const install = async (workshopId, name) => {
+        window.addToast(`Installing ${name}...`, 'info');
+        await API.post(`/api/servers/${serverId}/mods/install`, { workshopId, name });
+      };
+      const uninstall = async (workshopId) => {
+        await API.del(`/api/servers/${serverId}/mods/uninstall/${workshopId}`);
+        window.addToast('Mod uninstalled', 'success');
+      };
+      const toggleMod = async (workshopId, enabled) => {
+        await API.patch(`/api/servers/${serverId}/mods/${workshopId}`, { enabled: !enabled });
+        setMods(m => m.map(mod => mod.workshopId === workshopId ? { ...mod, enabled: !enabled } : mod));
+      };
+      useEffect(() => {
+        const handler = (data) => {
+          if (data.serverId === serverId) {
+            if (data.status === 'complete') window.addToast(`${data.message}`, 'success');
+            else if (data.status === 'error') window.addToast(`${data.message}`, 'error');
+          }
+        };
+        socket.on('modInstallProgress', handler);
+        return () => socket.off('modInstallProgress', handler);
+      }, [serverId]);
+
+      return (
+        <div>
+          <div className="tabs">
+            <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>Installed ({mods.length})</div>
+            <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}>Workshop</div>
+            <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}>Steam Settings</div>
+          </div>
+          {tab === 'installed' && (
+            <div>{mods.length === 0 ? <div className="empty-state"><div className="empty-icon">📦</div><div className="empty-title">No Mods Installed</div></div> : (
+              <div className="table-wrap"><table>
+                <thead><tr><th>Mod</th><th>Workshop ID</th><th>Enabled</th><th>Actions</th></tr></thead>
+                <tbody>{mods.map(m => (
+                  <tr key={m.workshopId || m.name}>
+                    <td style={{ fontWeight: 600 }}>{m.name}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{m.workshopId || '—'}</td>
+                    <td><div className={`toggle ${m.enabled ? 'on' : ''}`} onClick={() => toggleMod(m.workshopId, m.enabled)}><div className="toggle-knob" /></div></td>
+                    <td><button className="btn btn-sm btn-danger" onClick={() => uninstall(m.workshopId)}>Uninstall</button></td>
+                  </tr>
+                ))}</tbody>
+              </table></div>
+            )}</div>
+          )}
+          {tab === 'workshop' && (
+            <div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <input className="input" placeholder="Search Steam Workshop..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()} />
+                <button className="btn btn-blue" onClick={doSearch} disabled={searching}>{searching ? '...' : 'Search'}</button>
+              </div>
+              {results.length > 0 && <div className="table-wrap"><table>
+                <thead><tr><th>Mod</th><th>Subscribers</th><th>Size</th><th>Actions</th></tr></thead>
+                <tbody>{results.map(r => (
+                  <tr key={r.workshopId}>
+                    <td><div style={{ fontWeight: 600 }}>{r.name}</div><div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{r.description?.substring(0, 100)}</div></td>
+                    <td>{r.subscribers?.toLocaleString() || '—'}</td>
+                    <td>{formatBytes(r.fileSize)}</td>
+                    <td><button className="btn btn-sm btn-primary" onClick={() => install(r.workshopId, r.name)} disabled={mods.some(m => m.workshopId === r.workshopId)}>{mods.some(m => m.workshopId === r.workshopId) ? 'Installed' : 'Install'}</button></td>
+                  </tr>
+                ))}</tbody>
+              </table></div>}
+            </div>
+          )}
+          {tab === 'steam' && <SteamSettingsPanel />}
+        </div>
+      );
+    }
+
+    function SteamSettingsPanel() {
+      const [status, setStatus] = useState(null);
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const [guardCode, setGuardCode] = useState('');
+      const [saving, setSaving] = useState(false);
+      useEffect(() => { API.get('/api/steam/status').then(s => { setStatus(s); setUsername(s.username || ''); }); }, []);
+      const save = async () => {
+        setSaving(true);
+        const body = { username };
+        if (password) body.password = password;
+        if (guardCode) body.guardCode = guardCode;
+        const r = await API.post('/api/steam/credentials', body);
+        if (r.needsGuard) window.addToast('Steam Guard code required', 'info');
+        else if (r.success) { window.addToast('Steam login validated!', 'success'); setGuardCode(''); }
+        else window.addToast(r.message || 'Failed', 'error');
+        setSaving(false);
+        API.get('/api/steam/status').then(setStatus);
+      };
+      return (
+        <div className="card" style={{ maxWidth: 480 }}>
+          <div className="card-title" style={{ marginBottom: 16 }}>Steam Credentials</div>
+          <div style={{ marginBottom: 12 }}>
+            {status?.loginValidated ? <span className="status-badge status-running"><span className="status-dot" />Connected as {status.username}</span> : <span className="status-badge status-stopped"><span className="status-dot" />Not connected</span>}
+          </div>
+          <div className="input-group"><label className="input-label">Username</label><input className="input" value={username} onChange={e => setUsername(e.target.value)} /></div>
+          <div className="input-group"><label className="input-label">Password</label><input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" /></div>
+          <div className="input-group"><label className="input-label">Steam Guard Code (if needed)</label><input className="input" value={guardCode} onChange={e => setGuardCode(e.target.value)} placeholder="XXXXX" /></div>
+          <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Validating...' : 'Save & Validate'}</button>
+        </div>
+      );
+    }
+
+    // ─── FILES ───────────────────────────────────────────
+    function FilesPage({ serverId }) {
+      const [files, setFiles] = useState([]);
+      const [currentDir, setCurrentDir] = useState('');
+      const [openFile, setOpenFile] = useState(null);
+      const [fileContent, setFileContent] = useState('');
+      const [saving, setSaving] = useState(false);
+      const editorRef = useRef(null);
+      const monacoRef = useRef(null);
+
+      const loadDir = useCallback(async (dir) => {
+        const data = await API.get(`/api/servers/${serverId}/files?dir=${encodeURIComponent(dir)}`);
+        setFiles(Array.isArray(data) ? data : []);
+        setCurrentDir(dir);
+      }, [serverId]);
+
+      useEffect(() => { loadDir(''); }, [loadDir]);
+
+      const openFileInEditor = async (filePath) => {
+        const data = await API.get(`/api/servers/${serverId}/files/read?file=${encodeURIComponent(filePath)}`);
+        if (data.error) { window.addToast(data.error, 'error'); return; }
+        setOpenFile(filePath);
+        setFileContent(data.content);
+        // Setup Monaco
+        setTimeout(() => {
+          if (monacoRef.current) monacoRef.current.dispose();
+          if (!editorRef.current) return;
+          require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+          require(['vs/editor/editor.main'], (monaco) => {
+            monaco.editor.defineTheme('dayz-dark', { base: 'vs-dark', inherit: true, rules: [], colors: { 'editor.background': '#0a0c0f', 'editor.lineHighlightBackground': '#181c22' } });
+            const ext = filePath.split('.').pop();
+            const langMap = { json: 'json', xml: 'xml', cfg: 'ini', ini: 'ini', js: 'javascript', py: 'python', bat: 'bat', ps1: 'powershell', c: 'c', cpp: 'cpp', h: 'cpp', txt: 'plaintext' };
+            monacoRef.current = monaco.editor.create(editorRef.current, {
+              value: data.content, language: langMap[ext] || 'plaintext',
+              theme: 'dayz-dark', fontSize: 13, fontFamily: "'JetBrains Mono', monospace",
+              minimap: { enabled: true }, lineNumbers: 'on', wordWrap: 'on',
+              scrollBeyondLastLine: false, automaticLayout: true,
+            });
+          });
+        }, 100);
+      };
+
+      const saveFile = async () => {
+        if (!openFile) return;
+        setSaving(true);
+        const content = monacoRef.current ? monacoRef.current.getValue() : fileContent;
+        await API.put(`/api/servers/${serverId}/files/write`, { file: openFile, content });
+        window.addToast('File saved', 'success');
+        setSaving(false);
+      };
+
+      const navigate = (item) => {
+        if (item.type === 'directory') loadDir(item.path);
+        else openFileInEditor(item.path);
+      };
+
+      const goUp = () => {
+        const parts = currentDir.split('/').filter(Boolean);
+        parts.pop();
+        loadDir(parts.join('/'));
+      };
+
+      return (
+        <div className="file-tree">
+          <div className="file-sidebar">
+            {currentDir && <div className="file-item" onClick={goUp} style={{ color: 'var(--accent-blue)' }}><span className="file-item-icon">⬆️</span>..</div>}
+            {files.map(f => (
+              <div key={f.name} className={`file-item ${openFile === f.path ? 'active' : ''}`} onClick={() => navigate(f)}>
+                <span className="file-item-icon">{f.type === 'directory' ? '📁' : '📄'}</span>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                {f.type === 'file' && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatBytes(f.size)}</span>}
+              </div>
+            ))}
+          </div>
+          <div className="file-content">
+            {openFile ? (
+              <>
+                <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{openFile}</span>
+                  <button className="btn btn-sm btn-primary" onClick={saveFile} disabled={saving}>{saving ? 'Saving...' : '💾 Save'}</button>
+                </div>
+                <div ref={editorRef} style={{ flex: 1 }} />
+              </>
+            ) : (
+              <div className="empty-state"><div className="empty-icon">📂</div><div className="empty-title">Select a file to edit</div></div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ─── CONFIG ──────────────────────────────────────────
+    function ConfigPage({ serverId }) {
+      const [config, setConfig] = useState({});
+      const [saving, setSaving] = useState(false);
+      useEffect(() => { API.get(`/api/servers/${serverId}/config`).then(setConfig); }, [serverId]);
+      const update = (key, value) => setConfig(c => ({ ...c, [key]: value }));
+      const save = async () => {
+        setSaving(true);
+        await API.patch(`/api/servers/${serverId}/config`, config);
+        window.addToast('Config saved', 'success');
+        setSaving(false);
+      };
+      const fields = [
+        { key: 'hostname', label: 'Server Name', type: 'text' },
+        { key: 'maxPlayers', label: 'Max Players', type: 'number' },
+        { key: 'password', label: 'Server Password', type: 'text' },
+        { key: 'passwordAdmin', label: 'Admin Password', type: 'text' },
+        { key: 'verifySignatures', label: 'Verify Signatures', type: 'number' },
+        { key: 'forceSameBuild', label: 'Force Same Build', type: 'number' },
+        { key: 'disableThirdPerson', label: 'Disable 3rd Person', type: 'number' },
+        { key: 'serverTime', label: 'Server Time', type: 'text' },
+        { key: 'serverTimeAcceleration', label: 'Time Acceleration', type: 'number' },
+        { key: 'respawnTime', label: 'Respawn Time', type: 'number' },
+        { key: 'loginQueueMaxPlayers', label: 'Login Queue Max', type: 'number' },
+        { key: 'template', label: 'Map Template', type: 'text' },
+      ];
+      return (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div className="card-title">serverDZ.cfg Editor</div>
+            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving...' : '💾 Save Config'}</button>
+          </div>
+          <div className="grid grid-2">
+            {fields.map(f => (
+              <div key={f.key} className="input-group">
+                <label className="input-label">{f.label}</label>
+                <input className="input" type={f.type} value={config[f.key] ?? ''} onChange={e => update(f.key, f.type === 'number' ? parseInt(e.target.value) || 0 : e.target.value)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ─── BANS ────────────────────────────────────────────
+    function BansPage({ serverId }) {
+      const [bans, setBans] = useState([]);
+      useEffect(() => { API.get(`/api/servers/${serverId}/bans`).then(setBans); }, [serverId]);
+      const unban = async (id) => {
+        await API.del(`/api/servers/${serverId}/bans/${id}`);
+        setBans(b => b.filter(x => x.id !== id));
+        window.addToast('Ban removed', 'success');
+      };
+      return (
+        <div>
+          {bans.length === 0 ? <div className="empty-state"><div className="empty-icon">🛡️</div><div className="empty-title">No Active Bans</div></div> : (
+            <div className="table-wrap"><table>
+              <thead><tr><th>Name</th><th>ID</th><th>Reason</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody>{bans.map(b => (
+                <tr key={b.id}><td>{b.name}</td><td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{b.id}</td><td>{b.reason}</td><td>{timeAgo(b.bannedAt)}</td>
+                  <td><button className="btn btn-sm btn-secondary" onClick={() => unban(b.id)}>Unban</button></td></tr>
+              ))}</tbody>
+            </table></div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── SCHEDULER ───────────────────────────────────────
+    function SchedulerPage({ serverId }) {
+      const [tasks, setTasks] = useState([]);
+      const [cron, setCron] = useState('');
+      const [label, setLabel] = useState('');
+      useEffect(() => { API.get(`/api/servers/${serverId}/schedule`).then(setTasks); }, [serverId]);
+      const add = async () => {
+        if (!label) return;
+        const t = await API.post(`/api/servers/${serverId}/schedule`, { cronExpression: cron, label, enabled: true });
+        setTasks(ts => [...ts, t]);
+        setCron(''); setLabel('');
+        window.addToast('Task added', 'success');
+      };
+      const remove = async (id) => {
+        await API.del(`/api/servers/${serverId}/schedule/${id}`);
+        setTasks(ts => ts.filter(t => t.id !== id));
+      };
+      return (
+        <div>
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-title" style={{ marginBottom: 12 }}>Add Scheduled Task</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="input" placeholder="Label (e.g. Daily Restart)" value={label} onChange={e => setLabel(e.target.value)} style={{ flex: 1 }} />
+              <input className="input" placeholder="Cron (e.g. 0 4 * * *)" value={cron} onChange={e => setCron(e.target.value)} style={{ width: 180 }} />
+              <button className="btn btn-primary" onClick={add}>Add</button>
+            </div>
+          </div>
+          {tasks.length === 0 ? <div className="empty-state"><div className="empty-icon">📅</div><div className="empty-title">No Scheduled Tasks</div></div> : (
+            <div className="table-wrap"><table>
+              <thead><tr><th>Label</th><th>Cron</th><th>Enabled</th><th>Actions</th></tr></thead>
+              <tbody>{tasks.map(t => (
+                <tr key={t.id}><td>{t.label}</td><td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{t.cronExpression}</td>
+                  <td>{t.enabled ? '✅' : '❌'}</td>
+                  <td><button className="btn btn-sm btn-danger" onClick={() => remove(t.id)}>Remove</button></td></tr>
+              ))}</tbody>
+            </table></div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── LOGS ────────────────────────────────────────────
+    function LogsPage({ serverId }) {
+      const [logs, setLogs] = useState([]);
+      const [filter, setFilter] = useState('all');
+      useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(setLogs); }, [serverId]);
+      const filtered = filter === 'all' ? logs : logs.filter(l => l.level === filter);
+      return (
+        <div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {['all', 'info', 'warn', 'error'].map(f => (
+              <button key={f} className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilter(f)}>{f.toUpperCase()}</button>
+            ))}
+          </div>
+          <div className="console-wrap" style={{ height: 'calc(100vh - 260px)' }}>
+            <div className="console-output">
+              {[...filtered].reverse().map((log, i) => (
+                <div key={i} className={`console-line ${log.level || ''}`}>
+                  <span className="console-time">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                  <span>[{log.source}]</span> {log.message}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── USERS PAGE ──────────────────────────────────────
+    function UsersPage() {
+      const [tab, setTab] = useState('users');
+      const [users, setUsers] = useState([]);
+      const [roles, setRoles] = useState([]);
+      const [audit, setAudit] = useState([]);
+      const [showAddUser, setShowAddUser] = useState(false);
+      const [showAddRole, setShowAddRole] = useState(false);
+      const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', description: '' });
+      const [newRole, setNewRole] = useState({ name: '', color: '#8b919a', permissions: [] });
+
+      useEffect(() => { API.get('/api/users').then(setUsers); API.get('/api/roles').then(setRoles); }, []);
+      useEffect(() => { if (tab === 'audit') API.get('/api/audit?limit=200').then(d => setAudit(d.entries || [])); }, [tab]);
+
+      const addUser = async () => {
+        if (!newUser.username || !newUser.password) return;
+        const u = await API.post('/api/users', newUser);
+        if (u.error) { window.addToast(u.error, 'error'); return; }
+        setUsers(us => [...us, u]); setShowAddUser(false);
+        setNewUser({ username: '', password: '', role: 'viewer', description: '' });
+        window.addToast('User created', 'success');
+      };
+
+      const deleteUser = async (id) => {
+        await API.del(`/api/users/${id}`);
+        setUsers(us => us.filter(u => u.id !== id));
+        window.addToast('User deleted', 'success');
+      };
+
+      const addRole = async () => {
+        if (!newRole.name) return;
+        const r = await API.post('/api/roles', newRole);
+        if (r.error) { window.addToast(r.error, 'error'); return; }
+        setRoles(rs => [...rs, r]); setShowAddRole(false);
+        setNewRole({ name: '', color: '#8b919a', permissions: [] });
+        window.addToast('Role created', 'success');
+      };
+
+      const deleteRole = async (id) => {
+        await API.del(`/api/roles/${id}`);
+        setRoles(rs => rs.filter(r => r.id !== id));
+        window.addToast('Role deleted', 'success');
+      };
+
+      const allPermissions = ['server.view','server.start','server.stop','server.restart','server.rcon','server.config','server.deploy','players.view','players.kick','players.ban','mods.view','mods.install','files.browse','files.edit','logs.view','metrics.view','chat.send','users.manage','webhooks.manage'];
+
+      const togglePerm = (perm) => {
+        setNewRole(r => ({
+          ...r,
+          permissions: r.permissions.includes(perm) ? r.permissions.filter(p => p !== perm) : [...r.permissions, perm]
+        }));
+      };
+
+      return (
+        <div>
+          <div className="tabs">
+            <div className={`tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Users</div>
+            <div className={`tab ${tab === 'roles' ? 'active' : ''}`} onClick={() => setTab('roles')}>Roles</div>
+            <div className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit Log</div>
+          </div>
+
+          {tab === 'users' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <button className="btn btn-primary" onClick={() => setShowAddUser(true)}>+ Add User</button>
+              </div>
+              <div className="table-wrap"><table>
+                <thead><tr><th>Username</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead>
+                <tbody>{users.map(u => {
+                  const role = roles.find(r => r.id === u.role);
+                  return (
+                    <tr key={u.id}>
+                      <td><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, color: role?.color || 'var(--text-muted)' }}>{u.username[0]?.toUpperCase()}</div>
+                        <div><div style={{ fontWeight: 600 }}>{u.username}</div>{u.isRoot && <div style={{ fontSize: 10, color: 'var(--accent-red)' }}>Root User</div>}{u.description && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u.description}</div>}</div>
+                      </div></td>
+                      <td><span className="role-badge" style={{ background: (role?.color || '#8b919a') + '20', color: role?.color || '#8b919a' }}>{role?.name || u.role}</span></td>
+                      <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{timeAgo(u.createdAt)}</td>
+                      <td>{!u.isRoot && <button className="btn btn-sm btn-danger" onClick={() => deleteUser(u.id)}>Delete</button>}</td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table></div>
+
+              {showAddUser && (
+                <div className="modal-overlay" onClick={() => setShowAddUser(false)}>
+                  <div className="modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal-title">Add New User</div>
+                    <div className="input-group"><label className="input-label">Username</label><input className="input" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} /></div>
+                    <div className="input-group"><label className="input-label">Password</label><input className="input" type="password" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} /></div>
+                    <div className="input-group"><label className="input-label">Role</label><select className="input" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>{roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
+                    <div className="input-group"><label className="input-label">Description</label><input className="input" value={newUser.description} onChange={e => setNewUser({ ...newUser, description: e.target.value })} /></div>
+                    <div className="btn-group"><button className="btn btn-primary" onClick={addUser}>Create User</button><button className="btn btn-secondary" onClick={() => setShowAddUser(false)}>Cancel</button></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'roles' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <button className="btn btn-primary" onClick={() => setShowAddRole(true)}>+ Add Role</button>
+              </div>
+              <div className="grid grid-2">
+                {roles.map(role => (
+                  <div key={role.id} className="card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: role.color }} />
+                        <span style={{ fontWeight: 700, fontSize: 15 }}>{role.name}</span>
+                        {role.builtIn && <span style={{ fontSize: 10, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: 4 }}>Built-in</span>}
+                      </div>
+                      {!role.builtIn && <button className="btn btn-sm btn-danger" onClick={() => deleteRole(role.id)}>Delete</button>}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
+                      {role.permissions.includes('*') ? <span className="perm-chip active">* (all)</span> : role.permissions.map(p => <span key={p} className="perm-chip">{p}</span>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {showAddRole && (
+                <div className="modal-overlay" onClick={() => setShowAddRole(false)}>
+                  <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+                    <div className="modal-title">Create New Role</div>
+                    <div className="input-group"><label className="input-label">Name</label><input className="input" value={newRole.name} onChange={e => setNewRole({ ...newRole, name: e.target.value })} /></div>
+                    <div className="input-group"><label className="input-label">Color</label><input type="color" value={newRole.color} onChange={e => setNewRole({ ...newRole, color: e.target.value })} style={{ width: 50, height: 36, border: 'none', cursor: 'pointer', background: 'transparent' }} /></div>
+                    <div className="input-group">
+                      <label className="input-label">Permissions</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                        {allPermissions.map(p => (
+                          <span key={p} className={`perm-chip ${newRole.permissions.includes(p) ? 'active' : ''}`} onClick={() => togglePerm(p)} style={{ cursor: 'pointer' }}>{p}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="btn-group"><button className="btn btn-primary" onClick={addRole}>Create Role</button><button className="btn btn-secondary" onClick={() => setShowAddRole(false)}>Cancel</button></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'audit' && (
+            <div className="table-wrap"><table>
+              <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
+              <tbody>{audit.map(a => (
+                <tr key={a.id}>
+                  <td style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(a.timestamp).toLocaleString()}</td>
+                  <td style={{ fontWeight: 600 }}>{a.username}</td>
+                  <td><span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{a.action}</span></td>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{a.details}</td>
+                </tr>
+              ))}</tbody>
+            </table></div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── WEBHOOKS PAGE ───────────────────────────────────
+    function WebhooksPage() {
+      const [webhooks, setWebhooks] = useState([]);
+      const [tab, setTab] = useState('webhooks');
+      const [showAdd, setShowAdd] = useState(false);
+      const [selectedWh, setSelectedWh] = useState(null);
+      const [deliveries, setDeliveries] = useState([]);
+      const [newWh, setNewWh] = useState({ event: 'server.started', url: '', template: '', retryEnabled: true });
+
+      useEffect(() => { API.get('/api/webhooks').then(setWebhooks); }, []);
+
+      const events = ['server.started', 'server.stopped', 'server.crashed', 'server.restarted'];
+      const eventColor = (e) => { if (e.includes('started')) return 'started'; if (e.includes('stopped')) return 'stopped'; if (e.includes('crashed')) return 'crashed'; return 'restarted'; };
+
+      const addWebhook = async () => {
+        if (!newWh.url) return;
+        const wh = await API.post('/api/webhooks', newWh);
+        if (wh.error) { window.addToast(wh.error, 'error'); return; }
+        setWebhooks(ws => [...ws, wh]); setShowAdd(false);
+        setNewWh({ event: 'server.started', url: '', template: '', retryEnabled: true });
+        window.addToast('Webhook created', 'success');
+      };
+
+      const deleteWebhook = async (id) => {
+        await API.del(`/api/webhooks/${id}`);
+        setWebhooks(ws => ws.filter(w => w.id !== id));
+        window.addToast('Webhook deleted', 'success');
+      };
+
+      const testWebhook = async (id) => {
+        const r = await API.post(`/api/webhooks/${id}/test`);
+        window.addToast(r.message || 'Test sent', 'success');
+      };
+
+      const toggleWebhook = async (id, enabled) => {
+        await API.patch(`/api/webhooks/${id}`, { enabled: !enabled });
+        setWebhooks(ws => ws.map(w => w.id === id ? { ...w, enabled: !enabled } : w));
+      };
+
+      const viewDeliveries = async (wh) => {
+        setSelectedWh(wh);
+        const d = await API.get(`/api/webhooks/${wh.id}/deliveries`);
+        setDeliveries(d);
+        setTab('deliveries');
+      };
+
+      return (
+        <div>
+          <div className="tabs">
+            <div className={`tab ${tab === 'webhooks' ? 'active' : ''}`} onClick={() => setTab('webhooks')}>WebHooks</div>
+            <div className={`tab ${tab === 'deliveries' ? 'active' : ''}`} onClick={() => setTab('deliveries')}>Deliveries {selectedWh && `(${selectedWh.event})`}</div>
+          </div>
+
+          {tab === 'webhooks' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Webhook</button>
+              </div>
+              {webhooks.length === 0 ? <div className="empty-state"><div className="empty-icon">🔗</div><div className="empty-title">No Webhooks</div><p>Add webhooks to receive notifications for server events.</p></div> : (
+                <div className="table-wrap"><table>
+                  <thead><tr><th>Event</th><th>URL</th><th>Retry</th><th>Enabled</th><th>Actions</th></tr></thead>
+                  <tbody>{webhooks.map(wh => (
+                    <tr key={wh.id}>
+                      <td><span className={`webhook-event-badge ${eventColor(wh.event)}`}>{wh.event}</span></td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={wh.url}>{wh.isDiscord ? '🟣 Discord' : wh.url}</td>
+                      <td>{wh.retryEnabled ? '✅' : '❌'}</td>
+                      <td><div className={`toggle ${wh.enabled ? 'on' : ''}`} onClick={() => toggleWebhook(wh.id, wh.enabled)}><div className="toggle-knob" /></div></td>
+                      <td><div className="btn-group">
+                        <button className="btn btn-sm btn-secondary" onClick={() => testWebhook(wh.id)}>Test</button>
+                        <button className="btn btn-sm btn-secondary" onClick={() => viewDeliveries(wh)}>History</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteWebhook(wh.id)}>Delete</button>
+                      </div></td>
+                    </tr>
+                  ))}</tbody>
+                </table></div>
+              )}
+
+              {showAdd && (
+                <div className="modal-overlay" onClick={() => setShowAdd(false)}>
+                  <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+                    <div className="modal-title">Add Webhook</div>
+                    <div className="input-group"><label className="input-label">Event</label>
+                      <select className="input" value={newWh.event} onChange={e => setNewWh({ ...newWh, event: e.target.value })}>
+                        {events.map(ev => <option key={ev} value={ev}>{ev}</option>)}
+                      </select>
+                    </div>
+                    <div className="input-group"><label className="input-label">Webhook URL</label><input className="input" value={newWh.url} onChange={e => setNewWh({ ...newWh, url: e.target.value })} placeholder="https://discord.com/api/webhooks/..." /></div>
+                    <div className="input-group">
+                      <label className="input-label">Template (JSON body for Discord)</label>
+                      <textarea className="input" value={newWh.template} onChange={e => setNewWh({ ...newWh, template: e.target.value })} placeholder='{"content": "**{server.name}** event at {timestamp}"}' />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <div className={`toggle ${newWh.retryEnabled ? 'on' : ''}`} onClick={() => setNewWh({ ...newWh, retryEnabled: !newWh.retryEnabled })}><div className="toggle-knob" /></div>
+                      <span style={{ fontSize: 13 }}>Enable retry on failure</span>
+                    </div>
+                    <div className="btn-group"><button className="btn btn-primary" onClick={addWebhook}>Create Webhook</button><button className="btn btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'deliveries' && (
+            <div>
+              {deliveries.length === 0 ? <div className="empty-state"><div className="empty-icon">📬</div><div className="empty-title">No Deliveries Yet</div></div> : (
+                <div className="table-wrap"><table>
+                  <thead><tr><th>Time</th><th>Event</th><th>Status</th><th>Error</th></tr></thead>
+                  <tbody>{deliveries.map((d, i) => (
+                    <tr key={i}><td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(d.timestamp).toLocaleString()}</td>
+                      <td><span className={`webhook-event-badge ${eventColor(d.event)}`}>{d.event}</span></td>
+                      <td><span className={`status-badge ${d.status === 'success' ? 'status-running' : 'status-crashed'}`}><span className="status-dot" />{d.status}</span></td>
+                      <td style={{ fontSize: 12, color: 'var(--accent-red)' }}>{d.error || '—'}</td>
+                    </tr>
+                  ))}</tbody>
+                </table></div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── DEPLOY PAGE ─────────────────────────────────────
+    function DeployPage({ onDeployed }) {
+      const [step, setStep] = useState(1);
+      const [gameTitle, setGameTitle] = useState('DayZ, PC');
+      const [name, setName] = useState('');
+      const [installDir, setInstallDir] = useState('C:\\DayZServer');
+      const [gamePort, setGamePort] = useState(2302);
+      const [queryPort, setQueryPort] = useState(2303);
+      const [rconPort, setRconPort] = useState(2305);
+      const [rconPassword, setRconPassword] = useState('');
+      const [maxPlayers, setMaxPlayers] = useState(60);
+      const [map, setMap] = useState('chernarusplus');
+      const [deploying, setDeploying] = useState(false);
+      const [progress, setProgress] = useState({ status: '', message: '', progress: 0 });
+
+      useEffect(() => {
+        const handler = (data) => {
+          setProgress(data);
+          if (data.status === 'complete') { window.addToast('Server deployed successfully!', 'success'); if (onDeployed) onDeployed(); }
+          else if (data.status === 'error') { window.addToast(data.message, 'error'); setDeploying(false); }
+        };
+        socket.on('deployProgress', handler);
+        return () => socket.off('deployProgress', handler);
+      }, [onDeployed]);
+
+      const deploy = async () => {
+        if (!name || !installDir) { window.addToast('Name and install directory required', 'error'); return; }
+        setDeploying(true); setStep(4);
+        await API.post('/api/deploy', { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map });
+      };
+
+      return (
+        <div>
+          <div className="deploy-steps">
+            <div className={`deploy-step ${step >= 1 ? (step > 1 ? 'done' : 'active') : ''}`}>1. Game Title</div>
+            <div className={`deploy-step ${step >= 2 ? (step > 2 ? 'done' : 'active') : ''}`}>2. Server Details</div>
+            <div className={`deploy-step ${step >= 3 ? (step > 3 ? 'done' : 'active') : ''}`}>3. Configuration</div>
+            <div className={`deploy-step ${step >= 4 ? 'active' : ''}`}>4. Deploy</div>
+          </div>
+
+          {step === 1 && (
+            <div>
+              <h3 style={{ marginBottom: 20 }}>Select Game Title</h3>
+              <div className="grid grid-2" style={{ maxWidth: 500 }}>
+                <div className={`game-card ${gameTitle === 'DayZ, PC' ? 'selected' : ''}`} onClick={() => setGameTitle('DayZ, PC')}>
+                  <div className="game-card-icon">🎮</div>
+                  <div className="game-card-title">DayZ PC</div>
+                  <div className="game-card-sub">Stable Branch</div>
+                </div>
+                <div className={`game-card ${gameTitle === 'DayZ, PC (Experimental)' ? 'selected' : ''}`} onClick={() => setGameTitle('DayZ, PC (Experimental)')}>
+                  <div className="game-card-icon">🧪</div>
+                  <div className="game-card-title">DayZ PC</div>
+                  <div className="game-card-sub">Experimental</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 24 }}><button className="btn btn-blue" onClick={() => setStep(2)}>Next →</button></div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div style={{ maxWidth: 500 }}>
+              <h3 style={{ marginBottom: 20 }}>Server Details</h3>
+              <div className="input-group"><label className="input-label">Server Name</label><input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="My DayZ Server" /></div>
+              <div className="input-group"><label className="input-label">Install Directory</label><input className="input" value={installDir} onChange={e => setInstallDir(e.target.value)} /></div>
+              <div className="input-group"><label className="input-label">Map</label>
+                <select className="input" value={map} onChange={e => setMap(e.target.value)}>
+                  <option value="chernarusplus">Chernarus</option>
+                  <option value="enoch">Livonia</option>
+                  <option value="deerisle">Deer Isle</option>
+                  <option value="namalsk">Namalsk</option>
+                </select>
+              </div>
+              <div className="btn-group" style={{ marginTop: 16 }}>
+                <button className="btn btn-secondary" onClick={() => setStep(1)}>← Back</button>
+                <button className="btn btn-blue" onClick={() => setStep(3)}>Next →</button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div style={{ maxWidth: 500 }}>
+              <h3 style={{ marginBottom: 20 }}>Configuration</h3>
+              <div className="grid grid-2">
+                <div className="input-group"><label className="input-label">Game Port</label><input className="input" type="number" value={gamePort} onChange={e => setGamePort(parseInt(e.target.value))} /></div>
+                <div className="input-group"><label className="input-label">Query Port</label><input className="input" type="number" value={queryPort} onChange={e => setQueryPort(parseInt(e.target.value))} /></div>
+                <div className="input-group"><label className="input-label">RCON Port</label><input className="input" type="number" value={rconPort} onChange={e => setRconPort(parseInt(e.target.value))} /></div>
+                <div className="input-group"><label className="input-label">Max Players</label><input className="input" type="number" value={maxPlayers} onChange={e => setMaxPlayers(parseInt(e.target.value))} /></div>
+              </div>
+              <div className="input-group"><label className="input-label">RCON Password</label><input className="input" type="password" value={rconPassword} onChange={e => setRconPassword(e.target.value)} /></div>
+              <div className="btn-group" style={{ marginTop: 16 }}>
+                <button className="btn btn-secondary" onClick={() => setStep(2)}>← Back</button>
+                <button className="btn btn-primary" onClick={deploy}>🚀 Deploy Server</button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div style={{ maxWidth: 500, textAlign: 'center', padding: '40px 0' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>{progress.status === 'complete' ? '✅' : progress.status === 'error' ? '❌' : '🚀'}</div>
+              <h3 style={{ marginBottom: 12 }}>{progress.status === 'complete' ? 'Deployment Complete!' : progress.status === 'error' ? 'Deployment Failed' : 'Deploying...'}</h3>
+              <p style={{ color: 'var(--text-muted)', marginBottom: 20 }}>{progress.message || 'Preparing deployment...'}</p>
+              {progress.status !== 'complete' && progress.status !== 'error' && (
+                <div className="progress-bar" style={{ maxWidth: 400, margin: '0 auto' }}>
+                  <div className="progress-fill" style={{ width: `${progress.progress || 5}%` }} />
+                </div>
+              )}
+              {progress.status === 'complete' && <button className="btn btn-primary" onClick={() => { setStep(1); setDeploying(false); }}>Done</button>}
+              {progress.status === 'error' && <button className="btn btn-secondary" onClick={() => { setStep(3); setDeploying(false); }}>← Go Back</button>}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── SERVER SETTINGS ─────────────────────────────────
+    function ServerSettingsPage({ serverId }) {
+      const [srv, setSrv] = useState(null);
+      const [saving, setSaving] = useState(false);
+      useEffect(() => {
+        API.get('/api/servers').then(servers => {
+          const s = servers.find(x => x.id === serverId);
+          if (s) setSrv(s);
+        });
+      }, [serverId]);
+      if (!srv) return null;
+      const update = (key, val) => setSrv(s => ({ ...s, [key]: val }));
+      const save = async () => {
+        setSaving(true);
+        await API.patch(`/api/servers/${serverId}`, srv);
+        window.addToast('Settings saved', 'success');
+        setSaving(false);
+      };
+      return (
+        <div style={{ maxWidth: 600 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div className="card-title">Server Settings</div>
+            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving...' : '💾 Save'}</button>
+          </div>
+          <div className="input-group"><label className="input-label">Server Name</label><input className="input" value={srv.name || ''} onChange={e => update('name', e.target.value)} /></div>
+          <div className="input-group"><label className="input-label">Install Directory</label><input className="input" value={srv.installDir || ''} onChange={e => update('installDir', e.target.value)} /></div>
+          <div className="input-group"><label className="input-label">Executable</label><input className="input" value={srv.executable || ''} onChange={e => update('executable', e.target.value)} /></div>
+          <div className="input-group"><label className="input-label">Start Batch File (optional)</label><input className="input" value={srv.startBat || ''} onChange={e => update('startBat', e.target.value)} /></div>
+          <div className="input-group"><label className="input-label">Launch Parameters</label><input className="input" value={srv.launchParams || ''} onChange={e => update('launchParams', e.target.value)} /></div>
+          <div className="grid grid-2">
+            <div className="input-group"><label className="input-label">Game Port</label><input className="input" type="number" value={srv.gamePort || 2302} onChange={e => update('gamePort', parseInt(e.target.value))} /></div>
+            <div className="input-group"><label className="input-label">RCON Port</label><input className="input" type="number" value={srv.rconPort || 2305} onChange={e => update('rconPort', parseInt(e.target.value))} /></div>
+          </div>
+          <div className="input-group"><label className="input-label">RCON Password</label><input className="input" type="password" value={srv.rconPassword || ''} onChange={e => update('rconPassword', e.target.value)} /></div>
+        </div>
+      );
+    }
+
+    // ─── MAIN APP ────────────────────────────────────────
+    function App() {
+      const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } });
+      const [page, setPage] = useState('hub');
+      const [servers, setServers] = useState([]);
+      const [selectedServer, setSelectedServer] = useState(null);
+      const [serverTab, setServerTab] = useState('overview');
+
+      // Load servers
+      const loadServers = useCallback(async () => {
+        if (!API.token) return;
+        const data = await API.get('/api/servers');
+        if (Array.isArray(data)) setServers(data);
+      }, []);
+
+      useEffect(() => { if (user) { loadServers(); const i = setInterval(loadServers, 10000); return () => clearInterval(i); } }, [user, loadServers]);
+
+      useEffect(() => {
+        const handler = (data) => {
+          setServers(svrs => svrs.map(s => s.id === data.serverId ? { ...s, status: data.status } : s));
+        };
+        socket.on('serverStatus', handler);
+        return () => socket.off('serverStatus', handler);
+      }, []);
+
+      const selectServer = (id) => { setSelectedServer(id); setPage('server'); setServerTab('overview'); };
+
+      const handleStart = async () => { if (!selectedServer) return; await API.post(`/api/servers/${selectedServer}/start`); window.addToast('Starting server...', 'info'); };
+      const handleStop = async () => { if (!selectedServer) return; await API.post(`/api/servers/${selectedServer}/stop`); window.addToast('Stopping server...', 'info'); };
+      const handleRestart = async () => { if (!selectedServer) return; await API.post(`/api/servers/${selectedServer}/restart`); window.addToast('Restarting server...', 'info'); };
+
+      const currentServerStatus = useMemo(() => servers.find(s => s.id === selectedServer)?.status || 'stopped', [servers, selectedServer]);
+
+      if (!user) return <><LoginScreen onLogin={setUser} /><ToastContainer /></>;
+
+      const navItems = page === 'server' ? [
+        { id: 'overview', icon: '📊', label: 'Overview' },
+        { id: 'metrics', icon: '📈', label: 'Metrics' },
+        { id: 'console', icon: '🖥️', label: 'Console' },
+        { id: 'players', icon: '👥', label: 'Players' },
+        { id: 'mods', icon: '📦', label: 'Mods' },
+        { id: 'files', icon: '📁', label: 'Files' },
+        { id: 'config', icon: '⚙️', label: 'Configuration' },
+        { id: 'logs', icon: '📋', label: 'Logs' },
+        { id: 'bans', icon: '🛡️', label: 'Bans' },
+        { id: 'scheduler', icon: '📅', label: 'Scheduler' },
+        { id: 'settings', icon: '🔧', label: 'Settings' },
+      ] : [];
+
+      const pageTitle = page === 'hub' ? 'Server Hub' : page === 'users' ? 'Users & Roles' : page === 'webhooks' ? 'Webhooks' : page === 'deploy' ? 'Deploy Server' : servers.find(s => s.id === selectedServer)?.name || 'Server';
+
+      return (
+        <div className="app">
+          <div className="sidebar">
+            <div className="sidebar-header">
+              <div className="sidebar-logo">
+                <div className="logo-icon">DZ</div>
+                <div><div className="logo-text">DayZ Panel</div><div className="logo-sub">Server Management</div></div>
+              </div>
+              {page === 'server' && servers.length > 0 && (
+                <div className="server-selector">
+                  <select value={selectedServer || ''} onChange={e => selectServer(e.target.value)}>
+                    {servers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.status})</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="sidebar-nav">
+              <div className="nav-section">General</div>
+              <div className={`nav-item ${page === 'hub' ? 'active' : ''}`} onClick={() => { setPage('hub'); setSelectedServer(null); }}>
+                <span className="nav-icon">🏠</span>Server Hub
+                {servers.filter(s => s.status === 'running').length > 0 && <span className="nav-badge">{servers.filter(s => s.status === 'running').length}</span>}
+              </div>
+              <div className={`nav-item ${page === 'deploy' ? 'active' : ''}`} onClick={() => setPage('deploy')}>
+                <span className="nav-icon">🚀</span>Deploy Server
+              </div>
+              <div className={`nav-item ${page === 'users' ? 'active' : ''}`} onClick={() => setPage('users')}>
+                <span className="nav-icon">👤</span>Users
+              </div>
+              <div className={`nav-item ${page === 'webhooks' ? 'active' : ''}`} onClick={() => setPage('webhooks')}>
+                <span className="nav-icon">🔗</span>Webhooks
+              </div>
+
+              {page === 'server' && (
+                <>
+                  <div className="nav-section" style={{ marginTop: 12 }}>{servers.find(s => s.id === selectedServer)?.name || 'Server'}</div>
+                  {navItems.map(item => (
+                    <div key={item.id} className={`nav-item ${serverTab === item.id ? 'active' : ''}`} onClick={() => setServerTab(item.id)}>
+                      <span className="nav-icon">{item.icon}</span>{item.label}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+
+            <div className="sidebar-footer">
+              <div className="avatar">{user.username?.[0]?.toUpperCase()}</div>
+              <div className="user-info"><div className="user-name">{user.username}</div><div className="user-role">{user.role}</div></div>
+              <button className="logout-btn" onClick={() => { API.token = ''; localStorage.clear(); setUser(null); }} title="Sign out">⏻</button>
+            </div>
+          </div>
+
+          <div className="main">
+            <div className="main-header">
+              <div>
+                <div className="main-title">{pageTitle}</div>
+                {page === 'server' && <div className="main-subtitle">
+                  <span className={`status-badge status-${currentServerStatus}`} style={{ marginRight: 8 }}><span className="status-dot" />{currentServerStatus}</span>
+                  {serverTab}
+                </div>}
+              </div>
+              {page === 'server' && (
+                <div className="btn-group">
+                  <button className="btn btn-primary btn-sm" onClick={handleStart} disabled={currentServerStatus === 'running' || currentServerStatus === 'starting'}>▶ Start</button>
+                  <button className="btn btn-danger btn-sm" onClick={handleStop} disabled={currentServerStatus === 'stopped'}>⏹ Stop</button>
+                  <button className="btn btn-secondary btn-sm" onClick={handleRestart}>🔄 Restart</button>
+                </div>
+              )}
+              {page === 'hub' && (
+                <button className="btn btn-blue btn-sm" onClick={() => loadServers()}>🔄 Refresh</button>
+              )}
+            </div>
+
+            <div className="main-content">
+              {page === 'hub' && <ServerHubPage servers={servers} onSelect={selectServer} />}
+              {page === 'deploy' && <DeployPage onDeployed={loadServers} />}
+              {page === 'users' && <UsersPage />}
+              {page === 'webhooks' && <WebhooksPage />}
+              {page === 'server' && selectedServer && (
+                <>
+                  {serverTab === 'overview' && <ServerOverviewPage serverId={selectedServer} />}
+                  {serverTab === 'metrics' && <ServerOverviewPage serverId={selectedServer} />}
+                  {serverTab === 'console' && <ConsolePage serverId={selectedServer} />}
+                  {serverTab === 'players' && <PlayersPage serverId={selectedServer} />}
+                  {serverTab === 'mods' && <ModsPage serverId={selectedServer} />}
+                  {serverTab === 'files' && <FilesPage serverId={selectedServer} />}
+                  {serverTab === 'config' && <ConfigPage serverId={selectedServer} />}
+                  {serverTab === 'logs' && <LogsPage serverId={selectedServer} />}
+                  {serverTab === 'bans' && <BansPage serverId={selectedServer} />}
+                  {serverTab === 'scheduler' && <SchedulerPage serverId={selectedServer} />}
+                  {serverTab === 'settings' && <ServerSettingsPage serverId={selectedServer} />}
+                </>
+              )}
+            </div>
+          </div>
+          <ToastContainer />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
