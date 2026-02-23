@@ -15,7 +15,13 @@
     "map": "chernarusplus",
     "gameTitle": "DayZ, PC",
     "profileDir": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DayZServer\\config",
-    "createdAt": "2026-02-23T05:08:12.696Z"
+    "createdAt": "2026-02-23T05:08:12.696Z",
+    "autoStart": false,
+    "priorityLevel": "Normal",
+    "healthMonitoring": true,
+    "healthMinFPS": 10,
+    "healthMaxRAM": 85,
+    "healthAction": "log"
   },
   {
     "id": "4b0460fe-25f3-4500-93ee-10ce9d99ce26",

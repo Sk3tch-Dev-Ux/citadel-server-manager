@@ -286,6 +286,74 @@
     .mod-id { font-size: 11px; font-family: var(--font-mono); color: var(--accent-blue); text-decoration: none; }
     .mod-id:hover { text-decoration: underline; }
 
+    /* Notification Bell & Panel */
+    .notif-bell { position: relative; cursor: pointer; padding: 6px 8px; border-radius: var(--radius); transition: background 0.15s; border: none; background: none; color: var(--text-secondary); font-size: 18px; }
+    .notif-bell:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+    .notif-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; background: var(--accent-red); color: #fff; font-size: 9px; font-weight: 700; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+    .notif-panel { position: absolute; top: calc(100% + 8px); right: 0; width: 380px; max-height: 480px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 12px 40px rgba(0,0,0,0.4); z-index: 100; display: flex; flex-direction: column; }
+    .notif-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .notif-panel-title { font-size: 14px; font-weight: 700; }
+    .notif-panel-actions { display: flex; gap: 8px; }
+    .notif-panel-btn { background: none; border: none; color: var(--accent-blue); font-size: 11px; cursor: pointer; font-family: var(--font-display); font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+    .notif-panel-btn:hover { background: rgba(108,180,240,0.1); }
+    .notif-panel-btn.danger { color: var(--accent-red); }
+    .notif-panel-btn.danger:hover { background: rgba(224,108,117,0.1); }
+    .notif-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+    .notif-item { display: flex; gap: 12px; padding: 12px 16px; cursor: pointer; transition: background 0.12s; border-left: 3px solid transparent; }
+    .notif-item:hover { background: rgba(255,255,255,0.03); }
+    .notif-item.unread { background: rgba(108,180,240,0.04); border-left-color: var(--accent-blue); }
+    .notif-item.severity-error { border-left-color: var(--accent-red); }
+    .notif-item.severity-warning { border-left-color: var(--accent-yellow); }
+    .notif-item.severity-success { border-left-color: var(--accent-green); }
+    .notif-item-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .notif-item-body { flex: 1; min-width: 0; }
+    .notif-item-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .notif-item-msg { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .notif-item-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+    .notif-empty { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+    .notif-empty-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+    .notif-overlay { position: fixed; inset: 0; z-index: 99; }
+
+    /* Accordion / Settings sections */
+    .accordion { margin-bottom: 10px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+    .accordion-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: var(--bg-card); cursor: pointer; user-select: none; transition: background 0.15s; }
+    .accordion-header:hover { background: var(--bg-elevated); }
+    .accordion-header h3 { font-size: 14px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .accordion-chevron { font-size: 12px; color: var(--text-muted); transition: transform 0.2s ease; }
+    .accordion-chevron.open { transform: rotate(180deg); }
+    .accordion-body { padding: 18px; background: var(--bg-surface); border-top: 1px solid var(--border); }
+    .accordion.danger { border-color: rgba(224,108,117,0.35); }
+    .accordion.danger .accordion-header h3 { color: var(--accent-red); }
+
+    /* Settings-specific */
+    .settings-save-bar { position: sticky; top: 0; z-index: 5; padding: 12px 0; margin-bottom: 16px; }
+    .settings-save-btn { width: 100%; padding: 12px; font-size: 14px; font-weight: 700; background: var(--accent-blue); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; transition: opacity 0.15s; }
+    .settings-save-btn:hover { opacity: 0.85; }
+    .settings-save-btn:disabled { opacity: 0.5; cursor: default; }
+    .settings-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-label { min-width: 160px; font-size: 13px; font-weight: 500; color: var(--text-secondary); flex-shrink: 0; }
+    .settings-row-value { flex: 1; }
+    .settings-row .input { width: 100%; }
+    .settings-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Chip / Tag input */
+    .chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); }
+    .chip-remove { cursor: pointer; color: var(--accent-red); font-size: 14px; line-height: 1; }
+    .chip-remove:hover { opacity: 0.7; }
+    .chip-add { display: flex; gap: 6px; }
+    .chip-add input { flex: 1; }
+    .chip-add button { flex-shrink: 0; }
+
+    /* Toggle switch (settings variant) */
+    .switch-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; }
+    .switch-row-label { font-size: 13px; font-weight: 500; }
+    .switch-status { display: flex; align-items: center; gap: 8px; }
+    .switch-status-text { font-size: 12px; font-weight: 600; }
+    .switch-status-text.active { color: var(--accent-blue); }
+    .switch-status-text.inactive { color: var(--text-muted); }
+
     /* Permission chips */
     .perm-chip { display: inline-flex; padding: 3px 8px; margin: 2px; border-radius: 4px; font-size: 11px; font-family: var(--font-mono); background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); }
     .perm-chip.active { background: rgba(108,180,240,0.1); border-color: rgba(108,180,240,0.3); color: var(--accent-blue); cursor: pointer; }
@@ -1840,39 +1908,328 @@
     }
 
     // ─── SERVER SETTINGS ─────────────────────────────────
+    // ─── Accordion helper ─────────────────────────────
+    // ─── Notification Center ─────────────────────────
+    function NotificationCenter() {
+      const [open, setOpen] = useState(false);
+      const [items, setItems] = useState([]);
+
+      useEffect(() => {
+        API.get('/api/notifications').then(function(data) { if (Array.isArray(data)) setItems(data); });
+      }, []);
+
+      useEffect(() => {
+        var handler = function(n) { setItems(function(prev) { return [n].concat(prev).slice(0, 200); }); };
+        socket.on('notification', handler);
+        return function() { socket.off('notification', handler); };
+      }, []);
+
+      var unreadCount = items.filter(function(n) { return !n.read; }).length;
+
+      var markAllRead = function() {
+        API.patch('/api/notifications/read', {}).then(function() {
+          setItems(function(prev) { return prev.map(function(n) { return Object.assign({}, n, { read: true }); }); });
+        });
+      };
+
+      var clearAll = function() {
+        API.del('/api/notifications').then(function() { setItems([]); });
+      };
+
+      var markOneRead = function(id) {
+        API.patch('/api/notifications/read', { ids: [id] }).then(function() {
+          setItems(function(prev) { return prev.map(function(n) { return n.id === id ? Object.assign({}, n, { read: true }) : n; }); });
+        });
+      };
+
+      return (
+        <div style={{ position: 'relative' }}>
+          <button className="notif-bell" onClick={function() { setOpen(!open); }} title="Notifications">
+            🔔
+            {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          </button>
+          {open && <div className="notif-overlay" onClick={function() { setOpen(false); }} />}
+          {open && (
+            <div className="notif-panel">
+              <div className="notif-panel-header">
+                <span className="notif-panel-title">Notifications {unreadCount > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>({unreadCount} unread)</span>}</span>
+                <div className="notif-panel-actions">
+                  <button className="notif-panel-btn" onClick={markAllRead}>Mark all read</button>
+                  <button className="notif-panel-btn danger" onClick={clearAll}>Clear</button>
+                </div>
+              </div>
+              <div className="notif-list">
+                {items.length === 0 ? (
+                  <div className="notif-empty">
+                    <div className="notif-empty-icon">🔔</div>
+                    <div>No notifications yet</div>
+                  </div>
+                ) : items.map(function(n) {
+                  return (
+                    <div key={n.id} className={'notif-item' + (!n.read ? ' unread' : '') + (n.severity ? ' severity-' + n.severity : '')} onClick={function() { if (!n.read) markOneRead(n.id); }}>
+                      <div className="notif-item-icon">{n.icon || '🔔'}</div>
+                      <div className="notif-item-body">
+                        <div className="notif-item-title">{n.title}</div>
+                        <div className="notif-item-msg">{n.message}</div>
+                        <div className="notif-item-time">{timeAgo(n.timestamp)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function Accordion({ title, icon, defaultOpen, danger, children }) {
+      const [open, setOpen] = useState(defaultOpen || false);
+      return (
+        <div className={'accordion' + (danger ? ' danger' : '')}>
+          <div className="accordion-header" onClick={function() { setOpen(!open); }}>
+            <h3>{icon && <span>{icon}</span>}{title}</h3>
+            <span className={'accordion-chevron' + (open ? ' open' : '')}>&#9660;</span>
+          </div>
+          {open && <div className="accordion-body">{children}</div>}
+        </div>
+      );
+    }
+
+    // ─── Toggle Switch for settings ──────────────────────
+    function SettingsToggle({ label, checked, onChange }) {
+      return (
+        <div className="switch-row">
+          <span className="switch-row-label">{label}</span>
+          <div className="switch-status">
+            <div className={'toggle' + (checked ? ' on' : '')} onClick={function() { onChange(!checked); }}><div className="toggle-knob" /></div>
+            <span className={'switch-status-text' + (checked ? ' active' : ' inactive')}>{checked ? 'Active' : 'Inactive'}</span>
+          </div>
+        </div>
+      );
+    }
+
     function ServerSettingsPage({ serverId }) {
       const [srv, setSrv] = useState(null);
       const [saving, setSaving] = useState(false);
+      const [newParam, setNewParam] = useState('');
+
       useEffect(() => {
-        API.get('/api/servers').then(servers => {
-          const s = servers.find(x => x.id === serverId);
-          if (s) setSrv(s);
+        API.get('/api/servers').then(function(servers) {
+          var s = servers.find(function(x) { return x.id === serverId; });
+          if (s) {
+            // Ensure launchParamsList exists
+            if (!s.launchParamsList && s.launchParams) {
+              s.launchParamsList = s.launchParams.split(' ').filter(Boolean);
+            } else if (!s.launchParamsList) {
+              s.launchParamsList = [];
+            }
+            setSrv(s);
+          }
         });
       }, [serverId]);
+
       if (!srv) return null;
-      const update = (key, val) => setSrv(s => ({ ...s, [key]: val }));
-      const save = async () => {
+
+      var update = function(key, val) { setSrv(function(s) { return Object.assign({}, s, { [key]: val }); }); };
+
+      var addParam = function() {
+        if (!newParam.trim()) return;
+        var list = (srv.launchParamsList || []).concat([newParam.trim()]);
+        update('launchParamsList', list);
+        update('launchParams', list.join(' '));
+        setNewParam('');
+      };
+
+      var removeParam = function(idx) {
+        var list = (srv.launchParamsList || []).filter(function(_, i) { return i !== idx; });
+        update('launchParamsList', list);
+        update('launchParams', list.join(' '));
+      };
+
+      var save = async function() {
         setSaving(true);
-        await API.patch(`/api/servers/${serverId}`, srv);
-        window.addToast('Settings saved', 'success');
+        try {
+          await API.patch('/api/servers/' + serverId, srv);
+          window.addToast('Settings saved', 'success');
+        } catch(e) {
+          window.addToast('Save failed: ' + e.message, 'error');
+        }
         setSaving(false);
       };
+
       return (
-        <div style={{ maxWidth: 600 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-            <div className="card-title">Server Settings</div>
-            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving...' : '💾 Save'}</button>
+        <div style={{ maxWidth: 760 }}>
+          {/* Sticky Save Bar */}
+          <div className="settings-save-bar">
+            <button className="settings-save-btn" onClick={save} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
           </div>
-          <div className="input-group"><label className="input-label">Server Name</label><input className="input" value={srv.name || ''} onChange={e => update('name', e.target.value)} /></div>
-          <div className="input-group"><label className="input-label">Install Directory</label><input className="input" value={srv.installDir || ''} onChange={e => update('installDir', e.target.value)} /></div>
-          <div className="input-group"><label className="input-label">Executable</label><input className="input" value={srv.executable || ''} onChange={e => update('executable', e.target.value)} /></div>
-          <div className="input-group"><label className="input-label">Start Batch File (optional)</label><input className="input" value={srv.startBat || ''} onChange={e => update('startBat', e.target.value)} /></div>
-          <div className="input-group"><label className="input-label">Launch Parameters</label><input className="input" value={srv.launchParams || ''} onChange={e => update('launchParams', e.target.value)} /></div>
-          <div className="grid grid-2">
-            <div className="input-group"><label className="input-label">Game Port</label><input className="input" type="number" value={srv.gamePort || 2302} onChange={e => update('gamePort', parseInt(e.target.value))} /></div>
-            <div className="input-group"><label className="input-label">RCON Port</label><input className="input" type="number" value={srv.rconPort || 2305} onChange={e => update('rconPort', parseInt(e.target.value))} /></div>
-          </div>
-          <div className="input-group"><label className="input-label">RCON Password</label><input className="input" type="password" value={srv.rconPassword || ''} onChange={e => update('rconPassword', e.target.value)} /></div>
+
+          {/* Process */}
+          <Accordion title="Process" icon="" defaultOpen={true}>
+            <div style={{ marginBottom: 14 }}>
+              <div className="settings-row-label" style={{ marginBottom: 8 }}>Launch Params</div>
+              <div className="chip-list">
+                {(srv.launchParamsList || []).map(function(p, i) {
+                  return (
+                    <div className="chip" key={i}>
+                      {p}
+                      <span className="chip-remove" onClick={function() { removeParam(i); }} title="Remove">&#10005;</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="chip-add">
+                <input className="input" placeholder="Add new launch parameter..." value={newParam}
+                  onChange={function(e) { setNewParam(e.target.value); }}
+                  onKeyDown={function(e) { if (e.key === 'Enter') addParam(); }} />
+                <button className="btn btn-primary btn-sm" onClick={addParam}>Add</button>
+              </div>
+            </div>
+            <SettingsToggle label="Auto-Start Server" checked={!!srv.autoStart} onChange={function(v) { update('autoStart', v); }} />
+            <div className="settings-row">
+              <span className="settings-row-label">Game Port</span>
+              <div className="settings-row-value"><input className="input" type="number" value={srv.gamePort || 2302} onChange={function(e) { update('gamePort', parseInt(e.target.value) || 2302); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Query Port</span>
+              <div className="settings-row-value"><input className="input" type="number" value={srv.queryPort || 2303} onChange={function(e) { update('queryPort', parseInt(e.target.value) || 2303); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">RCon Port</span>
+              <div className="settings-row-value"><input className="input" type="number" value={srv.rconPort || 2305} onChange={function(e) { update('rconPort', parseInt(e.target.value) || 2305); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Network Interface</span>
+              <div className="settings-row-value"><input className="input" value={srv.networkInterface || '0.0.0.0'} onChange={function(e) { update('networkInterface', e.target.value); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">RCon Password</span>
+              <div className="settings-row-value">
+                <input className="input" value={srv.rconPassword || ''} onChange={function(e) { update('rconPassword', e.target.value); }} />
+                <div className="settings-hint">{(srv.rconPassword || '').length}/255 characters &nbsp;&nbsp; battleye_rcon RCon</div>
+              </div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">CPU Affinity Mask</span>
+              <div className="settings-row-value">
+                <input className="input" type="number" value={srv.cpuAffinity || 0} onChange={function(e) { update('cpuAffinity', parseInt(e.target.value) || 0); }} />
+                <div className="settings-hint">{srv.cpuAffinity ? 'Custom Affinity Mask Configured (' + srv.cpuAffinity + ')' : 'Default (all cores)'}</div>
+              </div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Priority Level</span>
+              <div className="settings-row-value">
+                <select className="input" value={srv.priorityLevel || 'Normal'} onChange={function(e) { update('priorityLevel', e.target.value); }}>
+                  <option value="Idle">Idle</option>
+                  <option value="BelowNormal">Below Normal</option>
+                  <option value="Normal">Normal</option>
+                  <option value="AboveNormal">Above Normal</option>
+                  <option value="High">High</option>
+                  <option value="RealTime">Real Time</option>
+                </select>
+              </div>
+            </div>
+          </Accordion>
+
+          {/* Environment */}
+          <Accordion title="Environment" icon="">
+            <div className="settings-row">
+              <span className="settings-row-label">Server Name</span>
+              <div className="settings-row-value"><input className="input" value={srv.name || ''} onChange={function(e) { update('name', e.target.value); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Install Directory</span>
+              <div className="settings-row-value"><input className="input" value={srv.installDir || ''} onChange={function(e) { update('installDir', e.target.value); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Profile Directory</span>
+              <div className="settings-row-value"><input className="input" value={srv.profileDir || ''} onChange={function(e) { update('profileDir', e.target.value); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Executable</span>
+              <div className="settings-row-value"><input className="input" value={srv.executable || ''} onChange={function(e) { update('executable', e.target.value); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Start Batch File</span>
+              <div className="settings-row-value">
+                <input className="input" value={srv.startBat || ''} onChange={function(e) { update('startBat', e.target.value); }} placeholder="Optional .bat file" />
+              </div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Server IP</span>
+              <div className="settings-row-value"><input className="input" value={srv.ip || '127.0.0.1'} onChange={function(e) { update('ip', e.target.value); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Map</span>
+              <div className="settings-row-value"><input className="input" value={srv.map || 'chernarusplus'} onChange={function(e) { update('map', e.target.value); }} /></div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-row-label">Game Title</span>
+              <div className="settings-row-value"><input className="input" value={srv.gameTitle || 'DayZ, PC'} onChange={function(e) { update('gameTitle', e.target.value); }} /></div>
+            </div>
+          </Accordion>
+
+          {/* Server Operations */}
+          <Accordion title="Server Operations" icon="">
+            <SettingsToggle label="Process Integrity Checks" checked={!!srv.processIntegrityChecks} onChange={function(v) { update('processIntegrityChecks', v); }} />
+            <SettingsToggle label="Integrity Check Mods" checked={!!srv.integrityCheckMods} onChange={function(v) { update('integrityCheckMods', v); }} />
+            <div className="settings-row">
+              <span className="settings-row-label">Grace period for process start (seconds)</span>
+              <div className="settings-row-value">
+                <input className="input" type="number" value={srv.startGracePeriod || 30} onChange={function(e) { update('startGracePeriod', parseInt(e.target.value) || 30); }} />
+              </div>
+            </div>
+            <SettingsToggle label="Server Health Monitoring" checked={!!srv.healthMonitoring} onChange={function(v) { update('healthMonitoring', v); }} />
+            {srv.healthMonitoring && (
+              <div style={{ padding: '8px 0 0 0' }}>
+                <div className="settings-row">
+                  <span className="settings-row-label">Min FPS Threshold</span>
+                  <div className="settings-row-value"><input className="input" type="number" value={srv.healthMinFPS || 5} onChange={function(e) { update('healthMinFPS', parseInt(e.target.value) || 5); }} /></div>
+                </div>
+                <div className="settings-row">
+                  <span className="settings-row-label">Max RAM % Threshold</span>
+                  <div className="settings-row-value"><input className="input" type="number" value={srv.healthMaxRAM || 90} onChange={function(e) { update('healthMaxRAM', parseInt(e.target.value) || 90); }} /></div>
+                </div>
+                <div className="settings-row">
+                  <span className="settings-row-label">Action on Threshold</span>
+                  <div className="settings-row-value">
+                    <select className="input" value={srv.healthAction || 'log'} onChange={function(e) { update('healthAction', e.target.value); }}>
+                      <option value="log">Log Warning Only</option>
+                      <option value="restart">Auto-Restart Server</option>
+                      <option value="webhook">Send Webhook Alert</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Accordion>
+
+          {/* Update Behaviour */}
+          <Accordion title="Update Behaviour" icon="">
+            <SettingsToggle label="Shutdown for mod updates" checked={srv.shutdownForModUpdates !== false} onChange={function(v) { update('shutdownForModUpdates', v); }} />
+            <SettingsToggle label="Shutdown for title updates" checked={srv.shutdownForTitleUpdates !== false} onChange={function(v) { update('shutdownForTitleUpdates', v); }} />
+            <SettingsToggle label="Ignore server-side mod updates" checked={!!srv.ignoreServerModUpdates} onChange={function(v) { update('ignoreServerModUpdates', v); }} />
+          </Accordion>
+
+          {/* Dangerzone */}
+          <Accordion title="Dangerzone" icon="" danger={true}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+              These operations can permanently affect your server. Proceed with caution.
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn btn-danger btn-sm" onClick={function() {
+                if (window.confirm('Are you sure you want to delete this server from the panel? This does not delete server files.')) {
+                  API.del('/api/servers/' + serverId).then(function() {
+                    window.addToast('Server removed from panel', 'success');
+                    window.location.reload();
+                  });
+                }
+              }}>Delete Server</button>
+            </div>
+          </Accordion>
         </div>
       );
     }
@@ -1989,16 +2346,19 @@
                   {serverTab}
                 </div>}
               </div>
-              {page === 'server' && (
-                <div className="btn-group">
-                  <button className="btn btn-primary btn-sm" onClick={handleStart} disabled={currentServerStatus === 'running' || currentServerStatus === 'starting'}>▶ Start</button>
-                  <button className="btn btn-danger btn-sm" onClick={handleStop} disabled={currentServerStatus === 'stopped'}>⏹ Stop</button>
-                  <button className="btn btn-secondary btn-sm" onClick={handleRestart}>🔄 Restart</button>
-                </div>
-              )}
-              {page === 'hub' && (
-                <button className="btn btn-blue btn-sm" onClick={() => loadServers()}>🔄 Refresh</button>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <NotificationCenter />
+                {page === 'server' && (
+                  <div className="btn-group">
+                    <button className="btn btn-primary btn-sm" onClick={handleStart} disabled={currentServerStatus === 'running' || currentServerStatus === 'starting'}>▶ Start</button>
+                    <button className="btn btn-danger btn-sm" onClick={handleStop} disabled={currentServerStatus === 'stopped'}>⏹ Stop</button>
+                    <button className="btn btn-secondary btn-sm" onClick={handleRestart}>🔄 Restart</button>
+                  </div>
+                )}
+                {page === 'hub' && (
+                  <button className="btn btn-blue btn-sm" onClick={() => loadServers()}>🔄 Refresh</button>
+                )}
+              </div>
             </div>
 
             <div className="main-content">
