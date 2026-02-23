@@ -1682,8 +1682,27 @@
 
       useEffect(() => { API.get('/api/webhooks').then(setWebhooks); }, []);
 
-      const events = ['server.started', 'server.stopped', 'server.crashed', 'server.restarted'];
-      const eventColor = (e) => { if (e.includes('started')) return 'started'; if (e.includes('stopped')) return 'stopped'; if (e.includes('crashed')) return 'crashed'; return 'restarted'; };
+      // Expanded event types
+      const events = [
+        'server.started', 'server.stopped', 'server.crashed', 'server.restarted',
+        'server.health', 'player.kick', 'player.ban', 'mod.installed', 'mod.removed'
+      ];
+      const eventIcons = {
+        'server.started': '🟢', 'server.stopped': '🔴', 'server.crashed': '💥', 'server.restarted': '🔄',
+        'server.health': '⚠️', 'player.kick': '🦶', 'player.ban': '🔨', 'mod.installed': '📦', 'mod.removed': '🗑️'
+      };
+      const eventColor = (e) => {
+        if (e === 'server.started') return 'started';
+        if (e === 'server.stopped') return 'stopped';
+        if (e === 'server.crashed') return 'crashed';
+        if (e === 'server.restarted') return 'restarted';
+        if (e === 'server.health') return 'health';
+        if (e === 'player.kick') return 'kick';
+        if (e === 'player.ban') return 'ban';
+        if (e === 'mod.installed') return 'mod';
+        if (e === 'mod.removed') return 'mod';
+        return '';
+      };
 
       const addWebhook = async () => {
         if (!newWh.url) return;
@@ -1730,22 +1749,25 @@
                 <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Webhook</button>
               </div>
               {webhooks.length === 0 ? <div className="empty-state"><div className="empty-icon">🔗</div><div className="empty-title">No Webhooks</div><p>Add webhooks to receive notifications for server events.</p></div> : (
-                <div className="table-wrap"><table>
-                  <thead><tr><th>Event</th><th>URL</th><th>Retry</th><th>Enabled</th><th>Actions</th></tr></thead>
-                  <tbody>{webhooks.map(wh => (
-                    <tr key={wh.id}>
-                      <td><span className={`webhook-event-badge ${eventColor(wh.event)}`}>{wh.event}</span></td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={wh.url}>{wh.isDiscord ? '🟣 Discord' : wh.url}</td>
-                      <td>{wh.retryEnabled ? '✅' : '❌'}</td>
-                      <td><div className={`toggle ${wh.enabled ? 'on' : ''}`} onClick={() => toggleWebhook(wh.id, wh.enabled)}><div className="toggle-knob" /></div></td>
-                      <td><div className="btn-group">
+                <div className="webhook-list">
+                  {webhooks.map(wh => (
+                    <div key={wh.id} className="webhook-card">
+                      <div className="webhook-card-header">
+                        <span className={`webhook-event-badge ${eventColor(wh.event)}`}>{eventIcons[wh.event] || '🔗'} {wh.event}</span>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={wh.url}>{wh.isDiscord ? '🟣 Discord' : wh.url}</div>
+                      </div>
+                      <div className="webhook-card-body">
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 12 }}>{wh.retryEnabled ? 'Retry: On' : 'Retry: Off'}</span>
+                        <span className={`toggle ${wh.enabled ? 'on' : ''}`} onClick={() => toggleWebhook(wh.id, wh.enabled)}><div className="toggle-knob" /></span>
+                      </div>
+                      <div className="webhook-card-actions">
                         <button className="btn btn-sm btn-secondary" onClick={() => testWebhook(wh.id)}>Test</button>
                         <button className="btn btn-sm btn-secondary" onClick={() => viewDeliveries(wh)}>History</button>
                         <button className="btn btn-sm btn-danger" onClick={() => deleteWebhook(wh.id)}>Delete</button>
-                      </div></td>
-                    </tr>
-                  ))}</tbody>
-                </table></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
 
               {showAdd && (
@@ -1754,7 +1776,7 @@
                     <div className="modal-title">Add Webhook</div>
                     <div className="input-group"><label className="input-label">Event</label>
                       <select className="input" value={newWh.event} onChange={e => setNewWh({ ...newWh, event: e.target.value })}>
-                        {events.map(ev => <option key={ev} value={ev}>{ev}</option>)}
+                        {events.map(ev => <option key={ev} value={ev}>{eventIcons[ev] || '🔗'} {ev}</option>)}
                       </select>
                     </div>
                     <div className="input-group"><label className="input-label">Webhook URL</label><input className="input" value={newWh.url} onChange={e => setNewWh({ ...newWh, url: e.target.value })} placeholder="https://discord.com/api/webhooks/..." /></div>
