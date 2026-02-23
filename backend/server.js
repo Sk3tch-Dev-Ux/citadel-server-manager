@@ -1,3 +1,75 @@
+// ─── Steam Update Polling ──────────────────────────────
+const fetch = require('node-fetch');
+function getWorkshopModVersion(workshopId) {
+  // Steam Web API: https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/
+  return fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `itemcount=1&publishedfileids[0]=${workshopId}`
+  })
+    .then(res => res.json())
+    .then(data => {
+      const file = data?.response?.publishedfiledetails?.[0];
+      return file ? file.time_updated : null;
+    })
+    .catch(() => null);
+}
+
+function getDayZBuildVersion() {
+  // Steam Web API: https://api.steampowered.com/ISteamApps/GetAppBuilds/v1/
+  const appId = CONFIG.steam.appId;
+  return fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}`)
+    .then(res => res.json())
+    .then(data => {
+      const build = data?.[appId]?.data?.build_number;
+      return build || null;
+    })
+    .catch(() => null);
+}
+
+let lastModVersions = {};
+let lastGameBuild = null;
+
+function steamUpdatePolling() {
+  setInterval(async () => {
+    for (const srv of servers) {
+      const state = serverStates[srv.id];
+      if (!state) continue;
+      // Mod update polling
+      if (!srv.ignoreModUpdates && Array.isArray(state.modList)) {
+        for (const mod of state.modList) {
+          if (!mod.workshopId) continue;
+          const remoteVersion = await getWorkshopModVersion(mod.workshopId);
+          if (remoteVersion && lastModVersions[mod.workshopId] && remoteVersion > lastModVersions[mod.workshopId]) {
+            // Mod update detected
+            addNotification(srv.id, 'mod.update', 'Mod Update Detected', `Workshop mod ${mod.name} updated. Restarting in ${srv.restartCountdown || 60} seconds.`, 'warning');
+            io.emit('modUpdate', { serverId: srv.id, mod: mod.name, countdown: srv.restartCountdown || 60 });
+            setTimeout(() => {
+              io.emit('serverStatus', { serverId: srv.id, status: 'restarting' });
+              // Call restart endpoint or logic
+              // ...existing restart logic...
+            }, (srv.restartCountdown || 60) * 1000);
+          }
+          lastModVersions[mod.workshopId] = remoteVersion;
+        }
+      }
+      // Game build update polling
+      const remoteBuild = await getDayZBuildVersion();
+      if (remoteBuild && lastGameBuild && remoteBuild !== lastGameBuild) {
+        addNotification(srv.id, 'game.update', 'Game Update Detected', `DayZ game build updated. Restarting in ${srv.restartCountdown || 60} seconds.`, 'warning');
+        io.emit('gameUpdate', { serverId: srv.id, build: remoteBuild, countdown: srv.restartCountdown || 60 });
+        setTimeout(() => {
+          io.emit('serverStatus', { serverId: srv.id, status: 'restarting' });
+          // Call restart endpoint or logic
+          // ...existing restart logic...
+        }, (srv.restartCountdown || 60) * 1000);
+      }
+      lastGameBuild = remoteBuild;
+    }
+  }, 15 * 60 * 1000); // 15 minutes
+}
+
+steamUpdatePolling();
 /**
  * DayZ Server Panel - Backend API v2.0
  * 
