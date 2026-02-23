@@ -1,0 +1,17 @@
+{
+  "name": "dayz-panel-discord-bot",
+  "version": "1.0.0",
+  "description": "DayZ Server Panel - Discord Bot with Button Controls",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
