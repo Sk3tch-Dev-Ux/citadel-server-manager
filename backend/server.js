@@ -1926,6 +1926,103 @@ app.post('/api/discord/action', async (req, res) => {
       } catch (err) { return res.json({ error: err.message }); }
       return res.json({ message: 'Restarting...' });
     case 'players': return res.json({ players: state?.players || [] });
+
+    // ── RCON / Server Commands ──
+    case 'lock':
+      if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+      try { await state.rcon.lock(); return res.json({ message: 'Server locked' }); }
+      catch (err) { return res.json({ error: err.message }); }
+    case 'unlock':
+      if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+      try { await state.rcon.unlock(); return res.json({ message: 'Server unlocked' }); }
+      catch (err) { return res.json({ error: err.message }); }
+    case 'rcon':
+      if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+      try { const result = await state.rcon.send(params?.command || ''); return res.json({ result }); }
+      catch (err) { return res.json({ error: err.message }); }
+    case 'message':
+      if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+      try { await state.rcon.say(params?.message || ''); return res.json({ message: 'Sent' }); }
+      catch (err) { return res.json({ error: err.message }); }
+    case 'kick':
+      if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+      try {
+        await state.rcon.kick(params?.playerId, params?.reason || 'Kicked via Discord');
+        state.players = state.players.filter(p => p.id !== params?.playerId);
+        io.emit('players', { serverId: defaultSrv.id, players: state.players });
+        return res.json({ message: 'Kicked' });
+      } catch (err) { return res.json({ error: err.message }); }
+
+    // ── Mods ──
+    case 'mods':
+      return res.json({ mods: state?.modList || [] });
+    case 'modStatus':
+      return res.json(activeInstalls);
+    case 'modInstall': {
+      const { workshopId, name } = params || {};
+      if (!workshopId || !name) return res.json({ error: 'workshopId and name required' });
+      if (activeInstalls[workshopId]?.status === 'downloading') return res.json({ error: 'Already downloading' });
+      activeInstalls[workshopId] = { status: 'starting', progress: 0, name };
+      res.json({ message: 'Download started', workshopId });
+      downloadWorkshopMod(String(workshopId), name, defaultSrv.id)
+        .then(contentPath => {
+          activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
+          const folderName = installModToServer(contentPath, name, String(workshopId), defaultSrv.installDir);
+          state.modList.push({ name: folderName, workshopId: String(workshopId), enabled: true, order: state.modList.length });
+          updateStartBatMods(defaultSrv.id);
+          activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
+          io.emit('modInstallProgress', { serverId: defaultSrv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
+        })
+        .catch(err => {
+          activeInstalls[workshopId] = { status: 'error', progress: 0, name, error: err.message };
+          setTimeout(() => delete activeInstalls[workshopId], 60000);
+        });
+      return;
+    }
+    case 'modUninstall': {
+      const { workshopId: unWid } = params || {};
+      if (!unWid) return res.json({ error: 'workshopId required' });
+      const mod = state?.modList?.find(m => m.workshopId === String(unWid));
+      if (!mod) return res.json({ error: 'Mod not found' });
+      const modPath = path.join(defaultSrv.installDir, mod.name);
+      try { if (fs.existsSync(modPath)) fs.rmSync(modPath, { recursive: true, force: true }); } catch {}
+      state.modList = state.modList.filter(m => m.workshopId !== String(unWid));
+      updateStartBatMods(defaultSrv.id);
+      return res.json({ message: `Mod ${unWid} uninstalled` });
+    }
+    case 'modEnable': {
+      const mod = state?.modList?.find(m => m.workshopId === String(params?.workshopId));
+      if (!mod) return res.json({ error: 'Mod not found' });
+      mod.enabled = true;
+      updateStartBatMods(defaultSrv.id);
+      return res.json({ message: `Mod ${params?.workshopId} enabled` });
+    }
+    case 'modDisable': {
+      const mod = state?.modList?.find(m => m.workshopId === String(params?.workshopId));
+      if (!mod) return res.json({ error: 'Mod not found' });
+      mod.enabled = false;
+      updateStartBatMods(defaultSrv.id);
+      return res.json({ message: `Mod ${params?.workshopId} disabled` });
+    }
+
+    // ── Info Feeds ──
+    case 'chatFeed':
+      return res.json({ messages: state?.chatMessages || [] });
+    case 'banWhitelist':
+      return res.json({ entries: (state?.banList || []).map(b => ({ player: b.name || b.id, status: 'Banned', reason: b.reason || '' })) });
+
+    // ── Stubs (not yet implemented in backend) ──
+    case 'killfeed':
+      return res.json({ kills: [] });
+    case 'watchList':
+      return res.json({ players: [] });
+    case 'priorityQueue':
+      return res.json({ entries: [] });
+    case 'timeWeather':
+      return res.json({ info: null });
+    case 'leaderboard':
+      return res.json({ entries: [] });
+
     default: return res.status(400).json({ error: `Unknown action: ${action}` });
   }
 });
