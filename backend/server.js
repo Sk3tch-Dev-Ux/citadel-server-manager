@@ -722,20 +722,43 @@ async function enrichWorkshopResults(items) {
 
 async function scrapeWorkshopSearch(query, page) {
   const fetch = (await import('node-fetch')).default;
-  const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&searchtext=${encodeURIComponent(query)}&browsesort=textsearch&section=readytouseitems&p=${page}`;
-  const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120.0.0.0' }, timeout: 15000 });
+  const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&searchtext=${encodeURIComponent(query)}&browsesort=textsearch&section=readytouseitems&actualsort=textsearch&p=${page}`;
+  const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, timeout: 15000 });
   const html = await response.text();
   const results = [];
-  const regex = /SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
   let match;
-  while ((match = regex.exec(html)) !== null) {
+  // Pattern 1: data-publishedfileid attribute (modern Steam Workshop HTML)
+  const p1 = /data-publishedfileid="(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+  while ((match = p1.exec(html)) !== null) {
     if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
   }
+  // Pattern 2: SharedFileBindMouseHover
   if (results.length === 0) {
-    const fallback = /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
-    while ((match = fallback.exec(html)) !== null) {
+    const p2 = /SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+    while ((match = p2.exec(html)) !== null) {
       if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
     }
+  }
+  // Pattern 3: workshopItem block with filedetails link
+  if (results.length === 0) {
+    const p3 = /workshopItem[^>]*>[\s\S]*?filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+    while ((match = p3.exec(html)) !== null) {
+      if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
+    }
+  }
+  // Pattern 4: simple filedetails link + title
+  if (results.length === 0) {
+    const p4 = /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
+    while ((match = p4.exec(html)) !== null) {
+      if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
+    }
+  }
+  // Pattern 5: just extract any filedetails IDs and enrich them
+  if (results.length === 0) {
+    const idSet = new Set();
+    const p5 = /filedetails\/\?id=(\d+)/g;
+    while ((match = p5.exec(html)) !== null) idSet.add(match[1]);
+    for (const id of idSet) results.push({ workshopId: id, name: '', description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
   }
   return enrichWorkshopResults(results);
 }
@@ -1382,10 +1405,11 @@ app.get('/api/workshop/search', auth(), async (req, res) => {
   if (!q || q.trim().length < 2) return res.status(400).json({ error: 'Query too short' });
   try {
     const fetch = (await import('node-fetch')).default;
-    const url = `https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?query_type=1&page=${page}&numperpage=20&appid=${DAYZ_APP_ID}&search_text=${encodeURIComponent(q.trim())}&return_short_description=true&return_previews=true&strip_description_bbcode=true&filetype=0` + (process.env.STEAM_API_KEY ? `&key=${process.env.STEAM_API_KEY}` : '');
+    const url = `https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?query_type=1&page=${page}&numperpage=20&appid=${DAYZ_APP_ID}&search_text=${encodeURIComponent(q.trim())}&return_short_description=true&return_metadata=true&return_previews=true&strip_description_bbcode=true&filetype=0&match_all_tags=false` + (process.env.STEAM_API_KEY ? `&key=${process.env.STEAM_API_KEY}` : '');
     const response = await fetch(url, { timeout: 10000 });
     const data = await response.json();
-    if (data.response?.publishedfiledetails) {
+    // With API key: publishedfiledetails is populated directly
+    if (data.response?.publishedfiledetails && data.response.publishedfiledetails.length > 0) {
       const results = data.response.publishedfiledetails.map(item => ({
         workshopId: item.publishedfileid, name: item.title || 'Unknown',
         description: (item.short_description || '').substring(0, 200),
@@ -1396,9 +1420,17 @@ app.get('/api/workshop/search', auth(), async (req, res) => {
       }));
       return res.json({ results, total: data.response.total || results.length, page: parseInt(page) });
     }
+    // Without API key: only publishedfileids returned, enrich via GetPublishedFileDetails
+    if (data.response?.publishedfileids && data.response.publishedfileids.length > 0) {
+      const ids = data.response.publishedfileids.map(f => f.publishedfileid || f);
+      const stubItems = ids.map(id => ({ workshopId: String(id), name: '', description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] }));
+      const enriched = await enrichWorkshopResults(stubItems);
+      return res.json({ results: enriched, total: data.response.total || enriched.length, page: parseInt(page) });
+    }
+    // Fallback to scraping
     const results = await scrapeWorkshopSearch(q, page);
     res.json({ results, total: results.length, page: parseInt(page) });
-  } catch {
+  } catch (err) {
     try { const results = await scrapeWorkshopSearch(q, page); res.json({ results, total: results.length, page: parseInt(page) }); }
     catch { res.status(500).json({ error: 'Workshop search failed' }); }
   }
@@ -1428,17 +1460,27 @@ app.get('/api/workshop/popular', auth(), async (req, res) => {
     const fetch = (await import('node-fetch')).default;
     const { page = 1 } = req.query;
     const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&browsesort=trend&section=readytouseitems&p=${page}`;
-    const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 Chrome/120.0.0.0' }, timeout: 15000 });
+    const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, timeout: 15000 });
     const html = await response.text();
     const results = [];
-    const regex = /SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
     let match;
-    while ((match = regex.exec(html)) !== null) {
-      if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
+    // Try multiple regex patterns for Steam Workshop HTML
+    const patterns = [
+      /data-publishedfileid="(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g,
+      /SharedFileBindMouseHover[^"]*"(\d+)"[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g,
+      /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g,
+    ];
+    for (const p of patterns) {
+      if (results.length > 0) break;
+      while ((match = p.exec(html)) !== null) {
+        if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
+      }
     }
     if (results.length === 0) {
-      const fb = /filedetails\/\?id=(\d+)[\s\S]*?workshopItemTitle[^"]*">([^<]+)/g;
-      while ((match = fb.exec(html)) !== null) { if (!results.find(r => r.workshopId === match[1])) results.push({ workshopId: match[1], name: match[2].trim(), description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] }); }
+      const idSet = new Set();
+      const fp = /filedetails\/\?id=(\d+)/g;
+      while ((match = fp.exec(html)) !== null) idSet.add(match[1]);
+      for (const id of idSet) results.push({ workshopId: id, name: '', description: '', preview: '', subscribers: 0, favorites: 0, fileSize: 0, updated: '', tags: [] });
     }
     res.json({ results: await enrichWorkshopResults(results), total: results.length, page: parseInt(page) });
   } catch { res.status(500).json({ error: 'Failed to fetch popular mods' }); }
