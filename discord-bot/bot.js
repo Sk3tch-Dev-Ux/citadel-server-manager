@@ -133,6 +133,12 @@ function buildControlPanel() {
     new ButtonBuilder().setCustomId('panel_kick_menu').setLabel('👢 Kick Player').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('panel_rcon').setLabel('🖥️ RCON').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('panel_refresh').setLabel('🔃 Refresh').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_mod_list').setLabel('📦 Mods').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('panel_mod_status').setLabel('⏳ Mod Status').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_mod_install').setLabel('➕ Install Mod').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('panel_mod_uninstall').setLabel('🗑️ Uninstall Mod').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId('panel_mod_enable').setLabel('✅ Enable Mod').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('panel_mod_disable').setLabel('🚫 Disable Mod').setStyle(ButtonStyle.Secondary),
   );
 
   return [row1, row2, row3];
@@ -284,150 +290,95 @@ client.on('interactionCreate', async (interaction) => {
       if (!isAdmin(interaction)) {
         return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
       }
-      const command = interaction.options.getString('command');
-      const result = await panelAction('rcon', { command });
-      const embed = new EmbedBuilder()
-        .setTitle('🖥️ RCON Command')
-        .setColor(0x5865f2)
-        .addFields(
-          { name: 'Command', value: `\`${command}\`` },
-          { name: 'Response', value: `\`\`\`${result.result || result.error || 'No response'}\`\`\`` }
-        )
-        .setTimestamp();
-      await interaction.reply({ embeds: [embed], ephemeral: true });
-    }
-
-    else if (commandName === 'broadcast') {
-      const message = interaction.options.getString('message');
-      await panelAction('message', { message });
-      const embed = new EmbedBuilder()
-        .setTitle('📢 Message Broadcast')
-        .setColor(0x00ff6a)
-        .setDescription(`Message sent to all players:\n\`\`\`${message}\`\`\``)
-        .setFooter({ text: `Sent by ${interaction.user.tag}` })
-        .setTimestamp();
-      await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (commandName === 'restart') {
-      if (!isAdmin(interaction)) {
-        return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+      // Panel buttons
+      if (customId === 'panel_status' || customId === 'panel_refresh') {
+        const data = await panelAction('status');
+        const embed = buildStatusEmbed(data);
+        embed.setDescription(
+          '**Server Control Panel**\nUse the buttons below to manage your DayZ server.'
+        );
+        await interaction.update({ embeds: [embed], components: buildControlPanel() });
       }
-      const countdown = interaction.options.getInteger('countdown');
-      if (countdown) {
+      else if (customId === 'panel_mod_list') {
+        const mods = await panelAction('mods');
         const embed = new EmbedBuilder()
-          .setTitle('🔄 Server Restart Scheduled')
-          .setColor(0xffaa00)
-          .setDescription(`Server will restart in **${countdown} seconds**.\nPlayers have been notified.`)
+          .setTitle('📦 Installed Mods')
+          .setColor(0x5865f2)
+          .setDescription(mods.length ? mods.map(m => `• **${m.name}** (${m.workshopId}) ${m.enabled ? '✅ Enabled' : '❌ Disabled'}`).join('\n') : '*No mods installed*')
+          .setFooter({ text: `${mods.length} mod(s) installed` })
           .setTimestamp();
-        await panelAction('restart', { countdown });
-        await interaction.reply({ embeds: [embed] });
-      } else {
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+      else if (customId === 'panel_mod_status') {
+        const status = await panelAction('modStatus');
         const embed = new EmbedBuilder()
-          .setTitle('🔄 Restart Server?')
-          .setColor(0xffaa00)
-          .setDescription('Choose a restart option:');
-        await interaction.reply({ embeds: [embed], components: [buildRestartOptions()], ephemeral: true });
+          .setTitle('⏳ Mod Install Status')
+          .setColor(0x5865f2)
+          .setDescription(Object.keys(status).length ? Object.entries(status).map(([id, s]) => `• **${s.name}** (${id}): ${s.status} (${s.progress}%)`).join('\n') : '*No active installs*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
       }
-    }
-  }
-
-  // ── Button Interactions ──
-  else if (interaction.isButton()) {
-    const { customId } = interaction;
-
-    // Panel buttons
-    if (customId === 'panel_status' || customId === 'panel_refresh') {
-      const data = await panelAction('status');
-      const embed = buildStatusEmbed(data);
-      embed.setDescription(
-        '**Server Control Panel**\nUse the buttons below to manage your DayZ server.'
-      );
-      await interaction.update({ embeds: [embed], components: buildControlPanel() });
-    }
-
-    else if (customId === 'panel_start') {
-      if (!isAdmin(interaction)) {
-        return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+      else if (customId === 'panel_mod_install') {
+        if (!isAdmin(interaction)) return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+        const modal = new ModalBuilder()
+          .setCustomId('modal_mod_install')
+          .setTitle('➕ Install Mod');
+        const inputId = new TextInputBuilder()
+          .setCustomId('mod_workshopid')
+          .setLabel('Workshop ID')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+        const inputName = new TextInputBuilder()
+          .setCustomId('mod_name')
+          .setLabel('Mod Name')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(inputId),
+          new ActionRowBuilder().addComponents(inputName)
+        );
+        await interaction.showModal(modal);
       }
-      const embed = new EmbedBuilder()
-        .setTitle('▶️ Start Server?')
-        .setColor(0x00ff6a)
-        .setDescription('Are you sure you want to start the server?');
-      await interaction.reply({ embeds: [embed], components: [buildConfirmRow('start')], ephemeral: true });
-    }
-
-    else if (customId === 'panel_stop') {
-      if (!isAdmin(interaction)) {
-        return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+      else if (customId === 'panel_mod_uninstall') {
+        if (!isAdmin(interaction)) return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+        const modal = new ModalBuilder()
+          .setCustomId('modal_mod_uninstall')
+          .setTitle('🗑️ Uninstall Mod');
+        const inputId = new TextInputBuilder()
+          .setCustomId('mod_workshopid')
+          .setLabel('Workshop ID')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(inputId));
+        await interaction.showModal(modal);
       }
-      const embed = new EmbedBuilder()
-        .setTitle('⏹️ Stop Server?')
-        .setColor(0xff3333)
-        .setDescription('⚠️ This will disconnect all players. Are you sure?');
-      await interaction.reply({ embeds: [embed], components: [buildConfirmRow('stop')], ephemeral: true });
-    }
-
-    else if (customId === 'panel_restart') {
-      if (!isAdmin(interaction)) {
-        return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+      else if (customId === 'panel_mod_enable') {
+        if (!isAdmin(interaction)) return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+        const modal = new ModalBuilder()
+          .setCustomId('modal_mod_enable')
+          .setTitle('✅ Enable Mod');
+        const inputId = new TextInputBuilder()
+          .setCustomId('mod_workshopid')
+          .setLabel('Workshop ID')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(inputId));
+        await interaction.showModal(modal);
       }
-      const embed = new EmbedBuilder()
-        .setTitle('🔄 Restart Server')
-        .setColor(0xffaa00)
-        .setDescription('Choose a restart option:');
-      await interaction.reply({ embeds: [embed], components: [buildRestartOptions()], ephemeral: true });
-    }
-
-    else if (customId === 'panel_players') {
-      const data = await panelAction('players');
-      const embed = buildPlayerListEmbed(data.players || []);
-      await interaction.reply({ embeds: [embed], ephemeral: true });
-    }
-
-    else if (customId === 'panel_lock') {
-      if (!isAdmin(interaction)) {
-        return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+      else if (customId === 'panel_mod_disable') {
+        if (!isAdmin(interaction)) return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+        const modal = new ModalBuilder()
+          .setCustomId('modal_mod_disable')
+          .setTitle('🚫 Disable Mod');
+        const inputId = new TextInputBuilder()
+          .setCustomId('mod_workshopid')
+          .setLabel('Workshop ID')
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(inputId));
+        await interaction.showModal(modal);
       }
-      await panelAction('lock');
-      const embed = new EmbedBuilder()
-        .setTitle('🔒 Server Locked')
-        .setColor(0xffaa00)
-        .setDescription('No new players can join.')
-        .setTimestamp();
-      await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (customId === 'panel_unlock') {
-      if (!isAdmin(interaction)) {
-        return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
-      }
-      await panelAction('unlock');
-      const embed = new EmbedBuilder()
-        .setTitle('🔓 Server Unlocked')
-        .setColor(0x00ff6a)
-        .setDescription('Players can now join.')
-        .setTimestamp();
-      await interaction.reply({ embeds: [embed] });
-    }
-
-    else if (customId === 'panel_message') {
-      const modal = new ModalBuilder()
-        .setCustomId('modal_broadcast')
-        .setTitle('📢 Broadcast Message');
-      const input = new TextInputBuilder()
-        .setCustomId('broadcast_text')
-        .setLabel('Message to all players')
-        .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Type your announcement here...')
-        .setRequired(true);
-      modal.addComponents(new ActionRowBuilder().addComponents(input));
-      await interaction.showModal(modal);
-    }
-
-    else if (customId === 'panel_kick_menu') {
-      if (!isAdmin(interaction)) {
-        return interaction.reply({ content: '❌ Admin role required.', ephemeral: true });
+      // ...existing code...
       }
       const data = await panelAction('players');
       const players = data.players || [];
