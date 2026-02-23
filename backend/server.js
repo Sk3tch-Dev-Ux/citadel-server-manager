@@ -94,10 +94,11 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
-const { spawn, exec } = require('child_process');
+const { spawn } = require('child_process');
 const { v4: uuid } = require('uuid');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
+const rateLimit = require('express-rate-limit');
 const app = express();
 let server, io;
 let useHttps = false;
@@ -113,12 +114,16 @@ try {
 } catch {
   server = http.createServer(app);
 }
-io = new SocketIO(server, { cors: { origin: '*' } });
+// Parse allowed origins from env (comma-separated) or default to localhost
+const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+  : [`http://localhost:${process.env.PORT || 3001}`, 'http://localhost:3001', 'http://127.0.0.1:3001'];
+io = new SocketIO(server, { cors: { origin: ALLOWED_ORIGINS, credentials: true } });
 
 // ─── Config ──────────────────────────────────────────────
 const CONFIG = {
   port: process.env.PORT || 3001,
-  jwtSecret: process.env.JWT_SECRET || 'change-me-in-production',
+  jwtSecret: process.env.JWT_SECRET || (() => { console.error('FATAL: JWT_SECRET environment variable is required. Set it in .env'); process.exit(1); })(),
   dataDir: path.join(__dirname, '..', 'data'),
   dayz: {
     ip: process.env.DAYZ_SERVER_IP || '127.0.0.1',
@@ -144,7 +149,7 @@ const CONFIG = {
 if (!fs.existsSync(CONFIG.dataDir)) fs.mkdirSync(CONFIG.dataDir, { recursive: true });
 
 // ─── Middleware ───────────────────────────────────────────
-app.use(cors());
+app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 // Secure cookies middleware
 app.use((req, res, next) => {
@@ -156,6 +161,30 @@ app.use((req, res, next) => {
   };
   next();
 });
+// Rate limiting - general API limiter
+app.use('/api/', rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 120, // 120 requests per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+}));
+// Strict rate limit on auth endpoints to prevent brute-force
+app.use('/api/auth/', rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // 15 login attempts per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts, please try again later' },
+}));
+// Strict rate limit on discord bot endpoint
+app.use('/api/discord/', rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 60, // 60 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Rate limit exceeded' },
+}));
 app.use(express.static(path.join(__dirname, '../web')));
 
 // ─── Persistent JSON Data Store ──────────────────────────
@@ -201,7 +230,7 @@ let steamLoginValidated = false;
 
 // ─── Helpers ─────────────────────────────────────────────
 function addLog(serverId, level, source, message) {
-  const entry = { timestamp: new Date().toISOString(), level, source, message };
+  const entry = { timestamp: new Date().toISOString(), level, source: sanitizeString(source), message: sanitizeString(message) };
   if (serverId && serverStates[serverId]) {
     serverStates[serverId].logs.unshift(entry);
     if (serverStates[serverId].logs.length > 5000) serverStates[serverId].logs.pop();
@@ -241,7 +270,7 @@ const NOTIFICATION_ICONS = {
 function addNotification(serverId, type, title, message, severity) {
   severity = severity || 'info'; // info, success, warning, error
   const n = {
-    id: uuid(), serverId, type, title, message, severity,
+    id: uuid(), serverId, type, title: sanitizeString(title), message: sanitizeString(message), severity,
     icon: NOTIFICATION_ICONS[type] || '🔔',
     timestamp: new Date().toISOString(), read: false,
   };
@@ -380,8 +409,13 @@ function writeServerConfig(installDir, updates) {
 // ─── Process Tracking (Windows) ──────────────────────────
 function detectRunningProcess(executable) {
   return new Promise((resolve) => {
-    exec(`tasklist /FI "IMAGENAME eq ${executable}" /FO CSV /NH`, (err, stdout) => {
-      if (err || !stdout) return resolve(null);
+    // Use spawn with argument array to prevent command injection
+    const proc = spawn('tasklist', ['/FI', `IMAGENAME eq ${executable}`, '/FO', 'CSV', '/NH'], { windowsHide: true });
+    let stdout = '';
+    proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    proc.on('error', () => resolve(null));
+    proc.on('close', () => {
+      if (!stdout) return resolve(null);
       const lines = stdout.trim().split('\n').filter(l => l.includes(executable));
       if (lines.length > 0) {
         const match = lines[0].match(/"[^"]+","(\d+)"/);
@@ -395,10 +429,17 @@ function detectRunningProcess(executable) {
 function getProcessMetrics(pid, executable) {
   return new Promise((resolve) => {
     if (!pid) return resolve(null);
-    // Use PowerShell to get CPU and memory for the process (wmic is deprecated/removed on modern Windows)
-    const psCmd = `powershell -NoProfile -Command "try { $p = Get-Process -Id ${pid} -ErrorAction Stop; $cpuCores = (Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum; if (-not $cpuCores) { $cpuCores = [Environment]::ProcessorCount }; $totalMem = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory; $ws = $p.WorkingSet64; $cpu = 0; try { $sample1 = $p.TotalProcessorTime.TotalMilliseconds; Start-Sleep -Milliseconds 500; $p.Refresh(); $sample2 = $p.TotalProcessorTime.TotalMilliseconds; $cpu = [math]::Round(($sample2 - $sample1) / 500 * 100 / $cpuCores, 1) } catch { $cpu = 0 }; $ramPct = [math]::Round($ws / $totalMem * 100, 1); Write-Output \\"CPU=$cpu,RAM=$ramPct,RAMMB=$([math]::Round($ws/1MB))\\" } catch { Write-Output 'ERROR' }"`;
-    exec(psCmd, { timeout: 8000 }, (err, stdout) => {
-      if (err || !stdout || stdout.trim() === 'ERROR') return resolve(null);
+    // Validate PID is a number to prevent injection
+    const safePid = parseInt(pid, 10);
+    if (isNaN(safePid) || safePid <= 0) return resolve(null);
+    // Use spawn with argument array to prevent command injection
+    const psScript = `try { $p = Get-Process -Id ${safePid} -ErrorAction Stop; $cpuCores = (Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum; if (-not $cpuCores) { $cpuCores = [Environment]::ProcessorCount }; $totalMem = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory; $ws = $p.WorkingSet64; $cpu = 0; try { $sample1 = $p.TotalProcessorTime.TotalMilliseconds; Start-Sleep -Milliseconds 500; $p.Refresh(); $sample2 = $p.TotalProcessorTime.TotalMilliseconds; $cpu = [math]::Round(($sample2 - $sample1) / 500 * 100 / $cpuCores, 1) } catch { $cpu = 0 }; $ramPct = [math]::Round($ws / $totalMem * 100, 1); Write-Output "CPU=$cpu,RAM=$ramPct,RAMMB=$([math]::Round($ws/1MB))" } catch { Write-Output 'ERROR' }`;
+    const proc = spawn('powershell', ['-NoProfile', '-Command', psScript], { windowsHide: true, timeout: 8000 });
+    let stdout = '';
+    proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    proc.on('error', () => resolve(null));
+    proc.on('close', () => {
+      if (!stdout || stdout.trim() === 'ERROR') return resolve(null);
       const output = stdout.trim();
       const cpuMatch = output.match(/CPU=([\d.]+)/);
       const ramMatch = output.match(/RAM=([\d.]+)/);
@@ -505,11 +546,20 @@ function updateLeaderboard(serverId) {
 
 function killProcess(pid, executable) {
   return new Promise((resolve, reject) => {
+    let args;
     if (pid) {
-      exec(`taskkill /F /PID ${pid}`, (err) => err ? reject(err) : resolve());
+      // Validate PID is a number to prevent injection
+      const safePid = parseInt(pid, 10);
+      if (isNaN(safePid) || safePid <= 0) return reject(new Error('Invalid PID'));
+      args = ['/F', '/PID', String(safePid)];
     } else {
-      exec(`taskkill /F /IM ${executable}`, (err) => err ? reject(err) : resolve());
+      // Validate executable name contains no path traversal or shell metacharacters
+      if (!executable || /[;&|`$\\/"']/.test(executable)) return reject(new Error('Invalid executable name'));
+      args = ['/F', '/IM', executable];
     }
+    const proc = spawn('taskkill', args, { windowsHide: true });
+    proc.on('error', (err) => reject(err));
+    proc.on('close', (code) => code === 0 ? resolve() : reject(new Error(`taskkill exited with code ${code}`)));
   });
 }
 
@@ -539,19 +589,19 @@ function spawnDayZServer(serverConfig) {
 
 function applyProcessSettings(pid, serverConfig) {
   if (!pid) return;
-  const priorityMap = { Idle: 64, BelowNormal: 16384, Normal: 32, AboveNormal: 32768, High: 128, RealTime: 256 };
+  const safePid = parseInt(pid, 10);
+  if (isNaN(safePid) || safePid <= 0) return;
+  const allowedPriorities = ['Idle', 'BelowNormal', 'Normal', 'AboveNormal', 'High', 'RealTime'];
   const parts = [];
-  if (serverConfig.cpuAffinity && serverConfig.cpuAffinity > 0) {
-    parts.push(`$p = Get-Process -Id ${pid} -ErrorAction Stop; $p.ProcessorAffinity = ${serverConfig.cpuAffinity}`);
+  if (serverConfig.cpuAffinity && Number.isInteger(serverConfig.cpuAffinity) && serverConfig.cpuAffinity > 0) {
+    parts.push(`$p = Get-Process -Id ${safePid} -ErrorAction Stop; $p.ProcessorAffinity = ${parseInt(serverConfig.cpuAffinity, 10)}`);
   }
-  if (serverConfig.priorityLevel && serverConfig.priorityLevel !== 'Normal') {
-    const cls = priorityMap[serverConfig.priorityLevel];
-    if (cls) parts.push(`$p = Get-Process -Id ${pid} -ErrorAction Stop; $p.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::${serverConfig.priorityLevel}`);
+  if (serverConfig.priorityLevel && serverConfig.priorityLevel !== 'Normal' && allowedPriorities.includes(serverConfig.priorityLevel)) {
+    parts.push(`$p = Get-Process -Id ${safePid} -ErrorAction Stop; $p.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::${serverConfig.priorityLevel}`);
   }
   if (parts.length > 0) {
-    exec(`powershell -NoProfile -Command "${parts.join('; ')}"`, { timeout: 5000 }, (err) => {
-      if (err) console.error(`Failed to apply process settings for PID ${pid}:`, err.message);
-    });
+    const proc = spawn('powershell', ['-NoProfile', '-Command', parts.join('; ')], { windowsHide: true, timeout: 5000 });
+    proc.on('error', (err) => console.error(`Failed to apply process settings for PID ${safePid}:`, err.message));
   }
 }
 
@@ -778,7 +828,9 @@ async function ensureSteamCMD() {
   if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
   fs.writeFileSync(zipPath, Buffer.from(await resp.arrayBuffer()));
   await new Promise((resolve, reject) => {
-    exec(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${steamCmdDir}' -Force"`, { timeout: 60000 }, (err) => err ? reject(err) : resolve());
+    const proc = spawn('powershell', ['-NoProfile', '-Command', `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${steamCmdDir.replace(/'/g, "''")}' -Force`], { windowsHide: true, timeout: 60000 });
+    proc.on('error', (err) => reject(err));
+    proc.on('close', (code) => code === 0 ? resolve() : reject(new Error(`Expand-Archive exited with code ${code}`)));
   });
   const exePath = path.join(steamCmdDir, 'steamcmd.exe');
   if (!fs.existsSync(exePath)) throw new Error('steamcmd.exe not found after extraction');
@@ -1030,16 +1082,29 @@ app.post('/api/restore/:type', auth('admin'), (req, res) => {
   const { type } = req.params;
   const { data } = req.body;
   if (!Array.isArray(data)) return res.status(400).json({ error: 'Data must be an array' });
+  // Limit restore size to prevent memory abuse
+  if (data.length > 1000) return res.status(400).json({ error: 'Restore data exceeds maximum size (1000 entries)' });
+  const allowedTypes = ['servers', 'users', 'roles', 'webhooks'];
+  if (!allowedTypes.includes(type)) return res.status(400).json({ error: 'Invalid restore type' });
+  // Validate each entry has expected shape (must be objects, not arbitrary data)
+  if (!data.every(item => item && typeof item === 'object' && !Array.isArray(item))) {
+    return res.status(400).json({ error: 'Each entry must be a valid object' });
+  }
   switch (type) {
     case 'servers': servers = data; saveServers(); break;
     case 'users': users = data; saveUsers(); break;
     case 'roles': roles = data; saveRoles(); break;
     case 'webhooks': webhooks = data; saveJSON('webhooks.json', webhooks); break;
-    default: return res.status(400).json({ error: 'Invalid restore type' });
   }
   addAudit(req.user.id, req.user.username, 'backup.restore', `Restored ${type} from backup`);
   res.json({ message: `Restored ${type}` });
 });
+// Sanitize string to prevent XSS when rendered in HTML contexts
+function sanitizeString(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 // Input validation utility
 function validateFields(obj, schema) {
   for (const key in schema) {
@@ -1514,14 +1579,30 @@ app.post('/api/leaderboard/refresh', auth(), (req, res) => {
   res.json(leaderboard);
 });
 
+// ─── Safe Path Resolution ────────────────────────────────
+function safePath(basePath, userPath) {
+  // Resolve the base to its real path (resolves symlinks)
+  const realBase = fs.realpathSync(basePath);
+  // Resolve the user-provided path relative to base
+  const resolved = path.resolve(realBase, userPath || '');
+  // Canonicalize via realpath if it exists, otherwise check the resolved path
+  let realResolved;
+  try { realResolved = fs.realpathSync(resolved); } catch { realResolved = resolved; }
+  // Ensure the resolved path is within the base directory
+  if (!realResolved.startsWith(realBase + path.sep) && realResolved !== realBase) {
+    return null; // Path traversal attempt
+  }
+  return realResolved;
+}
+
 // ─── Files (per server) ─────────────────────────────────
 app.get('/api/servers/:id/files', auth('files.browse'), (req, res) => {
   const srv = servers.find(s => s.id === req.params.id);
   if (!srv) return res.status(404).json({ error: 'Server not found' });
   const { dir } = req.query;
-  const basePath = srv.installDir;
-  const targetDir = dir ? path.resolve(basePath, dir) : basePath;
-  if (!targetDir.startsWith(basePath)) return res.status(403).json({ error: 'Access denied' });
+  const targetDir = safePath(srv.installDir, dir);
+  if (!targetDir) return res.status(403).json({ error: 'Access denied' });
+  const basePath = fs.realpathSync(srv.installDir);
   try {
     const entries = fs.readdirSync(targetDir, { withFileTypes: true });
     const results = entries.map(e => {
@@ -1539,8 +1620,9 @@ app.get('/api/servers/:id/files/read', auth('files.edit'), (req, res) => {
   const srv = servers.find(s => s.id === req.params.id);
   if (!srv) return res.status(404).json({ error: 'Server not found' });
   const { file } = req.query;
-  const filePath = path.resolve(srv.installDir, file);
-  if (!filePath.startsWith(srv.installDir)) return res.status(403).json({ error: 'Access denied' });
+  if (!file) return res.status(400).json({ error: 'File path required' });
+  const filePath = safePath(srv.installDir, file);
+  if (!filePath) return res.status(403).json({ error: 'Access denied' });
   try {
     const stat = fs.statSync(filePath);
     if (stat.size > 5 * 1024 * 1024) return res.status(400).json({ error: 'File too large' });
@@ -1554,8 +1636,9 @@ app.put('/api/servers/:id/files/write', auth('files.edit'), (req, res) => {
   const srv = servers.find(s => s.id === req.params.id);
   if (!srv) return res.status(404).json({ error: 'Server not found' });
   const { file, content } = req.body;
-  const filePath = path.resolve(srv.installDir, file);
-  if (!filePath.startsWith(srv.installDir)) return res.status(403).json({ error: 'Access denied' });
+  if (!file) return res.status(400).json({ error: 'File path required' });
+  const filePath = safePath(srv.installDir, file);
+  if (!filePath) return res.status(403).json({ error: 'Access denied' });
   try {
     const bd = path.join(srv.installDir, '.backups');
     if (!fs.existsSync(bd)) fs.mkdirSync(bd, { recursive: true });
@@ -2004,8 +2087,18 @@ app.get('/api/workshop/popular', auth(), async (req, res) => {
 // ─── Discord Bot Endpoint ────────────────────────────────
 app.post('/api/discord/action', async (req, res) => {
   const { action, apiKey, params } = req.body;
-  const expectedKey = process.env.DISCORD_BOT_API_KEY || 'bot-secret-key';
-  if (apiKey !== expectedKey) return res.status(403).json({ error: 'Invalid API key' });
+  const expectedKey = process.env.DISCORD_BOT_API_KEY;
+  if (!expectedKey) return res.status(500).json({ error: 'DISCORD_BOT_API_KEY not configured on server' });
+  if (!apiKey || typeof apiKey !== 'string') return res.status(400).json({ error: 'API key required' });
+  // Constant-time comparison to prevent timing attacks
+  if (apiKey.length !== expectedKey.length || !require('crypto').timingSafeEqual(Buffer.from(apiKey), Buffer.from(expectedKey))) {
+    return res.status(403).json({ error: 'Invalid API key' });
+  }
+  // Whitelist allowed actions to prevent abuse
+  const allowedActions = ['status','start','stop','restart','players','lock','unlock','rcon','message','kick',
+    'mods','modStatus','modInstall','modUninstall','modEnable','modDisable',
+    'chatFeed','banWhitelist','killfeed','watchList','priorityQueue','timeWeather','leaderboard'];
+  if (!action || !allowedActions.includes(action)) return res.status(400).json({ error: `Invalid action: ${sanitizeString(String(action || ''))}` });
   const defaultSrv = servers[0];
   const state = defaultSrv ? serverStates[defaultSrv.id] : null;
 
@@ -2156,20 +2249,23 @@ app.get('/api/players', auth(), (req, res) => { res.json(serverStates[servers[0]
 app.get('/api/bans', auth(), (req, res) => { res.json(serverStates[servers[0]?.id]?.banList || []); });
 app.get('/api/schedule', auth(), (req, res) => { res.json(serverStates[servers[0]?.id]?.scheduledRestarts || []); });
 app.get('/api/files', auth('files.browse'), (req, res) => {
-  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { dir } = req.query; const bp = srv.installDir;
-  const td = dir ? path.resolve(bp, dir) : bp; if (!td.startsWith(bp)) return res.status(403).json({ error: 'Access denied' });
+  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { dir } = req.query;
+  const td = safePath(srv.installDir, dir); if (!td) return res.status(403).json({ error: 'Access denied' });
+  const bp = fs.realpathSync(srv.installDir);
   try { const entries = fs.readdirSync(td, { withFileTypes: true }); const results = entries.map(e => { const fp = path.join(td, e.name); let size = 0, modified = 0; try { const s = fs.statSync(fp); size = s.size; modified = s.mtimeMs; } catch {} return { name: e.name, type: e.isDirectory() ? 'directory' : 'file', path: path.relative(bp, fp).replace(/\\/g, '/'), size, modified }; }); results.sort((a, b) => a.type !== b.type ? (a.type === 'directory' ? -1 : 1) : a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })); res.json(results); }
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 app.get('/api/files/read', auth('files.edit'), (req, res) => {
-  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { file } = req.query; const fp = path.resolve(srv.installDir, file);
-  if (!fp.startsWith(srv.installDir)) return res.status(403).json({ error: 'Access denied' });
+  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { file } = req.query;
+  if (!file) return res.status(400).json({ error: 'File path required' });
+  const fp = safePath(srv.installDir, file); if (!fp) return res.status(403).json({ error: 'Access denied' });
   try { const stat = fs.statSync(fp); if (stat.size > 5 * 1024 * 1024) return res.status(400).json({ error: 'File too large' }); const binaryExts = ['.exe','.dll','.pdb','.pbo','.pak','.bin','.so','.png','.jpg','.jpeg','.gif','.bmp','.ico','.wav','.ogg','.mp3','.zip','.rar','.7z','.bikey','.bisign']; if (binaryExts.includes(path.extname(fp).toLowerCase())) return res.status(400).json({ error: 'Binary file' }); res.json({ content: fs.readFileSync(fp, 'utf8'), path: file, size: stat.size, modified: stat.mtimeMs }); }
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 app.put('/api/files/write', auth('files.edit'), (req, res) => {
-  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { file, content } = req.body; const fp = path.resolve(srv.installDir, file);
-  if (!fp.startsWith(srv.installDir)) return res.status(403).json({ error: 'Access denied' });
+  const srv = servers[0]; if (!srv) return res.status(400).json({ error: 'No server' }); const { file, content } = req.body;
+  if (!file) return res.status(400).json({ error: 'File path required' });
+  const fp = safePath(srv.installDir, file); if (!fp) return res.status(403).json({ error: 'Access denied' });
   try { const bd = path.join(srv.installDir, '.backups'); if (!fs.existsSync(bd)) fs.mkdirSync(bd, { recursive: true }); if (fs.existsSync(fp)) fs.copyFileSync(fp, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`)); fs.writeFileSync(fp, content); res.json({ message: 'Saved' }); }
   catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -2309,5 +2405,33 @@ server.listen(CONFIG.port, () => {
   console.log(`🎮 DayZ Panel API v2.0 running on http://localhost:${CONFIG.port}`);
   console.log(`   ${servers.length} server(s) configured, ${users.length} user(s)`);
 });
+
+// ─── Graceful Shutdown ───────────────────────────────────
+function gracefulShutdown(signal) {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  // Close HTTP server (stop accepting new connections)
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
+  // Disconnect all RCON clients
+  for (const srv of servers) {
+    const state = serverStates[srv.id];
+    if (state?.rcon) {
+      try { state.rcon.disconnect(); } catch {}
+    }
+  }
+  // Close all socket connections
+  io.close(() => {
+    console.log('WebSocket server closed');
+  });
+  // Give connections 5 seconds to close, then force exit
+  setTimeout(() => {
+    console.log('Forcing shutdown after timeout');
+    process.exit(0);
+  }, 5000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = { app, io, servers, CONFIG };
