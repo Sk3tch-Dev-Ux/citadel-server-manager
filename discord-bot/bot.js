@@ -552,17 +552,6 @@ client.on('interactionCreate', async (interaction) => {
         await safeReply(interaction, { embeds: [embed], ephemeral: true });
       }
 
-      // Item spawn/teleport
-      else if (btnId === 'panel_item_spawn') {
-        const items = await panelAction('itemSpawn');
-        const embed = new EmbedBuilder()
-          .setTitle('🎁 Item Spawn / Teleport')
-          .setColor(0x00ff6a)
-          .setDescription(items && items.entries ? items.entries.map(i => `• **${i.player}**: ${i.action} ${i.item || ''} ${i.location || ''}`).join('\n') : '*No recent item spawns/teleports*')
-          .setTimestamp();
-        await safeReply(interaction, { embeds: [embed], ephemeral: true });
-      }
-
       // Leaderboard
       else if (btnId === 'panel_leaderboard') {
         const stats = await panelAction('leaderboard');
@@ -636,7 +625,11 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       else if (btnId === 'restart_60') {
-        await panelAction('restart', { countdown: 60 });
+        const result = await panelAction('restart', { countdown: 60 });
+        if (result.error) {
+          await interaction.update({ content: `❌ ${result.error}`, embeds: [], components: [] });
+          return;
+        }
         const embed = new EmbedBuilder()
           .setTitle('🔄 Restart in 60 Seconds')
           .setColor(0xffaa00)
@@ -646,7 +639,11 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       else if (btnId === 'restart_300') {
-        await panelAction('restart', { countdown: 300 });
+        const result = await panelAction('restart', { countdown: 300 });
+        if (result.error) {
+          await interaction.update({ content: `❌ ${result.error}`, embeds: [], components: [] });
+          return;
+        }
         const embed = new EmbedBuilder()
           .setTitle('🔄 Restart in 5 Minutes')
           .setColor(0xffaa00)
