@@ -1907,7 +1907,7 @@ app.post('/api/discord/action', async (req, res) => {
       return res.json({ status: state?.status || 'unknown', players: state?.players || [], playerCount: state?.players?.length || 0, maxPlayers: state?.config?.maxPlayers || 60, serverName: defaultSrv?.name || 'DayZ Server' });
     case 'start':
       if (!defaultSrv || !state) return res.status(400).json({ error: 'No server' });
-      if (state.status === 'running') return res.json({ message: 'Already running' });
+      if (state.status === 'running' || state.status === 'starting') return res.json({ message: `Server is already ${state.status}` });
       state.status = 'starting'; io.emit('serverStatus', { serverId: defaultSrv.id, status: 'starting' });
       try { state.process = spawnDayZServer(defaultSrv); state.pid = state.process.pid;
         setTimeout(async () => { const pid = await detectRunningProcess(defaultSrv.executable); if (pid) { state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString(); io.emit('serverStatus', { serverId: defaultSrv.id, status: 'running' }); } }, 8000);
