@@ -39,7 +39,7 @@ export default function NotificationCenter() {
   return (
     <div style={{ position: 'relative' }}>
       <button className="notif-bell" onClick={() => setOpen(!open)} title="Notifications">
-        \uD83D\uDD14
+        {'\uD83D\uDD14'}
         {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
       {open && <div className="notif-overlay" onClick={() => setOpen(false)} />}
@@ -57,7 +57,7 @@ export default function NotificationCenter() {
           <div className="notif-list">
             {items.length === 0 ? (
               <div className="notif-empty">
-                <div className="notif-empty-icon">\uD83D\uDD14</div>
+                <div className="notif-empty-icon">{'\uD83D\uDD14'}</div>
                 <div>No notifications yet</div>
               </div>
             ) : items.map(n => (
