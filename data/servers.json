@@ -1,0 +1,39 @@
+[
+  {
+    "id": "15c7a20c-78f1-45e4-b57d-31ee8e0cb860",
+    "name": "EXAMPLE NAME",
+    "installDir": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DayZServer",
+    "executable": "DayZServer_x64.exe",
+    "startBat": "start.bat",
+    "launchParams": "-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck",
+    "ip": "192.168.0.22",
+    "gamePort": 2302,
+    "queryPort": 2303,
+    "rconPort": 2305,
+    "rconPassword": "ab7f3f06",
+    "maxPlayers": 60,
+    "map": "chernarusplus",
+    "gameTitle": "DayZ, PC",
+    "profileDir": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DayZServer\\config",
+    "createdAt": "2026-02-23T05:08:12.696Z"
+  },
+  {
+    "id": "4b0460fe-25f3-4500-93ee-10ce9d99ce26",
+    "name": "Test Server 2 ",
+    "installDir": "C:\\DayZServer",
+    "executable": "DayZServer_x64.exe",
+    "startBat": "",
+    "launchParams": "-config=serverDZ.cfg -port=2402 -dologs -adminlog -netlog -freezecheck",
+    "ip": "127.0.0.1",
+    "gamePort": 2402,
+    "queryPort": 2403,
+    "rconPort": 2405,
+    "rconPassword": "Testing",
+    "maxPlayers": 60,
+    "map": "chernarusplus",
+    "gameTitle": "DayZ, PC",
+    "profileDir": "",
+    "createdAt": "2026-02-23T05:15:51.175Z",
+    "deploying": false
+  }
+]
