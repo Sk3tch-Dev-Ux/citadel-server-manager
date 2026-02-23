@@ -600,6 +600,11 @@ class RCONClient {
       const timeout = setTimeout(() => { this.pendingCommands.delete(seq); resolve('[No response]'); }, 5000);
       this.pendingCommands.set(seq, { resolve, reject: () => {}, timeout });
       this.socket.send(packet, 0, packet.length, this.port, this.ip);
+      // Log the command sent
+      const serverId = this.ip + ':' + this.port;
+      if (typeof addLog === 'function') {
+        addLog(serverId, 'info', 'rcon', `RCON command sent: ${command}`);
+      }
     });
   }
   async getPlayers() { return this.send('players'); }
@@ -1836,23 +1841,25 @@ setInterval(async () => {
 // ─── Startup ─────────────────────────────────────────────
 (async () => {
   for (const srv of servers) {
+    const state = serverStates[srv.id];
+    if (state) {
+      if (!state.logs) state.logs = [];
+      addLog(srv.id, 'info', 'server', `Server state initialized for ${srv.name}`);
+    }
     const pid = await detectRunningProcess(srv.executable);
     if (pid) {
-      const state = serverStates[srv.id];
-      if (state) {
-        state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
-        io.emit('serverStatus', { serverId: srv.id, status: 'running' });
-        // Re-apply process settings to already-running processes
-        applyProcessSettings(pid, srv);
-      }
+      state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
+      io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+      addLog(srv.id, 'info', 'server', `Detected running process for ${srv.name} (PID: ${pid})`);
+      applyProcessSettings(pid, srv);
     }
   }
   // Auto-start servers that have autoStart enabled and aren't already running
   for (const srv of servers) {
-    if (srv.autoStart && serverStates[srv.id]?.status !== 'running') {
+    const state = serverStates[srv.id];
+    if (srv.autoStart && state?.status !== 'running') {
       console.log(`[AutoStart] Starting ${srv.name}...`);
       try {
-        const state = serverStates[srv.id];
         state.status = 'starting'; io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
         state.process = spawnDayZServer(srv); state.pid = state.process.pid;
         addLog(srv.id, 'info', 'server', 'Auto-start initiated');
