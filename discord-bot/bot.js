@@ -139,6 +139,9 @@ function buildControlPanel() {
     new ButtonBuilder().setCustomId('panel_mod_uninstall').setLabel('🗑️ Uninstall Mod').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('panel_mod_enable').setLabel('✅ Enable Mod').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId('panel_mod_disable').setLabel('🚫 Disable Mod').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_chat_feed').setLabel('💬 Live Chat Feed').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('panel_watch_list').setLabel('🔔 Watch List').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_killfeed').setLabel('☠️ Delayed Killfeed').setStyle(ButtonStyle.Secondary),
   );
 
   return [row1, row2, row3];
@@ -238,6 +241,16 @@ client.once('ready', () => {
 
 // ─── Slash Command Handlers ──────────────────────────────
 client.on('interactionCreate', async (interaction) => {
+        else if (customId === 'panel_killfeed') {
+          // Delayed killfeed: fetch recent kill events from API and display
+          const feed = await panelAction('killfeed');
+          const embed = new EmbedBuilder()
+            .setTitle('☠️ Delayed Killfeed')
+            .setColor(0xff3333)
+            .setDescription(feed.kills && feed.kills.length ? feed.kills.map(k => `• **${k.victim}** killed by **${k.killer}** (${k.method || 'unknown'})`).join('\n') : '*No recent kills*')
+            .setTimestamp();
+          await interaction.reply({ embeds: [embed], ephemeral: true });
+        }
   // ── Slash Commands ──
   if (interaction.isChatInputCommand()) {
     const { commandName } = interaction;
@@ -377,6 +390,26 @@ client.on('interactionCreate', async (interaction) => {
           .setRequired(true);
         modal.addComponents(new ActionRowBuilder().addComponents(inputId));
         await interaction.showModal(modal);
+      }
+      else if (customId === 'panel_chat_feed') {
+        // Live chat feed: fetch recent chat messages from API and display
+        const chat = await panelAction('chatFeed');
+        const embed = new EmbedBuilder()
+          .setTitle('💬 Live Chat Feed')
+          .setColor(0x5865f2)
+          .setDescription(chat.messages && chat.messages.length ? chat.messages.map(m => `• **${m.player}**: ${m.text}`).join('\n') : '*No recent chat messages*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+      }
+      else if (customId === 'panel_watch_list') {
+        // Watch list notification: fetch watch list from API and display
+        const watch = await panelAction('watchList');
+        const embed = new EmbedBuilder()
+          .setTitle('🔔 Watch List Notifications')
+          .setColor(0xffaa00)
+          .setDescription(watch.players && watch.players.length ? watch.players.map(p => `• **${p.name}** (${p.reason || 'No reason'})`).join('\n') : '*No players on watch list*')
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
       }
       // ...existing code...
       }
