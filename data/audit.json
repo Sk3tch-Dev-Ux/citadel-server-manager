@@ -1,0 +1,42 @@
+[
+  {
+    "id": "5b8212a1-2ba8-45e6-a578-e9dab44c01dc",
+    "timestamp": "2026-02-23T05:15:51.174Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying Test Server 2  to C:\\DayZServer"
+  },
+  {
+    "id": "56f6fe12-7cc5-46cf-8fe9-7eb18e0d0d98",
+    "timestamp": "2026-02-23T05:09:49.296Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: EXAMPLE NAME"
+  },
+  {
+    "id": "c9da31a2-e1b6-45fc-83ac-f501a4a03f45",
+    "timestamp": "2026-02-23T05:09:25.846Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "77b208c3-4412-4113-9903-bfa38c91e1ef",
+    "timestamp": "2026-02-23T05:08:58.093Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "4fc3d299-6c9e-4f36-a90b-1f0ff13245c6",
+    "timestamp": "2026-02-23T05:08:38.354Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  }
+]
