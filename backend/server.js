@@ -1588,6 +1588,78 @@ app.post('/api/deploy', auth('server.deploy'), async (req, res) => {
   }
 });
 
+// ─── Dangerzone: Server Rebuild (Wipe & Reinstall) ──────
+app.post('/api/servers/:id/rebuild', auth('server.rebuild'), async (req, res) => {
+  const srv = servers.find(s => s.id === req.params.id);
+  if (!srv) return res.status(404).json({ error: 'Server not found' });
+  const resolvedDir = path.resolve(srv.installDir);
+  addAudit(req.user.id, req.user.username, 'server.rebuild', `Rebuilding ${srv.name} at ${resolvedDir}`);
+  io.emit('dangerzoneProgress', { serverId: srv.id, status: 'starting', message: 'Preparing to wipe and reinstall server...' });
+  try {
+    // Stop server if running
+    const state = serverStates[srv.id];
+    if (state && state.pid) {
+      await killProcess(state.pid, srv.executable);
+      state.status = 'stopped'; state.pid = null; state.players = []; state.startedAt = null;
+      io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
+    }
+    // Wipe install directory (except .backups)
+    if (fs.existsSync(resolvedDir)) {
+      const entries = fs.readdirSync(resolvedDir);
+      for (const entry of entries) {
+        if (entry === '.backups') continue;
+        const entryPath = path.join(resolvedDir, entry);
+        fs.rmSync(entryPath, { recursive: true, force: true });
+      }
+    }
+    io.emit('dangerzoneProgress', { serverId: srv.id, status: 'wiping', message: 'Directory wiped. Reinstalling via SteamCMD...' });
+    // Reinstall via SteamCMD
+    const cmdPath = await ensureSteamCMD();
+    const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
+    const args = ['+force_install_dir', resolvedDir];
+    if (steamCredentials.username && steamCredentials.password) {
+      if (steamCredentials.guardCode) args.push('+set_steam_guard_code', steamCredentials.guardCode);
+      args.push('+login', steamCredentials.username, steamCredentials.password);
+    } else { args.push('+login', 'anonymous'); }
+    args.push('+app_update', appId, 'validate', '+quit');
+    await new Promise((resolve, reject) => {
+      const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
+      proc.stdout?.on('data', (data) => {
+        for (const line of data.toString().split('\n')) {
+          const trimmed = line.trim();
+          if (trimmed.match(/(\d+\.?\d*)\s*%/)) {
+            const pct = parseFloat(trimmed.match(/(\d+\.?\d*)\s*%/)[1]);
+            io.emit('dangerzoneProgress', { serverId: srv.id, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
+          } else if (trimmed.includes('Update state')) {
+            io.emit('dangerzoneProgress', { serverId: srv.id, status: 'downloading', message: trimmed });
+          }
+        }
+      });
+      proc.stderr?.on('data', () => {});
+      const timeout = setTimeout(() => { try { proc.kill(); } catch {} reject(new Error('Rebuild timed out')); }, 60 * 60 * 1000);
+      proc.on('exit', (code) => {
+        clearTimeout(timeout);
+        if (code === 0 || fs.existsSync(path.join(resolvedDir, 'DayZServer_x64.exe'))) resolve();
+        else reject(new Error(`SteamCMD exit code: ${code}`));
+      });
+      proc.on('error', (err) => { clearTimeout(timeout); reject(err); });
+    });
+    // Create default config
+    const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
+    if (!fs.existsSync(cfgPath)) {
+      fs.writeFileSync(cfgPath, `hostname = "${srv.name}";\npassword = "";\npasswordAdmin = "";\nmaxPlayers = ${srv.maxPlayers || 60};\nverifySignatures = 2;\nforceSameBuild = 1;\ndisableThirdPerson = 0;\nserverTime = "SystemTime";\nserverTimeAcceleration = 1;\nserverTimePersistent = 0;\nguaranteedUpdates = 1;\nloginQueueConcurrentPlayers = 5;\nloginQueueMaxPlayers = 500;\ninstanceId = 1;\nstorageAutoFix = 1;\nrespawnTime = 5;\ntimeStampFormat = "Short";\ntemplate = "${srv.map || 'chernarusplus'}";\n`);
+    }
+    io.emit('dangerzoneProgress', { serverId: srv.id, status: 'complete', message: 'Rebuild complete!' });
+    addNotification(srv.id, 'server.rebuild', 'Server Rebuilt', `${srv.name} wiped and reinstalled`, 'danger');
+    addAudit(req.user.id, req.user.username, 'server.rebuild', `Completed rebuild for ${srv.name}`);
+    res.json({ message: 'Rebuild complete!' });
+  } catch (err) {
+    io.emit('dangerzoneProgress', { serverId: srv.id, status: 'error', message: err.message });
+    addAudit(req.user.id, req.user.username, 'server.rebuild', `Rebuild failed for ${srv.name}: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Steam Settings ──────────────────────────────────────
 app.get('/api/steam/status', auth(), async (req, res) => {
   let steamCmdFound = false;

@@ -1940,6 +1940,53 @@
     }
 
     // ─── SERVER SETTINGS ─────────────────────────────────
+    // ─── DANGERZONE PAGE ─────────────────────────────────
+    function DangerzonePage({ serverId }) {
+      const [showConfirm, setShowConfirm] = useState(null);
+      const [actionStatus, setActionStatus] = useState('');
+      const actions = [
+        { key: 'rebuild', label: 'Server Rebuild', desc: 'Wipe and reinstall via SteamCMD.', danger: true },
+        { key: 'restore', label: 'Server Restore', desc: 'Restore from backup archive.', danger: true },
+        { key: 'modMgmt', label: 'Mod Management', desc: 'Bulk mod operations (verify, clean, rebuild).', danger: false },
+        { key: 'export', label: 'Export Server', desc: 'Package server config + mods into portable archive.', danger: false },
+        { key: 'clearLogs', label: 'Clear Log Storage', desc: 'Purge RPT/ADM/log files with size display.', danger: true }
+      ];
+      const handleAction = async (key) => {
+        setActionStatus('Processing...');
+        // Placeholder: call backend API for each action
+        setTimeout(() => {
+          setActionStatus(key + ' completed!');
+          setShowConfirm(null);
+        }, 1200);
+      };
+      return (
+        <div className="fade-in">
+          <div className="card danger-card">
+            <div className="card-title" style={{ color: 'var(--accent-red)' }}>Dangerzone / Maintenance</div>
+            <div className="card-body">
+              {actions.map(a => (
+                <div key={a.key} className="danger-action-row">
+                  <div style={{ fontWeight: 600, color: a.danger ? 'var(--accent-red)' : 'var(--accent-yellow)' }}>{a.label}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>{a.desc}</div>
+                  <button className={`btn ${a.danger ? 'btn-danger' : 'btn-warning'}`} onClick={() => setShowConfirm(a.key)}>{a.label}</button>
+                  {showConfirm === a.key && (
+                    <div className="danger-confirm-overlay">
+                      <div className="danger-confirm-modal">
+                        <div style={{ fontWeight: 700, color: 'var(--accent-red)', marginBottom: 8 }}>Are you sure?</div>
+                        <div style={{ marginBottom: 12 }}>{a.desc}</div>
+                        <button className="btn btn-danger" onClick={() => handleAction(a.key)}>Confirm</button>
+                        <button className="btn btn-secondary" onClick={() => setShowConfirm(null)}>Cancel</button>
+                        {actionStatus && <div style={{ marginTop: 10, color: 'var(--accent-red)' }}>{actionStatus}</div>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
     // ─── Accordion helper ─────────────────────────────
     // ─── Notification Center ─────────────────────────
     function NotificationCenter() {
@@ -2260,6 +2307,26 @@
                   });
                 }
               }}>Delete Server</button>
+                <button className="btn btn-danger btn-sm" onClick={function() {
+                  if (window.confirm('Are you sure you want to WIPE and REINSTALL this server? This will delete all files except backups and reinstall via SteamCMD.')) {
+                    let progressMsg = 'Starting...';
+                    window.addToast('Dangerzone: Rebuild initiated', 'danger');
+                    API.post(`/api/servers/${serverId}/rebuild`).then(function(resp) {
+                      window.addToast(resp.message || 'Rebuild complete!', 'success');
+                    }).catch(function(err) {
+                      window.addToast(err?.error || err?.message || 'Rebuild failed', 'error');
+                    });
+                    // Listen for progress updates
+                    const handler = function(data) {
+                      if (data.serverId === serverId) {
+                        progressMsg = data.message || data.status;
+                        window.addToast(progressMsg, data.status === 'error' ? 'error' : 'danger');
+                      }
+                    };
+                    socket.on('dangerzoneProgress', handler);
+                    setTimeout(() => socket.off('dangerzoneProgress', handler), 60000);
+                  }
+                }}>Wipe & Reinstall Server</button>
             </div>
           </Accordion>
         </div>
