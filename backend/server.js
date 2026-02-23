@@ -928,12 +928,54 @@ async function scrapeWorkshopSearch(query, page) {
 // ════════════════════════════════════════════════════════════
 
 // ─── Auth ────────────────────────────────────────────────
+// Brute-force protection and MFA placeholder
+const loginAttempts = {};
+const MAX_ATTEMPTS = 5;
+const LOCK_TIME = 10 * 60 * 1000; // 10 minutes
+const PASSWORD_POLICY = {
+  minLength: 8,
+  requireUpper: true,
+  requireLower: true,
+  requireNumber: true,
+  requireSpecial: true,
+};
+
+function checkPasswordPolicy(password) {
+  if (typeof password !== 'string') return false;
+  if (password.length < PASSWORD_POLICY.minLength) return false;
+  if (PASSWORD_POLICY.requireUpper && !/[A-Z]/.test(password)) return false;
+  if (PASSWORD_POLICY.requireLower && !/[a-z]/.test(password)) return false;
+  if (PASSWORD_POLICY.requireNumber && !/[0-9]/.test(password)) return false;
+  if (PASSWORD_POLICY.requireSpecial && !/[^A-Za-z0-9]/.test(password)) return false;
+  return true;
+}
+
 app.post('/api/auth/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, mfa } = req.body;
   const user = users.find(u => u.username === username);
   if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+  // Brute-force lockout
+  const now = Date.now();
+  if (!loginAttempts[username]) loginAttempts[username] = { count: 0, last: 0, lockedUntil: 0 };
+  if (loginAttempts[username].lockedUntil > now) {
+    return res.status(429).json({ error: 'Too many failed attempts. Try again later.' });
+  }
   const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+  if (!valid) {
+    loginAttempts[username].count++;
+    loginAttempts[username].last = now;
+    if (loginAttempts[username].count >= MAX_ATTEMPTS) {
+      loginAttempts[username].lockedUntil = now + LOCK_TIME;
+    }
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  loginAttempts[username] = { count: 0, last: now, lockedUntil: 0 };
+  // MFA placeholder
+  if (user.mfaEnabled) {
+    // TODO: Implement MFA verification
+    if (!mfa) return res.status(401).json({ error: 'MFA code required' });
+    // if (!verifyMFA(user, mfa)) return res.status(401).json({ error: 'Invalid MFA code' });
+  }
   const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, CONFIG.jwtSecret, { expiresIn: '24h' });
   addAudit(user.id, user.username, 'login', 'User logged in');
   res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
@@ -1375,11 +1417,14 @@ app.get('/api/users', auth('users.manage'), (req, res) => {
 });
 
 app.post('/api/users', auth('users.manage'), async (req, res) => {
-  const { username, password, role, description } = req.body;
+  const { username, password, role, description, mfaEnabled } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
   if (users.find(u => u.username === username)) return res.status(400).json({ error: 'Username already exists' });
+  if (!checkPasswordPolicy(password)) {
+    return res.status(400).json({ error: 'Password does not meet policy requirements.' });
+  }
   const hash = await bcrypt.hash(password, 10);
-  const user = { id: uuid(), username, passwordHash: hash, role: role || 'viewer', description: description || '', createdAt: new Date().toISOString() };
+  const user = { id: uuid(), username, passwordHash: hash, role: role || 'viewer', description: description || '', createdAt: new Date().toISOString(), mfaEnabled: !!mfaEnabled };
   users.push(user); saveUsers();
   addAudit(req.user.id, req.user.username, 'user.create', `Created user: ${username}`);
   res.json({ id: user.id, username: user.username, role: user.role });
