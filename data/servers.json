@@ -21,10 +21,9 @@
     "healthMonitoring": true,
     "healthMinFPS": 10,
     "healthMaxRAM": 85,
-    "healthAction": "log"
-  ,
-  "restartCountdown": 60,
-  "ignoreModUpdates": false
+    "healthAction": "log",
+    "restartCountdown": 60,
+    "ignoreModUpdates": false
   },
   {
     "id": "4b0460fe-25f3-4500-93ee-10ce9d99ce26",
@@ -43,9 +42,8 @@
     "gameTitle": "DayZ, PC",
     "profileDir": "",
     "createdAt": "2026-02-23T05:15:51.175Z",
-    "deploying": false
-  ,
-  "restartCountdown": 60,
-  "ignoreModUpdates": false
+    "deploying": false,
+    "restartCountdown": 60,
+    "ignoreModUpdates": false
   }
 ]

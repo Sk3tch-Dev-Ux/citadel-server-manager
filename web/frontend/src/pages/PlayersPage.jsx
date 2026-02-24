@@ -6,9 +6,9 @@ import { Users } from '../components/Icon';
 export default function PlayersPage({ serverId }) {
   const socket = useSocket();
   const [players, setPlayers] = useState([]);
-  useEffect(() => { API.get(`/api/servers/${serverId}/players`).then(setPlayers); }, [serverId]);
+  useEffect(() => { API.get(`/api/servers/${serverId}/players`).then(d => setPlayers(Array.isArray(d) ? d : [])); }, [serverId]);
   useEffect(() => {
-    const handler = (data) => { if (data.serverId === serverId) setPlayers(data.players); };
+    const handler = (data) => { if (data.serverId === serverId) setPlayers(Array.isArray(data.players) ? data.players : []); };
     socket.on('players', handler);
     return () => socket.off('players', handler);
   }, [serverId, socket]);

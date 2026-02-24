@@ -4,7 +4,7 @@ import API from '../api';
 export default function LogsPage({ serverId }) {
   const [logs, setLogs] = useState([]);
   const [filter, setFilter] = useState('all');
-  useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(setLogs); }, [serverId]);
+  useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(d => setLogs(Array.isArray(d) ? d : [])); }, [serverId]);
   const filtered = filter === 'all' ? logs : logs.filter(l => l.level === filter);
   return (
     <div>

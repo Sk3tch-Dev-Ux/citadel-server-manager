@@ -10,7 +10,7 @@ export default function WebhooksPage() {
   const [deliveries, setDeliveries] = useState([]);
   const [newWh, setNewWh] = useState({ event: 'server.started', url: '', template: '', retryEnabled: true });
 
-  useEffect(() => { API.get('/api/webhooks').then(setWebhooks); }, []);
+  useEffect(() => { API.get('/api/webhooks').then(d => setWebhooks(Array.isArray(d) ? d : [])); }, []);
 
   const events = [
     'server.started', 'server.stopped', 'server.crashed', 'server.restarted',
@@ -56,7 +56,7 @@ export default function WebhooksPage() {
   const viewDeliveries = async (wh) => {
     setSelectedWh(wh);
     const d = await API.get(`/api/webhooks/${wh.id}/deliveries`);
-    setDeliveries(d);
+    setDeliveries(Array.isArray(d) ? d : []);
     setTab('deliveries');
   };
 

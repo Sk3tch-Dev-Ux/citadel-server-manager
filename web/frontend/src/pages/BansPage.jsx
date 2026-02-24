@@ -5,7 +5,7 @@ import { ShieldBan } from '../components/Icon';
 
 export default function BansPage({ serverId }) {
   const [bans, setBans] = useState([]);
-  useEffect(() => { API.get(`/api/servers/${serverId}/bans`).then(setBans); }, [serverId]);
+  useEffect(() => { API.get(`/api/servers/${serverId}/bans`).then(d => setBans(Array.isArray(d) ? d : [])); }, [serverId]);
   const unban = async (id) => {
     await API.del(`/api/servers/${serverId}/bans/${id}`);
     setBans(b => b.filter(x => x.id !== id));
