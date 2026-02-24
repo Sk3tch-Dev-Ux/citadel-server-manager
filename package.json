@@ -1,0 +1,15 @@
+{
+  "name": "dayz-server-controller",
+  "version": "2.0.0",
+  "private": true,
+  "description": "DayZ Server Control Panel — Multi-server management with web UI and Discord bot",
+  "scripts": {
+    "test": "cd backend && npm test",
+    "lint": "cd backend && npm run lint && cd ../web/frontend && npm run lint",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd web/frontend && npm run lint",
+    "build": "cd web/frontend && npm run build",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd web/frontend && npm run dev"
+  }
+}

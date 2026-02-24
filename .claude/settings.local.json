@@ -3,7 +3,9 @@
     "allow": [
       "Bash(node -c:*)",
       "Bash(taskkill:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(npm install:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }
