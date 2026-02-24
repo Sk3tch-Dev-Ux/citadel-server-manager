@@ -3,6 +3,7 @@ import { useSocket } from '../../contexts/SocketContext';
 import API from '../../api';
 import WorkshopItem from './WorkshopItem';
 import SteamSettingsPanel from './SteamSettingsPanel';
+import { Puzzle, Search, Flame, Settings, Package, Trash2 } from '../../components/Icon';
 
 const formatSubs = (n) => {
   if (!n) return '0';
@@ -111,17 +112,17 @@ export default function ModsPage({ serverId }) {
   return (
     <div>
       <div className="tabs">
-        <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>{'\uD83E\uDDE9'} Installed ({mods.length})</div>
-        <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}>{'\uD83D\uDD0D'} Workshop</div>
-        <div className={`tab ${tab === 'popular' ? 'active' : ''}`} onClick={() => { setTab('popular'); loadPopular(); }}>{'\uD83D\uDD25'} Popular</div>
-        <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}>{'\u2699\uFE0F'} Steam</div>
+        <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}><Puzzle size={14} /> Installed ({mods.length})</div>
+        <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}><Search size={14} /> Workshop</div>
+        <div className={`tab ${tab === 'popular' ? 'active' : ''}`} onClick={() => { setTab('popular'); loadPopular(); }}><Flame size={14} /> Popular</div>
+        <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}><Settings size={14} /> Steam</div>
       </div>
 
       {tab === 'installed' && (
         <div>
           {mods.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">{'\uD83D\uDCE6'}</div>
+              <div className="empty-icon"><Package size={48} /></div>
               <div className="empty-title">No Mods Installed</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Search the Workshop tab to find and install mods</div>
             </div>
@@ -136,7 +137,7 @@ export default function ModsPage({ serverId }) {
                     target="_blank" rel="noopener" className="mod-id" title="Open on Steam Workshop">
                     {mod.workshopId || 'local'}
                   </a>
-                  <button className="btn btn-sm btn-danger" onClick={() => uninstall(mod.workshopId)} title="Uninstall">{'\uD83D\uDDD1'}</button>
+                  <button className="btn btn-sm btn-danger" onClick={() => uninstall(mod.workshopId)} title="Uninstall"><Trash2 size={14} /></button>
                 </div>
               ))}
             </div>
@@ -147,10 +148,10 @@ export default function ModsPage({ serverId }) {
       {tab === 'workshop' && (
         <div>
           <div className="card" style={{ marginBottom: 16 }}>
-            <div className="card-title" style={{ marginBottom: 12 }}>{'\uD83D\uDD0D'} Search Steam Workshop</div>
+            <div className="card-title" style={{ marginBottom: 12 }}><Search size={16} /> Search Steam Workshop</div>
             <div style={{ display: 'flex', gap: 8 }}>
               <div className="workshop-search-box" style={{ flex: 1 }}>
-                <span className="workshop-search-icon">{'\uD83D\uDD0E'}</span>
+                <span className="workshop-search-icon"><Search size={14} /></span>
                 <input className="input" placeholder="Search DayZ mods on Steam Workshop..."
                   value={search} onChange={e => handleSearch(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && doSearch()} style={{ paddingLeft: 36 }} autoFocus />
@@ -175,7 +176,7 @@ export default function ModsPage({ serverId }) {
 
       {tab === 'popular' && (
         <div>
-          <div className="card-title" style={{ marginBottom: 12 }}>{'\uD83D\uDD25'} Popular DayZ Mods</div>
+          <div className="card-title" style={{ marginBottom: 12 }}><Flame size={16} /> Popular DayZ Mods</div>
           {loadingPopular && <div className="workshop-loading">Loading popular mods...</div>}
           {!loadingPopular && popularMods.length > 0 && (
             <div className="workshop-results">

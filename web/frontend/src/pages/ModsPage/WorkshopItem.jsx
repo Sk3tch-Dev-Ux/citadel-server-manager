@@ -1,4 +1,5 @@
 import { formatBytes } from '../../utils';
+import { Download, Package, Clock, XCircle, Check, AlertTriangle, Loader, Puzzle } from '../../components/Icon';
 
 export default function WorkshopItem({ item, isInstalled, isInstalling, installProgress, onInstall, formatSubs }) {
   if (!item || !item.workshopId) return null;
@@ -17,10 +18,10 @@ export default function WorkshopItem({ item, isInstalled, isInstalling, installP
   try { if (item.updated) updatedStr = new Date(item.updated).toLocaleDateString(); } catch(e) { /* ignore */ }
 
   const btnLabel = () => {
-    if (installed || complete) return '\u2713 Installed';
-    if (installing) return ('\u23F3 ' + (progress.progress ? Math.round(progress.progress) + '%' : '...'));
-    if (failed) return '\u26A0 Retry';
-    return '\uD83D\uDCE5 Install';
+    if (installed || complete) return <><Check size={14} /> Installed</>;
+    if (installing) return <><Loader size={14} /> {progress.progress ? Math.round(progress.progress) + '%' : '...'}</>;
+    if (failed) return <><AlertTriangle size={14} /> Retry</>;
+    return <><Download size={14} /> Install</>;
   };
 
   return (
@@ -28,15 +29,15 @@ export default function WorkshopItem({ item, isInstalled, isInstalling, installP
       {item.preview ? (
         <img className="workshop-thumb" src={item.preview} alt="" onError={(e) => { e.target.style.display = 'none'; }} />
       ) : (
-        <div className="workshop-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{'\uD83E\uDDE9'}</div>
+        <div className="workshop-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}><Puzzle size={16} /></div>
       )}
       <div className="workshop-info">
         <div className="workshop-info-name">{name}</div>
         <div className="workshop-info-meta">
           <span>{'ID: ' + wid}</span>
-          {subs > 0 && <span>{'\u2B07 ' + formatSubs(subs)}</span>}
-          {fSize > 0 && <span>{'\uD83D\uDCE6 ' + formatBytes(fSize)}</span>}
-          {updatedStr && <span>{'\uD83D\uDD50 ' + updatedStr}</span>}
+          {subs > 0 && <span><Download size={12} /> {formatSubs(subs)}</span>}
+          {fSize > 0 && <span><Package size={12} /> {formatBytes(fSize)}</span>}
+          {updatedStr && <span><Clock size={12} /> {updatedStr}</span>}
         </div>
         {desc && <div className="workshop-info-desc">{desc}</div>}
         {tags.length > 0 && (
@@ -50,7 +51,7 @@ export default function WorkshopItem({ item, isInstalled, isInstalling, installP
             </div>
           </div>
         )}
-        {failed && <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 4 }}>{'\u274C'} {progress.message}</div>}
+        {failed && <div style={{ fontSize: 11, color: 'var(--accent-red)', marginTop: 4 }}><XCircle size={12} /> {progress.message}</div>}
       </div>
       <button className="workshop-btn" disabled={installed || complete || installing}
         onClick={() => onInstall(wid, name)}

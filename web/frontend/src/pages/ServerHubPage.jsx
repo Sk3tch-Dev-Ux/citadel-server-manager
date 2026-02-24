@@ -1,4 +1,5 @@
 import { formatUptime } from '../utils';
+import { Server } from '../components/Icon';
 
 export default function ServerHubPage({ servers, onSelect }) {
   return (
@@ -13,7 +14,7 @@ export default function ServerHubPage({ servers, onSelect }) {
         <div className="stat-box"><div className="stat-label">Avg CPU</div><div className="stat-value">{servers.length ? (servers.reduce((a, s) => a + (s.cpu || 0), 0) / servers.length).toFixed(0) : 0}%</div></div>
       </div>
       {servers.length === 0 ? (
-        <div className="empty-state"><div className="empty-icon">{'\uD83C\uDFAE'}</div><div className="empty-title">No Servers</div><p>Deploy your first DayZ server to get started.</p></div>
+        <div className="empty-state"><div className="empty-icon"><Server size={48} /></div><div className="empty-title">No Servers</div><p>Deploy your first DayZ server to get started.</p></div>
       ) : (
         <div className="grid grid-3">
           {servers.map(srv => (

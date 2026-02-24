@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import MiniChart from '../components/MiniChart';
+import { RefreshCw } from '../components/Icon';
 
 export default function ServerMetricsPage({ serverId }) {
   const socket = useSocket();
@@ -65,7 +66,7 @@ export default function ServerMetricsPage({ serverId }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{dataPoints} data points {'\u00B7'} {timeSpan > 0 ? `${timeSpan}m window` : 'just started'} {'\u00B7'} updates every 15s</div>
-        <button className="btn btn-secondary btn-sm" onClick={load}>{'\uD83D\uDD04'} Refresh</button>
+        <button className="btn btn-secondary btn-sm" onClick={load}><RefreshCw size={14} /> Refresh</button>
       </div>
       <div className="grid grid-4" style={{ marginBottom: 20 }}>
         <StatCard label="CPU" stats={cpuStats} unit="%" color="#6cb4f0" />

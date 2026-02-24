@@ -3,6 +3,7 @@ import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import Accordion from '../components/Accordion';
 import SettingsToggle from '../components/SettingsToggle';
+import { X } from '../components/Icon';
 
 export default function ServerSettingsPage({ serverId }) {
   const socket = useSocket();
@@ -68,7 +69,7 @@ export default function ServerSettingsPage({ serverId }) {
             {(srv.launchParamsList || []).map((p, i) => (
               <div className="chip" key={i}>
                 {p}
-                <span className="chip-remove" onClick={() => removeParam(i)} title="Remove">{'\u2715'}</span>
+                <span className="chip-remove" onClick={() => removeParam(i)} title="Remove"><X size={12} /></span>
               </div>
             ))}
           </div>

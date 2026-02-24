@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../api';
+import { Save } from '../components/Icon';
 
 export default function ConfigPage({ serverId }) {
   const [config, setConfig] = useState({});
@@ -30,7 +31,7 @@ export default function ConfigPage({ serverId }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
         <div className="card-title">serverDZ.cfg Editor</div>
-        <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving...' : '\uD83D\uDCBE Save Config'}</button>
+        <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving...' : <><Save size={14} /> Save Config</>}</button>
       </div>
       <div className="grid grid-2">
         {fields.map(f => (

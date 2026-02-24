@@ -5,6 +5,7 @@ import API from './api';
 import ToastContainer from './components/ToastContainer';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotificationCenter from './components/NotificationCenter';
+import { Home, Rocket, Users, Webhook, LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, Settings, FileText, ShieldBan, Clock, Wrench, Play, Square, RotateCcw, RefreshCw, LogOut } from './components/Icon';
 import LoginScreen from './pages/LoginScreen';
 import ServerHubPage from './pages/ServerHubPage';
 import DeployPage from './pages/DeployPage';
@@ -21,6 +22,7 @@ import LogsPage from './pages/LogsPage';
 import BansPage from './pages/BansPage';
 import SchedulerPage from './pages/SchedulerPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
+
 export default function App() {
   const { user, logout } = useAuth();
   const socket = useSocket();
@@ -62,17 +64,17 @@ export default function App() {
   if (!user) return <><LoginScreen /><ToastContainer /></>;
 
   const navItems = page === 'server' ? [
-    { id: 'overview', icon: '\uD83D\uDCCA', label: 'Overview' },
-    { id: 'metrics', icon: '\uD83D\uDCC8', label: 'Metrics' },
-    { id: 'console', icon: '\uD83D\uDDA5\uFE0F', label: 'Console' },
-    { id: 'players', icon: '\uD83D\uDC65', label: 'Players' },
-    { id: 'mods', icon: '\uD83D\uDCE6', label: 'Mods' },
-    { id: 'files', icon: '\uD83D\uDCC1', label: 'Files' },
-    { id: 'config', icon: '\u2699\uFE0F', label: 'Configuration' },
-    { id: 'logs', icon: '\uD83D\uDCCB', label: 'Logs' },
-    { id: 'bans', icon: '\uD83D\uDEE1\uFE0F', label: 'Bans' },
-    { id: 'scheduler', icon: '\uD83D\uDCC5', label: 'Scheduler' },
-    { id: 'settings', icon: '\uD83D\uDD27', label: 'Settings' },
+    { id: 'overview', icon: <LayoutDashboard size={16} />, label: 'Overview' },
+    { id: 'metrics', icon: <BarChart3 size={16} />, label: 'Metrics' },
+    { id: 'console', icon: <Terminal size={16} />, label: 'Console' },
+    { id: 'players', icon: <Users size={16} />, label: 'Players' },
+    { id: 'mods', icon: <Package size={16} />, label: 'Mods' },
+    { id: 'files', icon: <FolderOpen size={16} />, label: 'Files' },
+    { id: 'config', icon: <Settings size={16} />, label: 'Configuration' },
+    { id: 'logs', icon: <FileText size={16} />, label: 'Logs' },
+    { id: 'bans', icon: <ShieldBan size={16} />, label: 'Bans' },
+    { id: 'scheduler', icon: <Clock size={16} />, label: 'Scheduler' },
+    { id: 'settings', icon: <Wrench size={16} />, label: 'Settings' },
   ] : [];
 
   const pageTitle = page === 'hub' ? 'Server Hub' : page === 'users' ? 'Users & Roles' : page === 'webhooks' ? 'Webhooks' : page === 'deploy' ? 'Deploy Server' : servers.find(s => s.id === selectedServer)?.name || 'Server';
@@ -97,17 +99,17 @@ export default function App() {
         <div className="sidebar-nav">
           <div className="nav-section">General</div>
           <div className={`nav-item ${page === 'hub' ? 'active' : ''}`} onClick={() => { setPage('hub'); setSelectedServer(null); }}>
-            <span className="nav-icon">{'\uD83C\uDFE0'}</span>Server Hub
+            <span className="nav-icon"><Home size={16} /></span>Server Hub
             {servers.filter(s => s.status === 'running').length > 0 && <span className="nav-badge">{servers.filter(s => s.status === 'running').length}</span>}
           </div>
           <div className={`nav-item ${page === 'deploy' ? 'active' : ''}`} onClick={() => setPage('deploy')}>
-            <span className="nav-icon">{'\uD83D\uDE80'}</span>Deploy Server
+            <span className="nav-icon"><Rocket size={16} /></span>Deploy Server
           </div>
           <div className={`nav-item ${page === 'users' ? 'active' : ''}`} onClick={() => setPage('users')}>
-            <span className="nav-icon">{'\uD83D\uDC64'}</span>Users
+            <span className="nav-icon"><Users size={16} /></span>Users
           </div>
           <div className={`nav-item ${page === 'webhooks' ? 'active' : ''}`} onClick={() => setPage('webhooks')}>
-            <span className="nav-icon">{'\uD83D\uDD17'}</span>Webhooks
+            <span className="nav-icon"><Webhook size={16} /></span>Webhooks
           </div>
 
           {page === 'server' && (
@@ -125,7 +127,7 @@ export default function App() {
         <div className="sidebar-footer">
           <div className="avatar">{user.username?.[0]?.toUpperCase()}</div>
           <div className="user-info"><div className="user-name">{user.username}</div><div className="user-role">{user.role}</div></div>
-          <button className="logout-btn" onClick={() => { API.token = ''; localStorage.clear(); logout(); }} title="Sign out">{'\u23FB'}</button>
+          <button className="logout-btn" onClick={() => { API.token = ''; localStorage.clear(); logout(); }} title="Sign out"><LogOut size={16} /></button>
         </div>
       </div>
 
@@ -142,13 +144,13 @@ export default function App() {
             <NotificationCenter />
             {page === 'server' && (
               <div className="btn-group">
-                <button className="btn btn-primary btn-sm" onClick={handleStart} disabled={currentServerStatus === 'running' || currentServerStatus === 'starting'}>{'\u25B6'} Start</button>
-                <button className="btn btn-danger btn-sm" onClick={handleStop} disabled={currentServerStatus === 'stopped'}>{'\u23F9'} Stop</button>
-                <button className="btn btn-secondary btn-sm" onClick={handleRestart}>{'\uD83D\uDD04'} Restart</button>
+                <button className="btn btn-primary btn-sm" onClick={handleStart} disabled={currentServerStatus === 'running' || currentServerStatus === 'starting'}><Play size={14} /> Start</button>
+                <button className="btn btn-danger btn-sm" onClick={handleStop} disabled={currentServerStatus === 'stopped'}><Square size={14} /> Stop</button>
+                <button className="btn btn-secondary btn-sm" onClick={handleRestart}><RotateCcw size={14} /> Restart</button>
               </div>
             )}
             {page === 'hub' && (
-              <button className="btn btn-blue btn-sm" onClick={() => loadServers()}>{'\uD83D\uDD04'} Refresh</button>
+              <button className="btn btn-blue btn-sm" onClick={() => loadServers()}><RefreshCw size={14} /> Refresh</button>
             )}
           </div>
         </div>

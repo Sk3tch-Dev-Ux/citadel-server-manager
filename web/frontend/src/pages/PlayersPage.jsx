@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
+import { Users } from '../components/Icon';
 
 export default function PlayersPage({ serverId }) {
   const socket = useSocket();
@@ -16,7 +17,7 @@ export default function PlayersPage({ serverId }) {
   return (
     <div>
       <div style={{ marginBottom: 16 }}><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{players.length} player(s) online</span></div>
-      {players.length === 0 ? <div className="empty-state"><div className="empty-icon">{'\uD83D\uDC65'}</div><div className="empty-title">No Players Online</div></div> : (
+      {players.length === 0 ? <div className="empty-state"><div className="empty-icon"><Users size={48} /></div><div className="empty-title">No Players Online</div></div> : (
         <div className="table-wrap"><table>
           <thead><tr><th>Name</th><th>ID</th><th>IP</th><th>Ping</th><th>Actions</th></tr></thead>
           <tbody>{players.map(p => (
