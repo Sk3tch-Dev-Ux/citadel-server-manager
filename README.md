@@ -1,215 +1,417 @@
-# 🎮 DayZ Server Control Panel
+# DayZ Server Controller
 
-A full-featured web dashboard and Discord bot for managing DayZ servers — making server administration painless.
+A full-featured web dashboard and Discord bot for managing multiple DayZ servers. Built for teams that need reliable, secure server administration at scale.
 
-![Status](https://img.shields.io/badge/status-beta-yellow)
+![Status](https://img.shields.io/badge/status-production-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-blue)
 
 ---
 
-## ✨ Features
+## Features
 
-### 🌐 Web Dashboard
-- **Real-time monitoring** — CPU, RAM, FPS, player count with live charts
-- **Server controls** — Start, stop, restart (with countdown), lock/unlock
-- **Player management** — View online players, kick, ban, broadcast messages
-- **RCON console** — Send commands directly with command history
-- **Mod manager** — Add/remove/toggle Steam Workshop mods, reorder load priority
-- **Config editor** — Edit `serverDZ.cfg` settings from the UI
-- **File browser** — Browse and edit server files with automatic backups
+### Web Dashboard
+- **Multi-server management** — Server Hub with per-instance monitoring and controls
+- **Real-time metrics** — CPU, RAM, FPS, player count with live WebSocket updates
+- **Server controls** — Start, stop, restart with health monitoring and auto-restart
+- **Player management** — Online player list, kick, ban with reason tracking
+- **RCON console** — Send BattlEye commands directly with command history
+- **Mod manager** — Search Steam Workshop, install/uninstall/toggle mods, reorder load priority
+- **Config editor** — Edit `serverDZ.cfg` from the UI with validation
+- **File browser** — Browse and edit server files with Monaco Editor and automatic backups
 - **Restart scheduler** — Cron-based automatic restarts with presets
-- **Ban list management** — View, add, remove bans with expiry support
-- **Log viewer** — Filterable real-time log stream
-- **JWT authentication** — Secure login with role-based access (admin/moderator)
-- **WebSocket updates** — Real-time status without refreshing
+- **Ban management** — View, add, remove bans with ban list export
+- **Log viewer** — Filterable real-time log stream by level and source
+- **Server deployment** — Deploy new servers via SteamCMD (stable and experimental branches)
+- **User & role management** — Granular permissions with custom roles and audit logging
+- **Webhook system** — Event-driven webhooks to Discord or any HTTP endpoint with retry logic
+- **Notification center** — Real-time in-app notifications for server events
+- **Watchlist & priority queue** — Track suspicious players, manage VIP access
+- **Killfeed & leaderboard** — Parsed from RPT logs with player statistics
 
-### 🤖 Discord Bot
-- **Button-based control panel** — Deploy a persistent panel in any channel
-- **Slash commands** — `/panel`, `/status`, `/players`, `/rcon`, `/broadcast`, `/restart`
-- **Interactive buttons** — Start, stop, restart, lock, unlock, kick, broadcast
+### Discord Bot
+- **Interactive control panel** — Persistent button panel deployable in any channel
+- **Slash commands** — `/panel`, `/status`, `/players`, `/rcon`, `/broadcast`, `/restart`, `/setup`
+- **Full mod management** — Install, uninstall, enable, disable mods from Discord
+- **Live feeds** — Chat feed, killfeed, leaderboard, watchlist from Discord
+- **Role-based permissions** — Admin actions restricted to a configurable Discord role (fail-closed)
 - **Confirmation dialogs** — Prevents accidental server shutdowns
 - **Modal inputs** — RCON commands and broadcasts via Discord modals
-- **Player kick menu** — Select dropdown to pick and kick players
-- **Restart countdowns** — Warn players before restarting (60s / 5m options)
-- **Role-based permissions** — Restrict admin actions to a Discord role
 - **Auto-updating presence** — Bot status shows player count in real-time
 
 ---
 
-## 📂 Project Structure
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | Node.js, Express 4, Socket.IO 4, Pino logger |
+| Frontend | React 18, Vite 6, Lucide React icons |
+| Discord | Discord.js 14 (slash commands, buttons, modals, select menus) |
+| Auth | JWT (jsonwebtoken), bcryptjs, role-based permissions |
+| RCON | Custom BattlEye UDP client (dgram) |
+| Steam | SteamCMD subprocess, Workshop API |
+| Data | JSON file persistence (no database required) |
+| Quality | Jest + Supertest (31 tests), ESLint, GitHub Actions CI |
+
+---
+
+## Project Structure
 
 ```
-dayz-panel/
-├── backend/              # Express API server (central hub)
-│   ├── server.js         # Main API with RCON, auth, WebSocket
+DayzServerController/
+├── backend/
+│   ├── server.js              # Express + Socket.IO entry point
+│   ├── lib/
+│   │   ├── config.js          # Environment configuration
+│   │   ├── context.js         # Global runtime state
+│   │   ├── process-manager.js # Windows process management (spawn/tasklist/wmic)
+│   │   ├── polling.js         # Metrics, status, and Steam update polling
+│   │   ├── rcon-client.js     # BattlEye RCON UDP client
+│   │   ├── steamcmd.js        # SteamCMD wrapper
+│   │   ├── workshop.js        # Steam Workshop API
+│   │   ├── mod-manager.js     # Mod install/ordering
+│   │   ├── notifications.js   # Notification & webhook dispatch
+│   │   ├── audit.js           # Audit logging & metrics
+│   │   ├── helpers.js         # safePath, validation, password policy
+│   │   ├── data-store.js      # JSON persistence
+│   │   ├── dayz-config.js     # serverDZ.cfg parser/writer
+│   │   ├── rpt-scraper.js     # RPT log parser (killfeed/leaderboard)
+│   │   ├── server-init.js     # Server state initialization
+│   │   └── logger.js          # Pino structured logger
+│   ├── middleware/
+│   │   ├── auth.js            # JWT authentication & permission checks
+│   │   ├── rate-limit.js      # Rate limiting (API, auth, Discord)
+│   │   └── security.js        # CORS, secure cookies
+│   ├── routes/                # 25 route handler files
+│   │   ├── auth.routes.js
+│   │   ├── servers.routes.js
+│   │   ├── server-control.routes.js
+│   │   ├── rcon-players.routes.js
+│   │   ├── mods.routes.js
+│   │   ├── workshop.routes.js
+│   │   ├── files.routes.js
+│   │   ├── config.routes.js
+│   │   ├── logs-metrics.routes.js
+│   │   ├── schedule.routes.js
+│   │   ├── users.routes.js
+│   │   ├── roles.routes.js
+│   │   ├── webhooks.routes.js
+│   │   ├── notifications.routes.js
+│   │   ├── audit.routes.js
+│   │   ├── deploy.routes.js
+│   │   ├── steam.routes.js
+│   │   ├── backup.routes.js
+│   │   ├── discord.routes.js
+│   │   ├── watchlist.routes.js
+│   │   ├── priority-queue.routes.js
+│   │   ├── killfeed.routes.js
+│   │   ├── leaderboard.routes.js
+│   │   └── compat.routes.js
+│   ├── test_api.test.js       # Jest test suite (31 tests)
+│   ├── deploy.ps1             # Windows deployment script
+│   └── deploy.sh              # Linux deployment script
+├── web/
+│   ├── frontend/
+│   │   ├── src/
+│   │   │   ├── App.jsx        # App shell with sidebar navigation
+│   │   │   ├── api.js         # API client
+│   │   │   ├── main.jsx       # React entry point
+│   │   │   ├── pages/         # 17 page components
+│   │   │   ├── components/    # Shared UI components
+│   │   │   ├── contexts/      # Auth, Socket, Toast providers
+│   │   │   ├── styles/        # Global CSS
+│   │   │   └── utils.js       # Utility functions
+│   │   ├── vite.config.js
+│   │   ├── eslint.config.js
+│   │   └── package.json
+│   └── dist/                  # Production build output
+├── discord-bot/
+│   ├── bot.js                 # Discord bot with slash commands & buttons
 │   └── package.json
-├── web/                  # React web dashboard
-│   └── index.html        # Single-file React app
-├── discord-bot/          # Discord.js bot with buttons
-│   ├── bot.js            # Bot with slash commands & interactions
-│   └── package.json
-├── .env.example          # Environment variable template
-└── README.md             # This file
+├── data/                      # Persistent JSON data
+├── .github/workflows/ci.yml   # GitHub Actions CI pipeline
+├── .env.example               # Environment variable template
+├── package.json               # Root workspace scripts
+└── README.md
 ```
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - **Node.js** 18+ ([download](https://nodejs.org))
-- A **DayZ server** (Windows or Linux with Wine/Proton)
-- A **Discord application** (for the bot — [create one](https://discord.com/developers/applications))
+- **Windows** (process management uses tasklist/taskkill/wmic)
+- A **DayZ server** installation
+- A **Discord application** for the bot ([create one](https://discord.com/developers/applications))
 
 ### 1. Clone & Configure
 
 ```bash
-# Clone or download the project
-cd dayz-panel
+git clone https://github.com/yourusername/DayzServerController.git
+cd DayzServerController
 
-# Copy the environment template
+# Copy environment template
 cp .env.example .env
-
-# Edit .env with your actual values
-nano .env
 ```
 
-**Key settings to change:**
-| Variable | Description |
-|---|---|
-| `JWT_SECRET` | Random secret string for auth tokens |
-| `ADMIN_PASSWORD` | Your admin login password |
-| `DAYZ_SERVER_IP` | Your DayZ server IP |
-| `RCON_PASSWORD` | BattlEye RCON password |
-| `DAYZ_INSTALL_DIR` | Path to DayZ server installation |
-| `DISCORD_BOT_TOKEN` | Your Discord bot token |
-| `DISCORD_CLIENT_ID` | Discord application client ID |
-| `DISCORD_GUILD_ID` | Your Discord server ID |
+Edit `.env` with your values:
 
-### 2. Install & Start the Backend
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `JWT_SECRET` | Yes | Random secret for auth tokens (`openssl rand -hex 32`) |
+| `ADMIN_PASSWORD` | Yes | Admin login password |
+| `DISCORD_BOT_API_KEY` | Yes | Random key for bot-to-API auth (`openssl rand -hex 32`) |
+| `DAYZ_SERVER_IP` | Yes | Your DayZ server IP |
+| `RCON_PASSWORD` | Yes | BattlEye RCON password |
+| `DAYZ_INSTALL_DIR` | Yes | Path to DayZ server installation |
+| `DISCORD_BOT_TOKEN` | For bot | Discord bot token |
+| `DISCORD_CLIENT_ID` | For bot | Discord application client ID |
+| `DISCORD_GUILD_ID` | For bot | Your Discord server ID |
+| `DISCORD_ADMIN_ROLE_ID` | For bot | Discord role ID for admin actions |
+| `CORS_ORIGINS` | No | Comma-separated allowed origins (defaults to localhost) |
+
+### 2. Install & Build
 
 ```bash
-cd backend
-npm install
-npm start
+# Install backend dependencies
+cd backend && npm install && cd ..
+
+# Install and build the frontend
+cd web/frontend && npm install && npm run build && cd ../..
+
+# Install Discord bot (optional)
+cd discord-bot && npm install && cd ..
 ```
 
-The API starts on `http://localhost:3001` — the web dashboard is served from here too.
-
-### 3. Start the Discord Bot
+### 3. Start
 
 ```bash
-cd discord-bot
-npm install
-npm start
+# Start the backend (serves API + web UI)
+cd backend && npm start
+
+# In a separate terminal, start the Discord bot (optional)
+cd discord-bot && npm start
 ```
 
-### 4. Open the Dashboard
+Visit **http://localhost:3001** and login with `admin` / your configured password.
 
-Visit **http://localhost:3001** in your browser.  
-Default login: `admin` / `admin` (change in `.env`!)
+### Development Mode
+
+```bash
+# Terminal 1: Backend with auto-reload
+npm run dev:backend
+
+# Terminal 2: Frontend with hot-reload (proxies API to :3001)
+npm run dev:frontend
+```
 
 ---
 
-## 🤖 Discord Bot Setup
+## Web UI Pages
+
+| Page | Description |
+|------|-------------|
+| **Server Hub** | Multi-server overview with status cards and quick actions |
+| **Overview** | Server status, players, CPU/RAM, uptime, ports, map |
+| **Metrics** | Real-time CPU, RAM, player count, FPS charts |
+| **Console** | Live RCON command interface with history |
+| **Players** | Online player list with kick/ban actions |
+| **Mods** | Installed mods, Workshop search, install/uninstall/reorder |
+| **Files** | File browser with Monaco Editor and automatic backups |
+| **Configuration** | Edit serverDZ.cfg with field validation |
+| **Logs** | Filterable server logs by level and source |
+| **Bans** | Ban list management with unban |
+| **Scheduler** | Cron-based automatic restart scheduling |
+| **Settings** | Per-server configuration (health monitoring, auto-start, etc.) |
+| **Deploy** | New server deployment wizard via SteamCMD |
+| **Users** | User/role management with granular permissions |
+| **Webhooks** | Webhook CRUD with delivery history and test |
+
+---
+
+## Discord Bot Setup
 
 ### Creating the Bot
 
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Click **New Application** → name it "DayZ Panel"
-3. Go to **Bot** → Click **Add Bot**
-4. Copy the **Token** → paste as `DISCORD_BOT_TOKEN` in `.env`
+2. Click **New Application** and name it
+3. Go to **Bot** > **Add Bot**
+4. Copy the **Token** and set as `DISCORD_BOT_TOKEN` in `.env`
 5. Enable **Message Content Intent** under Privileged Gateway Intents
-6. Go to **OAuth2 → URL Generator**
+6. Go to **OAuth2 > URL Generator**
 7. Select scopes: `bot`, `applications.commands`
 8. Select permissions: `Send Messages`, `Embed Links`, `Use Slash Commands`, `Read Message History`
-9. Copy the URL → open it to invite the bot to your server
+9. Copy the generated URL and open it to invite the bot
 
-### Using the Bot
+### Commands
 
-| Command | Description |
-|---|---|
-| `/panel` | Open the interactive control panel with buttons |
-| `/setup` | Deploy a persistent control panel in the channel |
-| `/status` | Quick server status check |
-| `/players` | View all online players |
-| `/rcon <command>` | Execute an RCON command |
-| `/broadcast <message>` | Send a message to all players |
-| `/restart [countdown]` | Restart with optional countdown |
+| Command | Description | Admin |
+|---------|-------------|-------|
+| `/panel` | Open the interactive control panel | No |
+| `/setup` | Deploy a persistent control panel in the channel | Yes |
+| `/status` | Quick server status check | No |
+| `/players` | View all online players | No |
+| `/rcon <command>` | Execute an RCON command | Yes |
+| `/broadcast <message>` | Send a message to all players | Yes |
+| `/restart [countdown]` | Restart with optional countdown (now/60s/5m) | Yes |
 
-**The `/setup` command** creates a persistent panel with buttons that anyone in the channel can use (admin actions still require the admin role).
+### Control Panel Buttons
 
-### Button Controls
+The `/setup` command creates a persistent panel with these button rows:
 
-The panel provides these interactive buttons:
+| Row | Buttons |
+|-----|---------|
+| Server | Status, Start, Stop, Restart |
+| Players | Players, Lock, Unlock, Broadcast |
+| Mods | Mods, Mod Status, Install Mod, Uninstall, Enable, Disable |
+| Info | Chat Feed, Killfeed, Leaderboard, Watchlist, Priority Queue, Time/Weather, Ban/Whitelist |
+| Admin | Kick Player, RCON |
 
-| Button | Action | Requires Admin |
-|---|---|---|
-| 📊 Status | Refresh server status | No |
-| ▶️ Start | Start the server | Yes |
-| ⏹️ Stop | Stop the server (with confirmation) | Yes |
-| 🔄 Restart | Restart options (now/60s/5m) | Yes |
-| 👥 Players | View online players | No |
-| 🔒 Lock | Lock server (no new joins) | Yes |
-| 🔓 Unlock | Unlock server | Yes |
-| 📢 Broadcast | Open modal to type a message | No |
-| 👢 Kick Player | Dropdown menu to select & kick | Yes |
-| 🖥️ RCON | Open modal for RCON commands | Yes |
+Admin actions require the configured `DISCORD_ADMIN_ROLE_ID`. If not configured, all admin actions are denied (fail-closed).
 
 ---
 
-## 🔧 API Reference
+## API Reference
 
-All endpoints require JWT auth (except login). Pass token as `Authorization: Bearer <token>`.
+All endpoints require JWT authentication (pass as `Authorization: Bearer <token>`) except login.
 
-### Auth
+### Authentication
 | Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/login` | Login → returns JWT token |
-| POST | `/api/auth/register` | Create user (admin only) |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Login (returns JWT, brute-force protected) |
+
+### Server Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/servers` | List all servers with status |
+| POST | `/api/servers` | Create a new server |
+| PATCH | `/api/servers/:id` | Update server settings |
+| DELETE | `/api/servers/:id` | Delete a server |
 
 ### Server Control
 | Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/server/status` | Get server status & player count |
-| POST | `/api/server/start` | Start the DayZ server |
-| POST | `/api/server/stop` | Stop the server |
-| POST | `/api/server/restart` | Restart (optional `countdown` in body) |
-| POST | `/api/server/lock` | Lock server |
-| POST | `/api/server/unlock` | Unlock server |
-| POST | `/api/server/rcon` | Send RCON command |
-| POST | `/api/server/message` | Broadcast message |
+|--------|----------|-------------|
+| GET | `/api/servers/:id/status` | Server status, uptime, CPU/RAM |
+| POST | `/api/servers/:id/start` | Start the server |
+| POST | `/api/servers/:id/stop` | Stop the server |
+| POST | `/api/servers/:id/restart` | Restart (with optional countdown) |
+| POST | `/api/servers/:id/lock` | Lock server via RCON |
+| POST | `/api/servers/:id/unlock` | Unlock server via RCON |
 
-### Players
+### Players & RCON
 | Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/players` | List online players |
-| POST | `/api/players/:id/kick` | Kick a player |
-| POST | `/api/players/:id/ban` | Ban a player |
+|--------|----------|-------------|
+| GET | `/api/servers/:id/players` | List online players |
+| POST | `/api/servers/:id/players/:pid/kick` | Kick a player |
+| POST | `/api/servers/:id/players/:pid/ban` | Ban a player |
+| GET | `/api/servers/:id/bans` | Get ban list |
+| DELETE | `/api/servers/:id/bans/:banId` | Unban a player |
+| POST | `/api/servers/:id/rcon` | Send RCON command |
+| POST | `/api/servers/:id/message` | Broadcast message |
 
-### More
+### Mods & Workshop
 | Method | Endpoint | Description |
-|---|---|---|
-| GET/PATCH | `/api/config` | Server configuration |
-| GET/POST/DELETE | `/api/mods` | Mod management |
-| GET/POST/DELETE | `/api/schedule` | Restart scheduler |
-| GET/DELETE | `/api/bans` | Ban list |
-| GET | `/api/logs` | Server logs |
-| GET | `/api/metrics` | Performance metrics |
-| GET/PUT | `/api/files` | File browser & editor |
+|--------|----------|-------------|
+| GET | `/api/servers/:id/mods` | List installed mods |
+| POST | `/api/servers/:id/mods/install` | Install a Workshop mod |
+| DELETE | `/api/servers/:id/mods/uninstall/:wid` | Uninstall a mod |
+| PATCH | `/api/servers/:id/mods/:wid` | Toggle or reorder a mod |
+| GET | `/api/mods/install-status` | Installation progress |
+| GET | `/api/workshop/search?q=` | Search Steam Workshop |
+| GET | `/api/workshop/popular` | Popular/trending mods |
+| GET | `/api/workshop/details/:id` | Mod details |
+
+### Configuration & Files
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/servers/:id/config` | Read serverDZ.cfg |
+| PATCH | `/api/servers/:id/config` | Update serverDZ.cfg |
+| GET | `/api/servers/:id/files?dir=` | Browse directory |
+| GET | `/api/servers/:id/files/read?file=` | Read text file |
+| PUT | `/api/servers/:id/files/write` | Write file (auto-backup) |
+
+### Logs & Metrics
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/servers/:id/logs` | Server logs (filterable) |
+| GET | `/api/servers/:id/metrics` | Historical metrics |
+| GET | `/api/servers/:id/killfeed` | Recent kills from RPT logs |
+
+### Scheduling
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/servers/:id/schedule` | List scheduled restarts |
+| POST | `/api/servers/:id/schedule` | Create scheduled restart |
+| DELETE | `/api/servers/:id/schedule/:taskId` | Delete schedule |
+
+### Users & Roles
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | List all users |
+| POST | `/api/users` | Create user (password policy enforced) |
+| PATCH | `/api/users/:id` | Update user |
+| DELETE | `/api/users/:id` | Delete user |
+| GET | `/api/roles` | List all roles |
+| POST | `/api/roles` | Create custom role |
+| PATCH | `/api/roles/:id` | Update role permissions |
+| DELETE | `/api/roles/:id` | Delete custom role |
+
+### Webhooks
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/webhooks` | List webhooks |
+| POST | `/api/webhooks` | Create webhook |
+| PATCH | `/api/webhooks/:id` | Update webhook |
+| DELETE | `/api/webhooks/:id` | Delete webhook |
+| GET | `/api/webhooks/:id/deliveries` | Delivery history |
+| POST | `/api/webhooks/:id/test` | Test webhook |
+
+### Other Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/notifications` | Get notifications |
+| PATCH | `/api/notifications/read` | Mark as read |
+| GET | `/api/audit` | Audit log (paginated) |
+| GET | `/api/backup/:type` | Download data backup |
+| POST | `/api/restore/:type` | Restore from backup |
+| GET | `/api/steam/status` | SteamCMD status |
+| POST | `/api/steam/credentials` | Set Steam credentials |
+| POST | `/api/deploy` | Deploy new server via SteamCMD |
+| GET/POST/DELETE | `/api/watchlist` | Watchlisted players |
+| GET/POST/DELETE | `/api/priority-queue` | Priority queue |
+| GET | `/api/leaderboard` | Player leaderboard |
 
 ---
 
-## 🔒 Production Deployment
+## Security
 
-### Security Checklist
-- [ ] Change `JWT_SECRET` to a strong random string
+### Hardening Measures
+- **spawn() over exec()** — All process spawning uses argument arrays to prevent shell injection
+- **Path traversal protection** — `safePath()` validates all file operations against a base directory
+- **Rate limiting** — 100 req/15min (API), 5 req/15min (auth), 30 req/15min (Discord)
+- **Brute-force protection** — 5 failed login attempts triggers a 10-minute lockout
+- **Password policy** — Minimum 8 characters, uppercase, lowercase, number, special character required
+- **CORS allowlist** — Configurable via `CORS_ORIGINS` environment variable
+- **JWT authentication** — 24-hour token expiry, required on all API routes
+- **Fail-fast secrets** — Server refuses to start without `JWT_SECRET` and `DISCORD_BOT_API_KEY`
+- **Fail-closed Discord admin** — If `DISCORD_ADMIN_ROLE_ID` is not set, all admin actions are denied
+- **Secure cookies** — HttpOnly, Secure flags when HTTPS is enabled
+
+### Production Checklist
+- [ ] Set `JWT_SECRET` to a strong random string (`openssl rand -hex 32`)
+- [ ] Set `DISCORD_BOT_API_KEY` to a strong random string
 - [ ] Change default admin password
-- [ ] Set `DISCORD_BOT_API_KEY` to a strong secret
-- [ ] Use HTTPS (reverse proxy with nginx/caddy)
-- [ ] Restrict API access to trusted IPs
-- [ ] Set up proper firewall rules
+- [ ] Configure `CORS_ORIGINS` for your domain
+- [ ] Use HTTPS (reverse proxy with nginx/caddy, or place cert.pem + key.pem in `cert/`)
+- [ ] Restrict network access to trusted IPs
+- [ ] Set up firewall rules for RCON port
+
+---
+
+## Deployment
 
 ### Reverse Proxy (nginx)
 
@@ -235,55 +437,55 @@ server {
 ### Running with PM2
 
 ```bash
-# Install PM2
 npm install -g pm2
 
-# Start backend
-cd backend && pm2 start server.js --name dayz-panel-api
+cd backend && pm2 start server.js --name dayz-panel
+cd discord-bot && pm2 start bot.js --name dayz-bot
 
-# Start Discord bot
-cd discord-bot && pm2 start bot.js --name dayz-panel-bot
-
-# Save & auto-start on boot
 pm2 save
 pm2 startup
 ```
 
 ---
 
-## 🛠️ Extending the Panel
+## Development
 
-### RCON Implementation
+### Available Scripts
 
-The panel includes a **full BattlEye RCON client** built directly on the [BattlEye RCon Protocol](https://www.battleye.com/downloads/BERConProtocol.txt) using Node.js's built-in `dgram` UDP module. No third-party RCON packages are needed — the implementation handles login, command sending, keep-alive, server message acknowledgment, and automatic reconnection.
+```bash
+# From the project root:
+npm test              # Run backend test suite (31 tests)
+npm run lint          # Lint backend + frontend
+npm run build         # Build frontend for production
+npm run dev:backend   # Start backend with nodemon
+npm run dev:frontend  # Start Vite dev server with HMR
+```
 
-**Important:** Since DayZ 1.13+, you **must** set `RConPort` explicitly in your `BEServer_x64.cfg` (inside the BattlEye directory). It can no longer share the game port and defaults to a random port if not set. Recommended default is `2305`.
+### RCON Configuration
+
+The panel includes a full BattlEye RCON client built on the [BattlEye RCon Protocol](https://www.battleye.com/downloads/BERConProtocol.txt) using Node.js `dgram`. No third-party RCON packages required.
+
+Since DayZ 1.13+, you must set `RConPort` explicitly in `BEServer_x64.cfg`:
 
 ```cfg
-# BEServer_x64.cfg (in your BattlEye folder)
 RConPassword your-rcon-password
 RConPort 2305
 ```
 
-Then set `DAYZ_RCON_PORT=2305` in your `.env` to match.
+Set `DAYZ_RCON_PORT=2305` in `.env` to match.
 
-**Alternative approaches** if you prefer external tools:
-- **[bercon](https://github.com/WoozyMasta/bercon)** — A standalone Rust CLI for BattlEye RCON (Linux & Windows). Can be called via `child_process.execFile()`.
-- **[battleye](https://www.npmjs.com/package/battleye)** (npm, by nurdism) — A TypeScript RCON client. Last published 6+ years ago but the BE protocol hasn't changed, so it still functions. There's also a fork at `@senfo/battleye`.
-- **[dayz-server-manager](https://github.com/mr-guard/dayz-server-manager)** — A full server manager with its own RCON built-in. Worth considering if you want an all-in-one solution instead of building your own panel.
+### CI/CD
 
-### Adding a Database
-Replace the in-memory `store` object with a proper database (SQLite, PostgreSQL, MongoDB) for persistent data across restarts.
+GitHub Actions runs on every push and PR to `main`:
+- Backend lint (ESLint)
+- Backend tests (Jest, 31 tests)
+- Frontend lint (ESLint)
+- Frontend build verification (Vite)
 
-### Adding SteamCMD Integration
-Add endpoints to update the DayZ server and download mods via SteamCMD:
-
-```bash
-steamcmd +force_install_dir /path/to/server +login anonymous +app_update 223350 +quit
-```
+Tested on Node.js 18.x and 20.x, Windows.
 
 ---
 
-## 📜 License
+## License
 
-MIT — use it however you want for your DayZ community.
+MIT
