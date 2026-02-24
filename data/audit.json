@@ -1,5 +1,29 @@
 [
   {
+    "id": "23270eee-92e4-4efe-a277-fb9c20ff6354",
+    "timestamp": "2026-02-24T21:49:11.529Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.create",
+    "details": "Created server: Test Import"
+  },
+  {
+    "id": "013ed266-cf93-4711-8403-b868134a247b",
+    "timestamp": "2026-02-24T21:49:11.520Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "a9f0d1c7-fab0-49cc-a903-e2a6ec9bfb38",
+    "timestamp": "2026-02-24T21:45:58.775Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
     "id": "77178370-62fd-4cd8-b0ca-ea7704e8675d",
     "timestamp": "2026-02-23T22:46:47.094Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",

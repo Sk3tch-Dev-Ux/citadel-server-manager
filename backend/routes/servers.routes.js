@@ -61,7 +61,7 @@ module.exports = function(app) {
       result.config = {};
       if (cfg.hostname) result.config.name = cfg.hostname;
       if (cfg.maxPlayers) result.config.maxPlayers = cfg.maxPlayers;
-      if (cfg.template) result.config.map = TEMPLATE_TO_MAP[cfg.template] || cfg.template;
+      if (cfg.template) result.config.map = TEMPLATE_TO_MAP[cfg.template.toLowerCase()] || cfg.template;
       if (cfg.steamQueryPort) result.config.queryPort = cfg.steamQueryPort;
 
       // Try to detect game port from launch params in .bat files
