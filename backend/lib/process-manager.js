@@ -7,13 +7,25 @@ const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('./logger');
 
+// Guards to prevent overlapping spawns (one per executable/pid)
+const _pendingDetect = new Set();
+const _pendingMetrics = new Set();
+
 function detectRunningProcess(executable) {
+  if (_pendingDetect.has(executable)) return Promise.resolve(null);
+  _pendingDetect.add(executable);
   return new Promise((resolve) => {
-    const proc = spawn('tasklist', ['/FI', `IMAGENAME eq ${executable}`, '/FO', 'CSV', '/NH'], { windowsHide: true });
+    const proc = spawn('tasklist', ['/FI', `IMAGENAME eq ${executable}`, '/FO', 'CSV', '/NH'], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
     let stdout = '';
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
     proc.stdout.on('data', (data) => { stdout += data.toString(); });
-    proc.on('error', () => resolve(null));
+    proc.on('error', () => { clearTimeout(killTimer); _pendingDetect.delete(executable); resolve(null); });
     proc.on('close', () => {
+      clearTimeout(killTimer);
+      _pendingDetect.delete(executable);
       if (!stdout) return resolve(null);
       const lines = stdout.trim().split('\n').filter(l => l.includes(executable));
       if (lines.length > 0) {
@@ -30,22 +42,78 @@ function getProcessMetrics(pid) {
     if (!pid) return resolve(null);
     const safePid = parseInt(pid, 10);
     if (isNaN(safePid) || safePid <= 0) return resolve(null);
-    const psScript = `try { $p = Get-Process -Id ${safePid} -ErrorAction Stop; $cpuCores = (Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfLogicalProcessors -Sum).Sum; if (-not $cpuCores) { $cpuCores = [Environment]::ProcessorCount }; $totalMem = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory; $ws = $p.WorkingSet64; $cpu = 0; try { $sample1 = $p.TotalProcessorTime.TotalMilliseconds; Start-Sleep -Milliseconds 500; $p.Refresh(); $sample2 = $p.TotalProcessorTime.TotalMilliseconds; $cpu = [math]::Round(($sample2 - $sample1) / 500 * 100 / $cpuCores, 1) } catch { $cpu = 0 }; $ramPct = [math]::Round($ws / $totalMem * 100, 1); Write-Output "CPU=$cpu,RAM=$ramPct,RAMMB=$([math]::Round($ws/1MB))" } catch { Write-Output 'ERROR' }`;
-    const proc = spawn('powershell', ['-NoProfile', '-Command', psScript], { windowsHide: true, timeout: 8000 });
+    if (_pendingMetrics.has(safePid)) return resolve(null);
+    _pendingMetrics.add(safePid);
+    // Use wmic for lightweight metrics (no visible window, faster than PowerShell)
+    const proc = spawn('wmic', [
+      'process', 'where', `ProcessId=${safePid}`,
+      'get', 'WorkingSetSize,KernelModeTime,UserModeTime', '/format:csv',
+    ], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
     let stdout = '';
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
     proc.stdout.on('data', (data) => { stdout += data.toString(); });
-    proc.on('error', () => resolve(null));
+    proc.on('error', () => { clearTimeout(killTimer); _pendingMetrics.delete(safePid); resolve(null); });
     proc.on('close', () => {
-      if (!stdout || stdout.trim() === 'ERROR') return resolve(null);
-      const output = stdout.trim();
-      const cpuMatch = output.match(/CPU=([\d.]+)/);
-      const ramMatch = output.match(/RAM=([\d.]+)/);
-      const ramMBMatch = output.match(/RAMMB=(\d+)/);
-      resolve({
-        cpu: cpuMatch ? parseFloat(cpuMatch[1]) : 0,
-        ram: ramMatch ? parseFloat(ramMatch[1]) : 0,
-        ramMB: ramMBMatch ? parseInt(ramMBMatch[1]) : 0,
-      });
+      clearTimeout(killTimer);
+      _pendingMetrics.delete(safePid);
+      if (!stdout) return resolve(null);
+      const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.startsWith('Node'));
+      if (lines.length < 1) return resolve(null);
+      // CSV format: Node,KernelModeTime,UserModeTime,WorkingSetSize
+      const parts = lines[lines.length - 1].split(',');
+      if (parts.length < 4) return resolve(null);
+      const workingSet = parseInt(parts[3]) || 0;
+      const ramMB = Math.round(workingSet / (1024 * 1024));
+      // Estimate CPU from kernel+user time (delta between polls is handled by metrics history)
+      // For now use wmic percentage from a separate quick call, or approximate from working set
+      const totalMem = require('os').totalmem();
+      const ramPct = totalMem > 0 ? Math.round((workingSet / totalMem) * 1000) / 10 : 0;
+      resolve({ cpu: 0, ram: ramPct, ramMB });
+    });
+  });
+}
+
+// Separate lightweight CPU sampling using wmic (called less frequently)
+let _lastCpuSamples = {};
+function getProcessCPU(pid) {
+  return new Promise((resolve) => {
+    if (!pid) return resolve(0);
+    const safePid = parseInt(pid, 10);
+    if (isNaN(safePid) || safePid <= 0) return resolve(0);
+    const proc = spawn('wmic', [
+      'process', 'where', `ProcessId=${safePid}`,
+      'get', 'KernelModeTime,UserModeTime', '/format:csv',
+    ], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    let stdout = '';
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 3000);
+    proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    proc.on('error', () => { clearTimeout(killTimer); resolve(0); });
+    proc.on('close', () => {
+      clearTimeout(killTimer);
+      if (!stdout) return resolve(0);
+      const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.startsWith('Node'));
+      if (lines.length < 1) return resolve(0);
+      const parts = lines[lines.length - 1].split(',');
+      if (parts.length < 3) return resolve(0);
+      const kernelTime = parseInt(parts[1]) || 0;
+      const userTime = parseInt(parts[2]) || 0;
+      const totalTime = kernelTime + userTime; // in 100-nanosecond intervals
+      const now = Date.now();
+      const prev = _lastCpuSamples[safePid];
+      _lastCpuSamples[safePid] = { totalTime, timestamp: now };
+      if (!prev) return resolve(0);
+      const timeDelta = (now - prev.timestamp) / 1000; // seconds
+      if (timeDelta <= 0) return resolve(0);
+      const cpuDelta = (totalTime - prev.totalTime) / 10000000; // convert 100ns to seconds
+      const cpuCores = require('os').cpus().length || 1;
+      const cpuPct = Math.round((cpuDelta / timeDelta / cpuCores) * 1000) / 10;
+      resolve(Math.max(0, Math.min(100, cpuPct)));
     });
   });
 }
@@ -103,14 +171,20 @@ function applyProcessSettings(pid, serverConfig) {
     parts.push(`$p = Get-Process -Id ${safePid} -ErrorAction Stop; $p.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::${serverConfig.priorityLevel}`);
   }
   if (parts.length > 0) {
-    const proc = spawn('powershell', ['-NoProfile', '-Command', parts.join('; ')], { windowsHide: true, timeout: 5000 });
-    proc.on('error', (err) => logger.error({ err, pid: safePid }, 'Failed to apply process settings'));
+    const proc = spawn('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', parts.join('; ')], {
+      windowsHide: true,
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
+    proc.on('error', (err) => { clearTimeout(killTimer); logger.error({ err, pid: safePid }, 'Failed to apply process settings'); });
+    proc.on('close', () => clearTimeout(killTimer));
   }
 }
 
 module.exports = {
   detectRunningProcess,
   getProcessMetrics,
+  getProcessCPU,
   killProcess,
   spawnDayZServer,
   applyProcessSettings,

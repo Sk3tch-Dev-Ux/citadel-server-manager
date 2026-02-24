@@ -5,7 +5,7 @@
 const logger = require('./logger');
 const ctx = require('./context');
 const { flushAll } = require('./data-store');
-const { detectRunningProcess, getProcessMetrics, killProcess, spawnDayZServer, applyProcessSettings } = require('./process-manager');
+const { detectRunningProcess, getProcessMetrics, getProcessCPU, killProcess, spawnDayZServer, applyProcessSettings } = require('./process-manager');
 const { scrapeRPTForFPS } = require('./rpt-scraper');
 const { updateLeaderboard } = require('./rpt-scraper');
 const { autoDetectMods } = require('./mod-manager');
@@ -42,8 +42,14 @@ async function getDayZBuildVersion() {
 }
 
 // ─── Metrics & Status Polling (every 15s) ────────────────
+let _metricsPollingRunning = false;
+
 function startMetricsPolling() {
   return setInterval(async () => {
+    // Prevent overlapping polling cycles
+    if (_metricsPollingRunning) return;
+    _metricsPollingRunning = true;
+    try {
     for (const srv of ctx.servers) {
       const state = ctx.serverStates[srv.id];
       if (!state || (state.status !== 'running' && state.status !== 'starting')) continue;
@@ -54,7 +60,10 @@ function startMetricsPolling() {
           state.status = 'running'; state.startedAt = state.startedAt || new Date().toISOString();
           ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
         }
-        const metrics = await getProcessMetrics(pid, srv.executable);
+        const metrics = await getProcessMetrics(pid);
+        // Get CPU from delta-based sampling (wmic, no PowerShell windows)
+        const cpu = await getProcessCPU(pid);
+        if (metrics) metrics.cpu = cpu;
         let fps = scrapeRPTForFPS(srv);
         if (!fps && state.rcon) {
           try {
@@ -105,6 +114,7 @@ function startMetricsPolling() {
         sendDiscordWebhook(`💥 **${srv.name}** crashed`);
       }
     }
+    } finally { _metricsPollingRunning = false; }
   }, 15000);
 }
 
