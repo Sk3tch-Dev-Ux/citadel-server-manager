@@ -24,10 +24,10 @@ export default function ModsPage({ serverId }) {
   const [installProgress, setInstallProgress] = useState({});
   const searchTimeout = useRef(null);
 
-  useEffect(() => { API.get(`/api/servers/${serverId}/mods`).then(setMods); }, [serverId]);
+  useEffect(() => { API.get(`/api/servers/${serverId}/mods`).then(d => setMods(Array.isArray(d) ? d : [])); }, [serverId]);
 
   useEffect(() => {
-    const handler = (data) => { if (data.serverId === serverId) setMods(data.mods); };
+    const handler = (data) => { if (data.serverId === serverId) setMods(Array.isArray(data.mods) ? data.mods : []); };
     socket.on('mods', handler);
     return () => socket.off('mods', handler);
   }, [serverId, socket]);
@@ -99,7 +99,7 @@ export default function ModsPage({ serverId }) {
       if (data.serverId !== serverId) return;
       setInstallProgress(prev => ({ ...prev, [data.workshopId]: { status: data.status, progress: data.progress, message: data.message } }));
       if (data.status === 'complete') {
-        API.get(`/api/servers/${serverId}/mods`).then(setMods);
+        API.get(`/api/servers/${serverId}/mods`).then(d => setMods(Array.isArray(d) ? d : []));
         window.addToast(data.message, 'success');
       } else if (data.status === 'error') {
         window.addToast(`Install failed: ${data.message}`, 'error');

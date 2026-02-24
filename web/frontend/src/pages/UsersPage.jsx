@@ -12,7 +12,7 @@ export default function UsersPage() {
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', description: '' });
   const [newRole, setNewRole] = useState({ name: '', color: '#8b919a', permissions: [] });
 
-  useEffect(() => { API.get('/api/users').then(setUsers); API.get('/api/roles').then(setRoles); }, []);
+  useEffect(() => { API.get('/api/users').then(d => setUsers(Array.isArray(d) ? d : [])); API.get('/api/roles').then(d => setRoles(Array.isArray(d) ? d : [])); }, []);
   useEffect(() => { if (tab === 'audit') API.get('/api/audit?limit=200').then(d => setAudit(d.entries || [])); }, [tab]);
 
   const addUser = async () => {

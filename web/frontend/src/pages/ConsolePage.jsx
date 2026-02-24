@@ -7,7 +7,7 @@ export default function ConsolePage({ serverId }) {
   const [logs, setLogs] = useState([]);
   const [cmd, setCmd] = useState('');
   const outputRef = useRef(null);
-  useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(setLogs); }, [serverId]);
+  useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(d => setLogs(Array.isArray(d) ? d : [])); }, [serverId]);
   useEffect(() => {
     const handler = (data) => { if (data.serverId === serverId) setLogs(l => [data, ...l].slice(0, 500)); };
     socket.on('log', handler);

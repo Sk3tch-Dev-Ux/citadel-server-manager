@@ -1,14 +1,97 @@
 /**
- * Server CRUD routes (list, create, update, delete).
+ * Server CRUD routes (list, create, update, delete, detect).
  */
+const fs = require('fs');
+const path = require('path');
 const { v4: uuid } = require('uuid');
 const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
 const { initServerState } = require('../lib/server-init');
+const { readServerConfig } = require('../lib/dayz-config');
 const auth = require('../middleware/auth');
 
+// Map template names from serverDZ.cfg to our map values
+const TEMPLATE_TO_MAP = {
+  'dayzoffline.chernarusplus': 'chernarusplus',
+  'dayzoffline.enoch': 'enoch',
+  'chernarusplus': 'chernarusplus',
+  'enoch': 'enoch',
+  'deerisle': 'deerisle',
+  'namalsk': 'namalsk',
+};
+
 module.exports = function(app) {
+  // Detect existing DayZ server installation from a directory path
+  app.post('/api/servers/detect', auth('server.deploy'), (req, res) => {
+    const { installDir } = req.body;
+    if (!installDir) return res.status(400).json({ error: 'installDir required' });
+
+    const dir = installDir.replace(/\//g, '\\');
+    if (!fs.existsSync(dir)) return res.json({ found: false, reason: 'Directory does not exist' });
+
+    // Check for server executable
+    const exeNames = ['DayZServer_x64.exe', 'DayZServer.exe'];
+    let executable = '';
+    for (const exe of exeNames) {
+      if (fs.existsSync(path.join(dir, exe))) { executable = exe; break; }
+    }
+
+    // Check for serverDZ.cfg
+    const hasCfg = fs.existsSync(path.join(dir, 'serverDZ.cfg'));
+
+    // Check for .bat files
+    const batFiles = [];
+    try {
+      const files = fs.readdirSync(dir);
+      for (const f of files) {
+        if (f.toLowerCase().endsWith('.bat')) batFiles.push(f);
+      }
+    } catch { /* ignore read errors */ }
+
+    if (!executable && !hasCfg) {
+      return res.json({ found: false, reason: 'No DayZ server executable or serverDZ.cfg found in this directory' });
+    }
+
+    const result = { found: true, executable, hasCfg, batFiles };
+
+    // Parse serverDZ.cfg if it exists
+    if (hasCfg) {
+      const cfg = readServerConfig(dir);
+      result.config = {};
+      if (cfg.hostname) result.config.name = cfg.hostname;
+      if (cfg.maxPlayers) result.config.maxPlayers = cfg.maxPlayers;
+      if (cfg.template) result.config.map = TEMPLATE_TO_MAP[cfg.template] || cfg.template;
+      if (cfg.steamQueryPort) result.config.queryPort = cfg.steamQueryPort;
+
+      // Try to detect game port from launch params in .bat files
+      for (const bat of batFiles) {
+        try {
+          const content = fs.readFileSync(path.join(dir, bat), 'utf8');
+          const portMatch = content.match(/-port=(\d+)/);
+          if (portMatch) { result.config.gamePort = parseInt(portMatch[1], 10); break; }
+        } catch { /* ignore */ }
+      }
+
+      // Detect if experimental based on directory or config hints
+      const dirLower = dir.toLowerCase();
+      if (dirLower.includes('experimental') || dirLower.includes('exp')) {
+        result.config.gameTitle = 'DayZ, PC (Experimental)';
+      }
+    }
+
+    // Check for mods directory
+    const modsDir = path.join(dir, 'keys');
+    if (fs.existsSync(modsDir)) {
+      try {
+        const keyFiles = fs.readdirSync(modsDir).filter(f => f.endsWith('.bikey') && f !== 'dayz.bikey');
+        result.modCount = keyFiles.length;
+      } catch { result.modCount = 0; }
+    }
+
+    res.json(result);
+  });
+
   app.get('/api/servers', auth(), (req, res) => {
     const result = ctx.servers.map(s => {
       const state = ctx.serverStates[s.id] || {};

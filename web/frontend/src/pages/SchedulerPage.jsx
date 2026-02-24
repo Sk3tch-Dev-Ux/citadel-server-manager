@@ -6,7 +6,7 @@ export default function SchedulerPage({ serverId }) {
   const [tasks, setTasks] = useState([]);
   const [cron, setCron] = useState('');
   const [label, setLabel] = useState('');
-  useEffect(() => { API.get(`/api/servers/${serverId}/schedule`).then(setTasks); }, [serverId]);
+  useEffect(() => { API.get(`/api/servers/${serverId}/schedule`).then(d => setTasks(Array.isArray(d) ? d : [])); }, [serverId]);
   const add = async () => {
     if (!label) return;
     const t = await API.post(`/api/servers/${serverId}/schedule`, { cronExpression: cron, label, enabled: true });
