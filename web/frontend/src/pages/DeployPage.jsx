@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
+import { Rocket, CheckCircle, XCircle, ArrowLeft, ArrowRight, Monitor, Zap } from '../components/Icon';
 
 export default function DeployPage({ onDeployed }) {
   const socket = useSocket();
@@ -47,17 +48,17 @@ export default function DeployPage({ onDeployed }) {
           <h3 style={{ marginBottom: 20 }}>Select Game Title</h3>
           <div className="grid grid-2" style={{ maxWidth: 500 }}>
             <div className={`game-card ${gameTitle === 'DayZ, PC' ? 'selected' : ''}`} onClick={() => setGameTitle('DayZ, PC')}>
-              <div className="game-card-icon">{'\uD83C\uDFAE'}</div>
+              <div className="game-card-icon"><Monitor size={24} /></div>
               <div className="game-card-title">DayZ PC</div>
               <div className="game-card-sub">Stable Branch</div>
             </div>
             <div className={`game-card ${gameTitle === 'DayZ, PC (Experimental)' ? 'selected' : ''}`} onClick={() => setGameTitle('DayZ, PC (Experimental)')}>
-              <div className="game-card-icon">{'\uD83E\uDDEA'}</div>
+              <div className="game-card-icon"><Zap size={24} /></div>
               <div className="game-card-title">DayZ PC</div>
               <div className="game-card-sub">Experimental</div>
             </div>
           </div>
-          <div style={{ marginTop: 24 }}><button className="btn btn-blue" onClick={() => setStep(2)}>Next {'\u2192'}</button></div>
+          <div style={{ marginTop: 24 }}><button className="btn btn-blue" onClick={() => setStep(2)}>Next <ArrowRight size={14} /></button></div>
         </div>
       )}
 
@@ -75,8 +76,8 @@ export default function DeployPage({ onDeployed }) {
             </select>
           </div>
           <div className="btn-group" style={{ marginTop: 16 }}>
-            <button className="btn btn-secondary" onClick={() => setStep(1)}>{'\u2190'} Back</button>
-            <button className="btn btn-blue" onClick={() => setStep(3)}>Next {'\u2192'}</button>
+            <button className="btn btn-secondary" onClick={() => setStep(1)}><ArrowLeft size={14} /> Back</button>
+            <button className="btn btn-blue" onClick={() => setStep(3)}>Next <ArrowRight size={14} /></button>
           </div>
         </div>
       )}
@@ -92,15 +93,15 @@ export default function DeployPage({ onDeployed }) {
           </div>
           <div className="input-group"><label className="input-label">RCON Password</label><input className="input" type="password" value={rconPassword} onChange={e => setRconPassword(e.target.value)} /></div>
           <div className="btn-group" style={{ marginTop: 16 }}>
-            <button className="btn btn-secondary" onClick={() => setStep(2)}>{'\u2190'} Back</button>
-            <button className="btn btn-primary" onClick={deploy}>{'\uD83D\uDE80'} Deploy Server</button>
+            <button className="btn btn-secondary" onClick={() => setStep(2)}><ArrowLeft size={14} /> Back</button>
+            <button className="btn btn-primary" onClick={deploy}><Rocket size={14} /> Deploy Server</button>
           </div>
         </div>
       )}
 
       {step === 4 && (
         <div style={{ maxWidth: 500, textAlign: 'center', padding: '40px 0' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>{progress.status === 'complete' ? '\u2705' : progress.status === 'error' ? '\u274C' : '\uD83D\uDE80'}</div>
+          <div style={{ marginBottom: 16 }}>{progress.status === 'complete' ? <CheckCircle size={48} /> : progress.status === 'error' ? <XCircle size={48} /> : <Rocket size={48} />}</div>
           <h3 style={{ marginBottom: 12 }}>{progress.status === 'complete' ? 'Deployment Complete!' : progress.status === 'error' ? 'Deployment Failed' : 'Deploying...'}</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: 20 }}>{progress.message || 'Preparing deployment...'}</p>
           {progress.status !== 'complete' && progress.status !== 'error' && (
@@ -109,7 +110,7 @@ export default function DeployPage({ onDeployed }) {
             </div>
           )}
           {progress.status === 'complete' && <button className="btn btn-primary" onClick={() => { setStep(1); setDeploying(false); }}>Done</button>}
-          {progress.status === 'error' && <button className="btn btn-secondary" onClick={() => { setStep(3); setDeploying(false); }}>{'\u2190'} Go Back</button>}
+          {progress.status === 'error' && <button className="btn btn-secondary" onClick={() => { setStep(3); setDeploying(false); }}><ArrowLeft size={14} /> Go Back</button>}
         </div>
       )}
     </div>

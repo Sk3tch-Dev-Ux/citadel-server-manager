@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import API from '../api';
 import { timeAgo } from '../utils';
+import { ShieldBan } from '../components/Icon';
 
 export default function BansPage({ serverId }) {
   const [bans, setBans] = useState([]);
@@ -12,7 +13,7 @@ export default function BansPage({ serverId }) {
   };
   return (
     <div>
-      {bans.length === 0 ? <div className="empty-state"><div className="empty-icon">{'\uD83D\uDEE1\uFE0F'}</div><div className="empty-title">No Active Bans</div></div> : (
+      {bans.length === 0 ? <div className="empty-state"><div className="empty-icon"><ShieldBan size={48} /></div><div className="empty-title">No Active Bans</div></div> : (
         <div className="table-wrap"><table>
           <thead><tr><th>Name</th><th>ID</th><th>Reason</th><th>Date</th><th>Actions</th></tr></thead>
           <tbody>{bans.map(b => (

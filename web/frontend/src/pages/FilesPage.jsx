@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
+import { Folder, FolderOpen, FileCode, FileCog, FileJson, FileText, Zap, Globe, File, Save, RefreshCw, ChevronDown, ChevronRight, Loader } from '../components/Icon';
 
 export default function FilesPage({ serverId }) {
   const socket = useSocket();
@@ -36,11 +37,17 @@ export default function FilesPage({ serverId }) {
   };
 
   const getFileIcon = (filename, isDir, isExpanded) => {
-    if (isDir) return isExpanded ? '\uD83D\uDCC2' : '\uD83D\uDCC1';
+    if (isDir) return isExpanded ? <FolderOpen size={14} /> : <Folder size={14} />;
     const ext = (filename || '').split('.').pop().toLowerCase();
-    return { cfg: '\u2699\uFE0F', xml: '\uD83D\uDCCB', json: '\uD83D\uDCCA', bat: '\u26A1', cmd: '\u26A1',
-      c: '\uD83D\uDCBB', cpp: '\uD83D\uDCBB', h: '\uD83D\uDCCE', hpp: '\uD83D\uDCCE', log: '\uD83D\uDCC3', txt: '\uD83D\uDCDD',
-      md: '\uD83D\uDCDD', js: '\uD83D\uDCDC', py: '\uD83D\uDC0D', html: '\uD83C\uDF10', css: '\uD83C\uDFA8' }[ext] || '\uD83D\uDCC4';
+    const iconMap = {
+      cfg: <FileCog size={14} />, xml: <FileCode size={14} />, json: <FileJson size={14} />,
+      bat: <Zap size={14} />, cmd: <Zap size={14} />,
+      c: <FileCode size={14} />, cpp: <FileCode size={14} />, h: <FileCode size={14} />, hpp: <FileCode size={14} />,
+      log: <FileText size={14} />, txt: <FileText size={14} />,
+      md: <FileText size={14} />, js: <FileCode size={14} />, py: <FileCode size={14} />,
+      html: <Globe size={14} />, css: <FileCode size={14} />, ini: <FileCog size={14} />
+    };
+    return iconMap[ext] || <File size={14} />;
   };
 
   const formatSize = (bytes) => {
@@ -244,7 +251,7 @@ export default function FilesPage({ serverId }) {
             title={isDir ? entry.path : `${entry.path} \u2014 ${formatSize(entry.size)}`}
           >
             <span className="tree-arrow">
-              {isDir ? (loadingDirs.has(entry.path) ? '\u27F3' : (isExp ? '\u25BE' : '\u25B8')) : '\u00A0'}
+              {isDir ? (loadingDirs.has(entry.path) ? <Loader size={12} /> : (isExp ? <ChevronDown size={12} /> : <ChevronRight size={12} />)) : '\u00A0'}
             </span>
             <span className="tree-icon">{getFileIcon(entry.name, isDir, isExp)}</span>
             <span className="tree-name">{entry.name}</span>
@@ -265,7 +272,7 @@ export default function FilesPage({ serverId }) {
         <div className="file-sidebar">
           <div className="file-sidebar-header">
             <span>Explorer</span>
-            <button className="btn btn-ghost btn-sm" onClick={refreshTree} title="Refresh" style={{ padding: '2px 6px', fontSize: 12 }}>{'\uD83D\uDD04'}</button>
+            <button className="btn btn-ghost btn-sm" onClick={refreshTree} title="Refresh" style={{ padding: '2px 6px', fontSize: 12 }}><RefreshCw size={14} /></button>
           </div>
           <div className="file-search">
             <input type="text" placeholder="Filter files..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
@@ -282,7 +289,7 @@ export default function FilesPage({ serverId }) {
             <div className="editor-tabs">
               {tabs.map(tab => (
                 <div key={tab.path} className={`editor-tab ${activeTab === tab.path ? 'active' : ''}`} onClick={() => setActiveTab(tab.path)}>
-                  <span style={{ fontSize: 12 }}>{getFileIcon(tab.name)}</span>
+                  <span style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center' }}>{getFileIcon(tab.name)}</span>
                   <span>{tab.name}</span>
                   {tab.content !== tab.originalContent && <span className="tab-dot"></span>}
                   <span className="tab-close" onClick={e => closeTab(e, tab.path)}>{'\u00D7'}</span>
@@ -315,14 +322,14 @@ export default function FilesPage({ serverId }) {
               </div>
               <div className="status-right">
                 <span>{formatSize(currentTab.size) || ''}</span>
-                <span style={{ cursor: 'pointer' }} onClick={saveFile}>{'\uD83D\uDCBE'} Save (Ctrl+S)</span>
+                <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={saveFile}><Save size={14} /> Save (Ctrl+S)</span>
               </div>
             </div>
           )}
 
           {!currentTab && (
             <div className="editor-empty">
-              <div className="icon">{'\uD83D\uDCDD'}</div>
+              <div className="icon"><FileText size={48} /></div>
               <p>Select a file to edit</p>
               <div className="shortcuts">
                 <span>Browse files in the explorer sidebar</span>

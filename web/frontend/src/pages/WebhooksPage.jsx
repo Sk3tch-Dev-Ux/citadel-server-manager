@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../api';
+import { CheckCircle, XCircle, AlertTriangle, RotateCcw, Activity, Ban, Shield, Package, Trash2, Webhook, Send } from '../components/Icon';
 
 export default function WebhooksPage() {
   const [webhooks, setWebhooks] = useState([]);
@@ -16,8 +17,8 @@ export default function WebhooksPage() {
     'server.health', 'player.kick', 'player.ban', 'mod.installed', 'mod.removed'
   ];
   const eventIcons = {
-    'server.started': '\uD83D\uDFE2', 'server.stopped': '\uD83D\uDD34', 'server.crashed': '\uD83D\uDCA5', 'server.restarted': '\uD83D\uDD04',
-    'server.health': '\u26A0\uFE0F', 'player.kick': '\uD83E\uDDB6', 'player.ban': '\uD83D\uDD28', 'mod.installed': '\uD83D\uDCE6', 'mod.removed': '\uD83D\uDDD1\uFE0F'
+    'server.started': <CheckCircle size={14} />, 'server.stopped': <XCircle size={14} />, 'server.crashed': <AlertTriangle size={14} />, 'server.restarted': <RotateCcw size={14} />,
+    'server.health': <Activity size={14} />, 'player.kick': <Ban size={14} />, 'player.ban': <Shield size={14} />, 'mod.installed': <Package size={14} />, 'mod.removed': <Trash2 size={14} />
   };
   const eventColor = (e) => {
     if (e === 'server.started') return 'started';
@@ -71,13 +72,13 @@ export default function WebhooksPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
             <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Webhook</button>
           </div>
-          {webhooks.length === 0 ? <div className="empty-state"><div className="empty-icon">{'\uD83D\uDD17'}</div><div className="empty-title">No Webhooks</div><p>Add webhooks to receive notifications for server events.</p></div> : (
+          {webhooks.length === 0 ? <div className="empty-state"><div className="empty-icon"><Webhook size={48} /></div><div className="empty-title">No Webhooks</div><p>Add webhooks to receive notifications for server events.</p></div> : (
             <div>
               {webhooks.map(wh => (
                 <div key={wh.id} className="card" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                   <div>
-                    <span className={`webhook-event-badge ${eventColor(wh.event)}`}>{eventIcons[wh.event] || '\uD83D\uDD17'} {wh.event}</span>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 4 }} title={wh.url}>{wh.isDiscord ? '\uD83D\uDFE3 Discord' : wh.url}</div>
+                    <span className={`webhook-event-badge ${eventColor(wh.event)}`}>{eventIcons[wh.event] || <Webhook size={14} />} {wh.event}</span>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 4 }} title={wh.url}>{wh.isDiscord ? <><Send size={14} /> Discord</> : wh.url}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{wh.retryEnabled ? 'Retry: On' : 'Retry: Off'}</span>
@@ -97,7 +98,7 @@ export default function WebhooksPage() {
                 <div className="modal-title">Add Webhook</div>
                 <div className="input-group"><label className="input-label">Event</label>
                   <select className="input" value={newWh.event} onChange={e => setNewWh({ ...newWh, event: e.target.value })}>
-                    {events.map(ev => <option key={ev} value={ev}>{eventIcons[ev] || '\uD83D\uDD17'} {ev}</option>)}
+                    {events.map(ev => <option key={ev} value={ev}>{ev}</option>)}
                   </select>
                 </div>
                 <div className="input-group"><label className="input-label">Webhook URL</label><input className="input" value={newWh.url} onChange={e => setNewWh({ ...newWh, url: e.target.value })} placeholder="https://discord.com/api/webhooks/..." /></div>
@@ -118,7 +119,7 @@ export default function WebhooksPage() {
 
       {tab === 'deliveries' && (
         <div>
-          {deliveries.length === 0 ? <div className="empty-state"><div className="empty-icon">{'\uD83D\uDCEC'}</div><div className="empty-title">No Deliveries Yet</div></div> : (
+          {deliveries.length === 0 ? <div className="empty-state"><div className="empty-icon"><Send size={48} /></div><div className="empty-title">No Deliveries Yet</div></div> : (
             <div className="table-wrap"><table>
               <thead><tr><th>Time</th><th>Event</th><th>Status</th><th>Error</th></tr></thead>
               <tbody>{deliveries.map((d, i) => (

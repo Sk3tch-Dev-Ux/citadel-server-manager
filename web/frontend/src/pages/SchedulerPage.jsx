@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../api';
+import { Clock, CheckCircle, XCircle } from '../components/Icon';
 
 export default function SchedulerPage({ serverId }) {
   const [tasks, setTasks] = useState([]);
@@ -27,12 +28,12 @@ export default function SchedulerPage({ serverId }) {
           <button className="btn btn-primary" onClick={add}>Add</button>
         </div>
       </div>
-      {tasks.length === 0 ? <div className="empty-state"><div className="empty-icon">{'\uD83D\uDCC5'}</div><div className="empty-title">No Scheduled Tasks</div></div> : (
+      {tasks.length === 0 ? <div className="empty-state"><div className="empty-icon"><Clock size={48} /></div><div className="empty-title">No Scheduled Tasks</div></div> : (
         <div className="table-wrap"><table>
           <thead><tr><th>Label</th><th>Cron</th><th>Enabled</th><th>Actions</th></tr></thead>
           <tbody>{tasks.map(t => (
             <tr key={t.id}><td>{t.label}</td><td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{t.cronExpression}</td>
-              <td>{t.enabled ? '\u2705' : '\u274C'}</td>
+              <td>{t.enabled ? <CheckCircle size={14} /> : <XCircle size={14} />}</td>
               <td><button className="btn btn-sm btn-danger" onClick={() => remove(t.id)}>Remove</button></td></tr>
           ))}</tbody>
         </table></div>
