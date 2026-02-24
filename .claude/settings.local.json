@@ -5,7 +5,8 @@
       "Bash(taskkill:*)",
       "Bash(netstat:*)",
       "Bash(npm install:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm run build)"
     ]
   }
 }
