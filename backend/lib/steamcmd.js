@@ -23,7 +23,7 @@ async function ensureSteamCMD() {
   if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
   fs.writeFileSync(zipPath, Buffer.from(await resp.arrayBuffer()));
   await new Promise((resolve, reject) => {
-    const proc = spawn('powershell', ['-NoProfile', '-Command', `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${steamCmdDir.replace(/'/g, "''")}' -Force`], { windowsHide: true, timeout: 60000 });
+    const proc = spawn('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${steamCmdDir.replace(/'/g, "''")}' -Force`], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
     proc.on('error', (err) => reject(err));
     proc.on('close', (code) => code === 0 ? resolve() : reject(new Error(`Expand-Archive exited with code ${code}`)));
   });
