@@ -6,7 +6,7 @@
     "executable": "DayZServer_x64.exe",
     "startBat": "start.bat",
     "launchParams": "-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck",
-    "ip": "192.168.0.22",
+    "ip": "0.0.0.0",
     "gamePort": 2302,
     "queryPort": 2303,
     "rconPort": 2305,
