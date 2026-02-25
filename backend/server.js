@@ -74,13 +74,6 @@ const { apiLimiter, authLimiter, discordLimiter } = require('./middleware/rate-l
 
 app.use(createCors(CONFIG.allowedOrigins));
 app.use(express.json({ limit: '10mb' }));
-// Handle JSON parse errors from body-parser (return JSON, not HTML)
-app.use((err, req, res, next) => {
-  if (err.type === 'entity.parse.failed') {
-    return res.status(400).json({ error: 'Invalid JSON in request body' });
-  }
-  next(err);
-});
 app.use(secureCookies(useHttps));
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
@@ -128,6 +121,15 @@ io.on('connection', (socket) => {
 // ─── SPA Fallback ────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../web/dist/index.html'));
+});
+
+// ─── Error handler (must be after all routes) ────────────
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON in request body' });
+  }
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // ─── Startup ─────────────────────────────────────────────

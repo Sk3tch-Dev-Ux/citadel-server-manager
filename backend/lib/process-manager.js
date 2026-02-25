@@ -137,25 +137,86 @@ function killProcess(pid, executable) {
 
 function spawnDayZServer(serverConfig) {
   const installDir = serverConfig.installDir;
-  let child;
+  const execPath = path.join(installDir, serverConfig.executable || 'DayZServer_x64.exe');
+  if (!fs.existsSync(execPath)) throw new Error(`Executable not found: ${execPath}`);
+
+  // Always launch the executable directly — never use batch files.
+  // Batch files often contain their own restart loops (goto :start)
+  // which conflict with the panel's own lifecycle management.
+  const params = (serverConfig.launchParams || '').split(' ').filter(Boolean);
+
+  // If there's a startBat, try to extract launch params from it
+  // so we capture any mod lists or custom flags the user configured
   if (serverConfig.startBat) {
     const batPath = path.join(installDir, serverConfig.startBat);
-    if (!fs.existsSync(batPath)) throw new Error(`Start batch file not found: ${batPath}`);
-    child = spawn('cmd.exe', ['/c', batPath], {
-      cwd: installDir, detached: true, stdio: 'ignore', windowsHide: false,
-    });
-    child.unref();
-  } else {
-    const execPath = path.join(installDir, serverConfig.executable);
-    const params = (serverConfig.launchParams || '').split(' ').filter(Boolean);
-    if (!fs.existsSync(execPath)) throw new Error(`Executable not found: ${execPath}`);
-    child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: 'ignore' });
-    child.unref();
+    if (fs.existsSync(batPath)) {
+      const extracted = extractBatParams(batPath, serverConfig.executable || 'DayZServer_x64.exe');
+      if (extracted && extracted.length > 0) {
+        // Use bat params if they contain more detail (e.g. mod lists)
+        logger.info({ server: serverConfig.name, params: extracted }, 'Using launch params extracted from batch file');
+        params.length = 0;
+        params.push(...extracted);
+      }
+    }
   }
+
+  logger.info({ server: serverConfig.name, executable: execPath, params }, 'Spawning server process');
+  const child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: 'ignore' });
+  child.unref();
   if (child && child.pid) {
     applyProcessSettings(child.pid, serverConfig);
   }
   return child;
+}
+
+/**
+ * Extract launch parameters from a .bat file by finding the line that
+ * launches the server executable and parsing out its arguments.
+ */
+function extractBatParams(batPath, executable) {
+  try {
+    const content = fs.readFileSync(batPath, 'utf8');
+    const exeName = executable.replace(/\.exe$/i, '');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      // Skip comments, empty lines, and kill/management commands
+      if (!trimmed || trimmed.startsWith('::') || trimmed.startsWith('REM ')) continue;
+      if (/^(taskkill|timeout|goto|title|cd|echo|set)\b/i.test(trimmed)) continue;
+      // Look for lines that reference the executable (start command or direct invocation)
+      if (trimmed.toLowerCase().includes(exeName.toLowerCase())) {
+        // Extract everything after the executable reference
+        // Handle: start "title" /min "DayZServer_x64.exe" -config=... -mod=...
+        // Handle: DayZServer_x64.exe -config=... -mod=...
+        const exePattern = new RegExp(`["']?${exeName}(?:\\.exe)?["']?\\s+(.+)`, 'i');
+        const match = trimmed.match(exePattern);
+        if (match) {
+          // Parse the params, respecting quoted strings
+          const paramStr = match[1].trim();
+          const params = [];
+          let current = '';
+          let inQuotes = false;
+          for (let i = 0; i < paramStr.length; i++) {
+            const ch = paramStr[i];
+            if (ch === '"') { inQuotes = !inQuotes; current += ch; }
+            else if (ch === ' ' && !inQuotes) {
+              if (current) { params.push(current); current = ''; }
+            } else { current += ch; }
+          }
+          if (current) params.push(current);
+          // Resolve batch variables like %serverConfig%, %serverPort%, etc.
+          const vars = {};
+          for (const vLine of content.split('\n')) {
+            const setMatch = vLine.trim().match(/^set\s+(\w+)\s*=\s*(.+)/i);
+            if (setMatch) vars[setMatch[1].toLowerCase()] = setMatch[2].trim().replace(/^"(.*)"$/, '$1');
+          }
+          return params.map(p => p.replace(/%(\w+)%/g, (_, name) => vars[name.toLowerCase()] || `%${name}%`));
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn({ err, batPath }, 'Failed to parse batch file for launch params');
+  }
+  return null;
 }
 
 function applyProcessSettings(pid, serverConfig) {

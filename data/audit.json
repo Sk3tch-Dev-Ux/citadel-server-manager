@@ -1,5 +1,21 @@
 [
   {
+    "id": "47bd00b1-6d62-4f5e-b0ce-d8ce5ef54838",
+    "timestamp": "2026-02-24T21:51:41.959Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: EXAMPLE NAME"
+  },
+  {
+    "id": "0e436783-508e-4f9d-8e4f-7a30709dd337",
+    "timestamp": "2026-02-24T21:51:13.315Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
     "id": "23270eee-92e4-4efe-a277-fb9c20ff6354",
     "timestamp": "2026-02-24T21:49:11.529Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",
