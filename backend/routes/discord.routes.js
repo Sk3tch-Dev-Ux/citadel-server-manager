@@ -10,6 +10,7 @@ const { detectRunningProcess, detectProcessByPid, killProcess, spawnDayZServer }
 const { downloadWorkshopMod } = require('../lib/steamcmd');
 const { installModToServer, updateStartBatMods } = require('../lib/mod-manager');
 const { scrapeRPTForKills } = require('../lib/rpt-scraper');
+const { listBans } = require('../lib/cftools-bans');
 
 module.exports = function(app) {
   app.post('/api/discord/action', async (req, res) => {
@@ -144,8 +145,10 @@ module.exports = function(app) {
       }
       case 'chatFeed':
         return res.json({ messages: state?.chatMessages || [] });
-      case 'banWhitelist':
-        return res.json({ entries: (state?.banList || []).map(b => ({ player: b.name || b.id, status: 'Banned', reason: b.reason || '' })) });
+      case 'banWhitelist': {
+        const bans = await listBans(defaultSrv?.id);
+        return res.json({ entries: bans.map(b => ({ player: b.name || b.id, status: 'Banned', reason: b.reason || '' })) });
+      }
       case 'killfeed':
         return res.json({ kills: scrapeRPTForKills(defaultSrv, 20) });
       case 'watchList':
