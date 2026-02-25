@@ -26,7 +26,9 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAwMWQzMDFiLTliZmYtNDIwZS05MTUyLWFiZmQ2MjVhYjkyMiIsInVzZXJuYW1lIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NzE5OTEyODksImV4cCI6MTc3MjA3NzY4OX0.1zZEJligwHywmLDqjvXnCEnxo1kfByPkZzXsoWFNkGc\")",
       "Bash(node -pe:*)",
       "Bash(node --check:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(ls:*)",
+      "WebFetch(domain:www.yougetsignal.com)"
     ]
   }
 }
