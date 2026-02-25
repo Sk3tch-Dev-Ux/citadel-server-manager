@@ -11,7 +11,12 @@
       "Bash(npm test)",
       "mcp__Claude_Preview__preview_start",
       "Bash(tasklist:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(wmic:*)",
+      "Bash(powershell -Command \"wmic process where ''ProcessId=28656'' get WorkingSetSize,KernelModeTime,UserModeTime /format:csv\")",
+      "Bash(powershell -NoProfile -NonInteractive -Command \"Get-Process -Id 28656 | Select-Object WorkingSet64,CPU | ConvertTo-Csv -NoTypeInformation\")",
+      "Bash(powershell -NoProfile -NonInteractive -Command \"Get-Process -Id 28656 -ErrorAction Stop | Select-Object WorkingSet64,@{N=''KernelTime'';E={$_PrivilegedProcessorTime.Ticks}},@{N=''UserTime'';E={$_UserProcessorTime.Ticks}} | ConvertTo-Csv -NoTypeInformation\")",
+      "Bash(powershell -NoProfile -NonInteractive -Command:*)"
     ]
   }
 }
