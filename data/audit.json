@@ -1,5 +1,13 @@
 [
   {
+    "id": "9843f182-60b4-4158-b91a-cf1d6f0ea168",
+    "timestamp": "2026-02-25T01:23:40.213Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: EXAMPLE NAME"
+  },
+  {
     "id": "47bd00b1-6d62-4f5e-b0ce-d8ce5ef54838",
     "timestamp": "2026-02-24T21:51:41.959Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",
