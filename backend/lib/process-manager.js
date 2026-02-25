@@ -44,13 +44,11 @@ function getProcessMetrics(pid) {
     if (isNaN(safePid) || safePid <= 0) return resolve(null);
     if (_pendingMetrics.has(safePid)) return resolve(null);
     _pendingMetrics.add(safePid);
-    // Use wmic for lightweight metrics (no visible window, faster than PowerShell)
-    const proc = spawn('wmic', [
-      'process', 'where', `ProcessId=${safePid}`,
-      'get', 'WorkingSetSize,KernelModeTime,UserModeTime', '/format:csv',
-    ], {
+    // Use PowerShell Get-Process (wmic is deprecated/removed on Win 11)
+    const cmd = `$p = Get-Process -Id ${safePid} -ErrorAction Stop; "{0},{1},{2}" -f $p.WorkingSet64,$p.PrivilegedProcessorTime.Ticks,$p.UserProcessorTime.Ticks`;
+    const proc = spawn('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', cmd], {
       windowsHide: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stdout = '';
     const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
@@ -60,15 +58,10 @@ function getProcessMetrics(pid) {
       clearTimeout(killTimer);
       _pendingMetrics.delete(safePid);
       if (!stdout) return resolve(null);
-      const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.startsWith('Node'));
-      if (lines.length < 1) return resolve(null);
-      // CSV format: Node,KernelModeTime,UserModeTime,WorkingSetSize
-      const parts = lines[lines.length - 1].split(',');
-      if (parts.length < 4) return resolve(null);
-      const workingSet = parseInt(parts[3]) || 0;
+      const parts = stdout.trim().split(',');
+      if (parts.length < 3) return resolve(null);
+      const workingSet = parseInt(parts[0]) || 0;
       const ramMB = Math.round(workingSet / (1024 * 1024));
-      // Estimate CPU from kernel+user time (delta between polls is handled by metrics history)
-      // For now use wmic percentage from a separate quick call, or approximate from working set
       const totalMem = require('os').totalmem();
       const ramPct = totalMem > 0 ? Math.round((workingSet / totalMem) * 1000) / 10 : 0;
       resolve({ cpu: 0, ram: ramPct, ramMB });
@@ -76,19 +69,17 @@ function getProcessMetrics(pid) {
   });
 }
 
-// Separate lightweight CPU sampling using wmic (called less frequently)
+// Delta-based CPU sampling using PowerShell Get-Process
 let _lastCpuSamples = {};
 function getProcessCPU(pid) {
   return new Promise((resolve) => {
     if (!pid) return resolve(0);
     const safePid = parseInt(pid, 10);
     if (isNaN(safePid) || safePid <= 0) return resolve(0);
-    const proc = spawn('wmic', [
-      'process', 'where', `ProcessId=${safePid}`,
-      'get', 'KernelModeTime,UserModeTime', '/format:csv',
-    ], {
+    const cmd = `$p = Get-Process -Id ${safePid} -ErrorAction Stop; "{0},{1}" -f $p.PrivilegedProcessorTime.Ticks,$p.UserProcessorTime.Ticks`;
+    const proc = spawn('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', cmd], {
       windowsHide: true,
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stdout = '';
     const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 3000);
@@ -97,20 +88,18 @@ function getProcessCPU(pid) {
     proc.on('close', () => {
       clearTimeout(killTimer);
       if (!stdout) return resolve(0);
-      const lines = stdout.trim().split('\n').filter(l => l.trim() && !l.startsWith('Node'));
-      if (lines.length < 1) return resolve(0);
-      const parts = lines[lines.length - 1].split(',');
-      if (parts.length < 3) return resolve(0);
-      const kernelTime = parseInt(parts[1]) || 0;
-      const userTime = parseInt(parts[2]) || 0;
-      const totalTime = kernelTime + userTime; // in 100-nanosecond intervals
+      const parts = stdout.trim().split(',');
+      if (parts.length < 2) return resolve(0);
+      const kernelTicks = parseInt(parts[0]) || 0;
+      const userTicks = parseInt(parts[1]) || 0;
+      const totalTime = kernelTicks + userTicks; // in 100-nanosecond ticks
       const now = Date.now();
       const prev = _lastCpuSamples[safePid];
       _lastCpuSamples[safePid] = { totalTime, timestamp: now };
       if (!prev) return resolve(0);
       const timeDelta = (now - prev.timestamp) / 1000; // seconds
       if (timeDelta <= 0) return resolve(0);
-      const cpuDelta = (totalTime - prev.totalTime) / 10000000; // convert 100ns to seconds
+      const cpuDelta = (totalTime - prev.totalTime) / 10000000; // convert 100ns ticks to seconds
       const cpuCores = require('os').cpus().length || 1;
       const cpuPct = Math.round((cpuDelta / timeDelta / cpuCores) * 1000) / 10;
       resolve(Math.max(0, Math.min(100, cpuPct)));
@@ -242,14 +231,15 @@ function extractBatParams(batPath, executable) {
         const exePattern = new RegExp(`["']?${exeName}(?:\\.exe)?["']?\\s+(.+)`, 'i');
         const match = trimmed.match(exePattern);
         if (match) {
-          // Parse the params, respecting quoted strings
+          // Parse the params, respecting quoted strings but stripping the quotes
+          // (spawn() handles quoting automatically — literal quotes break arguments)
           const paramStr = match[1].trim();
           const params = [];
           let current = '';
           let inQuotes = false;
           for (let i = 0; i < paramStr.length; i++) {
             const ch = paramStr[i];
-            if (ch === '"') { inQuotes = !inQuotes; current += ch; }
+            if (ch === '"') { inQuotes = !inQuotes; }
             else if (ch === ' ' && !inQuotes) {
               if (current) { params.push(current); current = ''; }
             } else { current += ch; }
