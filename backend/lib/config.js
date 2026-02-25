@@ -25,6 +25,10 @@ const CONFIG = {
     startBat: process.env.DAYZ_START_BAT || '',
     launchParams: process.env.DAYZ_LAUNCH_PARAMS || '-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck',
   },
+  cftools: {
+    applicationId: process.env.CFTOOLS_APPLICATION_ID || '',
+    secret: process.env.CFTOOLS_SECRET || '',
+  },
   webhookUrl: process.env.DISCORD_WEBHOOK_URL || '',
   steam: {
     cmdPath: process.env.STEAMCMD_PATH || '',

@@ -16,7 +16,15 @@
       "Bash(powershell -Command \"wmic process where ''ProcessId=28656'' get WorkingSetSize,KernelModeTime,UserModeTime /format:csv\")",
       "Bash(powershell -NoProfile -NonInteractive -Command \"Get-Process -Id 28656 | Select-Object WorkingSet64,CPU | ConvertTo-Csv -NoTypeInformation\")",
       "Bash(powershell -NoProfile -NonInteractive -Command \"Get-Process -Id 28656 -ErrorAction Stop | Select-Object WorkingSet64,@{N=''KernelTime'';E={$_PrivilegedProcessorTime.Ticks}},@{N=''UserTime'';E={$_UserProcessorTime.Ticks}} | ConvertTo-Csv -NoTypeInformation\")",
-      "Bash(powershell -NoProfile -NonInteractive -Command:*)"
+      "Bash(powershell -NoProfile -NonInteractive -Command:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:developer.cftools.cloud)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:steamcommunity.com)",
+      "WebFetch(domain:floriansw.github.io)",
+      "Bash(node -e:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAwMWQzMDFiLTliZmYtNDIwZS05MTUyLWFiZmQ2MjVhYjkyMiIsInVzZXJuYW1lIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NzE5OTEyODksImV4cCI6MTc3MjA3NzY4OX0.1zZEJligwHywmLDqjvXnCEnxo1kfByPkZzXsoWFNkGc\")",
+      "Bash(node -pe:*)"
     ]
   }
 }

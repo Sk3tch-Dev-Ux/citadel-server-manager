@@ -25,6 +25,7 @@ function initServerState(serverId) {
     modList: [], config: {}, scheduledRestarts: [], chatMessages: [], banList: [],
     rcon: srv.rconPassword ? new RCONClient(srv.ip, srv.rconPort, srv.rconPassword) : null,
     startedAt: null,
+    cftools: { lastSessionPoll: null, gameSessions: [] },
   };
   if (fs.existsSync(srv.installDir)) {
     ctx.serverStates[serverId].config = readServerConfig(srv.installDir);

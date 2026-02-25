@@ -2,7 +2,7 @@
  * Leaderboard routes.
  */
 const ctx = require('../lib/context');
-const { updateLeaderboard } = require('../lib/rpt-scraper');
+const { updateLeaderboard } = require('../lib/cftools-leaderboard');
 const auth = require('../middleware/auth');
 
 module.exports = function(app) {

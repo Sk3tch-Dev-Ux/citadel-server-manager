@@ -7,7 +7,8 @@ const ctx = require('./context');
 const { flushAll } = require('./data-store');
 const { detectRunningProcess, detectProcessByPid, getProcessMetrics, getProcessCPU, killProcess, spawnDayZServer, applyProcessSettings } = require('./process-manager');
 const { scrapeRPTForFPS } = require('./rpt-scraper');
-const { updateLeaderboard } = require('./rpt-scraper');
+const { updateLeaderboard } = require('./cftools-leaderboard');
+const { fetchPlayers } = require('./cftools-players');
 const { autoDetectMods } = require('./mod-manager');
 const { addLog } = require('./audit');
 const { pushMetrics } = require('./audit');
@@ -80,6 +81,15 @@ function startMetricsPolling() {
           } catch { /* RCON not available */ }
         }
         if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps);
+        // Player list polling (CFTools or RCON)
+        try {
+          const players = await fetchPlayers(srv.id);
+          const oldCount = state.players.length;
+          state.players = players;
+          if (players.length !== oldCount) {
+            ctx.io.emit('players', { serverId: srv.id, players: state.players });
+          }
+        } catch (err) { logger.debug({ err, serverId: srv.id }, 'Player poll failed'); }
         // Health monitoring checks (5-minute cooldown between alerts)
         if (srv.healthMonitoring && metrics) {
           const minFPS = srv.healthMinFPS || 5;
@@ -234,9 +244,18 @@ async function startAllPolling() {
   // Detect already-running processes and auto-start
   await runStartupDetection();
 
-  // Initial mod detection + leaderboard build
+  // Initial mod detection + leaderboard build + player fetch
   ctx.servers.forEach(s => autoDetectMods(s.id));
   ctx.servers.forEach(s => updateLeaderboard(s.id));
+  for (const srv of ctx.servers) {
+    const state = ctx.serverStates[srv.id];
+    if (state?.status === 'running') {
+      fetchPlayers(srv.id).then(players => {
+        state.players = players;
+        ctx.io.emit('players', { serverId: srv.id, players });
+      }).catch(() => {});
+    }
+  }
 
   // Periodic intervals
   intervals.push(startMetricsPolling());

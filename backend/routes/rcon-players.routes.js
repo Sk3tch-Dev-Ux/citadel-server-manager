@@ -4,6 +4,7 @@
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
+const { banPlayer, listBans, unbanPlayer } = require('../lib/cftools-bans');
 const auth = require('../middleware/auth');
 
 module.exports = function(app) {
@@ -39,11 +40,9 @@ module.exports = function(app) {
 
   app.post('/api/servers/:id/players/:playerId/ban', auth('players.ban'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
-    if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
-    await state.rcon.ban(req.params.playerId, req.body.reason || 'Banned');
-    const player = state.players.find(p => p.id === req.params.playerId);
-    state.banList.push({ id: req.params.playerId, name: player?.name || 'Unknown', reason: req.body.reason || 'Banned', bannedAt: new Date().toISOString(), expiresAt: null });
-    state.players = state.players.filter(p => p.id !== req.params.playerId);
+    if (!state) return res.status(400).json({ error: 'Server not found' });
+    await banPlayer(req.params.id, req.params.playerId, req.body.reason, req.body.expiration);
+    state.players = state.players.filter(p => p.id !== req.params.playerId && p.steamId !== req.params.playerId);
     ctx.io.emit('players', { serverId: req.params.id, players: state.players });
     addAudit(req.user.id, req.user.username, 'player.ban', `Banned player ${req.params.playerId}`);
     addNotification(req.params.id, 'player.ban', 'Player Banned', `Player ${req.params.playerId} was banned`, 'error');
@@ -51,11 +50,12 @@ module.exports = function(app) {
     res.json({ message: 'Banned' });
   });
 
-  app.get('/api/servers/:id/bans', auth(), (req, res) => { res.json(ctx.serverStates[req.params.id]?.banList || []); });
+  app.get('/api/servers/:id/bans', auth(), async (req, res) => {
+    res.json(await listBans(req.params.id));
+  });
 
-  app.delete('/api/servers/:id/bans/:banId', auth('players.ban'), (req, res) => {
-    const state = ctx.serverStates[req.params.id];
-    if (state) state.banList = state.banList.filter(b => b.id !== req.params.banId);
+  app.delete('/api/servers/:id/bans/:banId', auth('players.ban'), async (req, res) => {
+    await unbanPlayer(req.params.id, req.params.banId);
     res.json({ message: 'Ban removed' });
   });
 };
