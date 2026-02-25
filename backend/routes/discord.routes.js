@@ -11,6 +11,7 @@ const { downloadWorkshopMod } = require('../lib/steamcmd');
 const { installModToServer, updateStartBatMods } = require('../lib/mod-manager');
 const { scrapeRPTForKills } = require('../lib/rpt-scraper');
 const { listBans } = require('../lib/cftools-bans');
+const { getClient, isConfiguredForServer, getSdkTypes } = require('../lib/cftools-client');
 
 module.exports = function(app) {
   app.post('/api/discord/action', async (req, res) => {
@@ -23,7 +24,8 @@ module.exports = function(app) {
     }
     const allowedActions = ['status','start','stop','restart','players','lock','unlock','rcon','message','kick',
       'mods','modStatus','modInstall','modUninstall','modEnable','modDisable',
-      'chatFeed','banWhitelist','killfeed','watchList','priorityQueue','timeWeather','leaderboard'];
+      'chatFeed','banWhitelist','killfeed','watchList','priorityQueue','timeWeather','leaderboard',
+      'playerInfo','gameLabsHeal','gameLabsKill','gameLabsTeleport','gameLabsSpawnItem'];
     if (!action || !allowedActions.includes(action)) return res.status(400).json({ error: `Invalid action: ${sanitizeString(String(action || ''))}` });
     const defaultSrv = ctx.servers[0];
     const state = defaultSrv ? ctx.serverStates[defaultSrv.id] : null;
@@ -167,6 +169,84 @@ module.exports = function(app) {
       }
       case 'leaderboard':
         return res.json({ entries: ctx.leaderboard.slice(0, 10) });
+      case 'playerInfo': {
+        const { steamId } = params || {};
+        if (!steamId) return res.json({ error: 'steamId required' });
+        if (!defaultSrv || !isConfiguredForServer(defaultSrv.id)) return res.json({ error: 'CFTools not configured' });
+        try {
+          const client = getClient(defaultSrv.id);
+          const sdk = getSdkTypes();
+          if (!client || !sdk) return res.json({ error: 'CFTools client unavailable' });
+          const player = await client.getPlayerDetails(sdk.SteamId64.of(steamId));
+          const dayz = player.statistics?.dayz;
+          return res.json({
+            names: player.names,
+            playtime: player.playtime,
+            sessions: player.sessions,
+            firstSeen: player.firstSeen,
+            lastSeen: player.lastSeen,
+            kills: dayz?.kills?.players || 0,
+            deaths: (dayz?.deaths?.other || 0) + (dayz?.deaths?.infected || 0) + (dayz?.deaths?.animals || 0) +
+                    (dayz?.deaths?.environment || 0) + (dayz?.deaths?.explosions || 0) + (dayz?.deaths?.suicides || 0),
+            kdratio: dayz?.kdratio || 0,
+            longestKill: dayz?.longestKill || 0,
+            longestShot: dayz?.longestShot || 0,
+            hits: dayz?.hits || 0,
+          });
+        } catch (err) { return res.json({ error: err.message }); }
+      }
+      case 'gameLabsHeal': {
+        const { steamId } = params || {};
+        if (!steamId) return res.json({ error: 'steamId required' });
+        if (!defaultSrv || !isConfiguredForServer(defaultSrv.id)) return res.json({ error: 'CFTools not configured' });
+        const session = state?.cftools?.gameSessions?.find(s => s.steamId?.id === steamId);
+        if (!session) return res.json({ error: 'Player not in active session' });
+        try {
+          const client = getClient(defaultSrv.id);
+          if (!client) return res.json({ error: 'CFTools client unavailable' });
+          await client.healPlayer({ session });
+          return res.json({ message: `Healed ${session.playerName}` });
+        } catch (err) { return res.json({ error: err.message }); }
+      }
+      case 'gameLabsKill': {
+        const { steamId } = params || {};
+        if (!steamId) return res.json({ error: 'steamId required' });
+        if (!defaultSrv || !isConfiguredForServer(defaultSrv.id)) return res.json({ error: 'CFTools not configured' });
+        const session = state?.cftools?.gameSessions?.find(s => s.steamId?.id === steamId);
+        if (!session) return res.json({ error: 'Player not in active session' });
+        try {
+          const client = getClient(defaultSrv.id);
+          if (!client) return res.json({ error: 'CFTools client unavailable' });
+          await client.killPlayer({ session });
+          return res.json({ message: `Killed ${session.playerName}` });
+        } catch (err) { return res.json({ error: err.message }); }
+      }
+      case 'gameLabsTeleport': {
+        const { steamId, x, y, z } = params || {};
+        if (!steamId || x == null || y == null) return res.json({ error: 'steamId, x, and y required' });
+        if (!defaultSrv || !isConfiguredForServer(defaultSrv.id)) return res.json({ error: 'CFTools not configured' });
+        const session = state?.cftools?.gameSessions?.find(s => s.steamId?.id === steamId);
+        if (!session) return res.json({ error: 'Player not in active session' });
+        try {
+          const client = getClient(defaultSrv.id);
+          if (!client) return res.json({ error: 'CFTools client unavailable' });
+          await client.teleport({ session, coordinates: { x: parseFloat(x), y: parseFloat(z) || 0, z: parseFloat(y) } });
+          return res.json({ message: `Teleported ${session.playerName} to [${x}, ${y}, ${z || 0}]` });
+        } catch (err) { return res.json({ error: err.message }); }
+      }
+      case 'gameLabsSpawnItem': {
+        const { steamId, itemClass, quantity } = params || {};
+        if (!steamId || !itemClass) return res.json({ error: 'steamId and itemClass required' });
+        if (!defaultSrv || !isConfiguredForServer(defaultSrv.id)) return res.json({ error: 'CFTools not configured' });
+        const session = state?.cftools?.gameSessions?.find(s => s.steamId?.id === steamId);
+        if (!session) return res.json({ error: 'Player not in active session' });
+        try {
+          const client = getClient(defaultSrv.id);
+          if (!client) return res.json({ error: 'CFTools client unavailable' });
+          await client.spawnItem({ session, itemClass, quantity: parseInt(quantity) || 1 });
+          return res.json({ message: `Spawned ${itemClass} x${quantity || 1} on ${session.playerName}` });
+        } catch (err) { return res.json({ error: err.message }); }
+      }
       default: return res.status(400).json({ error: `Unknown action: ${action}` });
     }
   });
