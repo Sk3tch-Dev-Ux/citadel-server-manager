@@ -5,7 +5,7 @@
 const logger = require('./logger');
 const ctx = require('./context');
 const { flushAll } = require('./data-store');
-const { detectRunningProcess, getProcessMetrics, getProcessCPU, killProcess, spawnDayZServer, applyProcessSettings } = require('./process-manager');
+const { detectRunningProcess, detectProcessByPid, getProcessMetrics, getProcessCPU, killProcess, spawnDayZServer, applyProcessSettings } = require('./process-manager');
 const { scrapeRPTForFPS } = require('./rpt-scraper');
 const { updateLeaderboard } = require('./rpt-scraper');
 const { autoDetectMods } = require('./mod-manager');
@@ -53,7 +53,15 @@ function startMetricsPolling() {
     for (const srv of ctx.servers) {
       const state = ctx.serverStates[srv.id];
       if (!state || (state.status !== 'running' && state.status !== 'starting')) continue;
-      const pid = await detectRunningProcess(srv.executable);
+      // If we have a known PID, verify that specific PID is still alive
+      // rather than searching by executable name (which could match a different instance)
+      let pid;
+      if (state.pid) {
+        const alive = await detectProcessByPid(state.pid);
+        pid = alive ? state.pid : null;
+      } else {
+        pid = await detectRunningProcess(srv.executable);
+      }
       if (pid) {
         state.pid = pid;
         if (state.status !== 'running') {
@@ -96,11 +104,19 @@ function startMetricsPolling() {
               state.pid = null; state.process = null; state.players = [];
               state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
               await new Promise(r => setTimeout(r, 3000));
-              state.process = spawnDayZServer(srv); state.pid = state.process.pid;
-              setTimeout(async () => {
-                const newPid = await detectRunningProcess(srv.executable);
-                if (newPid) { state.pid = newPid; state.status = 'running'; state.startedAt = new Date().toISOString(); ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' }); }
-              }, srv.startGracePeriod ? srv.startGracePeriod * 1000 : 8000);
+              const { child, launchFailed } = spawnDayZServer(srv);
+              state.process = child; state.pid = child.pid;
+              launchFailed.then(async (failReason) => {
+                if (failReason) {
+                  addLog(srv.id, 'error', 'health', `Health restart spawn failed: ${failReason}`);
+                  state.status = 'crashed'; state.pid = null; state.process = null;
+                  ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+                  return;
+                }
+                const alive = await detectProcessByPid(child.pid);
+                if (alive) { state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString(); ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' }); }
+                else { state.status = 'crashed'; state.pid = null; state.process = null; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' }); }
+              });
             }
           }
         }
@@ -120,6 +136,9 @@ function startMetricsPolling() {
 
 // ─── Startup detection + auto-start ──────────────────────
 async function runStartupDetection() {
+  // Track PIDs already claimed so two servers with the same executable
+  // don't both attach to a single process
+  const claimedPids = new Set();
   for (const srv of ctx.servers) {
     const state = ctx.serverStates[srv.id];
     if (state) {
@@ -127,11 +146,14 @@ async function runStartupDetection() {
       addLog(srv.id, 'info', 'server', `Server state initialized for ${srv.name}`);
     }
     const pid = await detectRunningProcess(srv.executable);
-    if (pid) {
+    if (pid && !claimedPids.has(pid)) {
+      claimedPids.add(pid);
       state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
       ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
       addLog(srv.id, 'info', 'server', `Detected running process for ${srv.name} (PID: ${pid})`);
       applyProcessSettings(pid, srv);
+    } else if (pid && claimedPids.has(pid)) {
+      addLog(srv.id, 'info', 'server', `PID ${pid} already claimed by another server instance — skipping`);
     }
   }
   // Auto-start servers that have autoStart enabled and aren't already running
@@ -141,16 +163,27 @@ async function runStartupDetection() {
       logger.info({ server: srv.name }, 'Auto-starting server');
       try {
         state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
-        state.process = spawnDayZServer(srv); state.pid = state.process.pid;
-        addLog(srv.id, 'info', 'server', 'Auto-start initiated');
-        setTimeout(async () => {
-          const detectedPid = await detectRunningProcess(srv.executable);
-          if (detectedPid) {
-            state.pid = detectedPid; state.status = 'running'; state.startedAt = new Date().toISOString();
+        const { child, launchFailed } = spawnDayZServer(srv);
+        state.process = child; state.pid = child.pid;
+        addLog(srv.id, 'info', 'server', `Auto-start initiated (PID: ${child.pid || 'none'})`);
+        launchFailed.then(async (failReason) => {
+          if (failReason) {
+            addLog(srv.id, 'error', 'server', `Auto-start failed: ${failReason}`);
+            state.status = 'crashed'; state.pid = null; state.process = null;
+            ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+            return;
+          }
+          const alive = await detectProcessByPid(child.pid);
+          if (alive) {
+            state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString();
             ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
             addLog(srv.id, 'info', 'server', 'Auto-start: server is now running');
+          } else {
+            addLog(srv.id, 'error', 'server', 'Auto-start: process disappeared after grace period');
+            state.status = 'crashed'; state.pid = null; state.process = null;
+            ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
           }
-        }, srv.startGracePeriod ? srv.startGracePeriod * 1000 : 8000);
+        });
       } catch (err) {
         logger.error({ err, server: srv.name }, 'Auto-start failed');
         addLog(srv.id, 'error', 'server', 'Auto-start failed: ' + err.message);

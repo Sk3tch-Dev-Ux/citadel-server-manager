@@ -135,6 +135,12 @@ function killProcess(pid, executable) {
   });
 }
 
+/**
+ * Spawn the DayZ server process.
+ * Returns { child, launchFailed } where launchFailed is a Promise that
+ * resolves to an error string if the process exits/errors within the first
+ * few seconds, or null if it's still running after the grace window.
+ */
 function spawnDayZServer(serverConfig) {
   const installDir = serverConfig.installDir;
   const execPath = path.join(installDir, serverConfig.executable || 'DayZServer_x64.exe');
@@ -163,10 +169,56 @@ function spawnDayZServer(serverConfig) {
   logger.info({ server: serverConfig.name, executable: execPath, params }, 'Spawning server process');
   const child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: 'ignore' });
   child.unref();
+
+  // Track early failures — if the process exits or errors within 10s, capture it
+  const launchFailed = new Promise((resolve) => {
+    let settled = false;
+    const settle = (reason) => { if (!settled) { settled = true; resolve(reason); } };
+
+    child.on('error', (err) => {
+      logger.error({ server: serverConfig.name, err: err.message }, 'Server process spawn error');
+      settle(`Spawn error: ${err.message}`);
+    });
+
+    child.on('exit', (code, signal) => {
+      logger.warn({ server: serverConfig.name, code, signal }, 'Server process exited early');
+      settle(`Process exited early (code: ${code}, signal: ${signal})`);
+    });
+
+    // If still alive after 10s, consider the launch not-failed
+    setTimeout(() => settle(null), 10000);
+  });
+
   if (child && child.pid) {
+    logger.info({ server: serverConfig.name, pid: child.pid }, 'Server process spawned');
     applyProcessSettings(child.pid, serverConfig);
+  } else {
+    logger.error({ server: serverConfig.name }, 'Server process spawn returned no PID');
   }
-  return child;
+  return { child, launchFailed };
+}
+
+/**
+ * Check if a specific PID is still running via tasklist.
+ */
+function detectProcessByPid(pid) {
+  return new Promise((resolve) => {
+    const safePid = parseInt(pid, 10);
+    if (isNaN(safePid) || safePid <= 0) return resolve(false);
+    const proc = spawn('tasklist', ['/FI', `PID eq ${safePid}`, '/FO', 'CSV', '/NH'], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    let stdout = '';
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
+    proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    proc.on('error', () => { clearTimeout(killTimer); resolve(false); });
+    proc.on('close', () => {
+      clearTimeout(killTimer);
+      // tasklist returns "INFO: No tasks are running..." when PID not found
+      resolve(stdout.includes(String(safePid)));
+    });
+  });
 }
 
 /**
@@ -244,6 +296,7 @@ function applyProcessSettings(pid, serverConfig) {
 
 module.exports = {
   detectRunningProcess,
+  detectProcessByPid,
   getProcessMetrics,
   getProcessCPU,
   killProcess,
