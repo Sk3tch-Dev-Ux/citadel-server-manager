@@ -6,7 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const ctx = require('../lib/context');
 const { sanitizeString } = require('../lib/helpers');
-const { detectRunningProcess, killProcess, spawnDayZServer } = require('../lib/process-manager');
+const { detectRunningProcess, detectProcessByPid, killProcess, spawnDayZServer } = require('../lib/process-manager');
 const { downloadWorkshopMod } = require('../lib/steamcmd');
 const { installModToServer, updateStartBatMods } = require('../lib/mod-manager');
 const { scrapeRPTForKills } = require('../lib/rpt-scraper');
@@ -34,8 +34,15 @@ module.exports = function(app) {
         if (!defaultSrv || !state) return res.status(400).json({ error: 'No server' });
         if (state.status === 'running' || state.status === 'starting') return res.json({ message: `Server is already ${state.status}` });
         state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'starting' });
-        try { state.process = spawnDayZServer(defaultSrv); state.pid = state.process.pid;
-          setTimeout(async () => { const pid = await detectRunningProcess(defaultSrv.executable); if (pid) { state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString(); ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'running' }); } }, 8000);
+        try {
+          const { child, launchFailed } = spawnDayZServer(defaultSrv);
+          state.process = child; state.pid = child.pid;
+          launchFailed.then(async (failReason) => {
+            if (failReason) { state.status = 'crashed'; state.pid = null; state.process = null; ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'crashed' }); return; }
+            const alive = await detectProcessByPid(child.pid);
+            if (alive) { state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString(); ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'running' }); }
+            else { state.status = 'crashed'; state.pid = null; state.process = null; ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'crashed' }); }
+          });
         } catch (err) { state.status = 'crashed'; return res.json({ error: err.message }); }
         return res.json({ message: 'Starting...' });
       case 'stop':
@@ -45,9 +52,19 @@ module.exports = function(app) {
         return res.json({ message: 'Stopped' });
       case 'restart':
         if (!state) return res.json({ error: 'No server' });
-        try { if (state.pid) await killProcess(state.pid, defaultSrv.executable); state.status = 'starting'; state.pid = null; state.players = []; ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'starting' });
-          await new Promise(r => setTimeout(r, 3000)); state.process = spawnDayZServer(defaultSrv); state.pid = state.process.pid;
-          setTimeout(async () => { const pid = await detectRunningProcess(defaultSrv.executable); if (pid) { state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString(); ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'running' }); } }, 8000);
+        try {
+          if (state.pid) await killProcess(state.pid, defaultSrv.executable);
+          state.status = 'starting'; state.pid = null; state.players = [];
+          ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'starting' });
+          await new Promise(r => setTimeout(r, 3000));
+          const { child, launchFailed } = spawnDayZServer(defaultSrv);
+          state.process = child; state.pid = child.pid;
+          launchFailed.then(async (failReason) => {
+            if (failReason) { state.status = 'crashed'; state.pid = null; state.process = null; ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'crashed' }); return; }
+            const alive = await detectProcessByPid(child.pid);
+            if (alive) { state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString(); ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'running' }); }
+            else { state.status = 'crashed'; state.pid = null; state.process = null; ctx.io.emit('serverStatus', { serverId: defaultSrv.id, status: 'crashed' }); }
+          });
         } catch (err) { return res.json({ error: err.message }); }
         return res.json({ message: 'Restarting...' });
       case 'players': return res.json({ players: state?.players || [] });

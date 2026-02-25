@@ -2,7 +2,7 @@
  * Server control routes (start, stop, restart, lock, unlock).
  */
 const ctx = require('../lib/context');
-const { detectRunningProcess, detectRunningProcessByPath, killProcess, spawnDayZServer } = require('../lib/process-manager');
+const { detectRunningProcess, detectProcessByPid, killProcess, spawnDayZServer } = require('../lib/process-manager');
 const { addLog } = require('../lib/audit');
 const { addAudit } = require('../lib/audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('../lib/notifications');
@@ -44,24 +44,52 @@ module.exports = function(app) {
     state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
     addLog(srv.id, 'info', 'server', `Start initiated by ${req.user.username}`);
     try {
-      state.process = spawnDayZServer(srv); state.pid = state.process.pid;
-      setTimeout(async () => {
-        const pid = await detectRunningProcess(srv.executable);
-        if (pid) {
-          state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
+      const { child, launchFailed } = spawnDayZServer(srv);
+      state.process = child; state.pid = child.pid;
+
+      if (!child.pid) {
+        state.status = 'crashed'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+        addLog(srv.id, 'error', 'server', 'Spawn returned no PID — executable may be invalid');
+        return res.status(500).json({ error: 'Failed to spawn process (no PID)' });
+      }
+
+      addLog(srv.id, 'info', 'server', `Process spawned with PID: ${child.pid}`);
+
+      // Monitor the launch asynchronously — launchFailed resolves to an error string
+      // if the process exits/errors within 10s, or null if still alive
+      launchFailed.then(async (failReason) => {
+        if (failReason) {
+          // Process died almost immediately
+          addLog(srv.id, 'error', 'server', `Launch failed: ${failReason}`);
+          if (state.status === 'starting' || state.status === 'running') {
+            state.status = 'crashed'; state.pid = null; state.process = null;
+            ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+            addNotification(srv.id, 'server.crashed', 'Start Failed', `${srv.name}: ${failReason}`, 'error');
+          }
+          return;
+        }
+        // Process survived 10s — now verify it's actually running via tasklist
+        const alive = await detectProcessByPid(child.pid);
+        if (alive) {
+          state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString();
           ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
-          addLog(srv.id, 'info', 'server', 'Server is now running');
+          addLog(srv.id, 'info', 'server', `Server is now running (PID: ${child.pid})`);
           addNotification(srv.id, 'server.started', 'Server Started', `${srv.name} is now running`, 'success');
           fireWebhooks('server.started', { serverId: srv.id, serverName: srv.name });
           sendDiscordWebhook(`🟢 **${srv.name}** started`);
         } else if (state.status === 'starting') {
-          state.status = 'crashed'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+          addLog(srv.id, 'error', 'server', `PID ${child.pid} not found in tasklist after grace period`);
+          state.status = 'crashed'; state.pid = null; state.process = null;
+          ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+          addNotification(srv.id, 'server.crashed', 'Start Failed', `${srv.name} process disappeared`, 'error');
         }
-      }, 8000);
+      });
+
       addAudit(req.user.id, req.user.username, 'server.start', `Started: ${srv.name}`);
       res.json({ message: 'Starting...' });
     } catch (err) {
       state.status = 'crashed'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+      addLog(srv.id, 'error', 'server', `Start failed: ${err.message}`);
       res.status(500).json({ error: err.message });
     }
   });
@@ -108,11 +136,18 @@ module.exports = function(app) {
         state.pid = null; state.process = null; state.players = [];
         await new Promise(r => setTimeout(r, 3000));
         state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
-        state.process = spawnDayZServer(srv); state.pid = state.process.pid;
-        await new Promise(r => setTimeout(r, 8000));
-        const pid = await detectRunningProcess(srv.executable);
-        if (pid) {
-          state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
+        const { child, launchFailed } = spawnDayZServer(srv);
+        state.process = child; state.pid = child.pid;
+        // Wait for the launch monitor (10s) to see if it fails early
+        const failReason = await launchFailed;
+        if (failReason) {
+          lastError = `Restart attempt ${attempt}: ${failReason}`;
+          addLog(srv.id, 'error', 'server', lastError);
+          continue;
+        }
+        const alive = await detectProcessByPid(child.pid);
+        if (alive) {
+          state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString();
           ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
           addNotification(srv.id, 'server.restarted', 'Server Restarted', `${srv.name} has been restarted`, 'info');
           fireWebhooks('server.restarted', { serverId: srv.id, serverName: srv.name });
