@@ -2,7 +2,7 @@
  * Server control routes (start, stop, restart, lock, unlock).
  */
 const ctx = require('../lib/context');
-const { detectRunningProcess, killProcess, spawnDayZServer } = require('../lib/process-manager');
+const { detectRunningProcess, detectRunningProcessByPath, killProcess, spawnDayZServer } = require('../lib/process-manager');
 const { addLog } = require('../lib/audit');
 const { addAudit } = require('../lib/audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('../lib/notifications');
