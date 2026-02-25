@@ -6,10 +6,11 @@
  *   - /panel: Spawns an ephemeral control panel
  *   - /setup: Deploys a persistent panel in the channel
  *   - /status, /players, /rcon, /broadcast, /restart: Quick commands
+ *   - /playerinfo, /heal, /kill, /teleport, /spawnitem: GameLabs commands (CFTools)
  *
  * Panel Layout:
  *   - Core buttons: Status, Start, Stop, Restart
- *   - Category dropdown: Server, Players, Mods, Intel
+ *   - Category dropdown: Server, Players, Mods, Intel, GameLabs
  *   - Each category opens its own set of action buttons (ephemeral)
  */
 
@@ -96,6 +97,7 @@ const COLORS = {
   players: 0x14b8a6,
   mods: 0x6366f1,
   intel: 0x64748b,
+  gamelabs: 0x8b5cf6,
 };
 
 // ─── Permission Check ────────────────────────────────────
@@ -105,6 +107,15 @@ function isAdmin(interaction) {
     return false;
   }
   return interaction.member.roles.cache.has(CONFIG.adminRoleId);
+}
+
+// ─── Helper: Format playtime seconds to readable string ──
+function formatPlaytime(seconds) {
+  if (!seconds || seconds <= 0) return '0h';
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
 }
 
 // ─── Embed Builders ──────────────────────────────────────
@@ -131,11 +142,78 @@ function buildPlayerListEmbed(players) {
   if (players.length === 0) {
     embed.setDescription('*No players currently online*');
   } else {
-    const list = players.map((p, i) =>
-      `\`${String(i + 1).padStart(2)}\` **${p.name}** — ${p.ping || '?'}ms`
-    ).join('\n');
+    const hasCftools = players.some(p => p.source === 'cftools');
+    const list = players.map((p, i) => {
+      const idx = `\`${String(i + 1).padStart(2)}\``;
+      const name = `**${p.name}**`;
+      const ping = `${p.ping || '?'}ms`;
+      if (hasCftools) {
+        const banWarning = (p.bans && p.bans.count > 0) ? ' :warning:' : '';
+        return `${idx} ${name} — ${ping}${banWarning}`;
+      }
+      return `${idx} ${name} — ${ping}`;
+    }).join('\n');
     embed.setDescription(list.slice(0, 4000));
+    if (hasCftools) {
+      const withBans = players.filter(p => p.bans && p.bans.count > 0).length;
+      if (withBans > 0) {
+        embed.addFields({ name: 'Flagged Players', value: `${withBans} player(s) with previous bans`, inline: false });
+      }
+    }
   }
+  return embed;
+}
+
+function buildLeaderboardEmbed(entries) {
+  const embed = new EmbedBuilder()
+    .setTitle('Leaderboard')
+    .setColor(COLORS.intel)
+    .setTimestamp();
+
+  if (!entries || entries.length === 0) {
+    embed.setDescription('*No leaderboard data*');
+  } else {
+    const hasCftools = entries.some(e => e.kdratio != null || e.playtime != null);
+    if (hasCftools) {
+      const list = entries.map((s, i) => {
+        const rank = `\`${String(i + 1).padStart(2)}\``;
+        const kd = s.kdratio != null ? ` | K/D: ${s.kdratio.toFixed(2)}` : '';
+        const pt = s.playtime ? ` | ${formatPlaytime(s.playtime)}` : '';
+        return `${rank} **${s.player}** — ${s.kills}K / ${s.deaths}D${kd}${pt}`;
+      }).join('\n');
+      embed.setDescription(list.slice(0, 4000));
+    } else {
+      const list = entries.map((s, i) =>
+        `\`${String(i + 1).padStart(2)}\` **${s.player}** — ${s.score} pts`
+      ).join('\n');
+      embed.setDescription(list.slice(0, 4000));
+    }
+  }
+  return embed;
+}
+
+function buildPlayerInfoEmbed(data) {
+  const embed = new EmbedBuilder()
+    .setTitle(`Player: ${(data.names && data.names[0]) || 'Unknown'}`)
+    .setColor(COLORS.info)
+    .setTimestamp();
+
+  if (data.error) {
+    embed.setDescription(`Error: ${data.error}`);
+    return embed;
+  }
+
+  const fields = [];
+  if (data.names && data.names.length > 1) fields.push({ name: 'Known Names', value: data.names.slice(0, 5).join(', '), inline: false });
+  fields.push({ name: 'Kills', value: `\`${data.kills || 0}\``, inline: true });
+  fields.push({ name: 'Deaths', value: `\`${data.deaths || 0}\``, inline: true });
+  fields.push({ name: 'K/D Ratio', value: `\`${(data.kdratio || 0).toFixed(2)}\``, inline: true });
+  if (data.longestKill) fields.push({ name: 'Longest Kill', value: `\`${data.longestKill}m\``, inline: true });
+  if (data.longestShot) fields.push({ name: 'Longest Shot', value: `\`${data.longestShot}m\``, inline: true });
+  if (data.playtime) fields.push({ name: 'Playtime', value: `\`${formatPlaytime(data.playtime)}\``, inline: true });
+  if (data.sessions) fields.push({ name: 'Sessions', value: `\`${data.sessions}\``, inline: true });
+
+  embed.addFields(fields);
   return embed;
 }
 
@@ -157,6 +235,7 @@ function buildControlPanel() {
         { label: 'Players', value: 'cat_players', description: 'Player list, Kick, Ban list' },
         { label: 'Mods', value: 'cat_mods', description: 'Install, Uninstall, Enable, Disable' },
         { label: 'Intel', value: 'cat_intel', description: 'Chat, Killfeed, Watchlist, Leaderboard' },
+        { label: 'GameLabs', value: 'cat_gamelabs', description: 'Heal, Kill, Teleport, Spawn Items' },
       )
   );
 
@@ -177,6 +256,7 @@ function buildPlayersButtons() {
     new ButtonBuilder().setCustomId('panel_players').setLabel('Player List').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('panel_kick_menu').setLabel('Kick Player').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('panel_ban_whitelist').setLabel('Ban List').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('panel_player_info').setLabel('Player Info').setStyle(ButtonStyle.Primary),
   );
 }
 
@@ -210,6 +290,17 @@ function buildIntelButtons() {
   ];
 }
 
+function buildGameLabsButtons() {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('panel_gl_heal').setLabel('Heal Player').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('panel_gl_kill').setLabel('Kill Player').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('panel_gl_teleport').setLabel('Teleport').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('panel_gl_spawn').setLabel('Spawn Item').setStyle(ButtonStyle.Secondary),
+    ),
+  ];
+}
+
 function buildRestartOptions() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('restart_now').setLabel('Restart Now').setStyle(ButtonStyle.Danger),
@@ -224,6 +315,25 @@ function buildConfirmRow(action) {
     new ButtonBuilder().setCustomId(`confirm_${action}`).setLabel('Confirm').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('confirm_cancel').setLabel('Cancel').setStyle(ButtonStyle.Secondary),
   );
+}
+
+/**
+ * Build a player select menu from online players for GameLabs actions.
+ */
+async function buildPlayerSelectMenu(customId, placeholder) {
+  const data = await panelAction('players');
+  const players = data.players || [];
+  if (players.length === 0) return null;
+  return new StringSelectMenuBuilder()
+    .setCustomId(customId)
+    .setPlaceholder(placeholder)
+    .addOptions(
+      players.slice(0, 25).map(p => ({
+        label: p.name || `Player ${p.id}`,
+        value: p.steamId || p.id || p.name,
+        description: `Ping: ${p.ping || '?'}ms${p.steamId ? ` | ${p.steamId}` : ''}`.slice(0, 100),
+      }))
+    );
 }
 
 // ─── Slash Commands Registration ─────────────────────────
@@ -264,6 +374,56 @@ const commands = [
   new SlashCommandBuilder()
     .setName('setup')
     .setDescription('Create a persistent control panel in this channel'),
+
+  new SlashCommandBuilder()
+    .setName('playerinfo')
+    .setDescription('View detailed player stats (CFTools)')
+    .addStringOption(opt =>
+      opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('heal')
+    .setDescription('Heal a player (GameLabs)')
+    .addStringOption(opt =>
+      opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('kill')
+    .setDescription('Kill a player (GameLabs)')
+    .addStringOption(opt =>
+      opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('teleport')
+    .setDescription('Teleport a player (GameLabs)')
+    .addStringOption(opt =>
+      opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
+    )
+    .addNumberOption(opt =>
+      opt.setName('x').setDescription('X coordinate').setRequired(true)
+    )
+    .addNumberOption(opt =>
+      opt.setName('y').setDescription('Y coordinate').setRequired(true)
+    )
+    .addNumberOption(opt =>
+      opt.setName('z').setDescription('Z coordinate (height)').setRequired(false)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('spawnitem')
+    .setDescription('Spawn an item on a player (GameLabs)')
+    .addStringOption(opt =>
+      opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
+    )
+    .addStringOption(opt =>
+      opt.setName('item').setDescription('Item class name (e.g. Hatchet, AKM)').setRequired(true)
+    )
+    .addIntegerOption(opt =>
+      opt.setName('quantity').setDescription('Quantity (default: 1)').setRequired(false)
+    ),
 ];
 
 async function registerCommands() {
@@ -330,7 +490,7 @@ client.on('interactionCreate', async (interaction) => {
         else if (selected === 'cat_players') {
           const embed = new EmbedBuilder()
             .setTitle('Player Management')
-            .setDescription('View online players, kick players, or manage the ban list.')
+            .setDescription('View online players, kick players, manage bans, or look up player stats.')
             .setColor(COLORS.players);
           await safeReply(interaction, {
             embeds: [embed],
@@ -363,6 +523,18 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
 
+        else if (selected === 'cat_gamelabs') {
+          const embed = new EmbedBuilder()
+            .setTitle('GameLabs Actions')
+            .setDescription('Requires CFTools + GameLabs mod. Heal, kill, teleport players, or spawn items.')
+            .setColor(COLORS.gamelabs);
+          await safeReply(interaction, {
+            embeds: [embed],
+            components: buildGameLabsButtons(),
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
         return;
       }
 
@@ -379,6 +551,59 @@ client.on('interactionCreate', async (interaction) => {
           .setPlaceholder('Rule violation, etc.')
           .setRequired(false);
         modal.addComponents(new ActionRowBuilder().addComponents(input));
+        await interaction.showModal(modal);
+        return;
+      }
+
+      // GameLabs player selects
+      if (interaction.customId === 'select_gl_heal') {
+        const steamId = interaction.values[0];
+        const result = await panelAction('gameLabsHeal', { steamId });
+        await safeReply(interaction, {
+          content: result.error ? `Error: ${result.error}` : result.message,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      if (interaction.customId === 'select_gl_kill') {
+        const steamId = interaction.values[0];
+        const result = await panelAction('gameLabsKill', { steamId });
+        await safeReply(interaction, {
+          content: result.error ? `Error: ${result.error}` : result.message,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      if (interaction.customId === 'select_gl_teleport') {
+        const steamId = interaction.values[0];
+        const modal = new ModalBuilder()
+          .setCustomId(`modal_gl_teleport_${steamId}`)
+          .setTitle('Teleport Player');
+        const xInput = new TextInputBuilder().setCustomId('tp_x').setLabel('X Coordinate').setStyle(TextInputStyle.Short).setRequired(true);
+        const yInput = new TextInputBuilder().setCustomId('tp_y').setLabel('Y Coordinate').setStyle(TextInputStyle.Short).setRequired(true);
+        const zInput = new TextInputBuilder().setCustomId('tp_z').setLabel('Z Coordinate (height, optional)').setStyle(TextInputStyle.Short).setRequired(false);
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(xInput),
+          new ActionRowBuilder().addComponents(yInput),
+          new ActionRowBuilder().addComponents(zInput)
+        );
+        await interaction.showModal(modal);
+        return;
+      }
+
+      if (interaction.customId === 'select_gl_spawn') {
+        const steamId = interaction.values[0];
+        const modal = new ModalBuilder()
+          .setCustomId(`modal_gl_spawn_${steamId}`)
+          .setTitle('Spawn Item');
+        const itemInput = new TextInputBuilder().setCustomId('item_class').setLabel('Item Class Name').setStyle(TextInputStyle.Short).setPlaceholder('e.g. Hatchet, AKM, BandageDressing').setRequired(true);
+        const qtyInput = new TextInputBuilder().setCustomId('item_qty').setLabel('Quantity (default: 1)').setStyle(TextInputStyle.Short).setRequired(false);
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(itemInput),
+          new ActionRowBuilder().addComponents(qtyInput)
+        );
         await interaction.showModal(modal);
         return;
       }
@@ -461,6 +686,21 @@ client.on('interactionCreate', async (interaction) => {
         const data = await panelAction('players');
         const embed = buildPlayerListEmbed(data.players || []);
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      // Player Info (via modal for steamId input)
+      else if (btnId === 'panel_player_info') {
+        const modal = new ModalBuilder()
+          .setCustomId('modal_player_info')
+          .setTitle('Player Info Lookup');
+        const input = new TextInputBuilder()
+          .setCustomId('player_steamid')
+          .setLabel('Steam64 ID')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('e.g. 76561198012102485')
+          .setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(input));
+        await interaction.showModal(modal);
       }
 
       // Kick menu
@@ -666,13 +906,7 @@ client.on('interactionCreate', async (interaction) => {
       // Leaderboard
       else if (btnId === 'panel_leaderboard') {
         const stats = await panelAction('leaderboard');
-        const embed = new EmbedBuilder()
-          .setTitle('Leaderboard')
-          .setColor(COLORS.intel)
-          .setDescription(stats && stats.entries
-            ? stats.entries.map((s, i) => `\`${String(i + 1).padStart(2)}\` **${s.player}** — ${s.score} pts`).join('\n')
-            : '*No leaderboard data*')
-          .setTimestamp();
+        const embed = buildLeaderboardEmbed(stats?.entries);
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
@@ -687,6 +921,51 @@ client.on('interactionCreate', async (interaction) => {
             : '*No ban data*')
           .setTimestamp();
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      // ── GameLabs Buttons ──
+      else if (btnId === 'panel_gl_heal') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+        const select = await buildPlayerSelectMenu('select_gl_heal', 'Select a player to heal');
+        if (!select) return await safeReply(interaction, { content: 'No players online.', flags: MessageFlags.Ephemeral });
+        await safeReply(interaction, {
+          content: 'Select a player to heal:',
+          components: [new ActionRowBuilder().addComponents(select)],
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      else if (btnId === 'panel_gl_kill') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+        const select = await buildPlayerSelectMenu('select_gl_kill', 'Select a player to kill');
+        if (!select) return await safeReply(interaction, { content: 'No players online.', flags: MessageFlags.Ephemeral });
+        await safeReply(interaction, {
+          content: 'Select a player to kill:',
+          components: [new ActionRowBuilder().addComponents(select)],
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      else if (btnId === 'panel_gl_teleport') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+        const select = await buildPlayerSelectMenu('select_gl_teleport', 'Select a player to teleport');
+        if (!select) return await safeReply(interaction, { content: 'No players online.', flags: MessageFlags.Ephemeral });
+        await safeReply(interaction, {
+          content: 'Select a player to teleport:',
+          components: [new ActionRowBuilder().addComponents(select)],
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      else if (btnId === 'panel_gl_spawn') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+        const select = await buildPlayerSelectMenu('select_gl_spawn', 'Select a player to receive items');
+        if (!select) return await safeReply(interaction, { content: 'No players online.', flags: MessageFlags.Ephemeral });
+        await safeReply(interaction, {
+          content: 'Select a player to spawn items on:',
+          components: [new ActionRowBuilder().addComponents(select)],
+          flags: MessageFlags.Ephemeral,
+        });
       }
 
       // Confirm start
@@ -807,7 +1086,7 @@ client.on('interactionCreate', async (interaction) => {
           '**DayZ Server Control Panel**\n\n' +
           'Use the buttons below for quick actions, or select a category from the dropdown for more options.\n\n' +
           '`Status` Refresh  |  `Start` `Stop` `Restart` Server control\n' +
-          '`Dropdown` Server, Players, Mods, Intel categories'
+          '`Dropdown` Server, Players, Mods, Intel, GameLabs categories'
         );
         await safeReply(interaction, { content: 'Control panel deployed.', flags: MessageFlags.Ephemeral });
         await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
@@ -877,6 +1156,71 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
       }
+
+      // ── GameLabs Slash Commands ──
+      else if (commandName === 'playerinfo') {
+        const steamId = interaction.options.getString('steamid');
+        const data = await panelAction('playerInfo', { steamId });
+        const embed = buildPlayerInfoEmbed(data);
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      else if (commandName === 'heal') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+        const steamId = interaction.options.getString('steamid');
+        const result = await panelAction('gameLabsHeal', { steamId });
+        const embed = new EmbedBuilder()
+          .setTitle('GameLabs: Heal')
+          .setColor(result.error ? COLORS.error : COLORS.success)
+          .setDescription(result.error ? `Error: ${result.error}` : result.message)
+          .setFooter({ text: `By ${interaction.user.tag}` })
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      else if (commandName === 'kill') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+        const steamId = interaction.options.getString('steamid');
+        const result = await panelAction('gameLabsKill', { steamId });
+        const embed = new EmbedBuilder()
+          .setTitle('GameLabs: Kill')
+          .setColor(result.error ? COLORS.error : COLORS.warning)
+          .setDescription(result.error ? `Error: ${result.error}` : result.message)
+          .setFooter({ text: `By ${interaction.user.tag}` })
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      else if (commandName === 'teleport') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+        const steamId = interaction.options.getString('steamid');
+        const x = interaction.options.getNumber('x');
+        const y = interaction.options.getNumber('y');
+        const z = interaction.options.getNumber('z') || 0;
+        const result = await panelAction('gameLabsTeleport', { steamId, x, y, z });
+        const embed = new EmbedBuilder()
+          .setTitle('GameLabs: Teleport')
+          .setColor(result.error ? COLORS.error : COLORS.info)
+          .setDescription(result.error ? `Error: ${result.error}` : result.message)
+          .setFooter({ text: `By ${interaction.user.tag}` })
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      else if (commandName === 'spawnitem') {
+        if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+        const steamId = interaction.options.getString('steamid');
+        const itemClass = interaction.options.getString('item');
+        const quantity = interaction.options.getInteger('quantity') || 1;
+        const result = await panelAction('gameLabsSpawnItem', { steamId, itemClass, quantity });
+        const embed = new EmbedBuilder()
+          .setTitle('GameLabs: Spawn Item')
+          .setColor(result.error ? COLORS.error : COLORS.success)
+          .setDescription(result.error ? `Error: ${result.error}` : result.message)
+          .setFooter({ text: `By ${interaction.user.tag}` })
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
     }
 
     // ── Modal Submissions ──
@@ -921,6 +1265,45 @@ client.on('interactionCreate', async (interaction) => {
           .setFooter({ text: `Kicked by ${interaction.user.tag}` })
           .setTimestamp();
         await safeReply(interaction, { embeds: [embed] });
+      }
+
+      // Player Info modal
+      else if (interaction.customId === 'modal_player_info') {
+        const steamId = interaction.fields.getTextInputValue('player_steamid');
+        const data = await panelAction('playerInfo', { steamId });
+        const embed = buildPlayerInfoEmbed(data);
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      // GameLabs: Teleport modal
+      else if (interaction.customId.startsWith('modal_gl_teleport_')) {
+        const steamId = interaction.customId.replace('modal_gl_teleport_', '');
+        const x = interaction.fields.getTextInputValue('tp_x');
+        const y = interaction.fields.getTextInputValue('tp_y');
+        const z = interaction.fields.getTextInputValue('tp_z') || '0';
+        const result = await panelAction('gameLabsTeleport', { steamId, x: parseFloat(x), y: parseFloat(y), z: parseFloat(z) });
+        const embed = new EmbedBuilder()
+          .setTitle('GameLabs: Teleport')
+          .setColor(result.error ? COLORS.error : COLORS.info)
+          .setDescription(result.error ? `Error: ${result.error}` : result.message)
+          .setFooter({ text: `By ${interaction.user.tag}` })
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
+
+      // GameLabs: Spawn Item modal
+      else if (interaction.customId.startsWith('modal_gl_spawn_')) {
+        const steamId = interaction.customId.replace('modal_gl_spawn_', '');
+        const itemClass = interaction.fields.getTextInputValue('item_class');
+        const quantity = parseInt(interaction.fields.getTextInputValue('item_qty')) || 1;
+        const result = await panelAction('gameLabsSpawnItem', { steamId, itemClass, quantity });
+        const embed = new EmbedBuilder()
+          .setTitle('GameLabs: Spawn Item')
+          .setColor(result.error ? COLORS.error : COLORS.success)
+          .setDescription(result.error ? `Error: ${result.error}` : result.message)
+          .setFooter({ text: `By ${interaction.user.tag}` })
+          .setTimestamp();
+        await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       else if (interaction.customId === 'modal_mod_install') {
