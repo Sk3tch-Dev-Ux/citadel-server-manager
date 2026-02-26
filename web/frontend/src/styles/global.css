@@ -46,7 +46,7 @@ body { background: var(--bg-deep); color: var(--text-primary); font-family: var(
 
 .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
 .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 600; }
-.nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 20px; cursor: pointer; transition: all 0.15s; color: var(--text-secondary); font-size: 13.5px; font-weight: 500; border-left: 3px solid transparent; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 20px; cursor: pointer; transition: all 0.15s; color: var(--text-secondary); font-size: 13.5px; font-weight: 500; border-left: 3px solid transparent; text-decoration: none; }
 .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text-primary); }
 .nav-item.active { color: var(--accent-blue); background: rgba(108,180,240,0.08); border-left-color: var(--accent-blue); }
 .nav-icon { width: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: inherit; opacity: 0.7; }
@@ -186,7 +186,7 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 
 /* Modal */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-.modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; width: 480px; max-width: 90vw; max-height: 85vh; overflow-y: auto; }
+.modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; width: 480px; max-width: 90vw; max-height: 85vh; overflow-y: auto; z-index: 1001; animation: fadeIn 0.15s; }
 .modal-lg { width: 640px; }
 .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
 
@@ -377,3 +377,26 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .webhook-event-badge.stopped { background: rgba(224,108,117,0.12); color: var(--accent-red); }
 .webhook-event-badge.crashed { background: rgba(229,192,123,0.12); color: var(--accent-yellow); }
 .webhook-event-badge.restarted { background: rgba(108,180,240,0.12); color: var(--accent-blue); }
+
+/* Radix UI Overrides */
+.tab[data-state="active"] { color: var(--text-primary); background: var(--bg-elevated); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.tab[data-state="active"] .tab-icon { opacity: 1; color: var(--accent-blue); }
+.toggle[data-state="checked"] { background: var(--accent-blue); border-color: var(--accent-blue); }
+.toggle[data-state="checked"] .toggle-knob { transform: translateX(18px); }
+
+/* Tooltip */
+.tooltip-content { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-family: var(--font-display); box-shadow: 0 4px 16px rgba(0,0,0,0.3); z-index: 2000; animation: fadeIn 0.15s; max-width: 280px; }
+.tooltip-arrow { fill: var(--bg-elevated); }
+
+/* Dropdown Menu */
+.dropdown-content { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 1000; min-width: 160px; animation: fadeIn 0.15s; }
+.dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; color: var(--text-secondary); border-radius: 4px; cursor: pointer; outline: none; transition: all 0.1s; }
+.dropdown-item:hover, .dropdown-item[data-highlighted] { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+.dropdown-item.danger { color: var(--accent-red); }
+.dropdown-item.danger:hover, .dropdown-item.danger[data-highlighted] { background: rgba(224,108,117,0.1); }
+.dropdown-separator { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* Skeleton loading */
+.skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }

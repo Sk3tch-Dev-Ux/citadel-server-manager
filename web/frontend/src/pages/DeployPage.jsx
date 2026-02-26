@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
+import { useServers } from '../contexts/ServersContext';
 import API from '../api';
 import { Rocket, CheckCircle, XCircle, ArrowLeft, ArrowRight, Monitor, Zap, FolderOpen, Search } from '../components/Icon';
 
-export default function DeployPage({ onDeployed }) {
+export default function DeployPage() {
   const socket = useSocket();
+  const navigate = useNavigate();
+  const { loadServers } = useServers();
   const [mode, setMode] = useState(null); // 'new' or 'existing'
   const [step, setStep] = useState(1);
   const [gameTitle, setGameTitle] = useState('DayZ, PC');
@@ -26,12 +30,12 @@ export default function DeployPage({ onDeployed }) {
   useEffect(() => {
     const handler = (data) => {
       setProgress(data);
-      if (data.status === 'complete') { window.addToast('Server deployed successfully!', 'success'); if (onDeployed) onDeployed(); }
+      if (data.status === 'complete') { window.addToast('Server deployed successfully!', 'success'); loadServers(); }
       else if (data.status === 'error') { window.addToast(data.message, 'error'); setDeploying(false); }
     };
     socket.on('deployProgress', handler);
     return () => socket.off('deployProgress', handler);
-  }, [onDeployed, socket]);
+  }, [loadServers, socket]);
 
   const detectServer = async () => {
     if (!installDir) { window.addToast('Enter an install directory first', 'error'); return; }
@@ -92,7 +96,7 @@ export default function DeployPage({ onDeployed }) {
       } else {
         setProgress({ status: 'complete', message: 'Server added successfully!' });
         window.addToast('Server added successfully!', 'success');
-        if (onDeployed) onDeployed();
+        loadServers();
       }
     } catch (err) {
       setProgress({ status: 'error', message: err.message || 'Failed to add server' }); setDeploying(false);

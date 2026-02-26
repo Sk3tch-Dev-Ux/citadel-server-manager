@@ -28,7 +28,8 @@
       "Bash(node --check:*)",
       "Bash(powershell -Command:*)",
       "Bash(ls:*)",
-      "WebFetch(domain:www.yougetsignal.com)"
+      "WebFetch(domain:www.yougetsignal.com)",
+      "WebFetch(domain:cftools.com)"
     ]
   }
 }
