@@ -1,7 +1,14 @@
+import { useNavigate } from 'react-router-dom';
+import { useServers } from '../contexts/ServersContext';
 import { formatUptime } from '../utils';
 import { Server } from '../components/Icon';
 
-export default function ServerHubPage({ servers, onSelect }) {
+export default function ServerHubPage() {
+  const { servers } = useServers();
+  const navigate = useNavigate();
+
+  const onSelect = (id) => navigate(`/servers/${id}/overview`);
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
