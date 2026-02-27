@@ -14,6 +14,7 @@ const { addLog } = require('./audit');
 const { pushMetrics } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { startSchedulerEngine } = require('./scheduler-engine');
+const { startBackupEngine, runStartupBackups } = require('./backup-engine');
 
 // ─── Steam Update Polling ────────────────────────────────
 let lastModVersions = {};
@@ -245,6 +246,9 @@ async function startAllPolling() {
   // Detect already-running processes and auto-start
   await runStartupDetection();
 
+  // Run startup backups for servers with backupAtStartup enabled
+  await runStartupBackups();
+
   // Initial mod detection + leaderboard build + player fetch
   ctx.servers.forEach(s => autoDetectMods(s.id));
   ctx.servers.forEach(s => updateLeaderboard(s.id));
@@ -264,6 +268,7 @@ async function startAllPolling() {
   intervals.push(setInterval(() => ctx.servers.forEach(s => updateLeaderboard(s.id)), 5 * 60 * 1000));
   intervals.push(startSteamUpdatePolling());
   intervals.push(startSchedulerEngine());
+  intervals.push(startBackupEngine());
 
   // Delayed RCON connect (5s after startup)
   setTimeout(() => {

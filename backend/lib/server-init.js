@@ -19,9 +19,12 @@ function initServerState(serverId) {
   if (ctx.serverStates[serverId]) return;
   const srv = ctx.servers.find(s => s.id === serverId);
   if (!srv) return;
-  // Load persisted scheduler/messenger data
+  // Load persisted scheduler/messenger/backup data
   const schedulerData = loadJSON(ctx.CONFIG.dataDir, `scheduler-${serverId}.json`, { jobs: [] });
   const messengerData = loadJSON(ctx.CONFIG.dataDir, `messenger-${serverId}.json`, { enabled: true, messages: [] });
+  const backupData = loadJSON(ctx.CONFIG.dataDir, `backup-${serverId}.json`, {
+    enabled: false, backupAtStartup: false, intervalMinutes: 60, maxKeepDays: 7, paths: ['mpmissions', 'profiles'], lastBackupAt: null,
+  });
 
   ctx.serverStates[serverId] = {
     status: 'stopped', pid: null, process: null, players: [],
@@ -32,6 +35,7 @@ function initServerState(serverId) {
     cftools: { lastSessionPoll: null, gameSessions: [] },
     scheduler: { jobs: schedulerData.jobs || [], pendingActions: new Map() },
     messenger: { enabled: messengerData.enabled !== false, messages: messengerData.messages || [], lastSent: new Map() },
+    backup: { config: backupData, lastBackupAt: backupData.lastBackupAt || null, inProgress: false },
   };
   if (fs.existsSync(srv.installDir)) {
     ctx.serverStates[serverId].config = readServerConfig(srv.installDir);

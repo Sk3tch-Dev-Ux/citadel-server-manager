@@ -474,3 +474,43 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 /* Form hint text */
 .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 .form-hint code { font-family: var(--font-mono); font-size: 10px; padding: 1px 4px; background: var(--bg-elevated); border-radius: 3px; }
+
+/* ─── Backup System ──────────────────────────────────────── */
+
+/* Blue info banner */
+.info-banner { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; background: rgba(108,180,240,0.08); border: 1px solid rgba(108,180,240,0.2); border-radius: var(--radius); margin-bottom: 14px; font-size: 12px; color: var(--accent-blue); line-height: 1.5; }
+.info-banner strong { font-weight: 700; }
+.info-banner svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Backup path items */
+.backup-path-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 4px; font-size: 13px; font-family: var(--font-mono); }
+.backup-path-item .path-remove { cursor: pointer; color: var(--text-muted); transition: color 0.15s; display: flex; align-items: center; }
+.backup-path-item .path-remove:hover { color: var(--accent-red); }
+
+/* Backup history list */
+.backup-list { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.backup-list-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.backup-list-item:last-child { border-bottom: none; }
+.backup-list-item .backup-info { min-width: 0; }
+.backup-list-item .backup-name { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.backup-list-item .backup-meta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.backup-list-item .backup-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.backup-type-badge { display: inline-flex; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.backup-type-badge.automated { background: rgba(108,180,240,0.12); color: var(--accent-blue); }
+.backup-type-badge.manual { background: rgba(196,155,255,0.12); color: var(--accent-purple); }
+
+/* Directory browser modal */
+.dir-browser-search { margin-bottom: 12px; }
+.dir-browser-tree { max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; }
+.dir-tree-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; font-size: 13px; border-radius: 4px; transition: background 0.1s; user-select: none; }
+.dir-tree-item:hover { background: var(--bg-elevated); }
+.dir-tree-item.selected { background: rgba(108,180,240,0.12); color: var(--accent-blue); }
+.dir-tree-item .dir-expand { display: flex; align-items: center; transition: transform 0.15s; color: var(--text-muted); }
+.dir-tree-item .dir-expand.open { transform: rotate(90deg); }
+.dir-tree-children { padding-left: 20px; }
+.dir-browser-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.dir-browser-selected { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Backup section within settings */
+.backup-section-divider { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.backup-actions-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
