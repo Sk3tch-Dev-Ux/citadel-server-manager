@@ -1,5 +1,21 @@
 [
   {
+    "id": "3ead1982-33fe-4d4c-a523-72ba2f105ae4",
+    "timestamp": "2026-02-27T16:04:06.663Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "backup.manual",
+    "details": "Manual backup on server The Last Broadcast | Vanilla Enhanced"
+  },
+  {
+    "id": "571fd7d6-e7d6-449a-9aa0-271ed8381b6d",
+    "timestamp": "2026-02-27T16:03:24.687Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
     "id": "2ed75158-cd00-4d66-8a5d-9c977c4914e9",
     "timestamp": "2026-02-27T03:31:53.461Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",
