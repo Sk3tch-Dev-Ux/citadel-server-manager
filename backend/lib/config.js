@@ -1,14 +1,16 @@
 /**
  * Application configuration from environment variables.
- * Fails fast on missing required values.
+ * Auto-generates missing secrets for seamless first-run experience.
  */
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const logger = require('./logger');
 
+// Auto-generate JWT_SECRET if missing (first run without setup script)
 if (!process.env.JWT_SECRET) {
-  logger.fatal('JWT_SECRET environment variable is required. Set it in .env');
-  process.exit(1);
+  process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
+  logger.warn('JWT_SECRET was not set — generated a temporary secret. Run "npm run setup" or complete the Setup Wizard to persist it.');
 }
 
 const CONFIG = {

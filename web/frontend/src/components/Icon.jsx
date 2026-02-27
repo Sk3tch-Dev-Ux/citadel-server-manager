@@ -67,4 +67,11 @@ export {
   FolderClosed,
   FileCog,
   ScrollText,
+  KeyRound,
+  Lock,
+  Gamepad2,
+  PartyPopper,
+  CircleCheck,
+  CircleDashed,
+  Sparkles,
 } from 'lucide-react';

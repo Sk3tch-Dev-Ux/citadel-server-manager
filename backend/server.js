@@ -81,6 +81,7 @@ app.use('/api/discord/', discordLimiter);
 app.use(express.static(path.join(__dirname, '../web/dist')));
 
 // ─── Routes ──────────────────────────────────────────────
+require('./routes/setup.routes')(app);
 require('./routes/auth.routes')(app);
 require('./routes/servers.routes')(app);
 require('./routes/server-control.routes')(app);

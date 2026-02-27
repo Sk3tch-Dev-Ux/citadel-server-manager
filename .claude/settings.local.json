@@ -29,7 +29,8 @@
       "Bash(powershell -Command:*)",
       "Bash(ls:*)",
       "WebFetch(domain:www.yougetsignal.com)",
-      "WebFetch(domain:cftools.com)"
+      "WebFetch(domain:cftools.com)",
+      "Bash(npx vite build)"
     ]
   }
 }
