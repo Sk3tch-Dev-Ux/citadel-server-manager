@@ -4,6 +4,10 @@
   "private": true,
   "description": "DayZ Server Control Panel — Multi-server management with web UI and Discord bot",
   "scripts": {
+    "postinstall": "cd backend && npm install && cd ../web/frontend && npm install",
+    "setup": "node backend/lib/setup.js",
+    "start": "node backend/lib/setup.js && cd web/frontend && npm run build && cd ../.. && node backend/server.js",
+    "dev": "node backend/lib/setup.js && concurrently \"node backend/server.js\" \"cd web/frontend && npx vite --host 127.0.0.1\"",
     "test": "cd backend && npm test",
     "lint": "cd backend && npm run lint && cd ../web/frontend && npm run lint",
     "lint:backend": "cd backend && npm run lint",
