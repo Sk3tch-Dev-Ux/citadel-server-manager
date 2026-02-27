@@ -13,6 +13,7 @@ const { autoDetectMods } = require('./mod-manager');
 const { addLog } = require('./audit');
 const { pushMetrics } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
+const { startSchedulerEngine } = require('./scheduler-engine');
 
 // ─── Steam Update Polling ────────────────────────────────
 let lastModVersions = {};
@@ -262,6 +263,7 @@ async function startAllPolling() {
   intervals.push(setInterval(() => ctx.servers.forEach(s => autoDetectMods(s.id)), 5 * 60 * 1000));
   intervals.push(setInterval(() => ctx.servers.forEach(s => updateLeaderboard(s.id)), 5 * 60 * 1000));
   intervals.push(startSteamUpdatePolling());
+  intervals.push(startSchedulerEngine());
 
   // Delayed RCON connect (5s after startup)
   setTimeout(() => {

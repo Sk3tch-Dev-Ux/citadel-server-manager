@@ -400,3 +400,77 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+
+/* ─── Scheduler & Messenger Pages ────────────────────────── */
+.scheduler-page { display: flex; flex-direction: column; gap: 20px; }
+.scheduler-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.scheduler-description { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+.scheduler-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+
+/* Job / Message Cards */
+.scheduler-card, .messenger-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.15s, opacity 0.15s; border-left: 3px solid var(--accent-blue); }
+.scheduler-card:hover, .messenger-card:hover { border-color: var(--border-active); }
+.scheduler-card--disabled, .messenger-card--disabled { opacity: 0.5; border-left-color: var(--border); }
+
+.scheduler-card-header, .messenger-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.scheduler-card-title-row, .messenger-card-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.scheduler-card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.messenger-card-text-preview { font-size: 14px; color: var(--text-primary); line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+.scheduler-card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.btn-icon { width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: var(--text-muted); transition: all 0.15s; }
+.btn-icon:hover, .btn-ghost:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+.btn-danger-ghost:hover { color: var(--accent-red); background: rgba(224,108,117,0.1); }
+
+/* Status dot */
+.scheduler-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+.scheduler-status-dot.active { background: var(--accent-green); box-shadow: 0 0 8px rgba(92,184,92,0.3); }
+
+/* Time display */
+.scheduler-card-time { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
+.scheduler-time-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: 1px; }
+
+/* Badges */
+.scheduler-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.scheduler-badge--uptime { background: rgba(196,155,255,0.15); color: var(--accent-purple); }
+.scheduler-badge--clock { background: rgba(108,180,240,0.15); color: var(--accent-blue); }
+
+/* Day chips */
+.scheduler-day-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.scheduler-day-chips--edit { gap: 6px; }
+.scheduler-day-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); background: var(--bg-elevated); color: var(--text-muted); border: 1px solid transparent; transition: all 0.15s; cursor: default; user-select: none; }
+.scheduler-day-chip.active { background: rgba(108,180,240,0.15); color: var(--accent-blue); border-color: rgba(108,180,240,0.3); }
+.scheduler-day-chips--edit .scheduler-day-chip { cursor: pointer; }
+.scheduler-day-chips--edit .scheduler-day-chip:hover { border-color: var(--border-active); }
+
+/* Meta items */
+.scheduler-card-meta, .messenger-card-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.scheduler-meta-item { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); padding: 2px 8px; background: var(--bg-elevated); border-radius: 4px; }
+.scheduler-meta-item--last { margin-left: auto; }
+
+/* Footer */
+.scheduler-card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 12px; }
+.scheduler-action-badge { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-orange); padding: 2px 8px; border-radius: 4px; background: rgba(224,151,107,0.12); }
+
+/* Messenger extras */
+.messenger-list { display: flex; flex-direction: column; gap: 12px; }
+.messenger-card { border-left-color: var(--accent-green); }
+.messenger-card--disabled { border-left-color: var(--border); }
+.messenger-card-placeholders { font-size: 11px; color: var(--text-muted); }
+.messenger-card-placeholders code { font-family: var(--font-mono); font-size: 10px; padding: 1px 4px; background: var(--bg-elevated); border-radius: 3px; }
+.messenger-textarea { resize: vertical; min-height: 60px; font-family: var(--font-display); line-height: 1.5; }
+
+/* Modal form layout */
+.scheduler-modal-form { display: flex; flex-direction: column; gap: 16px; }
+.scheduler-modal-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.scheduler-modal-toggles { display: flex; flex-direction: column; gap: 8px; }
+.scheduler-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+/* Warning chips */
+.scheduler-warning-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.scheduler-warning-add { display: flex; align-items: center; gap: 4px; }
+
+/* Form hint text */
+.form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.form-hint code { font-family: var(--font-mono); font-size: 10px; padding: 1px 4px; background: var(--bg-elevated); border-radius: 3px; }

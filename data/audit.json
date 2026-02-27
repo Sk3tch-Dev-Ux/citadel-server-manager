@@ -1,5 +1,13 @@
 [
   {
+    "id": "2ed75158-cd00-4d66-8a5d-9c977c4914e9",
+    "timestamp": "2026-02-27T03:31:53.461Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying My DayZ Server to C:\\DayZServer"
+  },
+  {
     "id": "7c893c68-fc76-4d26-8339-1721b5a06b60",
     "timestamp": "2026-02-26T21:45:53.637Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",

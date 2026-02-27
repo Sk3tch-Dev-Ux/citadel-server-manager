@@ -19,6 +19,7 @@ import ConfigPage from './pages/ConfigPage';
 import LogsPage from './pages/LogsPage';
 import BansPage from './pages/BansPage';
 import SchedulerPage from './pages/SchedulerPage';
+import MessengerPage from './pages/MessengerPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
 import ToastContainer from './components/ToastContainer';
 import API from './api';
@@ -96,6 +97,7 @@ export default function AppRouter() {
             <Route path="logs" element={<ServerPage Component={LogsPage} />} />
             <Route path="bans" element={<ServerPage Component={BansPage} />} />
             <Route path="scheduler" element={<ServerPage Component={SchedulerPage} />} />
+            <Route path="messenger" element={<ServerPage Component={MessengerPage} />} />
             <Route path="settings" element={<ServerPage Component={ServerSettingsPage} />} />
           </Route>
           {/* Catch-all redirect */}

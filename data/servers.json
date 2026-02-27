@@ -45,5 +45,24 @@
     "deploying": false,
     "restartCountdown": 60,
     "ignoreModUpdates": false
+  },
+  {
+    "id": "18f8cdea-fdf9-495f-a240-b54bd3f8c7e0",
+    "name": "My DayZ Server",
+    "installDir": "C:\\DayZServer",
+    "executable": "DayZServer_x64.exe",
+    "startBat": "",
+    "launchParams": "-config=serverDZ.cfg -port=2502 -dologs -adminlog -netlog -freezecheck",
+    "ip": "127.0.0.1",
+    "gamePort": 2502,
+    "queryPort": 2503,
+    "rconPort": 2505,
+    "rconPassword": "Harker16!",
+    "maxPlayers": 60,
+    "map": "chernarusplus",
+    "gameTitle": "DayZ, PC",
+    "profileDir": "",
+    "createdAt": "2026-02-27T03:31:53.461Z",
+    "deploying": false
   }
 ]

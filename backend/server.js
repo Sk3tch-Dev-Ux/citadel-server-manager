@@ -91,6 +91,7 @@ require('./routes/config.routes')(app);
 require('./routes/mods.routes')(app);
 require('./routes/files.routes')(app);
 require('./routes/schedule.routes')(app);
+require('./routes/messenger.routes')(app);
 require('./routes/users.routes')(app);
 require('./routes/roles.routes')(app);
 require('./routes/audit.routes')(app);
