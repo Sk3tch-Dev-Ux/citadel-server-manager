@@ -33,7 +33,8 @@
       "Bash(npx vite build)",
       "Bash(npx vite build --force)",
       "Bash(dir data*.json)",
-      "Bash(xargs grep -l \"dangerzone\\\\|export.*server\\\\|restore.*backup\\\\|clear.*log\")"
+      "Bash(xargs grep -l \"dangerzone\\\\|export.*server\\\\|restore.*backup\\\\|clear.*log\")",
+      "Bash(xargs grep -l \"fireWebhooks\\\\|notification\")"
     ]
   }
 }
