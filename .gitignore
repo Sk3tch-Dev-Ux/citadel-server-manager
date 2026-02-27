@@ -24,3 +24,5 @@ Desktop.ini
 web/frontend/node_modules/
 web/dist/
 data/audit.json
+/data
+/.claude

@@ -31,7 +31,8 @@
       "WebFetch(domain:www.yougetsignal.com)",
       "WebFetch(domain:cftools.com)",
       "Bash(npx vite build)",
-      "Bash(npx vite build --force)"
+      "Bash(npx vite build --force)",
+      "Bash(dir data*.json)"
     ]
   }
 }
