@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');
-const { saveJSON } = require('./data-store');
+const { loadJSON, saveJSON } = require('./data-store');
 const { readServerConfig } = require('./dayz-config');
 const { autoDetectMods } = require('./mod-manager');
 const RCONClient = require('./rcon-client');
@@ -19,6 +19,10 @@ function initServerState(serverId) {
   if (ctx.serverStates[serverId]) return;
   const srv = ctx.servers.find(s => s.id === serverId);
   if (!srv) return;
+  // Load persisted scheduler/messenger data
+  const schedulerData = loadJSON(ctx.CONFIG.dataDir, `scheduler-${serverId}.json`, { jobs: [] });
+  const messengerData = loadJSON(ctx.CONFIG.dataDir, `messenger-${serverId}.json`, { enabled: true, messages: [] });
+
   ctx.serverStates[serverId] = {
     status: 'stopped', pid: null, process: null, players: [],
     logs: [], metricsHistory: { cpu: [], ram: [], players: [], fps: [], timestamps: [] },
@@ -26,6 +30,8 @@ function initServerState(serverId) {
     rcon: srv.rconPassword ? new RCONClient(srv.ip, srv.rconPort, srv.rconPassword) : null,
     startedAt: null,
     cftools: { lastSessionPoll: null, gameSessions: [] },
+    scheduler: { jobs: schedulerData.jobs || [], pendingActions: new Map() },
+    messenger: { enabled: messengerData.enabled !== false, messages: messengerData.messages || [], lastSent: new Map() },
   };
   if (fs.existsSync(srv.installDir)) {
     ctx.serverStates[serverId].config = readServerConfig(srv.installDir);
