@@ -102,6 +102,7 @@ require('./routes/steam.routes')(app);
 require('./routes/workshop.routes')(app);
 require('./routes/discord.routes')(app);
 require('./routes/backup.routes')(app);
+require('./routes/dangerzone.routes')(app);
 require('./routes/watchlist.routes')(app);
 require('./routes/priority-queue.routes')(app);
 require('./routes/killfeed.routes')(app);

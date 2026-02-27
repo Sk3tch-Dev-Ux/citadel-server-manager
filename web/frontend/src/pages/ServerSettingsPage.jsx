@@ -376,35 +376,11 @@ export default function ServerSettingsPage({ serverId }) {
 
       <Accordion title="Dangerzone" icon="" danger={true}>
         <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-          These operations can permanently affect your server. Proceed with caution.
+          Server wipes, rebuilds, replication, and destructive operations have moved to the dedicated Dangerzone page.
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn btn-danger btn-sm" onClick={() => {
-            if (window.confirm('Are you sure you want to delete this server from the panel? This does not delete server files.')) {
-              API.del('/api/servers/' + serverId).then(() => {
-                window.addToast('Server removed from panel', 'success');
-                window.location.reload();
-              });
-            }
-          }}>Delete Server</button>
-          <button className="btn btn-danger btn-sm" onClick={() => {
-            if (window.confirm('Are you sure you want to WIPE and REINSTALL this server?')) {
-              window.addToast('Rebuild initiated', 'info');
-              API.post(`/api/servers/${serverId}/rebuild`).then(resp => {
-                window.addToast(resp.message || 'Rebuild complete!', 'success');
-              }).catch(err => {
-                window.addToast(err?.error || err?.message || 'Rebuild failed', 'error');
-              });
-              const handler = (data) => {
-                if (data.serverId === serverId) {
-                  window.addToast(data.message || data.status, data.status === 'error' ? 'error' : 'info');
-                }
-              };
-              socket.on('dangerzoneProgress', handler);
-              setTimeout(() => socket.off('dangerzoneProgress', handler), 60000);
-            }
-          }}>Wipe & Reinstall Server</button>
-        </div>
+        <a href={`/servers/${serverId}/dangerzone`} className="btn btn-danger btn-sm" style={{ textDecoration: 'none' }}>
+          Open Dangerzone
+        </a>
       </Accordion>
     </div>
   );

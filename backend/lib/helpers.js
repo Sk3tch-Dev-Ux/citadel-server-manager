@@ -59,6 +59,35 @@ function copyDirSync(src, dest) {
 }
 
 /**
+ * Recursively calculate the total size (bytes) of a directory.
+ */
+function getDirSize(dirPath) {
+  let size = 0;
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        size += getDirSize(fullPath);
+      } else {
+        try { size += fs.statSync(fullPath).size; } catch { /* skip */ }
+      }
+    }
+  } catch { /* directory might not exist */ }
+  return size;
+}
+
+/**
+ * Format byte count to human-readable string.
+ */
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+}
+
+/**
  * Password policy configuration and check.
  */
 const PASSWORD_POLICY = {
@@ -84,6 +113,8 @@ module.exports = {
   validateFields,
   safePath,
   copyDirSync,
+  getDirSize,
+  formatBytes,
   PASSWORD_POLICY,
   checkPasswordPolicy,
 };

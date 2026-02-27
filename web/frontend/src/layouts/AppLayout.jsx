@@ -129,7 +129,7 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, Settings, FileText, ShieldBan, Clock, Send, Wrench } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, Settings, FileText, ShieldBan, Clock, Send, Wrench, AlertTriangle } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const navItems = [
@@ -145,6 +145,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'scheduler', icon: <Clock size={16} />, label: 'Scheduler' },
     { id: 'messenger', icon: <Send size={16} />, label: 'Messenger' },
     { id: 'settings', icon: <Wrench size={16} />, label: 'Settings' },
+    { id: 'dangerzone', icon: <AlertTriangle size={16} />, label: 'Dangerzone' },
   ];
 
   return (
