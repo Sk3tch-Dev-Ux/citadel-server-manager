@@ -49,7 +49,8 @@
       "Bash(unzip -p 000_Scripts.zip \"000_Scripts/3_game/core.c\")",
       "Bash(npm ls react-leaflet leaflet react react-dom)",
       "Bash(npm uninstall react-leaflet)",
-      "Bash(npm ls react-leaflet @react-leaflet/core)"
+      "Bash(npm ls react-leaflet @react-leaflet/core)",
+      "Bash(grep -l \"gameLabsAction\\\\|healPlayer\\\\|killPlayer\\\\|spawnItem\\\\|teleport\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/routes/*.js)"
     ]
   }
 }
