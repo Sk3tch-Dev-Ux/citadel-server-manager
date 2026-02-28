@@ -11,7 +11,7 @@
     "queryPort": 2303,
     "rconPort": 2305,
     "rconPassword": "9578854a",
-    "maxPlayers": 60,
+    "maxPlayers": 80,
     "map": "chernarusplus",
     "gameTitle": "DayZ, PC",
     "profileDir": "C:\\Program Files (x86)\\CFTools Software GmbH\\Architect\\Agent\\deployments\\TestingBranch\\profiles",
@@ -23,7 +23,16 @@
     "healthMaxRAM": 85,
     "healthAction": "log",
     "restartCountdown": 60,
-    "ignoreModUpdates": false
+    "ignoreModUpdates": false,
+    "launchParamsList": [
+      "-config=serverDZ.cfg",
+      "-port=2302",
+      "-profiles=profiles",
+      "-dologs",
+      "-adminlog",
+      "-netlog",
+      "-freezecheck"
+    ]
   },
   {
     "id": "4b0460fe-25f3-4500-93ee-10ce9d99ce26",
@@ -63,6 +72,14 @@
     "gameTitle": "DayZ, PC",
     "profileDir": "",
     "createdAt": "2026-02-27T03:31:53.461Z",
-    "deploying": false
+    "deploying": false,
+    "launchParamsList": [
+      "-config=serverDZ.cfg",
+      "-port=2502",
+      "-dologs",
+      "-adminlog",
+      "-netlog",
+      "-freezecheck"
+    ]
   }
 ]

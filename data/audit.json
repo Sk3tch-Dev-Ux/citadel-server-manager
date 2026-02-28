@@ -1,5 +1,85 @@
 [
   {
+    "id": "83c1471a-a530-446f-8f17-67a31c731cf3",
+    "timestamp": "2026-02-27T21:29:58.787Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: My DayZ Server"
+  },
+  {
+    "id": "d451ac0b-be0b-4203-9459-3d700beaf0d6",
+    "timestamp": "2026-02-27T21:24:23.023Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarted: My DayZ Server (success: true)"
+  },
+  {
+    "id": "32fbfd7b-78c2-441a-8ca4-edd6097ef4a6",
+    "timestamp": "2026-02-27T21:24:05.706Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "backup.config",
+    "details": "Updated backup config for server 18f8cdea-fdf9-495f-a240-b54bd3f8c7e0"
+  },
+  {
+    "id": "cc828239-a11a-4806-9256-243d8d76143e",
+    "timestamp": "2026-02-27T21:24:05.703Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.update",
+    "details": "Updated server: My DayZ Server"
+  },
+  {
+    "id": "ee6686b2-739f-48d3-9a62-9008fec31687",
+    "timestamp": "2026-02-27T21:23:05.488Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: My DayZ Server"
+  },
+  {
+    "id": "33a540cc-a5fe-4f0e-adb4-f03ad7925e3d",
+    "timestamp": "2026-02-27T21:20:06.595Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: The Last Broadcast | Vanilla Enhanced"
+  },
+  {
+    "id": "f90e361a-5800-419c-b6a0-af53dbb010d5",
+    "timestamp": "2026-02-27T21:18:55.396Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarted: The Last Broadcast | Vanilla Enhanced (success: true)"
+  },
+  {
+    "id": "56560add-285b-43b2-b676-519cdda0a173",
+    "timestamp": "2026-02-27T21:18:38.265Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "backup.config",
+    "details": "Updated backup config for server 15c7a20c-78f1-45e4-b57d-31ee8e0cb860"
+  },
+  {
+    "id": "0f2f1bff-4628-44ce-b7eb-d548b9c937cd",
+    "timestamp": "2026-02-27T21:18:38.262Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.update",
+    "details": "Updated server: The Last Broadcast | Vanilla Enhanced"
+  },
+  {
+    "id": "8ef7ed43-8413-4244-85a3-7db206a57975",
+    "timestamp": "2026-02-27T21:14:03.638Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: The Last Broadcast | Vanilla Enhanced"
+  },
+  {
     "id": "ca78da38-7033-4933-b280-730d21caaeaa",
     "timestamp": "2026-02-27T20:33:03.040Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",
