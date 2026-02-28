@@ -22,6 +22,7 @@ import SchedulerPage from './pages/SchedulerPage';
 import MessengerPage from './pages/MessengerPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
 import DangerzonePage from './pages/DangerzonePage';
+import LiveMapPage from './pages/LiveMapPage';
 import ToastContainer from './components/ToastContainer';
 import API from './api';
 
@@ -99,6 +100,7 @@ export default function AppRouter() {
             <Route path="bans" element={<ServerPage Component={BansPage} />} />
             <Route path="scheduler" element={<ServerPage Component={SchedulerPage} />} />
             <Route path="messenger" element={<ServerPage Component={MessengerPage} />} />
+            <Route path="map" element={<ServerPage Component={LiveMapPage} />} />
             <Route path="settings" element={<ServerPage Component={ServerSettingsPage} />} />
             <Route path="dangerzone" element={<ServerPage Component={DangerzonePage} />} />
           </Route>

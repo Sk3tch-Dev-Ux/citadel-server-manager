@@ -2,7 +2,7 @@
   {
     "id": "001d301b-9bff-420e-9152-abfd625ab922",
     "username": "admin",
-    "passwordHash": "a\u0000.t4DWmRWHpYXUVkS1WWs.AzNP5Msl72SyIjYq5Lnv1MX8ESwQ4XS",
+    "passwordHash": "$2a$10$N9hOVQUujzqALbB74313fePhr284eFr/EAUeIki2GP5iLw0M768gq",
     "role": "admin",
     "isRoot": true,
     "createdAt": "2026-02-23T05:08:12.753Z",

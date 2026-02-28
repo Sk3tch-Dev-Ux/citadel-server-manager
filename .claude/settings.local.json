@@ -39,7 +39,17 @@
       "Bash(findstr LISTENING)",
       "Bash(cmd /c \"taskkill /PID 32740 /F\")",
       "Bash(findstr \":5173\")",
-      "Bash(timeout 4)"
+      "Bash(timeout 4)",
+      "Bash(grep -r \"vehicle\\\\|Vehicle\\\\|boat\\\\|Boat\\\\|spawn\\\\|object\" /C/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib/*.js)",
+      "Bash(unzip -l 000_Scripts.zip)",
+      "Bash(unzip -p 000_Scripts.zip \"000_Scripts/3_game/api/api.c\")",
+      "Bash(unzip -p 000_Scripts.zip \"000_Scripts/3_game/api/definitions.c\")",
+      "Bash(unzip -p 000_Scripts.zip \"000_Scripts/4_world/4_hooking/entitytracking/!carscript.c\")",
+      "Bash(unzip -p 000_Scripts.zip \"000_Scripts/4_world/4_hooking/dynamicevents/!helicrash.c\")",
+      "Bash(unzip -p 000_Scripts.zip \"000_Scripts/3_game/core.c\")",
+      "Bash(npm ls react-leaflet leaflet react react-dom)",
+      "Bash(npm uninstall react-leaflet)",
+      "Bash(npm ls react-leaflet @react-leaflet/core)"
     ]
   }
 }

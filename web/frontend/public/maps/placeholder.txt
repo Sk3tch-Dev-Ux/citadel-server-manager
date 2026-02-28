@@ -1,0 +1,17 @@
+Place your DayZ map images here.
+
+Supported file names:
+  - chernarus.jpg   (15360x15360)
+  - livonia.jpg     (12800x12800)
+  - deerisle.jpg    (16384x16384)
+  - namalsk.jpg     (12800x12800)
+  - sakhal.jpg      (12800x12800)
+  - takistan.jpg    (12800x12800)
+
+Use satellite/topographic map images from:
+  - iZurvive map exports
+  - DayZ Central Economy map renders
+  - Custom map renders from community tools
+
+Image format: JPEG recommended for file size (2-5MB typical).
+Resolution should match the map dimensions listed above.
