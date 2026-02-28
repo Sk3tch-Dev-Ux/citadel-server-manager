@@ -34,7 +34,12 @@
       "Bash(npx vite build --force)",
       "Bash(dir data*.json)",
       "Bash(xargs grep -l \"dangerzone\\\\|export.*server\\\\|restore.*backup\\\\|clear.*log\")",
-      "Bash(xargs grep -l \"fireWebhooks\\\\|notification\")"
+      "Bash(xargs grep -l \"fireWebhooks\\\\|notification\")",
+      "Bash(findstr :3001)",
+      "Bash(findstr LISTENING)",
+      "Bash(cmd /c \"taskkill /PID 32740 /F\")",
+      "Bash(findstr \":5173\")",
+      "Bash(timeout 4)"
     ]
   }
 }

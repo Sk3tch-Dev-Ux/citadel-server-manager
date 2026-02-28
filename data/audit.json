@@ -1,5 +1,37 @@
 [
   {
+    "id": "65462f2c-6995-4dc6-ac38-ae86ec562d71",
+    "timestamp": "2026-02-28T03:31:29.029Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "webhook.delete",
+    "details": "Deleted webhook"
+  },
+  {
+    "id": "d103100d-d930-4697-b3ae-e056b3024b2e",
+    "timestamp": "2026-02-28T03:31:16.127Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "webhook.delete",
+    "details": "Deleted webhook"
+  },
+  {
+    "id": "7020c1a2-f1bb-4200-8cee-e34454fc9312",
+    "timestamp": "2026-02-28T03:30:51.644Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "webhook.create",
+    "details": "Created webhook for server.stopped"
+  },
+  {
+    "id": "e3b15765-7788-4e15-8501-369ce2fe193a",
+    "timestamp": "2026-02-28T03:30:25.209Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "webhook.create",
+    "details": "Created webhook for server.started"
+  },
+  {
     "id": "83c1471a-a530-446f-8f17-67a31c731cf3",
     "timestamp": "2026-02-27T21:29:58.787Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",
