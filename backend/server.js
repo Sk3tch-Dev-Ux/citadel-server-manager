@@ -108,15 +108,21 @@ require('./routes/priority-queue.routes')(app);
 require('./routes/killfeed.routes')(app);
 require('./routes/leaderboard.routes')(app);
 require('./routes/gamelabs.routes')(app);
+require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
 
 // ─── WebSocket ───────────────────────────────────────────
+const { getMapData: getMapDataForSocket } = require('./lib/map-data');
+
 io.on('connection', (socket) => {
   for (const srv of ctx.servers) {
     const state = ctx.serverStates[srv.id];
     if (state) {
       socket.emit('serverStatus', { serverId: srv.id, status: state.status });
       socket.emit('players', { serverId: srv.id, players: state.players });
+      // Send initial map data for live map
+      const mapData = getMapDataForSocket(srv.id);
+      if (mapData) socket.emit('mapData', { serverId: srv.id, ...mapData });
     }
   }
   socket.on('disconnect', () => {});

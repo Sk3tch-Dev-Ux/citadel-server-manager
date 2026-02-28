@@ -15,6 +15,7 @@ const { pushMetrics } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { startSchedulerEngine } = require('./scheduler-engine');
 const { startBackupEngine, runStartupBackups } = require('./backup-engine');
+const { scrapeRPTForEvents, getMapData } = require('./map-data');
 
 // ─── Steam Update Polling ────────────────────────────────
 let lastModVersions = {};
@@ -86,12 +87,19 @@ function startMetricsPolling() {
         // Player list polling (CFTools or RCON)
         try {
           const players = await fetchPlayers(srv.id);
-          const oldCount = state.players.length;
           state.players = players;
-          if (players.length !== oldCount) {
-            ctx.io.emit('players', { serverId: srv.id, players: state.players });
-          }
+          // Always emit — positions change even when player count doesn't (needed for live map)
+          ctx.io.emit('players', { serverId: srv.id, players: state.players });
         } catch (err) { logger.debug({ err, serverId: srv.id }, 'Player poll failed'); }
+        // Scrape RPT for dynamic events (helicrashes, airdrops, etc.)
+        try { scrapeRPTForEvents(srv); } catch { /* ignore */ }
+        // Emit combined map data for live map page
+        try {
+          const mapData = getMapData(srv.id);
+          if (mapData.players.length > 0 || mapData.vehicles.length > 0 || mapData.events.length > 0) {
+            ctx.io.emit('mapData', { serverId: srv.id, ...mapData });
+          }
+        } catch { /* ignore */ }
         // Health monitoring checks (5-minute cooldown between alerts)
         if (srv.healthMonitoring && metrics) {
           const minFPS = srv.healthMinFPS || 5;
