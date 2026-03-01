@@ -27,6 +27,7 @@ const logger = require('./lib/logger');
 const CONFIG = require('./lib/config');
 const ctx = require('./lib/context');
 const { loadJSON } = require('./lib/data-store');
+const { activateLicense } = require('./lib/license');
 
 // ─── Wire CONFIG into context ────────────────────────────
 ctx.CONFIG = CONFIG;
@@ -108,9 +109,14 @@ app.get('/readyz', (req, res) => {
 
 app.use(express.static(path.join(__dirname, '../web/dist')));
 
+// ─── License Activation ──────────────────────────────────
+const license = activateLicense(CONFIG.dataDir);
+ctx.license = license;
+
 // ─── Routes ──────────────────────────────────────────────
 require('./routes/setup.routes')(app);
 require('./routes/auth.routes')(app);
+require('./routes/license.routes')(app);
 require('./routes/servers.routes')(app);
 require('./routes/server-control.routes')(app);
 require('./routes/rcon-players.routes')(app);
@@ -138,6 +144,12 @@ require('./routes/leaderboard.routes')(app);
 require('./routes/actions.routes')(app);
 require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
+
+// ─── License-gated feature warnings ──────────────────────
+const { hasFeature } = require('./lib/license');
+if (!hasFeature('discord_bot')) logger.info('Discord bot integration requires Standard tier or higher');
+if (!hasFeature('webhooks')) logger.info('Webhooks require Professional tier or higher');
+if (!hasFeature('deploy')) logger.info('SteamCMD deployment requires Professional tier or higher');
 
 // ─── WebSocket (authenticated) ───────────────────────────
 const { getMapData: getMapDataForSocket } = require('./lib/map-data');

@@ -7,6 +7,7 @@ const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
 const auth = require('../middleware/auth');
+const requireFeature = require('../middleware/license');
 const { safePath } = require('../lib/helpers');
 const {
   createBackup, listBackups, deleteBackup,
@@ -59,7 +60,7 @@ module.exports = function (app) {
   // ════════════════════════════════════════════════════════
 
   // ─── Get backup config ─────────────────────────────────
-  app.get('/api/servers/:id/backup-config', auth(), (req, res) => {
+  app.get('/api/servers/:id/backup-config', auth(), requireFeature('backups'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
     res.json(getBackupConfig(req.params.id));

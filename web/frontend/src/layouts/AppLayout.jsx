@@ -6,7 +6,7 @@ import API from '../api';
 import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound } from '../components/Icon';
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -27,6 +27,7 @@ export default function AppLayout() {
     : location.pathname === '/deploy' ? 'Deploy Server'
     : location.pathname === '/users' ? 'Users & Roles'
     : location.pathname === '/webhooks' ? 'Webhooks'
+    : location.pathname === '/license' ? 'License'
     : 'Server Hub';
 
   // Determine which server sub-tab is active
@@ -82,6 +83,11 @@ export default function AppLayout() {
           <Link to="/webhooks" className={`nav-item ${location.pathname === '/webhooks' ? 'active' : ''}`}>
             <span className="nav-icon"><Webhook size={16} /></span>Webhooks
           </Link>
+          {user.role === 'admin' && (
+            <Link to="/license" className={`nav-item ${location.pathname === '/license' ? 'active' : ''}`}>
+              <span className="nav-icon"><KeyRound size={16} /></span>License
+            </Link>
+          )}
 
           {isServerPage && <ServerNav serverId={selectedServerId} serverName={currentServer?.name} activeTab={serverTab} />}
         </div>

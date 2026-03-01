@@ -15,9 +15,11 @@ const { initServerState } = require('../lib/server-init');
 const { addAudit } = require('../lib/audit');
 const { addNotification } = require('../lib/notifications');
 const auth = require('../middleware/auth');
+const requireFeature = require('../middleware/license');
+const { requireServerSlot } = require('../middleware/license');
 
 module.exports = function(app) {
-  app.post('/api/deploy', auth('server.deploy'), async (req, res) => {
+  app.post('/api/deploy', auth('server.deploy'), requireFeature('deploy'), requireServerSlot(), async (req, res) => {
     const { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map } = req.body;
     if (!name || !installDir) return res.status(400).json({ error: 'Name and install directory required' });
 
