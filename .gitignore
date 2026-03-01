@@ -47,3 +47,8 @@ docs/.vitepress/cache/
 
 # License private key (NEVER commit this)
 tools/license-private.pem
+
+# License server (Vercel)
+tools/license-server/.env
+tools/license-server/.vercel/
+tools/license-server/node_modules/
