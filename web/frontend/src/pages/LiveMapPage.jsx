@@ -60,20 +60,24 @@ function eventIcon(type) {
 
 // ─── Coordinate Display Component ──────────────────────
 function CoordinateTracker({ onMove }) {
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
   useMapEvents({
     mousemove(e) {
-      onMove({ x: Math.round(e.latlng.lng), z: Math.round(e.latlng.lat) });
+      onMoveRef.current({ x: Math.round(e.latlng.lng), z: Math.round(e.latlng.lat) });
     },
   });
   return null;
 }
 
-// ─── Map Bounds Fitter ─────────────────────────────────
+// ─── Map Bounds Fitter (runs once on mount) ────────────
 function FitBounds({ bounds }) {
   const map = useMap();
+  const fitted = useRef(false);
   useEffect(() => {
-    if (bounds) {
-      map.fitBounds(bounds, { padding: [20, 20] });
+    if (bounds && !fitted.current) {
+      fitted.current = true;
+      map.fitBounds(bounds, { padding: [20, 20], animate: false });
     }
   }, [map, bounds]);
   return null;
@@ -103,7 +107,8 @@ export default function LiveMapPage({ serverId }) {
 
   const [mapConfig, setMapConfig] = useState(null);
   const [mapData, setMapData] = useState({ players: [], vehicles: [], events: [] });
-  const [coords, setCoords] = useState({ x: 0, z: 0 });
+  const coordsRef = useRef({ x: 0, z: 0 });
+  const coordsElRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageError, setImageError] = useState(false);
@@ -257,10 +262,11 @@ export default function LiveMapPage({ serverId }) {
     );
   }
 
-  if (!mapConfig) return null;
+  // Memoize bounds and center so Leaflet components don't re-trigger on every render
+  const bounds = useMemo(() => [[0, 0], [mapConfig?.height || 0, mapConfig?.width || 0]], [mapConfig?.height, mapConfig?.width]);
+  const center = useMemo(() => [mapConfig?.height / 2 || 0, mapConfig?.width / 2 || 0], [mapConfig?.height, mapConfig?.width]);
 
-  const bounds = [[0, 0], [mapConfig.height, mapConfig.width]];
-  const center = [mapConfig.height / 2, mapConfig.width / 2];
+  if (!mapConfig) return null;
 
   return (
     <div className="map-page">
@@ -281,8 +287,8 @@ export default function LiveMapPage({ serverId }) {
           </span>
         </div>
         <div className="map-topbar__right">
-          <span className="map-topbar__coords">
-            <Crosshair size={13} /> {coords.x}, {coords.z}
+          <span className="map-topbar__coords" ref={coordsElRef}>
+            <Crosshair size={13} /><span> 0, 0</span>
           </span>
           <button className="btn btn-sm btn-secondary" onClick={refreshData} title="Refresh">
             <RefreshCw size={14} />
@@ -297,14 +303,23 @@ export default function LiveMapPage({ serverId }) {
           center={center}
           zoom={-2}
           minZoom={-3}
-          maxZoom={2}
+          maxZoom={4}
           crs={L.CRS.Simple}
+          maxBounds={[[-500, -500], [mapConfig.height + 500, mapConfig.width + 500]]}
+          maxBoundsViscosity={0.8}
           style={{ width: '100%', height: '100%', background: '#0a0f0a' }}
           attributionControl={false}
           zoomControl={true}
+          scrollWheelZoom={true}
+          dragging={true}
+          doubleClickZoom={true}
+          touchZoom={true}
         >
           <FitBounds bounds={bounds} />
-          <CoordinateTracker onMove={setCoords} />
+          <CoordinateTracker onMove={(c) => {
+            coordsRef.current = c;
+            if (coordsElRef.current) coordsElRef.current.lastChild.textContent = ` ${c.x}, ${c.z}`;
+          }} />
           <MapEvents onContextMenu={handleMapContext} />
 
           {/* Map Image Overlay */}
