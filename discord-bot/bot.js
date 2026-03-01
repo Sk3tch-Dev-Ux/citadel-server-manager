@@ -56,12 +56,25 @@ const CONFIG = {
 };
 
 // ─── API Helper ──────────────────────────────────────────
-async function panelAction(action, params = {}) {
+// Per-guild selected server (guildId → serverId)
+const selectedServers = new Map();
+
+function getSelectedServerId(guildId) {
+  return selectedServers.get(guildId) || null;
+}
+
+async function panelAction(action, params = {}, guildId = null) {
   try {
+    // Inject selected serverId if not already specified
+    const mergedParams = { ...params };
+    if (!mergedParams.serverId && guildId) {
+      const sid = getSelectedServerId(guildId);
+      if (sid) mergedParams.serverId = sid;
+    }
     const res = await fetch(`${CONFIG.apiUrl}/api/discord/action`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, apiKey: CONFIG.apiKey, params }),
+      body: JSON.stringify({ action, apiKey: CONFIG.apiKey, params: mergedParams }),
     });
     return await res.json();
   } catch (err) {
@@ -118,18 +131,81 @@ function formatPlaytime(seconds) {
   return `${mins}m`;
 }
 
+// ─── Helper: Format uptime from ISO date ─────────────────
+function formatUptime(startedAt) {
+  if (!startedAt) return 'N/A';
+  const diff = Date.now() - new Date(startedAt).getTime();
+  if (diff < 0) return 'N/A';
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  if (days > 0) return `${days}d ${hours}h ${mins}m`;
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
+// ─── Helper: ASCII progress bar ──────────────────────────
+function progressBar(pct, length = 10) {
+  const filled = Math.round((pct / 100) * length);
+  const empty = length - filled;
+  return '█'.repeat(filled) + '░'.repeat(empty);
+}
+
+// ─── Helper: Status indicator emoji ──────────────────────
+function statusIndicator(status) {
+  const map = { running: '🟢', stopped: '🔴', starting: '🟡', stopping: '🟡', crashed: '💥', unknown: '⚪' };
+  return map[status] || '⚪';
+}
+
 // ─── Embed Builders ──────────────────────────────────────
 function buildStatusEmbed(data) {
-  const status = (data.status || 'unknown').toUpperCase();
-  return new EmbedBuilder()
-    .setTitle(data.serverName || 'DayZ Server')
-    .setColor(COLORS[data.status] || 0x808080)
-    .addFields(
-      { name: 'Status', value: `\`${status}\``, inline: true },
-      { name: 'Players', value: `\`${data.playerCount || 0} / ${data.maxPlayers || 60}\``, inline: true },
-    )
-    .setFooter({ text: 'Citadel' })
+  const status = (data.status || 'unknown');
+  const statusUpper = status.toUpperCase();
+  const cpu = data.cpu || 0;
+  const ram = data.ram || 0;
+  const ramMB = data.ramMB || 0;
+  const fps = data.fps || 0;
+  const playerCount = data.playerCount || 0;
+  const maxPlayers = data.maxPlayers || 60;
+  const playerPct = maxPlayers > 0 ? Math.round((playerCount / maxPlayers) * 100) : 0;
+
+  const embed = new EmbedBuilder()
+    .setTitle(`${statusIndicator(status)}  ${data.serverName || 'DayZ Server'}`)
+    .setColor(COLORS[status] || 0x808080)
     .setTimestamp();
+
+  // ── Row 1: Status, Players, Uptime ──
+  const fields = [
+    { name: '📡 Status', value: `\`${statusUpper}\``, inline: true },
+    { name: '👥 Players', value: `\`${playerCount} / ${maxPlayers}\``, inline: true },
+    { name: '⏱️ Uptime', value: `\`${formatUptime(data.startedAt)}\``, inline: true },
+  ];
+
+  // ── Row 2: CPU, RAM, FPS (only when running) ──
+  if (status === 'running') {
+    fields.push(
+      { name: '🖥️ CPU', value: `${progressBar(cpu)} \`${cpu.toFixed(1)}%\``, inline: true },
+      { name: '💾 RAM', value: `${progressBar(ram)} \`${ram.toFixed(1)}%\` (${ramMB > 1024 ? (ramMB / 1024).toFixed(1) + ' GB' : ramMB + ' MB'})`, inline: true },
+      { name: '📊 FPS', value: `\`${fps.toFixed(1)}\``, inline: true },
+    );
+  }
+
+  // ── Row 3: Server info ──
+  const mapName = (data.map || 'unknown').replace('plus', '+').replace(/^\w/, c => c.toUpperCase());
+  fields.push(
+    { name: '🗺️ Map', value: `\`${mapName}\``, inline: true },
+    { name: '🔌 Connect', value: `\`${data.ip || '0.0.0.0'}:${data.gamePort || 2302}\``, inline: true },
+    { name: '🧩 Mods', value: `\`${data.modCount || 0} installed\``, inline: true },
+  );
+
+  // ── Player fill bar ──
+  if (status === 'running' && maxPlayers > 0) {
+    embed.setDescription(`**Player Capacity** ${progressBar(playerPct, 20)} \`${playerPct}%\``);
+  }
+
+  embed.addFields(fields);
+  embed.setFooter({ text: `Citadel${data.serverId ? ' • ' + (data.serverId).slice(0, 8) : ''}` });
+  return embed;
 }
 
 function buildPlayerListEmbed(players) {
@@ -218,7 +294,7 @@ function buildPlayerInfoEmbed(data) {
 }
 
 // ─── Panel Layout Builders ──────────────────────────────
-function buildControlPanel() {
+function buildControlPanel(servers = null) {
   const coreButtons = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('panel_status').setLabel('Status').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('panel_start').setLabel('Start').setStyle(ButtonStyle.Success),
@@ -239,7 +315,26 @@ function buildControlPanel() {
       )
   );
 
-  return [coreButtons, categorySelect];
+  const rows = [coreButtons, categorySelect];
+
+  // Add server picker if multiple servers exist
+  if (servers && servers.length > 1) {
+    const serverSelect = new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId('server_select')
+        .setPlaceholder('🖥️ Switch server...')
+        .addOptions(
+          servers.slice(0, 25).map(s => ({
+            label: s.name.slice(0, 100),
+            value: s.id,
+            description: `${s.status === 'running' ? '🟢' : '🔴'} ${s.playerCount}/${s.maxPlayers} players • ${(s.map || 'unknown').replace('plus', '+')}`.slice(0, 100),
+          }))
+        )
+    );
+    rows.push(serverSelect);
+  }
+
+  return rows;
 }
 
 function buildServerButtons() {
@@ -320,8 +415,8 @@ function buildConfirmRow(action) {
 /**
  * Build a player select menu from online players for admin actions.
  */
-async function buildPlayerSelectMenu(customId, placeholder) {
-  const data = await panelAction('players');
+async function buildPlayerSelectMenu(customId, placeholder, guildId) {
+  const data = await panelAction('players', {}, guildId);
   const players = data.players || [];
   if (players.length === 0) return null;
   return new StringSelectMenuBuilder()
@@ -469,8 +564,23 @@ client.on('error', (err) => {
 // ─── Interaction Handler ─────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
   try {
+    const guildId = interaction.guildId;
+
     // ── Select Menu: Category Navigation ──
     if (interaction.isStringSelectMenu && interaction.isStringSelectMenu()) {
+      // Server select (multi-server switcher)
+      if (interaction.customId === 'server_select') {
+        const serverId = interaction.values[0];
+        selectedServers.set(guildId, serverId);
+        // Refresh the panel with the newly selected server
+        const data = await panelAction('status', {}, guildId);
+        const serversList = await panelAction('servers', {}, guildId);
+        const embed = buildStatusEmbed(data);
+        embed.setDescription('Use the buttons and dropdown below to manage the server.');
+        await interaction.update({ embeds: [embed], components: buildControlPanel(serversList.servers) });
+        return;
+      }
+
       // Category select
       if (interaction.customId === 'category_select') {
         const selected = interaction.values[0];
@@ -558,7 +668,7 @@ client.on('interactionCreate', async (interaction) => {
       // Admin Action player selects
       if (interaction.customId === 'select_gl_heal') {
         const steamId = interaction.values[0];
-        const result = await panelAction('actionHeal', { steamId });
+        const result = await panelAction('actionHeal', { steamId }, guildId);
         await safeReply(interaction, {
           content: result.error ? `Error: ${result.error}` : result.message,
           flags: MessageFlags.Ephemeral,
@@ -568,7 +678,7 @@ client.on('interactionCreate', async (interaction) => {
 
       if (interaction.customId === 'select_gl_kill') {
         const steamId = interaction.values[0];
-        const result = await panelAction('actionKill', { steamId });
+        const result = await panelAction('actionKill', { steamId }, guildId);
         await safeReply(interaction, {
           content: result.error ? `Error: ${result.error}` : result.message,
           flags: MessageFlags.Ephemeral,
@@ -615,10 +725,11 @@ client.on('interactionCreate', async (interaction) => {
 
       // Status / Refresh
       if (btnId === 'panel_status' || btnId === 'panel_refresh') {
-        const data = await panelAction('status');
+        const data = await panelAction('status', {}, guildId);
+        const serversList = await panelAction('servers', {}, guildId);
         const embed = buildStatusEmbed(data);
         embed.setDescription('Use the buttons and dropdown below to manage the server.');
-        await interaction.update({ embeds: [embed], components: buildControlPanel() });
+        await interaction.update({ embeds: [embed], components: buildControlPanel(serversList.servers) });
       }
 
       // Start
@@ -654,14 +765,14 @@ client.on('interactionCreate', async (interaction) => {
       // Lock
       else if (btnId === 'panel_lock') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
-        const result = await panelAction('lock');
+        const result = await panelAction('lock', {}, guildId);
         await safeReply(interaction, { content: result.error ? result.error : 'Server locked.', flags: MessageFlags.Ephemeral });
       }
 
       // Unlock
       else if (btnId === 'panel_unlock') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
-        const result = await panelAction('unlock');
+        const result = await panelAction('unlock', {}, guildId);
         await safeReply(interaction, { content: result.error ? result.error : 'Server unlocked.', flags: MessageFlags.Ephemeral });
       }
 
@@ -683,7 +794,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Players
       else if (btnId === 'panel_players') {
-        const data = await panelAction('players');
+        const data = await panelAction('players', {}, guildId);
         const embed = buildPlayerListEmbed(data.players || []);
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
@@ -706,7 +817,7 @@ client.on('interactionCreate', async (interaction) => {
       // Kick menu
       else if (btnId === 'panel_kick_menu') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
-        const data = await panelAction('players');
+        const data = await panelAction('players', {}, guildId);
         const players = data.players || [];
         if (players.length === 0) {
           return await safeReply(interaction, { content: 'No players online to kick.', flags: MessageFlags.Ephemeral });
@@ -746,7 +857,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Mod list
       else if (btnId === 'panel_mod_list') {
-        const mods = await panelAction('mods');
+        const mods = await panelAction('mods', {}, guildId);
         const list = Array.isArray(mods) ? mods : (mods.mods || []);
         const embed = new EmbedBuilder()
           .setTitle('Installed Mods')
@@ -761,7 +872,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Mod status
       else if (btnId === 'panel_mod_status') {
-        const status = await panelAction('modStatus');
+        const status = await panelAction('modStatus', {}, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Mod Install Status')
           .setColor(COLORS.mods)
@@ -842,7 +953,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Chat feed
       else if (btnId === 'panel_chat_feed') {
-        const chat = await panelAction('chatFeed');
+        const chat = await panelAction('chatFeed', {}, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Live Chat Feed')
           .setColor(COLORS.intel)
@@ -855,7 +966,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Watch list
       else if (btnId === 'panel_watch_list') {
-        const watch = await panelAction('watchList');
+        const watch = await panelAction('watchList', {}, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Watch List')
           .setColor(COLORS.warning)
@@ -868,7 +979,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Killfeed
       else if (btnId === 'panel_killfeed') {
-        const feed = await panelAction('killfeed');
+        const feed = await panelAction('killfeed', {}, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Killfeed')
           .setColor(COLORS.error)
@@ -881,7 +992,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Priority queue
       else if (btnId === 'panel_priority_queue') {
-        const queue = await panelAction('priorityQueue');
+        const queue = await panelAction('priorityQueue', {}, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Priority Queue')
           .setColor(COLORS.info)
@@ -894,7 +1005,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Time/weather
       else if (btnId === 'panel_time_weather') {
-        const tw = await panelAction('timeWeather');
+        const tw = await panelAction('timeWeather', {}, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Time & Weather')
           .setColor(COLORS.intel)
@@ -905,14 +1016,14 @@ client.on('interactionCreate', async (interaction) => {
 
       // Leaderboard
       else if (btnId === 'panel_leaderboard') {
-        const stats = await panelAction('leaderboard');
+        const stats = await panelAction('leaderboard', {}, guildId);
         const embed = buildLeaderboardEmbed(stats?.entries);
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
       // Ban/whitelist
       else if (btnId === 'panel_ban_whitelist') {
-        const bans = await panelAction('banWhitelist');
+        const bans = await panelAction('banWhitelist', {}, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Ban List')
           .setColor(COLORS.error)
@@ -926,7 +1037,7 @@ client.on('interactionCreate', async (interaction) => {
       // ── Admin Action Buttons ──
       else if (btnId === 'panel_gl_heal') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
-        const select = await buildPlayerSelectMenu('select_gl_heal', 'Select a player to heal');
+        const select = await buildPlayerSelectMenu('select_gl_heal', 'Select a player to heal', guildId);
         if (!select) return await safeReply(interaction, { content: 'No players online.', flags: MessageFlags.Ephemeral });
         await safeReply(interaction, {
           content: 'Select a player to heal:',
@@ -937,7 +1048,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (btnId === 'panel_gl_kill') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
-        const select = await buildPlayerSelectMenu('select_gl_kill', 'Select a player to kill');
+        const select = await buildPlayerSelectMenu('select_gl_kill', 'Select a player to kill', guildId);
         if (!select) return await safeReply(interaction, { content: 'No players online.', flags: MessageFlags.Ephemeral });
         await safeReply(interaction, {
           content: 'Select a player to kill:',
@@ -948,7 +1059,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (btnId === 'panel_gl_teleport') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
-        const select = await buildPlayerSelectMenu('select_gl_teleport', 'Select a player to teleport');
+        const select = await buildPlayerSelectMenu('select_gl_teleport', 'Select a player to teleport', guildId);
         if (!select) return await safeReply(interaction, { content: 'No players online.', flags: MessageFlags.Ephemeral });
         await safeReply(interaction, {
           content: 'Select a player to teleport:',
@@ -959,7 +1070,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (btnId === 'panel_gl_spawn') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
-        const select = await buildPlayerSelectMenu('select_gl_spawn', 'Select a player to receive items');
+        const select = await buildPlayerSelectMenu('select_gl_spawn', 'Select a player to receive items', guildId);
         if (!select) return await safeReply(interaction, { content: 'No players online.', flags: MessageFlags.Ephemeral });
         await safeReply(interaction, {
           content: 'Select a player to spawn items on:',
@@ -970,7 +1081,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Confirm start
       else if (btnId === 'confirm_start') {
-        const result = await panelAction('start');
+        const result = await panelAction('start', {}, guildId);
         if (result.error) {
           await interaction.update({ content: result.error, embeds: [], components: [] });
           return;
@@ -986,7 +1097,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Confirm stop
       else if (btnId === 'confirm_stop') {
-        const result = await panelAction('stop');
+        const result = await panelAction('stop', {}, guildId);
         if (result.error) {
           await interaction.update({ content: result.error, embeds: [], components: [] });
           return;
@@ -1007,7 +1118,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // Restart options
       else if (btnId === 'restart_now') {
-        const result = await panelAction('restart');
+        const result = await panelAction('restart', {}, guildId);
         if (result.error) {
           await interaction.update({ content: result.error, embeds: [], components: [] });
           return;
@@ -1021,7 +1132,7 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       else if (btnId === 'restart_60') {
-        const result = await panelAction('restart', { countdown: 60 });
+        const result = await panelAction('restart', { countdown: 60 }, guildId);
         if (result.error) {
           await interaction.update({ content: result.error, embeds: [], components: [] });
           return;
@@ -1035,7 +1146,7 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       else if (btnId === 'restart_300') {
-        const result = await panelAction('restart', { countdown: 300 });
+        const result = await panelAction('restart', { countdown: 300 }, guildId);
         if (result.error) {
           await interaction.update({ content: result.error, embeds: [], components: [] });
           return;
@@ -1061,7 +1172,7 @@ client.on('interactionCreate', async (interaction) => {
         await safeReply(interaction, { content: 'Deploying control panel...', flags: MessageFlags.Ephemeral });
         let data;
         try {
-          data = await panelAction('status');
+          data = await panelAction('status', {}, guildId);
         } catch {
           await interaction.followUp({ content: 'Failed to fetch server status.', flags: MessageFlags.Ephemeral });
           return;
@@ -1070,9 +1181,10 @@ client.on('interactionCreate', async (interaction) => {
           await interaction.followUp({ content: data.error, flags: MessageFlags.Ephemeral });
           return;
         }
+        const serversList = await panelAction('servers', {}, guildId);
         const embed = buildStatusEmbed(data);
         embed.setDescription('Use the buttons and dropdown below to manage the server.');
-        await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
+        await interaction.channel.send({ embeds: [embed], components: buildControlPanel(serversList.servers) });
         await interaction.followUp({ content: 'Control panel deployed.', flags: MessageFlags.Ephemeral });
       }
 
@@ -1080,7 +1192,8 @@ client.on('interactionCreate', async (interaction) => {
         if (!isAdmin(interaction)) {
           return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
         }
-        const data = await panelAction('status');
+        const data = await panelAction('status', {}, guildId);
+        const serversList = await panelAction('servers', {}, guildId);
         const embed = buildStatusEmbed(data);
         embed.setDescription(
           '**DayZ Server Control Panel**\n\n' +
@@ -1089,11 +1202,11 @@ client.on('interactionCreate', async (interaction) => {
           '`Dropdown` Server, Players, Mods, Intel, Admin Actions categories'
         );
         await safeReply(interaction, { content: 'Control panel deployed.', flags: MessageFlags.Ephemeral });
-        await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
+        await interaction.channel.send({ embeds: [embed], components: buildControlPanel(serversList.servers) });
       }
 
       else if (commandName === 'status') {
-        const data = await panelAction('status');
+        const data = await panelAction('status', {}, guildId);
         const embed = buildStatusEmbed(data);
         if (data.players && data.players.length > 0) {
           const playerList = data.players.map(p => `${p.name}`).join('\n');
@@ -1103,7 +1216,7 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       else if (commandName === 'players') {
-        const data = await panelAction('players');
+        const data = await panelAction('players', {}, guildId);
         const embed = buildPlayerListEmbed(data.players || []);
         await safeReply(interaction, { embeds: [embed] });
       }
@@ -1113,7 +1226,7 @@ client.on('interactionCreate', async (interaction) => {
           return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
         }
         const command = interaction.options.getString('command');
-        const result = await panelAction('rcon', { command });
+        const result = await panelAction('rcon', { command }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('RCON')
           .setColor(COLORS.info)
@@ -1130,7 +1243,7 @@ client.on('interactionCreate', async (interaction) => {
           return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
         }
         const message = interaction.options.getString('message');
-        await panelAction('message', { message });
+        await panelAction('message', { message }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Message Broadcast')
           .setColor(COLORS.success)
@@ -1146,7 +1259,7 @@ client.on('interactionCreate', async (interaction) => {
         }
         const countdown = interaction.options.getInteger('countdown');
         if (countdown) {
-          await panelAction('restart', { countdown });
+          await panelAction('restart', { countdown }, guildId);
           await safeReply(interaction, { content: `Server restarting in **${countdown}** seconds. Players have been warned.` });
         } else {
           await safeReply(interaction, {
@@ -1160,7 +1273,7 @@ client.on('interactionCreate', async (interaction) => {
       // ── Admin Action Slash Commands ──
       else if (commandName === 'playerinfo') {
         const steamId = interaction.options.getString('steamid');
-        const data = await panelAction('playerInfo', { steamId });
+        const data = await panelAction('playerInfo', { steamId }, guildId);
         const embed = buildPlayerInfoEmbed(data);
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
@@ -1168,7 +1281,7 @@ client.on('interactionCreate', async (interaction) => {
       else if (commandName === 'heal') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
         const steamId = interaction.options.getString('steamid');
-        const result = await panelAction('actionHeal', { steamId });
+        const result = await panelAction('actionHeal', { steamId }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Admin: Heal')
           .setColor(result.error ? COLORS.error : COLORS.success)
@@ -1181,7 +1294,7 @@ client.on('interactionCreate', async (interaction) => {
       else if (commandName === 'kill') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
         const steamId = interaction.options.getString('steamid');
-        const result = await panelAction('actionKill', { steamId });
+        const result = await panelAction('actionKill', { steamId }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Admin: Kill')
           .setColor(result.error ? COLORS.error : COLORS.warning)
@@ -1197,7 +1310,7 @@ client.on('interactionCreate', async (interaction) => {
         const x = interaction.options.getNumber('x');
         const y = interaction.options.getNumber('y');
         const z = interaction.options.getNumber('z') || 0;
-        const result = await panelAction('actionTeleport', { steamId, x, y, z });
+        const result = await panelAction('actionTeleport', { steamId, x, y, z }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Admin: Teleport')
           .setColor(result.error ? COLORS.error : COLORS.info)
@@ -1212,7 +1325,7 @@ client.on('interactionCreate', async (interaction) => {
         const steamId = interaction.options.getString('steamid');
         const itemClass = interaction.options.getString('item');
         const quantity = interaction.options.getInteger('quantity') || 1;
-        const result = await panelAction('actionSpawnItem', { steamId, itemClass, quantity });
+        const result = await panelAction('actionSpawnItem', { steamId, itemClass, quantity }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Admin: Spawn Item')
           .setColor(result.error ? COLORS.error : COLORS.success)
@@ -1227,7 +1340,7 @@ client.on('interactionCreate', async (interaction) => {
     else if (interaction.isModalSubmit && interaction.isModalSubmit()) {
       if (interaction.customId === 'modal_broadcast') {
         const message = interaction.fields.getTextInputValue('broadcast_text');
-        await panelAction('message', { message });
+        await panelAction('message', { message }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Message Broadcast')
           .setColor(COLORS.success)
@@ -1239,7 +1352,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (interaction.customId === 'modal_rcon') {
         const command = interaction.fields.getTextInputValue('rcon_command');
-        const result = await panelAction('rcon', { command });
+        const result = await panelAction('rcon', { command }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('RCON')
           .setColor(COLORS.info)
@@ -1254,7 +1367,7 @@ client.on('interactionCreate', async (interaction) => {
       else if (interaction.customId.startsWith('modal_kick_')) {
         const playerId = interaction.customId.replace('modal_kick_', '');
         const reason = interaction.fields.getTextInputValue('kick_reason') || 'Kicked via Discord';
-        await panelAction('kick', { playerId, reason });
+        await panelAction('kick', { playerId, reason }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Player Kicked')
           .setColor(COLORS.error)
@@ -1270,7 +1383,7 @@ client.on('interactionCreate', async (interaction) => {
       // Player Info modal
       else if (interaction.customId === 'modal_player_info') {
         const steamId = interaction.fields.getTextInputValue('player_steamid');
-        const data = await panelAction('playerInfo', { steamId });
+        const data = await panelAction('playerInfo', { steamId }, guildId);
         const embed = buildPlayerInfoEmbed(data);
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
@@ -1281,7 +1394,7 @@ client.on('interactionCreate', async (interaction) => {
         const x = interaction.fields.getTextInputValue('tp_x');
         const y = interaction.fields.getTextInputValue('tp_y');
         const z = interaction.fields.getTextInputValue('tp_z') || '0';
-        const result = await panelAction('actionTeleport', { steamId, x: parseFloat(x), y: parseFloat(y), z: parseFloat(z) });
+        const result = await panelAction('actionTeleport', { steamId, x: parseFloat(x), y: parseFloat(y), z: parseFloat(z) }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Admin: Teleport')
           .setColor(result.error ? COLORS.error : COLORS.info)
@@ -1296,7 +1409,7 @@ client.on('interactionCreate', async (interaction) => {
         const steamId = interaction.customId.replace('modal_gl_spawn_', '');
         const itemClass = interaction.fields.getTextInputValue('item_class');
         const quantity = parseInt(interaction.fields.getTextInputValue('item_qty')) || 1;
-        const result = await panelAction('actionSpawnItem', { steamId, itemClass, quantity });
+        const result = await panelAction('actionSpawnItem', { steamId, itemClass, quantity }, guildId);
         const embed = new EmbedBuilder()
           .setTitle('Admin: Spawn Item')
           .setColor(result.error ? COLORS.error : COLORS.success)
@@ -1309,7 +1422,7 @@ client.on('interactionCreate', async (interaction) => {
       else if (interaction.customId === 'modal_mod_install') {
         const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
         const name = interaction.fields.getTextInputValue('mod_name');
-        const result = await panelAction('modInstall', { workshopId, name });
+        const result = await panelAction('modInstall', { workshopId, name }, guildId);
         await safeReply(interaction, {
           content: result.error ? result.error : `Mod **${name}** (${workshopId}) install started.`,
           flags: MessageFlags.Ephemeral,
@@ -1318,7 +1431,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (interaction.customId === 'modal_mod_uninstall') {
         const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
-        const result = await panelAction('modUninstall', { workshopId });
+        const result = await panelAction('modUninstall', { workshopId }, guildId);
         await safeReply(interaction, {
           content: result.error ? result.error : `Mod ${workshopId} uninstalled.`,
           flags: MessageFlags.Ephemeral,
@@ -1327,7 +1440,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (interaction.customId === 'modal_mod_enable') {
         const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
-        const result = await panelAction('modEnable', { workshopId });
+        const result = await panelAction('modEnable', { workshopId }, guildId);
         await safeReply(interaction, {
           content: result.error ? result.error : `Mod ${workshopId} enabled.`,
           flags: MessageFlags.Ephemeral,
@@ -1336,7 +1449,7 @@ client.on('interactionCreate', async (interaction) => {
 
       else if (interaction.customId === 'modal_mod_disable') {
         const workshopId = interaction.fields.getTextInputValue('mod_workshopid');
-        const result = await panelAction('modDisable', { workshopId });
+        const result = await panelAction('modDisable', { workshopId }, guildId);
         await safeReply(interaction, {
           content: result.error ? result.error : `Mod ${workshopId} disabled.`,
           flags: MessageFlags.Ephemeral,
