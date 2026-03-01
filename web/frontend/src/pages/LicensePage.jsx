@@ -35,7 +35,7 @@ export default function LicensePage() {
         API.get('/api/license/tiers'),
         API.get('/api/license/features'),
       ]);
-      setLicense(lic);
+      if (lic && !lic.error) setLicense(lic);
       setTiers(Array.isArray(tierList) ? tierList : []);
       setFeatures(featureMap && !featureMap.error ? featureMap : {});
     } catch (err) {
