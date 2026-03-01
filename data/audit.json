@@ -1,5 +1,13 @@
 [
   {
+    "id": "54e06a1e-cdfa-464f-a570-188b28d60b29",
+    "timestamp": "2026-03-01T04:20:33.945Z",
+    "userId": "001d301b-9bff-420e-9152-abfd625ab922",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
     "id": "43de260b-8430-4877-b513-0a59c0d9972b",
     "timestamp": "2026-02-28T20:50:21.215Z",
     "userId": "001d301b-9bff-420e-9152-abfd625ab922",
