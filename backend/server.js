@@ -17,6 +17,8 @@ const path = require('path');
 const express = require('express');
 const http = require('http');
 const https = require('https');
+const helmet = require('helmet');
+const jwt = require('jsonwebtoken');
 const { Server: SocketIO } = require('socket.io');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -61,7 +63,9 @@ try {
     cert: fs.readFileSync(path.join(certPath, 'cert.pem')),
   }, app);
   useHttps = true;
-} catch {
+} catch (err) {
+  logger.warn('TLS certificates not found or invalid — running over HTTP (unencrypted)');
+  if (err.code !== 'ENOENT') logger.debug({ err }, 'TLS init error details');
   server = http.createServer(app);
 }
 
@@ -72,12 +76,36 @@ ctx.io = io;
 const { createCors, secureCookies } = require('./middleware/security');
 const { apiLimiter, authLimiter, discordLimiter } = require('./middleware/rate-limit');
 
+// Security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, etc.)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],  // Vite needs inline during dev
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'", 'ws:', 'wss:'],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,  // Allow image loading
+}));
 app.use(createCors(CONFIG.allowedOrigins));
 app.use(express.json({ limit: '10mb' }));
 app.use(secureCookies(useHttps));
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 app.use('/api/discord/', discordLimiter);
+
+// Health check endpoint (for load balancers / orchestrators)
+app.get('/healthz', (req, res) => res.status(200).json({ status: 'ok', uptime: process.uptime() }));
+app.get('/readyz', (req, res) => {
+  const ready = ctx.servers.length > 0 || ctx.users.length > 0;
+  res.status(ready ? 200 : 503).json({ ready });
+});
+
 app.use(express.static(path.join(__dirname, '../web/dist')));
 
 // ─── Routes ──────────────────────────────────────────────
@@ -111,10 +139,25 @@ require('./routes/actions.routes')(app);
 require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
 
-// ─── WebSocket ───────────────────────────────────────────
+// ─── WebSocket (authenticated) ───────────────────────────
 const { getMapData: getMapDataForSocket } = require('./lib/map-data');
 
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error('Authentication required'));
+  try {
+    const decoded = jwt.verify(token, CONFIG.jwtSecret);
+    const user = ctx.users.find(u => u.id === decoded.id);
+    if (!user) return next(new Error('User not found'));
+    socket.user = decoded;
+    next();
+  } catch {
+    next(new Error('Invalid or expired token'));
+  }
+});
+
 io.on('connection', (socket) => {
+  logger.debug({ userId: socket.user?.id }, 'WebSocket client connected');
   for (const srv of ctx.servers) {
     const state = ctx.serverStates[srv.id];
     if (state) {
@@ -125,7 +168,9 @@ io.on('connection', (socket) => {
       if (mapData) socket.emit('mapData', { serverId: srv.id, ...mapData });
     }
   }
-  socket.on('disconnect', () => {});
+  socket.on('disconnect', () => {
+    logger.debug({ userId: socket.user?.id }, 'WebSocket client disconnected');
+  });
 });
 
 // ─── SPA Fallback ────────────────────────────────────────
@@ -139,6 +184,7 @@ app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Invalid JSON in request body' });
   }
+  logger.error({ err, method: req.method, url: req.url }, 'Unhandled server error');
   res.status(500).json({ error: 'Internal server error' });
 });
 

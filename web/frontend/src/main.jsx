@@ -5,21 +5,24 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ServersProvider } from './contexts/ServersContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import AppRouter from './router';
 import './styles/global.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <SocketProvider>
-          <ToastProvider>
-            <ServersProvider>
-              <AppRouter />
-            </ServersProvider>
-          </ToastProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <SocketProvider>
+            <ToastProvider>
+              <ServersProvider>
+                <AppRouter />
+              </ServersProvider>
+            </ToastProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

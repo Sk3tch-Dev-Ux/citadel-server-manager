@@ -2,7 +2,11 @@
   "name": "citadel",
   "version": "2.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "description": "Citadel — Enterprise DayZ server management platform with web UI, Discord bot, and in-game admin mod",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "postinstall": "cd backend && npm install && cd ../web/frontend && npm install",
     "setup": "node backend/lib/setup.js",

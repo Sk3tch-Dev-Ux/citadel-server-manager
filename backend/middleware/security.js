@@ -12,15 +12,16 @@ function createCors(allowedOrigins) {
 
 /**
  * Secure cookie defaults middleware.
- * Sets httpOnly, sameSite=strict, and secure (when HTTPS).
+ * Wraps the original Express res.cookie() to enforce httpOnly, sameSite, and secure flags.
  */
 function secureCookies(useHttps) {
   return (req, res, next) => {
+    const originalCookie = res.cookie.bind(res);
     res.cookie = function(name, value, options = {}) {
-      options.httpOnly = true;
-      options.sameSite = 'strict';
+      options.httpOnly = options.httpOnly !== false;  // default true
+      options.sameSite = options.sameSite || 'strict';
       if (useHttps) options.secure = true;
-      return require('cookie').serialize(name, value, options);
+      return originalCookie(name, value, options);
     };
     next();
   };
