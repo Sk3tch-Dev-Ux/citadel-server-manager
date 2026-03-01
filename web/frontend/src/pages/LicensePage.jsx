@@ -62,7 +62,6 @@ export default function LicensePage() {
       {/* License Status Card */}
       <div className="card" style={{ marginBottom: 24, textAlign: 'center', padding: 32 }}>
         <div style={{
-          display: 'inline-block',
           width: 64, height: 64, borderRadius: '50%',
           background: isLicensed ? 'rgba(0, 255, 106, 0.12)' : 'rgba(255, 255, 255, 0.06)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
