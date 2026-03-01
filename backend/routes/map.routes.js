@@ -1,16 +1,23 @@
 /**
  * Live Map API routes — map data, configuration, and map-based actions.
+ *
+ * All admin actions delegate to the server-actions executor (no direct
+ * CFTools SDK calls). Map data/config endpoints remain unchanged.
  */
 const ctx = require('../lib/context');
 const auth = require('../middleware/auth');
 const { getMapConfig, getMapData, addMapEvent, clearMapEvents } = require('../lib/map-data');
-const { getClient, isConfiguredForServer } = require('../lib/cftools-client');
 const { addAudit } = require('../lib/audit');
+const {
+  getProviderForAction,
+  findSession,
+  ActionType,
+} = require('../lib/server-actions/executor');
+const { AUDIT_CODES, VEHICLE_ACTION_MAP, WORLD_ACTION_MAP, PLAYER_ACTION_MAP } = require('../lib/server-actions/types');
 
 module.exports = function(app) {
 
   // ─── Map Configuration ──────────────────────────────────
-  // Returns map dimensions, image path, and bounds for Leaflet
   app.get('/api/servers/:id/map/config', auth('server.view'), (req, res) => {
     const config = getMapConfig(req.params.id);
     if (!config) return res.status(404).json({ error: 'Server not found' });
@@ -18,7 +25,6 @@ module.exports = function(app) {
   });
 
   // ─── Map Data (players + vehicles + events) ─────────────
-  // Full snapshot of all map entities
   app.get('/api/servers/:id/map/data', auth('server.view'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
@@ -26,32 +32,19 @@ module.exports = function(app) {
   });
 
   // ─── Teleport Player to Coordinates ─────────────────────
-  // Click on map → teleport selected player there
   app.post('/api/servers/:id/map/teleport', auth('server.rcon'), async (req, res) => {
     const { steamId, x, y, z } = req.body;
     if (!steamId || x == null || z == null) {
       return res.status(400).json({ error: 'steamId, x, and z required' });
     }
-    if (!isConfiguredForServer(req.params.id)) {
-      return res.status(400).json({ error: 'CFTools not configured for this server' });
-    }
 
-    const state = ctx.serverStates[req.params.id];
-    const sessions = state?.cftools?.gameSessions || [];
-    const session = sessions.find(s => s.steamId?.id === steamId);
+    const session = findSession(req.params.id, steamId);
     if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
 
     try {
-      const client = getClient(req.params.id);
-      if (!client) return res.status(500).json({ error: 'CFTools client unavailable' });
-
-      // DayZ coords: X=east-west, Z=north-south, Y=altitude
-      // CFTools SDK coords: x=X, y=Z(altitude), z=Y(north-south) — swapped!
-      await client.teleport({
-        session,
-        coordinates: { x: parseFloat(x), y: parseFloat(z || 0), z: parseFloat(y || 0) },
-      });
-
+      const provider = getProviderForAction(req.params.id, ActionType.TELEPORT_PLAYER);
+      // Map page sends x/z as horizontal, y as altitude
+      await provider.teleportPlayer(req.params.id, session, { x, y: z, z: y || 0 });
       addAudit(req.user.id, req.user.username, 'map.teleport',
         `Teleported ${session.playerName} to [${x}, ${y || 0}, ${z}]`);
       res.json({ message: `Teleported ${session.playerName}` });
@@ -66,34 +59,13 @@ module.exports = function(app) {
     if (!vehicleId || !action) {
       return res.status(400).json({ error: 'vehicleId and action required' });
     }
-    if (!isConfiguredForServer(req.params.id)) {
-      return res.status(400).json({ error: 'CFTools not configured for this server' });
-    }
 
-    const actionMap = {
-      'delete':      'CFCloud_DeleteVehicle',
-      'repair':      'CFCloud_RepairVehicle',
-      'refuel':      'CFCloud_RefuelVehicle',
-      'unstuck':     'CFCloud_UnstuckVehicle',
-      'explode':     'CFCloud_VehicleExplode',
-      'kill-engine': 'CFCloud_KillVehicleEngine',
-      'eject':       'CFCloud_VehicleEjectDriver',
-    };
-
-    const actionCode = actionMap[action];
-    if (!actionCode) return res.status(400).json({ error: `Unknown action: ${action}` });
+    const actionType = VEHICLE_ACTION_MAP[action] || VEHICLE_ACTION_MAP[action === 'eject' ? 'eject-driver' : action];
+    if (!actionType) return res.status(400).json({ error: `Unknown action: ${action}` });
 
     try {
-      const client = getClient(req.params.id);
-      if (!client) return res.status(500).json({ error: 'CFTools client unavailable' });
-
-      await client.gameLabsAction({
-        actionCode,
-        actionContext: 'vehicle',
-        referenceKey: vehicleId,
-        parameters: {},
-      });
-
+      const provider = getProviderForAction(req.params.id, actionType);
+      await provider.vehicleAction(req.params.id, vehicleId, actionType);
       addAudit(req.user.id, req.user.username, `map.vehicle.${action}`,
         `Vehicle action '${action}' on vehicle ${vehicleId}`);
       res.json({ message: `Vehicle ${action} executed` });
@@ -106,45 +78,30 @@ module.exports = function(app) {
   app.post('/api/servers/:id/map/world-action', auth('server.rcon'), async (req, res) => {
     const { action, params } = req.body;
     if (!action) return res.status(400).json({ error: 'action required' });
-    if (!isConfiguredForServer(req.params.id)) {
-      return res.status(400).json({ error: 'CFTools not configured for this server' });
-    }
 
-    const actionMap = {
-      'set-time':       'CFCloud_WorldTime',
-      'set-weather':    'CFCloud_WorldWeather',
-      'sunny':          'CFCloud_WorldWeatherSunny',
-      'wipe-ai':        'CFCloud_WorldWipeAI',
-      'wipe-vehicles':  'CFCloud_WorldWipeVehicles',
-    };
-
-    const actionCode = actionMap[action];
-    if (!actionCode) return res.status(400).json({ error: `Unknown action: ${action}` });
-
-    // Build parameters based on action type
-    const parameters = {};
-    if (action === 'set-time' && params) {
-      if (params.hour != null) parameters.hour = { dataType: 'int', valueInt: parseInt(params.hour) };
-      if (params.minute != null) parameters.minute = { dataType: 'int', valueInt: parseInt(params.minute) };
-    }
-    if (action === 'set-weather' && params) {
-      if (params.overcast != null) parameters.overcast = { dataType: 'float', valueFloat: parseFloat(params.overcast) };
-      if (params.rain != null) parameters.rain = { dataType: 'float', valueFloat: parseFloat(params.rain) };
-      if (params.fog != null) parameters.fog = { dataType: 'float', valueFloat: parseFloat(params.fog) };
-      if (params.snow != null) parameters.snowfall = { dataType: 'float', valueFloat: parseFloat(params.snow) };
-      if (params.wind != null) parameters.windSpeed = { dataType: 'float', valueFloat: parseFloat(params.wind) };
-    }
+    const actionType = WORLD_ACTION_MAP[action];
+    if (!actionType) return res.status(400).json({ error: `Unknown action: ${action}` });
 
     try {
-      const client = getClient(req.params.id);
-      if (!client) return res.status(500).json({ error: 'CFTools client unavailable' });
+      const provider = getProviderForAction(req.params.id, actionType);
 
-      await client.gameLabsAction({
-        actionCode,
-        actionContext: 'world',
-        referenceKey: '',
-        parameters,
-      });
+      switch (actionType) {
+        case ActionType.SET_TIME:
+          await provider.setTime(req.params.id, params?.hour, params?.minute);
+          break;
+        case ActionType.SET_WEATHER:
+          await provider.setWeather(req.params.id, params || {});
+          break;
+        case ActionType.CLEAR_WEATHER:
+          await provider.clearWeather(req.params.id);
+          break;
+        case ActionType.WIPE_AI:
+          await provider.wipeAI(req.params.id);
+          break;
+        case ActionType.WIPE_VEHICLES:
+          await provider.wipeVehicles(req.params.id);
+          break;
+      }
 
       addAudit(req.user.id, req.user.username, `map.world.${action}`,
         `World action '${action}' executed`);
@@ -160,29 +117,10 @@ module.exports = function(app) {
     if (!itemClass || x == null || z == null) {
       return res.status(400).json({ error: 'itemClass, x, and z required' });
     }
-    if (!isConfiguredForServer(req.params.id)) {
-      return res.status(400).json({ error: 'CFTools not configured for this server' });
-    }
 
     try {
-      const client = getClient(req.params.id);
-      if (!client) return res.status(500).json({ error: 'CFTools client unavailable' });
-
-      await client.gameLabsAction({
-        actionCode: 'CFCloud_SpawnItemWorld',
-        actionContext: 'world',
-        referenceKey: '',
-        parameters: {
-          object: { dataType: 'string', valueString: itemClass },
-          position: {
-            dataType: 'vector',
-            valueVectorX: parseFloat(x),
-            valueVectorY: parseFloat(y || 0),
-            valueVectorZ: parseFloat(z),
-          },
-        },
-      });
-
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_ITEM_WORLD);
+      await provider.spawnItemWorld(req.params.id, itemClass, { x, y: y || 0, z });
       addAudit(req.user.id, req.user.username, 'map.spawn',
         `Spawned ${itemClass} at [${x}, ${y || 0}, ${z}]`);
       res.json({ message: `Spawned ${itemClass}` });
@@ -197,46 +135,30 @@ module.exports = function(app) {
     if (!steamId || !action) {
       return res.status(400).json({ error: 'steamId and action required' });
     }
-    if (!isConfiguredForServer(req.params.id)) {
-      return res.status(400).json({ error: 'CFTools not configured for this server' });
-    }
 
-    const state = ctx.serverStates[req.params.id];
-    const sessions = state?.cftools?.gameSessions || [];
-    const session = sessions.find(s => s.steamId?.id === steamId);
+    const session = findSession(req.params.id, steamId);
     if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
 
-    try {
-      const client = getClient(req.params.id);
-      if (!client) return res.status(500).json({ error: 'CFTools client unavailable' });
+    const actionType = PLAYER_ACTION_MAP[action];
+    if (!actionType) return res.status(400).json({ error: `Unknown action: ${action}` });
 
+    try {
+      const provider = getProviderForAction(req.params.id, actionType);
       const playerName = session.playerName;
 
-      switch (action) {
-        case 'heal':
-          await client.healPlayer({ session });
+      switch (actionType) {
+        case ActionType.HEAL_PLAYER:
+          await provider.healPlayer(req.params.id, session);
           break;
-        case 'kill':
-          await client.killPlayer({ session });
+        case ActionType.KILL_PLAYER:
+          await provider.killPlayer(req.params.id, session);
           break;
-        case 'strip':
-          await client.gameLabsAction({
-            actionCode: 'CFCloud_StripPlayer',
-            actionContext: 'player',
-            referenceKey: steamId,
-            parameters: {},
-          });
+        case ActionType.STRIP_PLAYER:
+          await provider.stripPlayer(req.params.id, steamId);
           break;
-        case 'explode':
-          await client.gameLabsAction({
-            actionCode: 'CFCloud_ExplodePlayer',
-            actionContext: 'player',
-            referenceKey: steamId,
-            parameters: {},
-          });
+        case ActionType.EXPLODE_PLAYER:
+          await provider.explodePlayer(req.params.id, steamId);
           break;
-        default:
-          return res.status(400).json({ error: `Unknown action: ${action}` });
       }
 
       addAudit(req.user.id, req.user.username, `map.player.${action}`,
