@@ -105,7 +105,7 @@ export default function LicensePage() {
 
         {!isLicensed && (
           <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-            Purchase a license for <strong style={{ color: 'var(--text)' }}>$19.99 USD</strong> (one-time) to unlock full access to all Citadel features.
+            Purchase a license for <strong style={{ color: 'var(--text)' }}>$34.99 USD</strong> (one-time) to unlock full access to all Citadel features.
           </div>
         )}
 
@@ -130,7 +130,7 @@ export default function LicensePage() {
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
-            Purchase License — $19.99
+            Purchase License — $34.99
           </a>
         )}
       </div>

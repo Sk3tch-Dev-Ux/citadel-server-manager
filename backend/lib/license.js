@@ -1,7 +1,7 @@
 /**
  * Citadel License Validation System
  *
- * Simple one-time purchase model: $19.99 → full access to every feature.
+ * Simple one-time purchase model: $34.99 → full access to every feature.
  * License keys are RSA-signed JWTs verified with the embedded public key.
  * The private key is held by the vendor (tools/license-private.pem) and
  * used via tools/generate-license.js to issue keys.
@@ -111,7 +111,7 @@ function activateLicense(dataDir) {
   }
 
   // Default: unlicensed
-  logger.info('No valid license key found — running unlicensed (purchase at citadel.gg for $19.99)');
+  logger.info('No valid license key found — running unlicensed (purchase at citadel.gg for $34.99)');
   _license = {
     licensed: false,
     licensee: null,

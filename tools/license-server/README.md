@@ -7,16 +7,26 @@ Stripe-powered serverless license fulfillment for Citadel. Deployed on Vercel's 
 ## Architecture
 
 ```
-Customer's Citadel Instance         Vercel (your license server)         Stripe
-┌─────────────────────┐       ┌───────────────────────────┐       ┌──────────┐
-│  License Page        │       │  /api/create-checkout     │       │          │
-│  [Purchase — $19.99] ├──────►│  (or Stripe Payment Link) ├──────►│ Checkout │
-│                      │       │                           │       │          │
-│                      │       │  /api/webhook             │◄──────┤ Webhook  │
-│  [Paste Key]         │       │    ├─ generate RSA key    │       │          │
-│  [Activate]          │       │    └─ email to buyer      │       └──────────┘
-└─────────────────────┘       └───────────────────────────┘
+Docs Site (GitHub Pages)         Vercel (license server)              Stripe         GitHub API
+┌─────────────────────┐    ┌───────────────────────────┐    ┌──────────┐    ┌──────────────┐
+│  /purchase           │    │  /api/create-checkout     │    │          │    │              │
+│  [Purchase — $34.99] ├───►│  (collects GitHub user)   ├───►│ Checkout │    │              │
+│                      │    │                           │    │          │    │              │
+│                      │    │  /api/webhook             │◄───┤ Webhook  │    │              │
+│                      │    │    ├─ generate RSA key     │    │          │    │              │
+│                      │    │    ├─ invite to GitHub ────┤────┤──────────┤───►│ Add collab   │
+│                      │    │    └─ email key + repo info│    │          │    │              │
+└─────────────────────┘    └───────────────────────────┘    └──────────┘    └──────────────┘
 ```
+
+## Purchase Flow
+
+1. Customer visits docs site → clicks **Purchase — $34.99**
+2. Stripe Checkout collects payment + GitHub username (custom field)
+3. Webhook fires → generates RSA-signed license key
+4. Webhook invites customer's GitHub account to the private repo (pull access)
+5. Webhook emails license key + repo access instructions
+6. Customer accepts GitHub invite, clones repo, activates license
 
 ## Quick Start
 
@@ -33,7 +43,7 @@ Copy that output — you'll paste it into Vercel as `LICENSE_PRIVATE_KEY_B64`.
 ### 2. Create Stripe product
 
 - Go to [Stripe Dashboard → Products](https://dashboard.stripe.com/products)
-- Create: **Citadel License** — One-time — **$19.99**
+- Create: **Citadel License** — One-time — **$34.99**
 - Copy the Price ID (`price_...`)
 
 ### 3. Set up Stripe webhook
@@ -43,7 +53,13 @@ Copy that output — you'll paste it into Vercel as `LICENSE_PRIVATE_KEY_B64`.
 - Select event: `checkout.session.completed`
 - Copy the Webhook Signing Secret (`whsec_...`)
 
-### 4. Deploy to Vercel
+### 4. Create a GitHub Personal Access Token
+
+- Go to [GitHub Settings → Developer Settings → Personal Access Tokens → Fine-grained](https://github.com/settings/personal-access-tokens/new)
+- Scope: **Repository permissions → Administration → Read and write** (for the target repo only)
+- Copy the token — you'll paste it into Vercel as `GITHUB_TOKEN`
+
+### 5. Deploy to Vercel
 
 ```bash
 cd tools/license-server
@@ -53,7 +69,7 @@ npx vercel
 
 When prompted, set the project root to `tools/license-server`.
 
-### 5. Add environment variables
+### 6. Add environment variables
 
 In the [Vercel Dashboard → Settings → Environment Variables](https://vercel.com/dashboard), add:
 
@@ -63,6 +79,9 @@ In the [Vercel Dashboard → Settings → Environment Variables](https://vercel.
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` |
 | `STRIPE_PRICE_ID` | `price_...` (only if using `/api/create-checkout`) |
 | `LICENSE_PRIVATE_KEY_B64` | Base64-encoded RSA private key (from step 1) |
+| `GITHUB_TOKEN` | GitHub Personal Access Token with `repo` scope |
+| `GITHUB_REPO_OWNER` | GitHub org or username (e.g. `Sk3tch-Dev-Ux`) |
+| `GITHUB_REPO_NAME` | Repository name (e.g. `DayzServerController`) |
 | `SMTP_HOST` | SMTP server (e.g. `smtp.gmail.com`) |
 | `SMTP_PORT` | `587` |
 | `SMTP_USER` | SMTP username |
@@ -71,7 +90,7 @@ In the [Vercel Dashboard → Settings → Environment Variables](https://vercel.
 | `SUCCESS_URL` | `https://your-app.vercel.app/success` |
 | `CANCEL_URL` | `https://citadel.gg/purchase` |
 
-### 6. Point customer instances to the purchase URL
+### 7. Point customer instances to the purchase URL
 
 In each customer's Citadel `.env`:
 
@@ -129,5 +148,5 @@ stripe trigger checkout.session.completed
 All sales are logged to Vercel's runtime logs (visible in the [Vercel Dashboard → Deployments → Logs](https://vercel.com/dashboard)). Each sale appears as:
 
 ```json
-{"timestamp":"2026-03-01T12:00:00.000Z","sessionId":"cs_live_...","email":"buyer@example.com","name":"John","amount":1999,"currency":"usd"}
+{"timestamp":"2026-03-01T12:00:00.000Z","sessionId":"cs_live_...","email":"buyer@example.com","name":"John","githubUsername":"johndoe","githubInvited":true,"amount":1999,"currency":"usd"}
 ```

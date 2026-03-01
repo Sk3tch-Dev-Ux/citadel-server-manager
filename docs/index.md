@@ -10,6 +10,9 @@ hero:
     alt: Citadel
   actions:
     - theme: brand
+      text: Purchase — $34.99
+      link: /purchase
+    - theme: alt
       text: Get Started
       link: /guide/getting-started
     - theme: alt
