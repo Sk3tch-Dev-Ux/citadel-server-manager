@@ -95,7 +95,7 @@ In the [Vercel Dashboard → Settings → Environment Variables](https://vercel.
 In each customer's Citadel `.env`:
 
 ```env
-PURCHASE_URL=https://buy.stripe.com/your-payment-link
+PURCHASE_URL=https://buy.stripe.com/4gMdR8eiQe9j708clh7ss00
 ```
 
 Or if using `/api/create-checkout`, point to your Vercel app URL.
