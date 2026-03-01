@@ -8,7 +8,7 @@
  *   3. Email license key + repo access instructions
  *
  * Stripe Dashboard → Developers → Webhooks:
- *   Endpoint URL: https://your-vercel-app.vercel.app/api/webhook
+ *   Endpoint URL: https://citadel-license-generator.vercel.app/api/webhook
  *   Events: checkout.session.completed
  *
  * IMPORTANT: This endpoint needs the raw body for Stripe signature verification.
