@@ -16,7 +16,7 @@ function requireLicense() {
     if (!isLicensed()) {
       return res.status(403).json({
         error: 'License required',
-        message: 'This feature requires a valid Citadel license. Purchase at citadel.gg for $19.99.',
+        message: 'This feature requires a valid Citadel license. Purchase at citadel.gg for $34.99.',
         licensed: false,
       });
     }

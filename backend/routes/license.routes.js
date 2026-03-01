@@ -1,6 +1,6 @@
 /**
  * License management routes.
- * Simple model: unlicensed → purchase $19.99 → activate key → full access.
+ * Simple model: unlicensed → purchase $34.99 → activate key → full access.
  */
 const auth = require('../middleware/auth');
 const { getLicense, setLicenseKey } = require('../lib/license');

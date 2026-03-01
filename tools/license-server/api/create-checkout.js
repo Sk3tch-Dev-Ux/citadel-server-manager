@@ -2,7 +2,8 @@
  * POST /api/create-checkout
  *
  * Creates a Stripe Checkout Session and returns the URL.
- * Optional — you can use Stripe Payment Links instead and skip this endpoint entirely.
+ * Collects customer's GitHub username via Stripe's custom_fields
+ * so we can auto-invite them to the private repo after payment.
  *
  * Body (optional): { "email": "customer@example.com" }
  */
@@ -26,7 +27,6 @@ module.exports = async function handler(req, res) {
   const stripe = new Stripe(STRIPE_SECRET_KEY);
 
   try {
-    // Parse JSON body (Vercel parses it automatically unless raw body is configured)
     const email = req.body?.email || undefined;
 
     const session = await stripe.checkout.sessions.create({
@@ -36,6 +36,15 @@ module.exports = async function handler(req, res) {
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: CANCEL_URL,
       customer_email: email,
+      // Collect GitHub username on the checkout page
+      custom_fields: [
+        {
+          key: 'github_username',
+          label: { type: 'custom', custom: 'GitHub Username' },
+          type: 'text',
+          optional: false,
+        },
+      ],
     });
 
     return res.status(200).json({ url: session.url });

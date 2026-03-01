@@ -2,7 +2,10 @@
  * POST /api/webhook
  *
  * Stripe webhook handler.
- * On checkout.session.completed → generates RSA-signed license key → emails to customer.
+ * On checkout.session.completed:
+ *   1. Generate RSA-signed license key
+ *   2. Invite customer to private GitHub repo
+ *   3. Email license key + repo access instructions
  *
  * Stripe Dashboard → Developers → Webhooks:
  *   Endpoint URL: https://your-vercel-app.vercel.app/api/webhook
@@ -14,6 +17,7 @@
 const Stripe = require('stripe');
 const { generateLicenseKey } = require('../lib/generate-key');
 const { sendLicenseEmail } = require('../lib/email');
+const { inviteToRepo } = require('../lib/github');
 
 /**
  * Read the raw body from the request stream.
@@ -61,22 +65,43 @@ module.exports = async function handler(req, res) {
     const email = session.customer_email || session.customer_details?.email;
     const name = session.customer_details?.name || '';
 
+    // Extract GitHub username from Stripe custom_fields
+    const ghField = (session.custom_fields || []).find(f => f.key === 'github_username');
+    const githubUsername = ghField?.text?.value?.trim() || '';
+
     if (!email) {
       console.error('No email found in checkout session', session.id);
       return res.status(200).json({ received: true, warning: 'no email' });
     }
 
-    console.log(`Payment received from ${email} (${name}) — session ${session.id}`);
+    console.log(`Payment received from ${email} (${name}) — session ${session.id} — GitHub: ${githubUsername || 'N/A'}`);
 
     try {
       const licenseKey = generateLicenseKey(email, name);
-      await sendLicenseEmail(email, name, licenseKey);
+
+      // Invite to GitHub repo (non-blocking — don't fail the sale if this errors)
+      let githubInvited = false;
+      if (githubUsername) {
+        try {
+          const inviteResult = await inviteToRepo(githubUsername);
+          githubInvited = inviteResult.success;
+          console.log(`GitHub invite for ${githubUsername}: ${inviteResult.message}`);
+        } catch (ghErr) {
+          console.error(`GitHub invite failed for ${githubUsername}:`, ghErr.message);
+        }
+      } else {
+        console.warn('No GitHub username provided — skipping repo invite');
+      }
+
+      await sendLicenseEmail(email, name, licenseKey, githubUsername, githubInvited);
 
       console.log('Sale:', JSON.stringify({
         timestamp: new Date().toISOString(),
         sessionId: session.id,
         email,
         name,
+        githubUsername,
+        githubInvited,
         amount: session.amount_total,
         currency: session.currency,
       }));

@@ -2,7 +2,7 @@
 /**
  * Citadel License Key Generator
  *
- * Generates RSA-signed license keys for customers ($19.99 one-time purchase).
+ * Generates RSA-signed license keys for customers ($34.99 one-time purchase).
  * KEEP THIS TOOL AND THE PRIVATE KEY SECRET — never ship with the product.
  *
  * Usage:

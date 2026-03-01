@@ -147,7 +147,7 @@ require('./routes/compat.routes')(app);
 
 // ─── License status ──────────────────────────────────────
 const { isLicensed } = require('./lib/license');
-if (!isLicensed()) logger.info('Running unlicensed — purchase at citadel.gg for $19.99 to unlock all features');
+if (!isLicensed()) logger.info('Running unlicensed — purchase at citadel.gg for $34.99 to unlock all features');
 
 // ─── WebSocket (authenticated) ───────────────────────────
 const { getMapData: getMapDataForSocket } = require('./lib/map-data');

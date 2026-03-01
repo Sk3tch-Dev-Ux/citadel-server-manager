@@ -20,6 +20,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Reference', link: '/reference/api' },
       { text: 'Changelog', link: '/changelog' },
+      { text: '💚 Purchase', link: '/purchase' },
     ],
 
     sidebar: {
