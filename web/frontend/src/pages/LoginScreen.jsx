@@ -30,9 +30,9 @@ export default function LoginScreen() {
     <div className="login-screen">
       <form className="login-box" onSubmit={handleSubmit}>
         <div className="sidebar-logo" style={{ justifyContent: 'center', marginBottom: 8 }}>
-          <div className="logo-icon">DZ</div>
+          <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 48, height: 48 }} />
         </div>
-        <div className="login-title">Server Panel</div>
+        <div className="login-title">Citadel</div>
         <div className="login-sub">Sign in to manage your servers</div>
         {error && <div className="login-error">{error}</div>}
         <div className="input-group">

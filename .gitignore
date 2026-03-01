@@ -23,6 +23,11 @@ Desktop.ini
 # Frontend build
 web/frontend/node_modules/
 web/dist/
+
+# VitePress docs build
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 data/audit.json
 /data
 /.claude
