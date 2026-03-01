@@ -242,6 +242,10 @@ export default function LiveMapPage({ serverId }) {
   const toLatLng = (pos) => [pos.z || 0, pos.x || 0];
 
   // ─── Render ────────────────────────────────────────────
+  // Memoize bounds and center so Leaflet components don't re-trigger on every render
+  const bounds = useMemo(() => [[0, 0], [mapConfig?.height || 0, mapConfig?.width || 0]], [mapConfig?.height, mapConfig?.width]);
+  const center = useMemo(() => [mapConfig?.height / 2 || 0, mapConfig?.width / 2 || 0], [mapConfig?.height, mapConfig?.width]);
+
   if (loading) {
     return (
       <div className="map-loading">
@@ -261,10 +265,6 @@ export default function LiveMapPage({ serverId }) {
       </div>
     );
   }
-
-  // Memoize bounds and center so Leaflet components don't re-trigger on every render
-  const bounds = useMemo(() => [[0, 0], [mapConfig?.height || 0, mapConfig?.width || 0]], [mapConfig?.height, mapConfig?.width]);
-  const center = useMemo(() => [mapConfig?.height / 2 || 0, mapConfig?.width / 2 || 0], [mapConfig?.height, mapConfig?.width]);
 
   if (!mapConfig) return null;
 
