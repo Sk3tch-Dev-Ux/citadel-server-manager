@@ -15,7 +15,9 @@ module.exports = function(app) {
     const { dir } = req.query;
     const targetDir = safePath(srv.installDir, dir);
     if (!targetDir) return res.status(403).json({ error: 'Access denied' });
-    const basePath = fs.realpathSync(srv.installDir);
+    // Normalize basePath — can't use realpathSync on remote Windows paths from macOS
+    const isRemoteWindows = /^[A-Za-z]:[\\/]/.test(srv.installDir) && process.platform !== 'win32';
+    const basePath = isRemoteWindows ? srv.installDir.replace(/\\/g, '/') : fs.realpathSync(srv.installDir);
     try {
       const entries = fs.readdirSync(targetDir, { withFileTypes: true });
       const results = entries.map(e => {
