@@ -84,7 +84,13 @@ PANEL_API_URL=http://localhost:3001
 # STEAM_USERNAME=
 # STEAM_PASSWORD=
 
-# CFTools Cloud Integration (optional)
+# InHouse Sidecar API (runs alongside your DayZ server)
+# Configure per-server via the Servers page (inHouseApiUrl, inHouseApiKey)
+# INHOUSE_SIDECAR_PORT=9100
+# INHOUSE_API_KEY=${generateSecret(16)}
+
+# CFTools Cloud Integration (DEPRECATED — use InHouse sidecar instead)
+# Only needed if you still use CFTools for some servers.
 # CFTOOLS_APPLICATION_ID=
 # CFTOOLS_SECRET=
 `;

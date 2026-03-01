@@ -33,6 +33,7 @@ function initServerState(serverId) {
     rcon: srv.rconPassword ? new RCONClient(srv.ip, srv.rconPort, srv.rconPassword) : null,
     startedAt: null,
     cftools: { lastSessionPoll: null, gameSessions: [] },
+    inhouse: { sessions: [], lastPoll: null },
     scheduler: { jobs: schedulerData.jobs || [], pendingActions: new Map() },
     messenger: { enabled: messengerData.enabled !== false, messages: messengerData.messages || [], lastSent: new Map() },
     backup: { config: backupData, lastBackupAt: backupData.lastBackupAt || null, inProgress: false },

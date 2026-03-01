@@ -142,7 +142,7 @@ function buildPlayerListEmbed(players) {
   if (players.length === 0) {
     embed.setDescription('*No players currently online*');
   } else {
-    const hasCftools = players.some(p => p.source === 'cftools');
+    const hasCftools = players.some(p => p.source === 'cftools' || p.source === 'inhouse');
     const list = players.map((p, i) => {
       const idx = `\`${String(i + 1).padStart(2)}\``;
       const name = `**${p.name}**`;
@@ -377,7 +377,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('playerinfo')
-    .setDescription('View detailed player stats (CFTools)')
+    .setDescription('View detailed player stats')
     .addStringOption(opt =>
       opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
     ),

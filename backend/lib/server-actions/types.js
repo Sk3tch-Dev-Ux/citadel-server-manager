@@ -67,6 +67,31 @@ const CFTOOLS_CAPABILITIES = new Set([
   ActionType.GET_PLAYER_DETAILS,
 ]);
 
+const INHOUSE_CAPABILITIES = new Set([
+  ActionType.HEAL_PLAYER,
+  ActionType.KILL_PLAYER,
+  ActionType.TELEPORT_PLAYER,
+  ActionType.SPAWN_ITEM,
+  ActionType.STRIP_PLAYER,
+  ActionType.EXPLODE_PLAYER,
+  ActionType.KICK_PLAYER,
+  ActionType.BAN_PLAYER,
+  ActionType.DELETE_VEHICLE,
+  ActionType.REPAIR_VEHICLE,
+  ActionType.REFUEL_VEHICLE,
+  ActionType.UNSTUCK_VEHICLE,
+  ActionType.EXPLODE_VEHICLE,
+  ActionType.KILL_ENGINE,
+  ActionType.EJECT_DRIVER,
+  ActionType.SET_TIME,
+  ActionType.SET_WEATHER,
+  ActionType.CLEAR_WEATHER,
+  ActionType.WIPE_AI,
+  ActionType.WIPE_VEHICLES,
+  ActionType.SPAWN_ITEM_WORLD,
+  ActionType.GET_PLAYER_DETAILS,
+]);
+
 const RCON_CAPABILITIES = new Set([
   ActionType.KICK_PLAYER,
   ActionType.BAN_PLAYER,
@@ -155,6 +180,7 @@ const PLAYER_ACTION_MAP = Object.freeze({
 module.exports = {
   ActionType,
   CFTOOLS_CAPABILITIES,
+  INHOUSE_CAPABILITIES,
   RCON_CAPABILITIES,
   ACTION_LABELS,
   AUDIT_CODES,
