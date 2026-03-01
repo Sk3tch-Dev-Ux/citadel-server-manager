@@ -12,7 +12,10 @@ module.exports = function(app) {
    * GET /api/license — Current license status (all authenticated users)
    */
   app.get('/api/license', auth(), (req, res) => {
-    res.json(getLicense());
+    res.json({
+      ...getLicense(),
+      purchaseUrl: ctx.CONFIG.purchaseUrl || null,
+    });
   });
 
   /**

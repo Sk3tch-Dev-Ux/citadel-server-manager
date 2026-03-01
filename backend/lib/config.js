@@ -44,6 +44,9 @@ const CONFIG = {
   },
 };
 
+// License purchase URL (Stripe Payment Link or custom checkout page)
+CONFIG.purchaseUrl = process.env.PURCHASE_URL || 'https://citadel.gg/purchase';
+
 // Parse allowed CORS origins from env (comma-separated) or default to localhost
 CONFIG.allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())

@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "functions": {
+    "api/webhook.js": {
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/webhook",
+      "methods": ["POST"],
+      "dest": "/api/webhook.js"
+    },
+    {
+      "src": "/api/create-checkout",
+      "methods": ["POST"],
+      "dest": "/api/create-checkout.js"
+    },
+    {
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/success",
+      "dest": "/public/success.html"
+    }
+  ]
+}
