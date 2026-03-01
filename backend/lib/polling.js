@@ -84,7 +84,7 @@ function startMetricsPolling() {
           } catch { /* RCON not available */ }
         }
         if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps);
-        // Player list polling (CFTools or RCON)
+        // Player list polling (InHouse sidecar or RCON)
         try {
           const players = await fetchPlayers(srv.id);
           state.players = players;

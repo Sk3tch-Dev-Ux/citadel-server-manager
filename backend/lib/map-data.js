@@ -6,7 +6,6 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
 const ctx = require('./context');
-const { isConfiguredForServer, getClient } = require('./cftools-client');
 
 // ─── Map Configurations ─────────────────────────────────
 const MAP_CONFIGS = {
@@ -154,7 +153,7 @@ function getMapPlayers(serverId) {
 }
 
 /**
- * Get vehicle data from state cache (populated by GameLabs polling or custom API).
+ * Get vehicle data from state cache (populated by sidecar polling or custom API).
  */
 function getMapVehicles(serverId) {
   const state = ctx.serverStates[serverId];

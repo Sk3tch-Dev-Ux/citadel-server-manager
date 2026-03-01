@@ -11,16 +11,26 @@
  *   await provider.healPlayer(serverId, session);
  */
 const ctx = require('../context');
-const CFToolsProvider = require('./providers/cftools');
+const InHouseProvider = require('./providers/inhouse');
 const RCONProvider = require('./providers/rcon');
 const { ActionType, ACTION_LABELS } = require('./types');
 
+// CFTools provider is optional — only available if cftools-sdk is installed
+let CFToolsProvider;
+try {
+  CFToolsProvider = require('./providers/cftools');
+} catch {
+  CFToolsProvider = null;
+}
+
 // ─── Provider Singletons ────────────────────────────────
-const cftoolsProvider = new CFToolsProvider();
+const inHouseProvider = new InHouseProvider();
+const cftoolsProvider = CFToolsProvider ? new CFToolsProvider() : null;
 const rconProvider = new RCONProvider();
 
-// Provider resolution order — highest-capability first
-const PROVIDERS = [cftoolsProvider, rconProvider];
+// Provider resolution order — highest-capability first.
+// InHouse is preferred over CFTools when configured.
+const PROVIDERS = [inHouseProvider, cftoolsProvider, rconProvider].filter(Boolean);
 
 /**
  * Get the best provider that supports a given action for a given server.
@@ -38,12 +48,17 @@ function getProviderForAction(serverId, actionType) {
   }
 
   const label = ACTION_LABELS[actionType] || actionType;
-  throw new Error(`No provider available for "${label}". Ensure CFTools is configured or RCON is connected.`);
+  throw new Error(`No provider available for "${label}". Ensure InHouse API, CFTools, or RCON is configured.`);
 }
 
 /**
  * Find the active game session for a player by steamId.
  * Used by routes before calling player actions.
+ *
+ * Checks multiple sources:
+ *   1. InHouse player list (from sidecar polling)
+ *   2. CFTools game sessions (legacy)
+ *   3. RCON player list (fallback — returns a synthetic session)
  *
  * @param {string} serverId
  * @param {string} steamId
@@ -51,8 +66,28 @@ function getProviderForAction(serverId, actionType) {
  */
 function findSession(serverId, steamId) {
   const state = ctx.serverStates[serverId];
-  const sessions = state?.cftools?.gameSessions || [];
-  return sessions.find(s => s.steamId?.id === steamId) || null;
+
+  // 1. InHouse sessions (if sidecar populates them)
+  const inhouseSessions = state?.inhouse?.sessions || [];
+  const inhouseHit = inhouseSessions.find(s =>
+    s.steamId === steamId || s.steamId?.id === steamId
+  );
+  if (inhouseHit) return inhouseHit;
+
+  // 2. CFTools game sessions (legacy path)
+  const cftoolsSessions = state?.cftools?.gameSessions || [];
+  const cftoolsHit = cftoolsSessions.find(s => s.steamId?.id === steamId);
+  if (cftoolsHit) return cftoolsHit;
+
+  // 3. RCON player list — synthesise a minimal session so the InHouse
+  //    provider (which only needs a steamId) can still work.
+  const rconPlayers = state?.players || [];
+  const rconHit = rconPlayers.find(p =>
+    p.steamId === steamId || p.steam64 === steamId
+  );
+  if (rconHit) return { steamId, name: rconHit.name || 'Unknown' };
+
+  return null;
 }
 
 /**

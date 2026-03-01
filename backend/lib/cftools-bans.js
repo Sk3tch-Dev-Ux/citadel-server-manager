@@ -1,28 +1,63 @@
 /**
- * Ban management — CFTools or RCON fallback.
- * Dual-write: RCON ban for immediate effect + CFTools ban for persistence.
+ * Ban management — InHouse sidecar + RCON.
+ * Dual-write: RCON ban for immediate BattlEye effect + sidecar for persistence.
+ * No CFTools dependency.
  */
 const logger = require('./logger');
 const ctx = require('./context');
-const { getClient, isConfiguredForServer, getSdkTypes } = require('./cftools-client');
 
 /**
- * List bans for a server. Returns local state.banList (which may include
- * CFTools-sourced bans synced during polling).
+ * Get the sidecar base URL for a server (if configured).
+ */
+function getSidecarUrl(serverId) {
+  const srv = ctx.servers.find(s => s.id === serverId);
+  return srv?.inHouseApiUrl || null;
+}
+
+/**
+ * Build fetch headers for the sidecar API.
+ */
+function sidecarHeaders(serverId) {
+  const srv = ctx.servers.find(s => s.id === serverId);
+  const headers = { 'Content-Type': 'application/json' };
+  if (srv?.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
+  return headers;
+}
+
+/**
+ * List bans for a server. Returns local state.banList,
+ * optionally syncing from the sidecar on first call.
  */
 async function listBans(serverId) {
   const state = ctx.serverStates[serverId];
+
+  // Try to sync from sidecar if we haven't recently
+  const baseUrl = getSidecarUrl(serverId);
+  if (baseUrl && (!state._lastBanSync || Date.now() - state._lastBanSync > 30000)) {
+    try {
+      const res = await fetch(`${baseUrl}/bans`, { headers: sidecarHeaders(serverId) });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.ok && Array.isArray(json.data)) {
+          state.banList = json.data;
+          state._lastBanSync = Date.now();
+        }
+      }
+    } catch (err) {
+      logger.debug({ err: err.message, serverId }, 'Sidecar ban sync failed, using local cache');
+    }
+  }
+
   return state?.banList || [];
 }
 
 /**
- * Ban a player. Issues RCON ban (immediate) AND CFTools ban (persistent) when available.
+ * Ban a player. Issues RCON ban (immediate) AND sidecar ban (persistent).
  */
 async function banPlayer(serverId, playerId, reason, expiration) {
   const state = ctx.serverStates[serverId];
-  const srv = ctx.servers.find(s => s.id === serverId);
 
-  // RCON ban for immediate in-game effect
+  // RCON ban for immediate BattlEye effect
   if (state?.rcon) {
     try {
       await state.rcon.ban(playerId, reason || 'Banned');
@@ -31,26 +66,36 @@ async function banPlayer(serverId, playerId, reason, expiration) {
     }
   }
 
-  // CFTools ban for persistence
-  if (isConfiguredForServer(serverId) && srv?.cftoolsBanlistId) {
+  // Sidecar ban for persistence
+  const baseUrl = getSidecarUrl(serverId);
+  if (baseUrl) {
     try {
-      const client = getClient(serverId);
-      const sdk = getSdkTypes();
-      if (client && sdk) {
-        await client.putBan({
-          playerId: sdk.SteamId64.of(playerId),
-          list: sdk.Banlist.of(srv.cftoolsBanlistId),
+      const player = state?.players?.find(p => p.id === playerId || p.steamId === playerId);
+      const res = await fetch(`${baseUrl}/bans`, {
+        method: 'POST',
+        headers: sidecarHeaders(serverId),
+        body: JSON.stringify({
+          steamId: playerId,
+          name: player?.name || 'Unknown',
           reason: reason || 'Banned',
-          expiration: expiration || 'Permanent',
-        });
-        logger.info({ serverId, playerId }, 'CFTools ban created');
+          expiration: expiration || null,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        logger.info({ serverId, playerId }, 'Sidecar ban created');
+        // Use the sidecar's ban entry for local state
+        if (json.ok && json.data && state) {
+          state.banList.push(json.data);
+          return;
+        }
       }
     } catch (err) {
-      logger.warn({ err: err.message, serverId }, 'CFTools putBan failed');
+      logger.warn({ err: err.message, serverId }, 'Sidecar ban failed');
     }
   }
 
-  // Update local state for immediate UI feedback
+  // Update local state for immediate UI feedback (fallback if sidecar unavailable)
   if (state) {
     const player = state.players?.find(p => p.id === playerId || p.steamId === playerId);
     state.banList.push({
@@ -59,17 +104,16 @@ async function banPlayer(serverId, playerId, reason, expiration) {
       reason: reason || 'Banned',
       bannedAt: new Date().toISOString(),
       expiresAt: expiration instanceof Date ? expiration.toISOString() : null,
-      source: isConfiguredForServer(serverId) ? 'cftools' : 'rcon',
+      source: baseUrl ? 'inhouse' : 'rcon',
     });
   }
 }
 
 /**
- * Unban a player. Remove from local state and CFTools if configured.
+ * Unban a player. Remove from local state and sidecar.
  */
 async function unbanPlayer(serverId, banId) {
   const state = ctx.serverStates[serverId];
-  const srv = ctx.servers.find(s => s.id === serverId);
   const ban = state?.banList?.find(b => b.id === banId);
 
   // Remove from local state
@@ -77,21 +121,17 @@ async function unbanPlayer(serverId, banId) {
     state.banList = state.banList.filter(b => b.id !== banId);
   }
 
-  // Remove from CFTools if we have a steamId to reference
-  if (isConfiguredForServer(serverId) && srv?.cftoolsBanlistId && ban) {
+  // Remove from sidecar
+  const baseUrl = getSidecarUrl(serverId);
+  if (baseUrl && ban) {
     try {
-      const client = getClient(serverId);
-      const sdk = getSdkTypes();
-      if (client && sdk) {
-        const steamId = ban.steamId || ban.id;
-        await client.deleteBans({
-          playerId: sdk.SteamId64.of(steamId),
-          list: sdk.Banlist.of(srv.cftoolsBanlistId),
-        });
-        logger.info({ serverId, banId }, 'CFTools ban removed');
-      }
+      await fetch(`${baseUrl}/bans/${encodeURIComponent(ban.id || ban.steamId || banId)}`, {
+        method: 'DELETE',
+        headers: sidecarHeaders(serverId),
+      });
+      logger.info({ serverId, banId }, 'Sidecar ban removed');
     } catch (err) {
-      logger.warn({ err: err.message, serverId }, 'CFTools deleteBan failed');
+      logger.warn({ err: err.message, serverId }, 'Sidecar unban failed');
     }
   }
 }

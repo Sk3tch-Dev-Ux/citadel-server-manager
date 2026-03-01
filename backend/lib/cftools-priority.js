@@ -1,15 +1,15 @@
 /**
- * Priority queue management — CFTools sync + local JSON.
- * Writes to both local storage and CFTools when available.
+ * Priority queue management — InHouse sidecar sync + local JSON.
+ * Writes to both local storage and sidecar when available.
+ * No CFTools dependency.
  */
 const { v4: uuid } = require('uuid');
 const ctx = require('./context');
 const logger = require('./logger');
 const { saveJSON } = require('./data-store');
-const { getClient, isConfiguredForServer, getSdkTypes } = require('./cftools-client');
 
 /**
- * Add a player to the priority queue (local + CFTools).
+ * Add a player to the priority queue (local + sidecar).
  */
 async function addToPriorityQueue(serverId, name, steamId, role, expiration) {
   const entry = {
@@ -19,23 +19,27 @@ async function addToPriorityQueue(serverId, name, steamId, role, expiration) {
   ctx.priorityQueue.push(entry);
   saveJSON(ctx.CONFIG.dataDir, 'priority_queue.json', ctx.priorityQueue);
 
-  // Sync to CFTools if configured and we have a steamId
-  if (isConfiguredForServer(serverId) && steamId) {
+  // Sync to sidecar if configured and we have a steamId
+  const srv = ctx.servers.find(s => s.id === serverId);
+  const baseUrl = srv?.inHouseApiUrl;
+  if (baseUrl && steamId) {
     try {
-      const client = getClient(serverId);
-      const sdk = getSdkTypes();
-      if (client && sdk) {
-        // putPriorityQueue needs a CFToolsId, so resolve from SteamId64 first
-        const cftoolsId = await client.resolve(sdk.SteamId64.of(steamId));
-        await client.putPriorityQueue({
-          id: cftoolsId,
-          comment: `${name} - ${role || 'VIP'}`,
-          expires: expiration || 'Permanent',
-        });
-        logger.info({ serverId, steamId }, 'CFTools priority queue entry created');
-      }
+      const headers = { 'Content-Type': 'application/json' };
+      if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
+
+      await fetch(`${baseUrl}/priority-queue`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          steamId,
+          name: name || 'Unknown',
+          role: role || 'VIP',
+          expiration: expiration || null,
+        }),
+      });
+      logger.info({ serverId, steamId }, 'Sidecar priority queue entry created');
     } catch (err) {
-      logger.warn({ err: err.message, serverId }, 'CFTools putPriorityQueue failed');
+      logger.warn({ err: err.message, serverId }, 'Sidecar priority queue sync failed');
     }
   }
 
@@ -43,25 +47,28 @@ async function addToPriorityQueue(serverId, name, steamId, role, expiration) {
 }
 
 /**
- * Remove a player from the priority queue (local + CFTools).
+ * Remove a player from the priority queue (local + sidecar).
  */
 async function removeFromPriorityQueue(serverId, entryId) {
   const entry = ctx.priorityQueue.find(p => p.id === entryId);
   ctx.priorityQueue = ctx.priorityQueue.filter(p => p.id !== entryId);
   saveJSON(ctx.CONFIG.dataDir, 'priority_queue.json', ctx.priorityQueue);
 
-  // Remove from CFTools if we have the steamId
-  if (isConfiguredForServer(serverId) && entry?.steamId) {
+  // Remove from sidecar
+  const srv = ctx.servers.find(s => s.id === serverId);
+  const baseUrl = srv?.inHouseApiUrl;
+  if (baseUrl && entry) {
     try {
-      const client = getClient(serverId);
-      const sdk = getSdkTypes();
-      if (client && sdk) {
-        const cftoolsId = await client.resolve(sdk.SteamId64.of(entry.steamId));
-        await client.deletePriorityQueue(cftoolsId);
-        logger.info({ serverId, entryId }, 'CFTools priority queue entry removed');
-      }
+      const headers = { 'Content-Type': 'application/json' };
+      if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
+
+      await fetch(`${baseUrl}/priority-queue/${encodeURIComponent(entryId)}`, {
+        method: 'DELETE',
+        headers,
+      });
+      logger.info({ serverId, entryId }, 'Sidecar priority queue entry removed');
     } catch (err) {
-      logger.warn({ err: err.message, serverId }, 'CFTools deletePriorityQueue failed');
+      logger.warn({ err: err.message, serverId }, 'Sidecar priority queue remove failed');
     }
   }
 }
