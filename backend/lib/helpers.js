@@ -34,8 +34,30 @@ function validateFields(obj, schema) {
 /**
  * Safely resolve a user-provided path within a base directory.
  * Returns null if the resolved path escapes the base (path traversal).
+ * Handles cross-platform edge case: Windows absolute paths (C:\...)
+ * used as basePath when the backend runs on macOS/Linux (dev mode).
  */
 function safePath(basePath, userPath) {
+  // Normalize Windows paths to forward slashes for cross-platform compat
+  const normalizedBase = basePath.replace(/\\/g, '/');
+  const normalizedUser = (userPath || '').replace(/\\/g, '/');
+
+  // Detect Windows absolute path (e.g. "C:/Program Files/...") used on a non-Windows host
+  const isWinAbsolute = /^[A-Za-z]:[\\/]/.test(normalizedBase);
+  const hostIsWindows = process.platform === 'win32';
+
+  // If basePath is a Windows absolute path but we're on macOS/Linux,
+  // we can't validate it locally — just return the joined path without
+  // filesystem checks (the path exists on the remote Windows server, not here)
+  if (isWinAbsolute && !hostIsWindows) {
+    // Still block path traversal via .. segments
+    const joined = path.posix.join(normalizedBase, normalizedUser);
+    const resolved = path.posix.normalize(joined);
+    if (!resolved.startsWith(normalizedBase)) return null;
+    // Convert back to Windows separators for the remote
+    return resolved.replace(/\//g, '\\');
+  }
+
   const realBase = fs.realpathSync(basePath);
   const resolved = path.resolve(realBase, userPath || '');
   let realResolved;
