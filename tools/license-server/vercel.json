@@ -22,7 +22,7 @@
     },
     {
       "src": "/success",
-      "dest": "/public/success.html"
+      "dest": "/api/success.js"
     }
   ]
 }
