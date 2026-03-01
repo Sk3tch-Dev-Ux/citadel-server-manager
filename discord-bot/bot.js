@@ -6,11 +6,11 @@
  *   - /panel: Spawns an ephemeral control panel
  *   - /setup: Deploys a persistent panel in the channel
  *   - /status, /players, /rcon, /broadcast, /restart: Quick commands
- *   - /playerinfo, /heal, /kill, /teleport, /spawnitem: GameLabs commands (CFTools)
+ *   - /playerinfo, /heal, /kill, /teleport, /spawnitem: Admin Action commands
  *
  * Panel Layout:
  *   - Core buttons: Status, Start, Stop, Restart
- *   - Category dropdown: Server, Players, Mods, Intel, GameLabs
+ *   - Category dropdown: Server, Players, Mods, Intel, Admin Actions
  *   - Each category opens its own set of action buttons (ephemeral)
  */
 
@@ -97,7 +97,7 @@ const COLORS = {
   players: 0x14b8a6,
   mods: 0x6366f1,
   intel: 0x64748b,
-  gamelabs: 0x8b5cf6,
+  actions: 0x8b5cf6,
 };
 
 // ─── Permission Check ────────────────────────────────────
@@ -235,7 +235,7 @@ function buildControlPanel() {
         { label: 'Players', value: 'cat_players', description: 'Player list, Kick, Ban list' },
         { label: 'Mods', value: 'cat_mods', description: 'Install, Uninstall, Enable, Disable' },
         { label: 'Intel', value: 'cat_intel', description: 'Chat, Killfeed, Watchlist, Leaderboard' },
-        { label: 'GameLabs', value: 'cat_gamelabs', description: 'Heal, Kill, Teleport, Spawn Items' },
+        { label: 'Admin Actions', value: 'cat_actions', description: 'Heal, Kill, Teleport, Spawn Items' },
       )
   );
 
@@ -290,7 +290,7 @@ function buildIntelButtons() {
   ];
 }
 
-function buildGameLabsButtons() {
+function buildAdminActionButtons() {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('panel_gl_heal').setLabel('Heal Player').setStyle(ButtonStyle.Success),
@@ -318,7 +318,7 @@ function buildConfirmRow(action) {
 }
 
 /**
- * Build a player select menu from online players for GameLabs actions.
+ * Build a player select menu from online players for admin actions.
  */
 async function buildPlayerSelectMenu(customId, placeholder) {
   const data = await panelAction('players');
@@ -384,21 +384,21 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('heal')
-    .setDescription('Heal a player (GameLabs)')
+    .setDescription('Heal a player (Admin Action)')
     .addStringOption(opt =>
       opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
     ),
 
   new SlashCommandBuilder()
     .setName('kill')
-    .setDescription('Kill a player (GameLabs)')
+    .setDescription('Kill a player (Admin Action)')
     .addStringOption(opt =>
       opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
     ),
 
   new SlashCommandBuilder()
     .setName('teleport')
-    .setDescription('Teleport a player (GameLabs)')
+    .setDescription('Teleport a player (Admin Action)')
     .addStringOption(opt =>
       opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
     )
@@ -414,7 +414,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('spawnitem')
-    .setDescription('Spawn an item on a player (GameLabs)')
+    .setDescription('Spawn an item on a player (Admin Action)')
     .addStringOption(opt =>
       opt.setName('steamid').setDescription('Player Steam64 ID').setRequired(true)
     )
@@ -523,14 +523,14 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
 
-        else if (selected === 'cat_gamelabs') {
+        else if (selected === 'cat_actions') {
           const embed = new EmbedBuilder()
-            .setTitle('GameLabs Actions')
-            .setDescription('Requires CFTools + GameLabs mod. Heal, kill, teleport players, or spawn items.')
-            .setColor(COLORS.gamelabs);
+            .setTitle('Admin Actions')
+            .setDescription('Heal, kill, teleport players, or spawn items on the server.')
+            .setColor(COLORS.actions);
           await safeReply(interaction, {
             embeds: [embed],
-            components: buildGameLabsButtons(),
+            components: buildAdminActionButtons(),
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -555,10 +555,10 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-      // GameLabs player selects
+      // Admin Action player selects
       if (interaction.customId === 'select_gl_heal') {
         const steamId = interaction.values[0];
-        const result = await panelAction('gameLabsHeal', { steamId });
+        const result = await panelAction('actionHeal', { steamId });
         await safeReply(interaction, {
           content: result.error ? `Error: ${result.error}` : result.message,
           flags: MessageFlags.Ephemeral,
@@ -568,7 +568,7 @@ client.on('interactionCreate', async (interaction) => {
 
       if (interaction.customId === 'select_gl_kill') {
         const steamId = interaction.values[0];
-        const result = await panelAction('gameLabsKill', { steamId });
+        const result = await panelAction('actionKill', { steamId });
         await safeReply(interaction, {
           content: result.error ? `Error: ${result.error}` : result.message,
           flags: MessageFlags.Ephemeral,
@@ -923,7 +923,7 @@ client.on('interactionCreate', async (interaction) => {
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
-      // ── GameLabs Buttons ──
+      // ── Admin Action Buttons ──
       else if (btnId === 'panel_gl_heal') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
         const select = await buildPlayerSelectMenu('select_gl_heal', 'Select a player to heal');
@@ -1086,7 +1086,7 @@ client.on('interactionCreate', async (interaction) => {
           '**DayZ Server Control Panel**\n\n' +
           'Use the buttons below for quick actions, or select a category from the dropdown for more options.\n\n' +
           '`Status` Refresh  |  `Start` `Stop` `Restart` Server control\n' +
-          '`Dropdown` Server, Players, Mods, Intel, GameLabs categories'
+          '`Dropdown` Server, Players, Mods, Intel, Admin Actions categories'
         );
         await safeReply(interaction, { content: 'Control panel deployed.', flags: MessageFlags.Ephemeral });
         await interaction.channel.send({ embeds: [embed], components: buildControlPanel() });
@@ -1157,7 +1157,7 @@ client.on('interactionCreate', async (interaction) => {
         }
       }
 
-      // ── GameLabs Slash Commands ──
+      // ── Admin Action Slash Commands ──
       else if (commandName === 'playerinfo') {
         const steamId = interaction.options.getString('steamid');
         const data = await panelAction('playerInfo', { steamId });
@@ -1168,9 +1168,9 @@ client.on('interactionCreate', async (interaction) => {
       else if (commandName === 'heal') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
         const steamId = interaction.options.getString('steamid');
-        const result = await panelAction('gameLabsHeal', { steamId });
+        const result = await panelAction('actionHeal', { steamId });
         const embed = new EmbedBuilder()
-          .setTitle('GameLabs: Heal')
+          .setTitle('Admin: Heal')
           .setColor(result.error ? COLORS.error : COLORS.success)
           .setDescription(result.error ? `Error: ${result.error}` : result.message)
           .setFooter({ text: `By ${interaction.user.tag}` })
@@ -1181,9 +1181,9 @@ client.on('interactionCreate', async (interaction) => {
       else if (commandName === 'kill') {
         if (!isAdmin(interaction)) return await safeReply(interaction, { content: 'Admin role required.', flags: MessageFlags.Ephemeral });
         const steamId = interaction.options.getString('steamid');
-        const result = await panelAction('gameLabsKill', { steamId });
+        const result = await panelAction('actionKill', { steamId });
         const embed = new EmbedBuilder()
-          .setTitle('GameLabs: Kill')
+          .setTitle('Admin: Kill')
           .setColor(result.error ? COLORS.error : COLORS.warning)
           .setDescription(result.error ? `Error: ${result.error}` : result.message)
           .setFooter({ text: `By ${interaction.user.tag}` })
@@ -1197,9 +1197,9 @@ client.on('interactionCreate', async (interaction) => {
         const x = interaction.options.getNumber('x');
         const y = interaction.options.getNumber('y');
         const z = interaction.options.getNumber('z') || 0;
-        const result = await panelAction('gameLabsTeleport', { steamId, x, y, z });
+        const result = await panelAction('actionTeleport', { steamId, x, y, z });
         const embed = new EmbedBuilder()
-          .setTitle('GameLabs: Teleport')
+          .setTitle('Admin: Teleport')
           .setColor(result.error ? COLORS.error : COLORS.info)
           .setDescription(result.error ? `Error: ${result.error}` : result.message)
           .setFooter({ text: `By ${interaction.user.tag}` })
@@ -1212,9 +1212,9 @@ client.on('interactionCreate', async (interaction) => {
         const steamId = interaction.options.getString('steamid');
         const itemClass = interaction.options.getString('item');
         const quantity = interaction.options.getInteger('quantity') || 1;
-        const result = await panelAction('gameLabsSpawnItem', { steamId, itemClass, quantity });
+        const result = await panelAction('actionSpawnItem', { steamId, itemClass, quantity });
         const embed = new EmbedBuilder()
-          .setTitle('GameLabs: Spawn Item')
+          .setTitle('Admin: Spawn Item')
           .setColor(result.error ? COLORS.error : COLORS.success)
           .setDescription(result.error ? `Error: ${result.error}` : result.message)
           .setFooter({ text: `By ${interaction.user.tag}` })
@@ -1275,15 +1275,15 @@ client.on('interactionCreate', async (interaction) => {
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
-      // GameLabs: Teleport modal
+      // Admin: Teleport modal
       else if (interaction.customId.startsWith('modal_gl_teleport_')) {
         const steamId = interaction.customId.replace('modal_gl_teleport_', '');
         const x = interaction.fields.getTextInputValue('tp_x');
         const y = interaction.fields.getTextInputValue('tp_y');
         const z = interaction.fields.getTextInputValue('tp_z') || '0';
-        const result = await panelAction('gameLabsTeleport', { steamId, x: parseFloat(x), y: parseFloat(y), z: parseFloat(z) });
+        const result = await panelAction('actionTeleport', { steamId, x: parseFloat(x), y: parseFloat(y), z: parseFloat(z) });
         const embed = new EmbedBuilder()
-          .setTitle('GameLabs: Teleport')
+          .setTitle('Admin: Teleport')
           .setColor(result.error ? COLORS.error : COLORS.info)
           .setDescription(result.error ? `Error: ${result.error}` : result.message)
           .setFooter({ text: `By ${interaction.user.tag}` })
@@ -1291,14 +1291,14 @@ client.on('interactionCreate', async (interaction) => {
         await safeReply(interaction, { embeds: [embed], flags: MessageFlags.Ephemeral });
       }
 
-      // GameLabs: Spawn Item modal
+      // Admin: Spawn Item modal
       else if (interaction.customId.startsWith('modal_gl_spawn_')) {
         const steamId = interaction.customId.replace('modal_gl_spawn_', '');
         const itemClass = interaction.fields.getTextInputValue('item_class');
         const quantity = parseInt(interaction.fields.getTextInputValue('item_qty')) || 1;
-        const result = await panelAction('gameLabsSpawnItem', { steamId, itemClass, quantity });
+        const result = await panelAction('actionSpawnItem', { steamId, itemClass, quantity });
         const embed = new EmbedBuilder()
-          .setTitle('GameLabs: Spawn Item')
+          .setTitle('Admin: Spawn Item')
           .setColor(result.error ? COLORS.error : COLORS.success)
           .setDescription(result.error ? `Error: ${result.error}` : result.message)
           .setFooter({ text: `By ${interaction.user.tag}` })

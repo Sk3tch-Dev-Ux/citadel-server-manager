@@ -107,7 +107,7 @@ require('./routes/watchlist.routes')(app);
 require('./routes/priority-queue.routes')(app);
 require('./routes/killfeed.routes')(app);
 require('./routes/leaderboard.routes')(app);
-require('./routes/gamelabs.routes')(app);
+require('./routes/actions.routes')(app);
 require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
 
