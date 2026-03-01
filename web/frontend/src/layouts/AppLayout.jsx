@@ -55,7 +55,7 @@ export default function AppLayout() {
       <div className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <div className="logo-icon">C</div>
+            <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 38, height: 38 }} />
             <div><div className="logo-text">Citadel</div><div className="logo-sub">Server Management</div></div>
           </div>
           {isServerPage && servers.length > 0 && (

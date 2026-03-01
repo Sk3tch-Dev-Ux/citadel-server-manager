@@ -220,7 +220,7 @@ export default function SetupWizardPage() {
           {step === 0 && (
             <div style={{ textAlign: 'center' }}>
               <div style={{ marginBottom: 16 }}>
-                <div className="logo-icon" style={{ width: 56, height: 56, fontSize: 24, margin: '0 auto' }}>C</div>
+                <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 56, height: 56, margin: '0 auto' }} />
               </div>
               <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Welcome to Citadel</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>

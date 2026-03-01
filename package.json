@@ -14,7 +14,10 @@
     "lint:frontend": "cd web/frontend && npm run lint",
     "build": "cd web/frontend && npm run build",
     "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd web/frontend && npm run dev"
+    "dev:frontend": "cd web/frontend && npm run dev",
+    "docs:dev": "cd docs && npx vitepress dev",
+    "docs:build": "cd docs && npx vitepress build",
+    "docs:preview": "cd docs && npx vitepress preview"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

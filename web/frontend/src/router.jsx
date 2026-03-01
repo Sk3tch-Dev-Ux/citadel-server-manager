@@ -66,7 +66,7 @@ function SmartLogin() {
     return (
       <div className="login-screen">
         <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-          <div className="logo-icon" style={{ width: 48, height: 48, fontSize: 20, margin: '0 auto 16px' }}>DZ</div>
+          <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 48, height: 48, margin: '0 auto 16px' }} />
           Loading...
         </div>
       </div>
