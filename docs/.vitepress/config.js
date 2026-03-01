@@ -3,8 +3,9 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'Citadel',
   description: 'Enterprise DayZ server management platform — web UI, Discord bot, and in-game admin mod.',
+  base: '/DayzServerController/',
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/DayzServerController/favicon.svg' }],
     ['meta', { name: 'theme-color', content: '#6366F1' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Citadel Docs' }],
@@ -81,11 +82,11 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/Sk3tch-Dev-Ux/Sk3tch-Dev-Ux.github.io' },
+      { icon: 'github', link: 'https://github.com/Sk3tch-Dev-Ux/DayzServerController' },
     ],
 
     editLink: {
-      pattern: 'https://github.com/Sk3tch-Dev-Ux/Sk3tch-Dev-Ux.github.io/edit/main/docs/:path',
+      pattern: 'https://github.com/Sk3tch-Dev-Ux/DayzServerController/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
 

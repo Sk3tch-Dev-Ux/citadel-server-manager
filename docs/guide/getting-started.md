@@ -7,7 +7,7 @@ Get Citadel running in under 10 minutes.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Sk3tch-Dev-Ux/Sk3tch-Dev-Ux.github.io.git
+git clone https://github.com/Sk3tch-Dev-Ux/DayzServerController.git
 cd Citadel
 ```
 
