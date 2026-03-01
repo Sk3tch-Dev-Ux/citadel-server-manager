@@ -49,7 +49,7 @@ Copy that output — you'll paste it into Vercel as `LICENSE_PRIVATE_KEY_B64`.
 ### 3. Set up Stripe webhook
 
 - Go to [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks)
-- Add endpoint: `https://your-app.vercel.app/api/webhook`
+- Add endpoint: `https://citadel-license-generator.vercel.app/api/webhook`
 - Select event: `checkout.session.completed`
 - Copy the Webhook Signing Secret (`whsec_...`)
 
@@ -87,7 +87,7 @@ In the [Vercel Dashboard → Settings → Environment Variables](https://vercel.
 | `SMTP_USER` | SMTP username |
 | `SMTP_PASS` | SMTP password or app password |
 | `EMAIL_FROM` | `Citadel Licenses <licenses@citadel.gg>` |
-| `SUCCESS_URL` | `https://your-app.vercel.app/success` |
+| `SUCCESS_URL` | `https://citadel-license-generator.vercel.app/success` |
 | `CANCEL_URL` | `https://citadel.gg/purchase` |
 
 ### 7. Point customer instances to the purchase URL
@@ -118,7 +118,7 @@ Or if using `/api/create-checkout`, point to your Vercel app URL.
 > auto-invite will be skipped — you'll need to invite buyers manually.
 
 1. Create a [Payment Link](https://dashboard.stripe.com/payment-links) in the Stripe Dashboard
-2. Set "After payment" redirect to `https://your-app.vercel.app/success`
+2. Set "After payment" redirect to `https://citadel-license-generator.vercel.app/success`
 3. Set `PURCHASE_URL` in customer instances to the Payment Link URL
 4. The `/api/webhook` endpoint handles key generation + email automatically
 
