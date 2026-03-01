@@ -8,9 +8,10 @@ const { validateFields } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
 const { fireWebhooks } = require('../lib/notifications');
 const auth = require('../middleware/auth');
+const requireFeature = require('../middleware/license');
 
 module.exports = function(app) {
-  app.get('/api/webhooks', auth('webhooks.manage'), (req, res) => { res.json(ctx.webhooks); });
+  app.get('/api/webhooks', auth('webhooks.manage'), requireFeature('webhooks'), (req, res) => { res.json(ctx.webhooks); });
 
   app.post('/api/webhooks', auth('webhooks.manage'), (req, res) => {
     const { event, url, template, retryEnabled, timeout, headers } = req.body;

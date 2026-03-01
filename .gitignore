@@ -44,3 +44,6 @@ docs/.vitepress/cache/
 
 # Claude worktrees
 /.claude/
+
+# License private key (NEVER commit this)
+tools/license-private.pem
