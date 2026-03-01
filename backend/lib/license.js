@@ -1,17 +1,15 @@
 /**
  * Citadel License Validation System
  *
- * License keys are RSA-signed JWTs containing tier, server limits, and feature flags.
- * Only the public key ships with the product — the private key is held by the vendor
- * to generate new license keys via tools/generate-license.js.
+ * Simple one-time purchase model: $19.99 → full access to every feature.
+ * License keys are RSA-signed JWTs verified with the embedded public key.
+ * The private key is held by the vendor (tools/license-private.pem) and
+ * used via tools/generate-license.js to issue keys.
  *
- * Tiers:
- *   community    — Free, 1 server, basic features, Citadel watermark
- *   standard     — Up to 3 servers, most features
- *   professional — Up to 10 servers, all features including Discord bot
- *   enterprise   — Unlimited servers, white-label, everything
+ * States:
+ *   unlicensed — No valid key; tool runs with a "please purchase" watermark
+ *   licensed   — Valid key; full unrestricted access to all features
  */
-const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
@@ -29,43 +27,12 @@ D2smJX4CWutpCPohja/KuNK4trE9KNdj+CcH2wt+WHCCBMasNERbK1y9QjT26g6Q
 1wIDAQAB
 -----END PUBLIC KEY-----`;
 
-// ─── Tier Definitions ────────────────────────────────────────────
-const TIERS = {
-  community: {
-    label: 'Community',
-    maxServers: 1,
-    features: ['server.view', 'server.control', 'players', 'rcon', 'logs', 'metrics', 'mods.view', 'config'],
-    watermark: true,
-  },
-  standard: {
-    label: 'Standard',
-    maxServers: 3,
-    features: ['server.view', 'server.control', 'players', 'rcon', 'logs', 'metrics', 'mods', 'config', 'file_manager', 'scheduler', 'messenger', 'backups', 'bans', 'live_map', 'leaderboard', 'killfeed'],
-    watermark: false,
-  },
-  professional: {
-    label: 'Professional',
-    maxServers: 10,
-    features: ['server.view', 'server.control', 'players', 'rcon', 'logs', 'metrics', 'mods', 'config', 'file_manager', 'scheduler', 'messenger', 'backups', 'bans', 'live_map', 'leaderboard', 'killfeed', 'deploy', 'discord_bot', 'webhooks', 'priority_queue', 'watchlist'],
-    watermark: false,
-  },
-  enterprise: {
-    label: 'Enterprise',
-    maxServers: Infinity,
-    features: ['*'],  // All features
-    watermark: false,
-  },
-};
-
 // ─── License State ───────────────────────────────────────────────
 let _license = {
-  valid: false,
-  tier: 'community',
-  maxServers: 1,
+  licensed: false,
   licensee: null,
   email: null,
   expiresAt: null,
-  features: TIERS.community.features,
   watermark: true,
   key: null,
 };
@@ -86,9 +53,9 @@ function validateKey(key) {
       issuer: 'citadel-license',
     });
 
-    // Validate required fields
-    if (!decoded.tier || !TIERS[decoded.tier]) {
-      return { valid: false, error: `Unknown tier: ${decoded.tier}` };
+    // Must be a Citadel product key
+    if (decoded.product !== 'citadel') {
+      return { valid: false, error: 'Invalid product identifier in license key' };
     }
 
     return { valid: true, decoded };
@@ -121,15 +88,14 @@ function activateLicense(dataDir) {
         fs.writeFileSync(cacheFile, JSON.stringify({
           key,
           activatedAt: new Date().toISOString(),
-          tier: result.decoded.tier,
         }));
       } catch { /* non-critical */ }
       return _license;
     }
-    logger.warn({ error: result.error }, 'License key validation failed — falling back to Community tier');
+    logger.warn({ error: result.error }, 'License key validation failed — running unlicensed');
   }
 
-  // Try cached license (for when key is removed from env but was previously activated)
+  // Try cached license
   if (!key && fs.existsSync(cacheFile)) {
     try {
       const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
@@ -139,21 +105,18 @@ function activateLicense(dataDir) {
           applyLicense(result.decoded, cached.key);
           return _license;
         }
-        logger.warn({ error: result.error }, 'Cached license invalid — falling back to Community tier');
+        logger.warn({ error: result.error }, 'Cached license invalid — running unlicensed');
       }
     } catch { /* corrupted cache, just continue */ }
   }
 
-  // Default: community tier (free)
-  logger.info('No valid license key found — running in Community (free) tier');
+  // Default: unlicensed
+  logger.info('No valid license key found — running unlicensed (purchase at citadel.gg for $19.99)');
   _license = {
-    valid: true,
-    tier: 'community',
-    maxServers: 1,
+    licensed: false,
     licensee: null,
     email: null,
     expiresAt: null,
-    features: TIERS.community.features,
     watermark: true,
     key: null,
   };
@@ -165,29 +128,19 @@ function activateLicense(dataDir) {
  * Apply a decoded license token to the runtime state.
  */
 function applyLicense(decoded, key) {
-  const tierDef = TIERS[decoded.tier] || TIERS.community;
-
-  // maxServers can be overridden in the license itself
-  const maxServers = decoded.maxServers || tierDef.maxServers;
-
   _license = {
-    valid: true,
-    tier: decoded.tier,
-    maxServers,
+    licensed: true,
     licensee: decoded.licensee || null,
     email: decoded.email || null,
     expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
-    features: tierDef.features,
-    watermark: tierDef.watermark,
+    watermark: false,
     key,
   };
 
   logger.info({
-    tier: tierDef.label,
     licensee: decoded.licensee,
-    maxServers: maxServers === Infinity ? 'unlimited' : maxServers,
     expires: _license.expiresAt || 'never',
-  }, 'License activated');
+  }, 'License activated — full access enabled');
 }
 
 /**
@@ -199,29 +152,11 @@ function getLicense() {
 }
 
 /**
- * Check if a specific feature is enabled by the current license.
- * @param {string} feature - Feature identifier (e.g., 'discord_bot', 'webhooks')
+ * Check if the instance is licensed.
  * @returns {boolean}
  */
-function hasFeature(feature) {
-  if (_license.features.includes('*')) return true;
-  return _license.features.includes(feature);
-}
-
-/**
- * Check if the current license allows adding another server.
- * @param {number} currentCount - Current number of configured servers
- * @returns {boolean}
- */
-function canAddServer(currentCount) {
-  return currentCount < _license.maxServers;
-}
-
-/**
- * Get the tier definition for a given tier name.
- */
-function getTierDef(tier) {
-  return TIERS[tier] || TIERS.community;
+function isLicensed() {
+  return _license.licensed === true;
 }
 
 /**
@@ -244,7 +179,6 @@ function setLicenseKey(key, dataDir) {
     fs.writeFileSync(cacheFile, JSON.stringify({
       key,
       activatedAt: new Date().toISOString(),
-      tier: result.decoded.tier,
     }));
   } catch { /* non-critical */ }
 
@@ -254,10 +188,7 @@ function setLicenseKey(key, dataDir) {
 module.exports = {
   activateLicense,
   getLicense,
-  hasFeature,
-  canAddServer,
-  getTierDef,
+  isLicensed,
   setLicenseKey,
   validateKey,
-  TIERS,
 };

@@ -2,21 +2,19 @@
 /**
  * Citadel License Key Generator
  *
- * Generates RSA-signed license keys for customers.
+ * Generates RSA-signed license keys for customers ($19.99 one-time purchase).
  * KEEP THIS TOOL AND THE PRIVATE KEY SECRET — never ship with the product.
  *
  * Usage:
- *   node generate-license.js --tier professional --licensee "John Doe" --email john@example.com --servers 10 --days 365
- *   node generate-license.js --tier enterprise --licensee "ACME Corp" --email admin@acme.com --permanent
- *   node generate-license.js --tier standard --licensee "Small Community" --email user@gmail.com --days 30
+ *   node generate-license.js --licensee "John Doe" --email john@example.com
+ *   node generate-license.js --licensee "John Doe" --email john@example.com --days 365
+ *   node generate-license.js --licensee "ACME Corp" --email admin@acme.com --permanent
  *
  * Options:
- *   --tier       community | standard | professional | enterprise (required)
  *   --licensee   Customer name (required)
  *   --email      Customer email (required)
- *   --servers    Max servers override (optional, defaults to tier limit)
- *   --days       License validity in days (default: 365)
- *   --permanent  No expiry
+ *   --days       License validity in days (default: permanent)
+ *   --permanent  No expiry (default behavior)
  */
 const fs = require('fs');
 const path = require('path');
@@ -41,22 +39,11 @@ function parseArgs() {
   return args;
 }
 
-const TIER_DEFAULTS = {
-  community: { maxServers: 1 },
-  standard: { maxServers: 3 },
-  professional: { maxServers: 10 },
-  enterprise: { maxServers: 999 },
-};
-
 // ─── Main ────────────────────────────────────────────────────────
 function main() {
   const args = parseArgs();
 
   // Validate required args
-  if (!args.tier || !TIER_DEFAULTS[args.tier]) {
-    console.error('Error: --tier is required (community | standard | professional | enterprise)');
-    process.exit(1);
-  }
   if (!args.licensee) {
     console.error('Error: --licensee is required (customer name)');
     process.exit(1);
@@ -77,10 +64,9 @@ function main() {
 
   // Build payload
   const payload = {
-    tier: args.tier,
+    product: 'citadel',
     licensee: args.licensee,
     email: args.email,
-    maxServers: parseInt(args.servers) || TIER_DEFAULTS[args.tier].maxServers,
   };
 
   // Sign options
@@ -89,23 +75,25 @@ function main() {
     issuer: 'citadel-license',
   };
 
-  if (!args.permanent) {
+  if (args.days && !args.permanent) {
     const days = parseInt(args.days) || 365;
     signOpts.expiresIn = `${days}d`;
   }
+  // Default: permanent (no expiresIn)
 
   // Generate the key
   const licenseKey = jwt.sign(payload, privateKey, signOpts);
 
   // Output
+  const expires = args.days && !args.permanent ? `${parseInt(args.days) || 365} days` : 'Never';
+
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log('║              CITADEL LICENSE KEY GENERATED               ║');
   console.log('╠══════════════════════════════════════════════════════════╣');
-  console.log(`║  Tier:        ${payload.tier.padEnd(42)}║`);
-  console.log(`║  Licensee:    ${payload.licensee.padEnd(42)}║`);
-  console.log(`║  Email:       ${payload.email.padEnd(42)}║`);
-  console.log(`║  Max Servers: ${String(payload.maxServers).padEnd(42)}║`);
-  console.log(`║  Expires:     ${(args.permanent ? 'Never' : `${parseInt(args.days) || 365} days`).padEnd(42)}║`);
+  console.log(`║  Product:     Citadel (Full Access)                      ║`);
+  console.log(`║  Licensee:    ${args.licensee.padEnd(42)}║`);
+  console.log(`║  Email:       ${args.email.padEnd(42)}║`);
+  console.log(`║  Expires:     ${expires.padEnd(42)}║`);
   console.log('╠══════════════════════════════════════════════════════════╣');
   console.log('║  Add to customer\'s .env file:                           ║');
   console.log('╠══════════════════════════════════════════════════════════╣');
