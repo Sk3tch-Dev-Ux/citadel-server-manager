@@ -32,6 +32,27 @@ function AuthGuard({ children }) {
   return children;
 }
 
+/**
+ * Permission-based route guard.
+ * Falls back to ServerHub if user lacks the required permission.
+ */
+function PermGuard({ permission, children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  // Admin role always has access
+  if (user.role === 'admin') return children;
+  // Map roles to allowed permissions (matches backend role definitions)
+  const rolePerms = {
+    moderator: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','mods.view','logs.view','metrics.view','chat.send','bans.manage','scheduler.manage'],
+    viewer: ['server.view','players.view','mods.view','logs.view','metrics.view'],
+  };
+  const perms = rolePerms[user.role] || [];
+  if (permission && !perms.includes(permission)) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
 // Wrapper that extracts serverId from URL params and passes as prop
 function ServerPage({ Component }) {
   const { serverId } = useParams();
@@ -84,25 +105,25 @@ export default function AppRouter() {
         <Route path="/setup" element={<><SetupWizardPage /><ToastContainer /></>} />
         <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route index element={<ServerHubPage />} />
-          <Route path="deploy" element={<DeployPage />} />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="webhooks" element={<WebhooksPage />} />
+          <Route path="deploy" element={<PermGuard permission="server.deploy"><DeployPage /></PermGuard>} />
+          <Route path="users" element={<PermGuard permission="users.manage"><UsersPage /></PermGuard>} />
+          <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><WebhooksPage /></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ServerPage Component={ServerOverviewPage} />} />
             <Route path="metrics" element={<ServerPage Component={ServerMetricsPage} />} />
-            <Route path="console" element={<ServerPage Component={ConsolePage} />} />
+            <Route path="console" element={<PermGuard permission="chat.send"><ServerPage Component={ConsolePage} /></PermGuard>} />
             <Route path="players" element={<ServerPage Component={PlayersPage} />} />
             <Route path="mods" element={<ServerPage Component={ModsPage} />} />
-            <Route path="files" element={<ServerPage Component={FilesPage} />} />
-            <Route path="config" element={<ServerPage Component={ConfigPage} />} />
+            <Route path="files" element={<PermGuard permission="files.manage"><ServerPage Component={FilesPage} /></PermGuard>} />
+            <Route path="config" element={<PermGuard permission="config.manage"><ServerPage Component={ConfigPage} /></PermGuard>} />
             <Route path="logs" element={<ServerPage Component={LogsPage} />} />
-            <Route path="bans" element={<ServerPage Component={BansPage} />} />
-            <Route path="scheduler" element={<ServerPage Component={SchedulerPage} />} />
-            <Route path="messenger" element={<ServerPage Component={MessengerPage} />} />
+            <Route path="bans" element={<PermGuard permission="bans.manage"><ServerPage Component={BansPage} /></PermGuard>} />
+            <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ServerPage Component={SchedulerPage} /></PermGuard>} />
+            <Route path="messenger" element={<PermGuard permission="chat.send"><ServerPage Component={MessengerPage} /></PermGuard>} />
             <Route path="map" element={<ServerPage Component={LiveMapPage} />} />
-            <Route path="settings" element={<ServerPage Component={ServerSettingsPage} />} />
-            <Route path="dangerzone" element={<ServerPage Component={DangerzonePage} />} />
+            <Route path="settings" element={<PermGuard permission="server.settings"><ServerPage Component={ServerSettingsPage} /></PermGuard>} />
+            <Route path="dangerzone" element={<PermGuard permission="server.dangerzone"><ServerPage Component={DangerzonePage} /></PermGuard>} />
           </Route>
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />

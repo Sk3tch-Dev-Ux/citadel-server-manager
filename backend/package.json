@@ -1,8 +1,13 @@
 {
   "name": "citadel-backend",
-  "version": "1.0.0",
-  "description": "Citadel — Backend API",
+  "version": "2.0.0",
+  "description": "Citadel — Backend API for DayZ server management",
+  "license": "UNLICENSED",
+  "private": true,
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
@@ -15,8 +20,10 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "node-fetch": "^3.3.2",
+    "node-fetch": "^2.7.0",
+    "otplib": "^13.3.0",
     "pino": "^10.3.1",
     "socket.io": "^4.7.2",
     "uuid": "^13.0.0"

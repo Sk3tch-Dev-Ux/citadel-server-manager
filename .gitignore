@@ -3,6 +3,7 @@ node_modules/
 
 # Environment variables (contains secrets!)
 .env
+.env.*
 
 # Logs
 *.log
@@ -16,19 +17,30 @@ Desktop.ini
 # IDE
 .vscode/
 .idea/
-/steamcmd
-.claude/worktrees/interesting-hermann/
-.claude/worktrees/quirky-shaw/
 
-# Frontend build
-web/frontend/node_modules/
+# SteamCMD runtime
+/steamcmd/
+
+# Backup/temp files
+*.bak
+*.bak.*
+*.tmp
+
+# Frontend build output
 web/dist/
 
 # VitePress docs build
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 
-data/audit.json
-/data
-/.claude
-/data
+# Runtime data (contains credentials & user data)
+/data/
+
+# PID files
+*.pid
+
+# TLS certificates
+/cert/
+
+# Claude worktrees
+/.claude/

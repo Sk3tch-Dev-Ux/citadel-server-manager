@@ -1,12 +1,13 @@
 /**
  * Persistent JSON data store with async debounced writes.
  * - loadJSON: synchronous (used only at startup)
- * - saveJSON: async with 1-second debounce (merges rapid writes)
+ * - saveJSON: async with 1-second debounce + atomic write (write-to-temp + rename)
  * - flushAll: synchronous flush for graceful shutdown
  */
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
+const crypto = require('crypto');
 const logger = require('./logger');
 
 const pendingWrites = new Map(); // filename -> { timeout, data, filePath }
@@ -31,10 +32,13 @@ function saveJSON(dataDir, filename, data) {
 
   const timeout = setTimeout(async () => {
     pendingWrites.delete(filename);
+    const tmpPath = filePath + '.tmp.' + crypto.randomBytes(4).toString('hex');
     try {
-      await fsp.writeFile(filePath, JSON.stringify(data, null, 2));
+      await fsp.writeFile(tmpPath, JSON.stringify(data, null, 2));
+      await fsp.rename(tmpPath, filePath);  // atomic on same filesystem
     } catch (err) {
       logger.error({ err, file: filename }, 'Failed to save JSON data file');
+      try { await fsp.unlink(tmpPath); } catch { /* cleanup best effort */ }
     }
   }, DEBOUNCE_MS);
 
