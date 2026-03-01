@@ -1,7 +1,7 @@
 {
-  "name": "dayz-panel-backend",
+  "name": "citadel-backend",
   "version": "1.0.0",
-  "description": "DayZ Server Control Panel - Backend API",
+  "description": "Citadel — Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

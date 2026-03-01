@@ -1,5 +1,5 @@
 /**
- * DSC Sidecar — Ban Storage
+ * Citadel Sidecar — Ban Storage
  *
  * File-based ban list persisted alongside the DayZ server.
  * Replaces CFTools ban management with local JSON storage.

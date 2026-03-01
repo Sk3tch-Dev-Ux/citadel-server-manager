@@ -1,7 +1,7 @@
 {
-  "name": "dayz-panel-discord-bot",
+  "name": "citadel-discord-bot",
   "version": "1.0.0",
-  "description": "DayZ Server Panel - Discord Bot with Button Controls",
+  "description": "Citadel — Discord Bot with Button Controls",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",

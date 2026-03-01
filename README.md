@@ -1,6 +1,6 @@
-# DayZ Server Controller
+# Citadel
 
-A full-featured web dashboard and Discord bot for managing multiple DayZ servers. Built for teams that need reliable, secure server administration at scale.
+An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managing multiple DayZ servers. Built for teams that need reliable, secure server administration at scale.
 
 ![Status](https://img.shields.io/badge/status-production-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
@@ -60,7 +60,7 @@ A full-featured web dashboard and Discord bot for managing multiple DayZ servers
 ## Project Structure
 
 ```
-DayzServerController/
+Citadel/
 ├── backend/
 │   ├── server.js              # Express + Socket.IO entry point
 │   ├── lib/
@@ -150,8 +150,8 @@ DayzServerController/
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/yourusername/DayzServerController.git
-cd DayzServerController
+git clone https://github.com/yourusername/Citadel.git
+cd Citadel
 
 # Copy environment template
 cp .env.example .env
@@ -439,8 +439,8 @@ server {
 ```bash
 npm install -g pm2
 
-cd backend && pm2 start server.js --name dayz-panel
-cd discord-bot && pm2 start bot.js --name dayz-bot
+cd backend && pm2 start server.js --name citadel
+cd discord-bot && pm2 start bot.js --name citadel-bot
 
 pm2 save
 pm2 startup

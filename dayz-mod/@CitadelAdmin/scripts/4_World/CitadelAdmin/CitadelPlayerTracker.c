@@ -1,22 +1,22 @@
 /**
- * DSCPlayerTracker — Periodically writes active player data to a JSON file
+ * CitadelPlayerTracker — Periodically writes active player data to a JSON file
  * that the sidecar reads for player sessions, positions, and status.
  */
-class DSCPlayerTracker
+class CitadelPlayerTracker
 {
-    static const string PLAYER_FILE = "$profile:DSC\\players.json";
+    static const string PLAYER_FILE = "$profile:Citadel\\players.json";
     static const int UPDATE_INTERVAL_MS = 5000; // 5 seconds
 
     protected ref Timer m_UpdateTimer;
 
-    void DSCPlayerTracker()
+    void CitadelPlayerTracker()
     {
         m_UpdateTimer = new Timer();
         m_UpdateTimer.Run(UPDATE_INTERVAL_MS * 0.001, this, "UpdatePlayerData", null, true);
-        Print("[DSCAdmin] Player tracker initialized");
+        Print("[Citadel] Player tracker initialized");
     }
 
-    void ~DSCPlayerTracker()
+    void ~CitadelPlayerTracker()
     {
         if (m_UpdateTimer)
             m_UpdateTimer.Stop();

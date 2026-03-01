@@ -1,4 +1,4 @@
-# Deployment script for DayZ Server Controller (Windows)
+# Deployment script for Citadel (Windows)
 
 # Stop running server
 try { Stop-Process -Name node -Force } catch {}

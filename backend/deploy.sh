@@ -1,10 +1,10 @@
 #!/bin/bash
-# Deployment script for DayZ Server Controller
+# Deployment script for Citadel
 
 set -e
 
 # Stop running server
-pm2 stop dayz-server || true
+pm2 stop citadel || true
 
 # Pull latest code
 git pull
@@ -17,7 +17,7 @@ cd ../web && npm install && npm run build || true
 cd ../backend
 
 # Start server with PM2
-pm2 start server.js --name dayz-server --watch
+pm2 start server.js --name citadel --watch
 
 # Show status
-pm2 status dayz-server
+pm2 status citadel

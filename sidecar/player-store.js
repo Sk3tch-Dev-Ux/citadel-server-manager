@@ -1,5 +1,5 @@
 /**
- * DSC Sidecar — Player Data Store
+ * Citadel Sidecar — Player Data Store
  *
  * Reads the player session data written by the DayZ mod.
  * The mod updates players.json on an interval with live positions,
@@ -152,7 +152,7 @@ function getLeaderboard(limit = 100) {
 
 /**
  * Process kill events from the DayZ mod's kill feed file.
- * The mod writes kills to DSC/events.jsonl (newline-delimited JSON).
+ * The mod writes kills to Citadel/events.jsonl (newline-delimited JSON).
  */
 function processEventLog() {
   const eventFile = path.join(path.dirname(config.playerDataFile), 'events.jsonl');

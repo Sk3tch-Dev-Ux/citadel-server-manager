@@ -220,9 +220,9 @@ export default function SetupWizardPage() {
           {step === 0 && (
             <div style={{ textAlign: 'center' }}>
               <div style={{ marginBottom: 16 }}>
-                <div className="logo-icon" style={{ width: 56, height: 56, fontSize: 24, margin: '0 auto' }}>DZ</div>
+                <div className="logo-icon" style={{ width: 56, height: 56, fontSize: 24, margin: '0 auto' }}>C</div>
               </div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Welcome to DayZ Server Panel</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Welcome to Citadel</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
                 Let&apos;s get you set up in just a few steps. You&apos;ll create your admin account,
                 configure SteamCMD, and optionally deploy your first DayZ server.
@@ -628,7 +628,7 @@ export default function SetupWizardPage() {
               </div>
               <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>You&apos;re All Set!</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
-                Your DayZ Server Panel is ready to go. You can manage your servers,
+                Your Citadel panel is ready to go. You can manage your servers,
                 install mods, configure settings, and monitor everything from the dashboard.
               </p>
               <button
@@ -644,7 +644,7 @@ export default function SetupWizardPage() {
 
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'var(--text-muted)' }}>
-          DayZ Server Panel v2.0
+          Citadel v2.0
         </div>
       </div>
 

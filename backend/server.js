@@ -1,5 +1,5 @@
 /**
- * DayZ Server Panel - Backend API v2.0
+ * Citadel — Backend API v2.0
  *
  * Features:
  *   - Multi-server instance management (Server Hub)
@@ -154,7 +154,7 @@ const { startAllPolling, gracefulShutdown } = require('./lib/polling');
 
   // Listen
   server.listen(CONFIG.port, () => {
-    logger.info(`DayZ Panel API v2.0 running on ${useHttps ? 'https' : 'http'}://localhost:${CONFIG.port}`);
+    logger.info(`Citadel API v2.0 running on ${useHttps ? 'https' : 'http'}://localhost:${CONFIG.port}`);
     logger.info(`${ctx.servers.length} server(s) configured, ${ctx.users.length} user(s)`);
   });
 })();

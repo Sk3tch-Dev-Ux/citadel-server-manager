@@ -1,8 +1,8 @@
 {
-  "name": "dayz-server-controller",
+  "name": "citadel",
   "version": "2.0.0",
   "private": true,
-  "description": "DayZ Server Control Panel — Multi-server management with web UI and Discord bot",
+  "description": "Citadel — Enterprise DayZ server management platform with web UI, Discord bot, and in-game admin mod",
   "scripts": {
     "postinstall": "cd backend && npm install && cd ../web/frontend && npm install",
     "setup": "node backend/lib/setup.js",

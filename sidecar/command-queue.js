@@ -1,5 +1,5 @@
 /**
- * DSC Sidecar — Command Queue
+ * Citadel Sidecar — Command Queue
  *
  * File-based IPC between the sidecar (Node.js) and the DayZ server mod (EnScript).
  *

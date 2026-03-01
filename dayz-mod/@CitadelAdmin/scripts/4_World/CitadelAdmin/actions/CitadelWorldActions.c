@@ -1,18 +1,18 @@
 /**
- * DSCWorldActions — In-game world/environment action execution.
+ * CitadelWorldActions — In-game world/environment action execution.
  *
  * Controls time, weather, entity cleanup, and world-space item spawning.
  */
-class DSCWorldActions
+class CitadelWorldActions
 {
     /**
      * Set the in-game world time.
      */
     static bool SetTime(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        int hour = DSCCommandRunner.ExtractJsonInt(params, "hour");
-        int minute = DSCCommandRunner.ExtractJsonInt(params, "minute");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        int hour = CitadelCommandRunner.ExtractJsonInt(params, "hour");
+        int minute = CitadelCommandRunner.ExtractJsonInt(params, "minute");
 
         // Validate
         if (hour < 0 || hour > 23)
@@ -28,7 +28,7 @@ class DSCWorldActions
         GetGame().GetWorld().GetDate(year, month, day, currentHour, currentMinute);
         GetGame().GetWorld().SetDate(year, month, day, hour, minute);
 
-        Print("[DSCAdmin] Set time to " + hour.ToString() + ":" + minute.ToString());
+        Print("[Citadel] Set time to " + hour.ToString() + ":" + minute.ToString());
         return true;
     }
 
@@ -38,7 +38,7 @@ class DSCWorldActions
      */
     static bool SetWeather(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
 
         Weather weather = GetGame().GetWeather();
         if (!weather)
@@ -48,11 +48,11 @@ class DSCWorldActions
         }
 
         // Each parameter is optional — only set what's provided
-        float overcast = DSCCommandRunner.ExtractJsonFloat(params, "overcast");
-        float rain = DSCCommandRunner.ExtractJsonFloat(params, "rain");
-        float fog = DSCCommandRunner.ExtractJsonFloat(params, "fog");
-        float snow = DSCCommandRunner.ExtractJsonFloat(params, "snow");
-        float wind = DSCCommandRunner.ExtractJsonFloat(params, "wind");
+        float overcast = CitadelCommandRunner.ExtractJsonFloat(params, "overcast");
+        float rain = CitadelCommandRunner.ExtractJsonFloat(params, "rain");
+        float fog = CitadelCommandRunner.ExtractJsonFloat(params, "fog");
+        float snow = CitadelCommandRunner.ExtractJsonFloat(params, "snow");
+        float wind = CitadelCommandRunner.ExtractJsonFloat(params, "wind");
 
         // Check if params were actually in the JSON (not just defaulting to 0)
         if (params.IndexOf("\"overcast\"") >= 0)
@@ -74,7 +74,7 @@ class DSCWorldActions
             weather.SetWindSpeed(windMag);
         }
 
-        Print("[DSCAdmin] Weather updated");
+        Print("[Citadel] Weather updated");
         return true;
     }
 
@@ -96,7 +96,7 @@ class DSCWorldActions
         weather.GetSnowfall().Set(0, 0, 60);
         weather.SetWindSpeed(0);
 
-        Print("[DSCAdmin] Weather cleared (sunny)");
+        Print("[Citadel] Weather cleared (sunny)");
         return true;
     }
 
@@ -130,7 +130,7 @@ class DSCWorldActions
             }
         }
 
-        Print("[DSCAdmin] Wiped " + count.ToString() + " AI entities");
+        Print("[Citadel] Wiped " + count.ToString() + " AI entities");
         return true;
     }
 
@@ -155,7 +155,7 @@ class DSCWorldActions
             }
         }
 
-        Print("[DSCAdmin] Wiped " + count.ToString() + " vehicles");
+        Print("[Citadel] Wiped " + count.ToString() + " vehicles");
         return true;
     }
 
@@ -164,11 +164,11 @@ class DSCWorldActions
      */
     static bool SpawnItemWorld(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string itemClass = DSCCommandRunner.ExtractJsonString(params, "itemClass");
-        float x = DSCCommandRunner.ExtractJsonFloat(params, "x");
-        float y = DSCCommandRunner.ExtractJsonFloat(params, "y");
-        float z = DSCCommandRunner.ExtractJsonFloat(params, "z");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string itemClass = CitadelCommandRunner.ExtractJsonString(params, "itemClass");
+        float x = CitadelCommandRunner.ExtractJsonFloat(params, "x");
+        float y = CitadelCommandRunner.ExtractJsonFloat(params, "y");
+        float z = CitadelCommandRunner.ExtractJsonFloat(params, "z");
 
         if (itemClass == "")
         {
@@ -189,7 +189,7 @@ class DSCWorldActions
             return false;
         }
 
-        Print("[DSCAdmin] Spawned " + itemClass + " at " + pos.ToString());
+        Print("[Citadel] Spawned " + itemClass + " at " + pos.ToString());
         return true;
     }
 };

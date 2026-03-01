@@ -1,5 +1,5 @@
 /**
- * DSC Sidecar — Authentication Middleware
+ * Citadel Sidecar — Authentication Middleware
  *
  * Validates the Bearer token against the configured API key.
  * If no API key is configured, all requests are allowed (development mode).

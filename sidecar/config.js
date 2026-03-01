@@ -1,5 +1,5 @@
 /**
- * DSC Sidecar — Configuration
+ * Citadel Sidecar — Configuration
  *
  * Reads from environment variables with sensible defaults.
  * The sidecar runs on the SAME machine as the DayZ server.
@@ -36,16 +36,16 @@ const CONFIG = {
 
 // Derive paths from dayzDir if not explicitly set
 const profileBase = CONFIG.profileDir || path.join(CONFIG.dayzDir, 'profiles');
-const dscDataDir = path.join(profileBase, 'DSC');
+const citadelDataDir = path.join(profileBase, 'Citadel');
 
-if (!CONFIG.queueDir) CONFIG.queueDir = path.join(dscDataDir, 'commands');
-if (!CONFIG.responseDir) CONFIG.responseDir = path.join(dscDataDir, 'responses');
-CONFIG.playerDataFile = path.join(dscDataDir, 'players.json');
-CONFIG.banFile = path.join(dscDataDir, 'bans.json');
-CONFIG.leaderboardFile = path.join(dscDataDir, 'leaderboard.json');
+if (!CONFIG.queueDir) CONFIG.queueDir = path.join(citadelDataDir, 'commands');
+if (!CONFIG.responseDir) CONFIG.responseDir = path.join(citadelDataDir, 'responses');
+CONFIG.playerDataFile = path.join(citadelDataDir, 'players.json');
+CONFIG.banFile = path.join(citadelDataDir, 'bans.json');
+CONFIG.leaderboardFile = path.join(citadelDataDir, 'leaderboard.json');
 
 // Ensure directories exist
-for (const dir of [CONFIG.queueDir, CONFIG.responseDir, dscDataDir]) {
+for (const dir of [CONFIG.queueDir, CONFIG.responseDir, citadelDataDir]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 

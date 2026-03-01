@@ -55,8 +55,8 @@ export default function AppLayout() {
       <div className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <div className="logo-icon">DZ</div>
-            <div><div className="logo-text">DayZ Panel</div><div className="logo-sub">Server Management</div></div>
+            <div className="logo-icon">C</div>
+            <div><div className="logo-text">Citadel</div><div className="logo-sub">Server Management</div></div>
           </div>
           {isServerPage && servers.length > 0 && (
             <div className="server-selector">
