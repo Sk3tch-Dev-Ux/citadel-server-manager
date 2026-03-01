@@ -7,7 +7,7 @@ title: Purchase Citadel
 import { ref } from 'vue';
 
 // Your Vercel license server URL (set after deploying)
-const API_BASE = 'https://your-vercel-app.vercel.app';
+const API_BASE = 'https://citadel-license-generator.vercel.app/';
 
 const loading = ref(false);
 const error = ref('');
