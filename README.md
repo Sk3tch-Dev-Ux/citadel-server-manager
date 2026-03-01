@@ -150,7 +150,7 @@ Citadel/
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/Sk3tch-Dev-Ux/Sk3tch-Dev-Ux.github.io.git
+git clone https://github.com/Sk3tch-Dev-Ux/DayzServerController.git
 cd Citadel
 
 # Copy environment template

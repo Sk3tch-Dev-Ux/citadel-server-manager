@@ -14,7 +14,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/Sk3tch-Dev-Ux/Sk3tch-Dev-Ux.github.io
+      link: https://github.com/Sk3tch-Dev-Ux/DayzServerController
 
 features:
   - icon: 🖥️
