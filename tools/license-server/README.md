@@ -79,7 +79,7 @@ In the [Vercel Dashboard → Settings → Environment Variables](https://vercel.
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` |
 | `STRIPE_PRICE_ID` | `price_...` (only if using `/api/create-checkout`) |
 | `LICENSE_PRIVATE_KEY_B64` | Base64-encoded RSA private key (from step 1) |
-| `GITHUB_TOKEN` | GitHub Personal Access Token with `repo` scope |
+| `GITHUB_TOKEN` | GitHub Personal Access Token (see step 4) |
 | `GITHUB_REPO_OWNER` | GitHub org or username (e.g. `Sk3tch-Dev-Ux`) |
 | `GITHUB_REPO_NAME` | Repository name (e.g. `DayzServerController`) |
 | `SMTP_HOST` | SMTP server (e.g. `smtp.gmail.com`) |
@@ -111,7 +111,11 @@ Or if using `/api/create-checkout`, point to your Vercel app URL.
 
 ## Two Purchase Flow Options
 
-### Option A: Stripe Payment Link (recommended)
+### Option A: Stripe Payment Link (simpler, no GitHub username collection)
+
+> **Note:** Payment Links auto-generate custom field keys (e.g. `custom_1`), which won't
+> match the `github_username` key the webhook expects. If you use this option, the GitHub
+> auto-invite will be skipped — you'll need to invite buyers manually.
 
 1. Create a [Payment Link](https://dashboard.stripe.com/payment-links) in the Stripe Dashboard
 2. Set "After payment" redirect to `https://your-app.vercel.app/success`
@@ -120,11 +124,11 @@ Or if using `/api/create-checkout`, point to your Vercel app URL.
 
 Zero code required — configured entirely in the Stripe Dashboard.
 
-### Option B: API-created Checkout Sessions
+### Option B: API-created Checkout Sessions (recommended)
 
 1. Frontend calls `POST /api/create-checkout` with optional `{ "email": "..." }`
-2. Server creates a Checkout Session and returns `{ "url": "https://checkout.stripe.com/..." }`
-3. Customer pays → webhook fires → key generated + emailed
+2. Server creates a Checkout Session with a `github_username` custom field and returns `{ "url": "https://checkout.stripe.com/..." }`
+3. Customer pays + enters GitHub username → webhook fires → key generated + emailed + repo invite sent
 
 ## Local Development
 
@@ -148,5 +152,5 @@ stripe trigger checkout.session.completed
 All sales are logged to Vercel's runtime logs (visible in the [Vercel Dashboard → Deployments → Logs](https://vercel.com/dashboard)). Each sale appears as:
 
 ```json
-{"timestamp":"2026-03-01T12:00:00.000Z","sessionId":"cs_live_...","email":"buyer@example.com","name":"John","githubUsername":"johndoe","githubInvited":true,"amount":1999,"currency":"usd"}
+{"timestamp":"2026-03-01T12:00:00.000Z","sessionId":"cs_live_...","email":"buyer@example.com","name":"John","githubUsername":"johndoe","githubInvited":true,"amount":3499,"currency":"usd"}
 ```
