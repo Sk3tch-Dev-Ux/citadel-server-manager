@@ -4,8 +4,41 @@ title: Purchase Citadel
 ---
 
 <script setup>
-// Replace with your actual Stripe Payment Link or Checkout URL
-const PURCHASE_URL = 'https://buy.stripe.com/YOUR_PAYMENT_LINK';
+import { ref } from 'vue';
+
+// Your Vercel license server URL (set after deploying)
+const API_BASE = 'https://your-vercel-app.vercel.app';
+
+const loading = ref(false);
+const error = ref('');
+
+async function handlePurchase() {
+  if (loading.value) return;
+  loading.value = true;
+  error.value = '';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/create-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Server returned ${res.status}`);
+    }
+
+    const { url } = await res.json();
+    if (!url) throw new Error('No checkout URL returned');
+
+    window.location.href = url;
+  } catch (err) {
+    error.value = 'Unable to start checkout. Please try again.';
+    console.error('Checkout error:', err);
+    loading.value = false;
+  }
+}
 </script>
 
 <style>
@@ -65,9 +98,19 @@ const PURCHASE_URL = 'https://buy.stripe.com/YOUR_PAYMENT_LINK';
   border-radius: 10px;
   text-decoration: none;
   transition: opacity 0.2s;
+  cursor: pointer;
+  border: none;
 }
-.price-card .buy-btn:hover {
-  opacity: 0.9;
+.price-card .buy-btn:hover { opacity: 0.9; }
+.price-card .buy-btn:disabled,
+.price-card .buy-btn.loading {
+  opacity: 0.6;
+  cursor: wait;
+}
+.error-msg {
+  color: #ef4444;
+  font-size: 0.9rem;
+  margin-top: 12px;
 }
 .features-grid {
   display: grid;
@@ -183,7 +226,10 @@ const PURCHASE_URL = 'https://buy.stripe.com/YOUR_PAYMENT_LINK';
   <div class="badge">Lifetime License</div>
   <div class="price">$34.99</div>
   <div class="price-sub">One-time payment · No subscriptions · All features included</div>
-  <a :href="PURCHASE_URL" class="buy-btn">Purchase Now</a>
+  <button class="buy-btn" :class="{ loading }" :disabled="loading" @click="handlePurchase">
+    {{ loading ? 'Redirecting to Stripe…' : 'Purchase Now' }}
+  </button>
+  <p v-if="error" class="error-msg">{{ error }}</p>
 </div>
 
 <div class="features-grid">
@@ -272,7 +318,10 @@ const PURCHASE_URL = 'https://buy.stripe.com/YOUR_PAYMENT_LINK';
 <div class="price-card" style="border-color: var(--vp-c-divider);">
   <div class="price">$34.99</div>
   <div class="price-sub">Ready to take control of your DayZ servers?</div>
-  <a :href="PURCHASE_URL" class="buy-btn">Purchase Citadel</a>
+  <button class="buy-btn" :class="{ loading }" :disabled="loading" @click="handlePurchase">
+    {{ loading ? 'Redirecting to Stripe…' : 'Purchase Citadel' }}
+  </button>
+  <p v-if="error" class="error-msg">{{ error }}</p>
 </div>
 
 </div>

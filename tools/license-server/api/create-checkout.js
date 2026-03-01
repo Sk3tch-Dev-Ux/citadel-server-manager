@@ -11,10 +11,27 @@ const Stripe = require('stripe');
 
 const SUCCESS_URL = process.env.SUCCESS_URL || 'https://citadel.gg/purchase/success';
 const CANCEL_URL = process.env.CANCEL_URL || 'https://citadel.gg/purchase';
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://sk3tch-dev-ux.github.io').split(',');
+
+function setCors(req, res) {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 
 module.exports = async function handler(req, res) {
+  setCors(req, res);
+
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'POST, OPTIONS');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 

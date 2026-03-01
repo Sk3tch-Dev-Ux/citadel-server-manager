@@ -13,7 +13,7 @@
     },
     {
       "src": "/api/create-checkout",
-      "methods": ["POST"],
+      "methods": ["POST", "OPTIONS"],
       "dest": "/api/create-checkout.js"
     },
     {
