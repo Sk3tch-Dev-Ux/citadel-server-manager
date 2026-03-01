@@ -81,11 +81,11 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/your-org/Citadel' },
+      { icon: 'github', link: 'https://github.com/Sk3tch-Dev-Ux/Sk3tch-Dev-Ux.github.io' },
     ],
 
     editLink: {
-      pattern: 'https://github.com/your-org/Citadel/edit/main/docs/:path',
+      pattern: 'https://github.com/Sk3tch-Dev-Ux/Sk3tch-Dev-Ux.github.io/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
 
