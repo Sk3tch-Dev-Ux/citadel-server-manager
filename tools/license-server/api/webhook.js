@@ -113,3 +113,7 @@ module.exports = async function handler(req, res) {
 
   return res.status(200).json({ received: true });
 };
+
+// Disable Vercel's automatic body parsing — Stripe signature verification
+// requires the raw request body, not a pre-parsed JSON object.
+module.exports.config = { api: { bodyParser: false } };
