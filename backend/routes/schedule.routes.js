@@ -6,7 +6,7 @@
 const { v4: uuid } = require('uuid');
 const ctx = require('../lib/context');
 const auth = require('../middleware/auth');
-const requireFeature = require('../middleware/license');
+const requireLicense = require('../middleware/license');
 const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
 
@@ -22,7 +22,7 @@ function persistJobs(serverId) {
 
 module.exports = function (app) {
   // ─── List all jobs ──────────────────────────────────────
-  app.get('/api/servers/:id/scheduler', auth(), requireFeature('scheduler'), (req, res) => {
+  app.get('/api/servers/:id/scheduler', auth(), requireLicense(), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
     res.json({ jobs: getJobs(req.params.id) });

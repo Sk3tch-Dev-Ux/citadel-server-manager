@@ -10,7 +10,7 @@ const { addAudit } = require('../lib/audit');
 const { initServerState } = require('../lib/server-init');
 const { readServerConfig } = require('../lib/dayz-config');
 const auth = require('../middleware/auth');
-const { requireServerSlot } = require('../middleware/license');
+const requireLicense = require('../middleware/license');
 
 // Map template names from serverDZ.cfg to our map values
 const TEMPLATE_TO_MAP = {
@@ -110,7 +110,7 @@ module.exports = function(app) {
     res.json(result);
   });
 
-  app.post('/api/servers', auth('server.deploy'), requireServerSlot(), async (req, res) => {
+  app.post('/api/servers', auth('server.deploy'), requireLicense(), async (req, res) => {
     const { name, installDir, executable, startBat, launchParams, ip, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map, gameTitle } = req.body;
     if (!name || !installDir) return res.status(400).json({ error: 'Name and installDir required' });
     const srv = {

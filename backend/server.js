@@ -145,11 +145,9 @@ require('./routes/actions.routes')(app);
 require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
 
-// ─── License-gated feature warnings ──────────────────────
-const { hasFeature } = require('./lib/license');
-if (!hasFeature('discord_bot')) logger.info('Discord bot integration requires Standard tier or higher');
-if (!hasFeature('webhooks')) logger.info('Webhooks require Professional tier or higher');
-if (!hasFeature('deploy')) logger.info('SteamCMD deployment requires Professional tier or higher');
+// ─── License status ──────────────────────────────────────
+const { isLicensed } = require('./lib/license');
+if (!isLicensed()) logger.info('Running unlicensed — purchase at citadel.gg for $19.99 to unlock all features');
 
 // ─── WebSocket (authenticated) ───────────────────────────
 const { getMapData: getMapDataForSocket } = require('./lib/map-data');
