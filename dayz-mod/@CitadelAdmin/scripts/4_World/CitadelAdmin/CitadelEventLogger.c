@@ -1,10 +1,10 @@
 /**
- * DSCEventLogger — Logs game events (kills, deaths, connections) to a JSONL file.
+ * CitadelEventLogger — Logs game events (kills, deaths, connections) to a JSONL file.
  * The sidecar reads and processes this file to build player statistics.
  */
-class DSCEventLogger
+class CitadelEventLogger
 {
-    static const string EVENT_FILE = "$profile:DSC\\events.jsonl";
+    static const string EVENT_FILE = "$profile:Citadel\\events.jsonl";
 
     /**
      * Log a player kill event.
@@ -14,11 +14,11 @@ class DSCEventLogger
         string json = "{";
         json += "\"type\":\"kill\",";
         json += "\"steamId\":\"" + killerSteamId + "\",";
-        json += "\"name\":\"" + DSCPlayerTracker.EscapeJsonString(killerName) + "\",";
+        json += "\"name\":\"" + CitadelPlayerTracker.EscapeJsonString(killerName) + "\",";
         json += "\"victimSteamId\":\"" + victimSteamId + "\",";
-        json += "\"victimName\":\"" + DSCPlayerTracker.EscapeJsonString(victimName) + "\",";
+        json += "\"victimName\":\"" + CitadelPlayerTracker.EscapeJsonString(victimName) + "\",";
         json += "\"distance\":" + distance.ToString() + ",";
-        json += "\"weapon\":\"" + DSCPlayerTracker.EscapeJsonString(weapon) + "\",";
+        json += "\"weapon\":\"" + CitadelPlayerTracker.EscapeJsonString(weapon) + "\",";
         json += "\"timestamp\":" + GetGame().GetTime().ToString();
         json += "}";
         AppendLine(json);
@@ -32,7 +32,7 @@ class DSCEventLogger
         string json = "{";
         json += "\"type\":\"connect\",";
         json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + DSCPlayerTracker.EscapeJsonString(name) + "\",";
+        json += "\"name\":\"" + CitadelPlayerTracker.EscapeJsonString(name) + "\",";
         json += "\"timestamp\":" + GetGame().GetTime().ToString();
         json += "}";
         AppendLine(json);
@@ -46,7 +46,7 @@ class DSCEventLogger
         string json = "{";
         json += "\"type\":\"playtime\",";
         json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + DSCPlayerTracker.EscapeJsonString(name) + "\",";
+        json += "\"name\":\"" + CitadelPlayerTracker.EscapeJsonString(name) + "\",";
         json += "\"seconds\":" + sessionSeconds.ToString() + ",";
         json += "\"timestamp\":" + GetGame().GetTime().ToString();
         json += "}";
@@ -61,7 +61,7 @@ class DSCEventLogger
         string json = "{";
         json += "\"type\":\"suicide\",";
         json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + DSCPlayerTracker.EscapeJsonString(name) + "\",";
+        json += "\"name\":\"" + CitadelPlayerTracker.EscapeJsonString(name) + "\",";
         json += "\"timestamp\":" + GetGame().GetTime().ToString();
         json += "}";
         AppendLine(json);

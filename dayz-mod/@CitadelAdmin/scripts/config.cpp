@@ -1,6 +1,6 @@
 class CfgPatches
 {
-    class DSCAdmin
+    class CitadelAdmin
     {
         units[] = {};
         weapons[] = {};
@@ -11,7 +11,7 @@ class CfgPatches
 
 class CfgMods
 {
-    class DSCAdmin
+    class CitadelAdmin
     {
         type = "mod";
         dependencies[] = {"World"};
@@ -20,7 +20,7 @@ class CfgMods
             class worldScriptModule
             {
                 value = "";
-                files[] = {"DSCAdmin/scripts/4_World"};
+                files[] = {"CitadelAdmin/scripts/4_World"};
             };
         };
     };

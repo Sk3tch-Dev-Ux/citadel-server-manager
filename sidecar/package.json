@@ -1,7 +1,7 @@
 {
-  "name": "dsc-sidecar",
+  "name": "citadel-sidecar",
   "version": "1.0.0",
-  "description": "DayZ Server Controller — In-House Sidecar API. Runs alongside the DayZ server to replace CFTools/GameLabs with a self-hosted solution.",
+  "description": "Citadel — Sidecar API. Runs alongside the DayZ server for self-hosted admin actions, player data, and bans.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,10 +1,10 @@
 /**
- * DSCVehicleActions — In-game vehicle action execution.
+ * CitadelVehicleActions — In-game vehicle action execution.
  *
  * Vehicle IDs are the network IDs assigned by the game engine.
  * The player tracker includes vehicle data; the sidecar maps networkId → vehicle.
  */
-class DSCVehicleActions
+class CitadelVehicleActions
 {
     /**
      * Find a vehicle entity by its network ID string.
@@ -44,8 +44,8 @@ class DSCVehicleActions
 
     static bool DeleteVehicle(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = DSCCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -55,14 +55,14 @@ class DSCVehicleActions
         }
 
         GetGame().ObjectDelete(vehicle);
-        Print("[DSCAdmin] Deleted vehicle: " + vehicleId);
+        Print("[Citadel] Deleted vehicle: " + vehicleId);
         return true;
     }
 
     static bool RepairVehicle(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = DSCCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -83,14 +83,14 @@ class DSCVehicleActions
         // Also repair engine, fuel tank, radiator
         vehicle.SetHealth("Engine", "Health", vehicle.GetMaxHealth("Engine", "Health"));
 
-        Print("[DSCAdmin] Repaired vehicle: " + vehicleId);
+        Print("[Citadel] Repaired vehicle: " + vehicleId);
         return true;
     }
 
     static bool RefuelVehicle(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = DSCCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -105,14 +105,14 @@ class DSCVehicleActions
         vehicle.Fill(CarFluid.BRAKE, vehicle.GetFluidCapacity(CarFluid.BRAKE));
         vehicle.Fill(CarFluid.COOLANT, vehicle.GetFluidCapacity(CarFluid.COOLANT));
 
-        Print("[DSCAdmin] Refueled vehicle: " + vehicleId);
+        Print("[Citadel] Refueled vehicle: " + vehicleId);
         return true;
     }
 
     static bool UnstuckVehicle(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = DSCCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -132,14 +132,14 @@ class DSCVehicleActions
         orient[2] = 0; // Remove roll
         vehicle.SetOrientation(orient);
 
-        Print("[DSCAdmin] Unstuck vehicle: " + vehicleId);
+        Print("[Citadel] Unstuck vehicle: " + vehicleId);
         return true;
     }
 
     static bool ExplodeVehicle(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = DSCCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -151,14 +151,14 @@ class DSCVehicleActions
         // Destroy vehicle
         vehicle.Explode(DamageType.EXPLOSION);
 
-        Print("[DSCAdmin] Exploded vehicle: " + vehicleId);
+        Print("[Citadel] Exploded vehicle: " + vehicleId);
         return true;
     }
 
     static bool KillEngine(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = DSCCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -169,14 +169,14 @@ class DSCVehicleActions
 
         vehicle.SetHealth("Engine", "Health", 0);
 
-        Print("[DSCAdmin] Killed engine: " + vehicleId);
+        Print("[Citadel] Killed engine: " + vehicleId);
         return true;
     }
 
     static bool EjectDriver(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = DSCCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -193,7 +193,7 @@ class DSCVehicleActions
             vehicle.CrewGetOut(DayZPlayerConstants.VEHICLESEAT_DRIVER);
         }
 
-        Print("[DSCAdmin] Ejected driver from vehicle: " + vehicleId);
+        Print("[Citadel] Ejected driver from vehicle: " + vehicleId);
         return true;
     }
 };

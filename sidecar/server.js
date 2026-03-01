@@ -1,14 +1,14 @@
 /**
- * DSC Sidecar — Main Server
+ * Citadel Sidecar — Main Server
  *
  * Self-hosted REST API that runs alongside a DayZ server to provide
  * enterprise-level admin actions without CFTools or GameLabs dependency.
  *
  * Architecture:
- *   DSC Backend → InHouseProvider → HTTP → THIS SERVER → File Queue → DayZ Mod
+ *   Citadel Backend → InHouseProvider → HTTP → THIS SERVER → File Queue → DayZ Mod
  *
  * The sidecar writes command files to a shared directory. The DayZ mod
- * (DSCAdmin) reads them, executes in-game, and writes response files.
+ * (CitadelAdmin) reads them, executes in-game, and writes response files.
  *
  * Endpoints match the contract defined in InHouseProvider (providers/inhouse.js).
  */
@@ -396,5 +396,5 @@ app.listen(config.port, () => {
     port: config.port,
     queueDir: config.queueDir,
     auth: config.apiKey ? 'enabled' : 'disabled (dev mode)',
-  }, 'DSC Sidecar API started');
+  }, 'Citadel Sidecar API started');
 });

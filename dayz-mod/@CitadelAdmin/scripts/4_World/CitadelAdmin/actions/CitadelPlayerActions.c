@@ -1,10 +1,10 @@
 /**
- * DSCPlayerActions — In-game player action execution.
+ * CitadelPlayerActions — In-game player action execution.
  *
  * All methods receive the raw command JSON string and parse params as needed.
  * Returns true on success, sets error string on failure.
  */
-class DSCPlayerActions
+class CitadelPlayerActions
 {
     /**
      * Find a player by Steam64 ID.
@@ -33,12 +33,12 @@ class DSCPlayerActions
      */
     static bool HealPlayer(string cmdJson, out string error)
     {
-        string steamId = DSCCommandRunner.ExtractJsonString(cmdJson, "steamId");
+        string steamId = CitadelCommandRunner.ExtractJsonString(cmdJson, "steamId");
         if (steamId == "")
         {
             // Try from params
-            string params = DSCCommandRunner.ExtractParams(cmdJson);
-            steamId = DSCCommandRunner.ExtractJsonString(params, "steamId");
+            string params = CitadelCommandRunner.ExtractParams(cmdJson);
+            steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
         }
 
         PlayerBase player = FindPlayerBySteamId(steamId);
@@ -58,7 +58,7 @@ class DSCPlayerActions
         player.GetStatWater().Set(player.GetStatWater().GetMax());
         player.GetStatEnergy().Set(player.GetStatEnergy().GetMax());
 
-        Print("[DSCAdmin] Healed player: " + steamId);
+        Print("[Citadel] Healed player: " + steamId);
         return true;
     }
 
@@ -67,8 +67,8 @@ class DSCPlayerActions
      */
     static bool KillPlayer(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string steamId = DSCCommandRunner.ExtractJsonString(params, "steamId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -78,7 +78,7 @@ class DSCPlayerActions
         }
 
         player.SetHealth("GlobalHealth", "Health", 0);
-        Print("[DSCAdmin] Killed player: " + steamId);
+        Print("[Citadel] Killed player: " + steamId);
         return true;
     }
 
@@ -87,11 +87,11 @@ class DSCPlayerActions
      */
     static bool TeleportPlayer(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string steamId = DSCCommandRunner.ExtractJsonString(params, "steamId");
-        float x = DSCCommandRunner.ExtractJsonFloat(params, "x");
-        float y = DSCCommandRunner.ExtractJsonFloat(params, "y");
-        float z = DSCCommandRunner.ExtractJsonFloat(params, "z");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
+        float x = CitadelCommandRunner.ExtractJsonFloat(params, "x");
+        float y = CitadelCommandRunner.ExtractJsonFloat(params, "y");
+        float z = CitadelCommandRunner.ExtractJsonFloat(params, "z");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -108,7 +108,7 @@ class DSCPlayerActions
         vector pos = Vector(x, y, z);
         player.SetPosition(pos);
 
-        Print("[DSCAdmin] Teleported " + steamId + " to " + pos.ToString());
+        Print("[Citadel] Teleported " + steamId + " to " + pos.ToString());
         return true;
     }
 
@@ -117,10 +117,10 @@ class DSCPlayerActions
      */
     static bool SpawnItem(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string steamId = DSCCommandRunner.ExtractJsonString(params, "steamId");
-        string itemClass = DSCCommandRunner.ExtractJsonString(params, "itemClass");
-        int quantity = DSCCommandRunner.ExtractJsonInt(params, "quantity");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
+        string itemClass = CitadelCommandRunner.ExtractJsonString(params, "itemClass");
+        int quantity = CitadelCommandRunner.ExtractJsonInt(params, "quantity");
         if (quantity <= 0) quantity = 1;
 
         PlayerBase player = FindPlayerBySteamId(steamId);
@@ -147,7 +147,7 @@ class DSCPlayerActions
             }
         }
 
-        Print("[DSCAdmin] Spawned " + quantity.ToString() + "x " + itemClass + " on " + steamId);
+        Print("[Citadel] Spawned " + quantity.ToString() + "x " + itemClass + " on " + steamId);
         return true;
     }
 
@@ -156,8 +156,8 @@ class DSCPlayerActions
      */
     static bool StripPlayer(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string steamId = DSCCommandRunner.ExtractJsonString(params, "steamId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -176,7 +176,7 @@ class DSCPlayerActions
                 GetGame().ObjectDelete(item);
         }
 
-        Print("[DSCAdmin] Stripped inventory of: " + steamId);
+        Print("[Citadel] Stripped inventory of: " + steamId);
         return true;
     }
 
@@ -185,8 +185,8 @@ class DSCPlayerActions
      */
     static bool ExplodePlayer(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string steamId = DSCCommandRunner.ExtractJsonString(params, "steamId");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -209,7 +209,7 @@ class DSCPlayerActions
             player.SetHealth("GlobalHealth", "Health", 0);
         }
 
-        Print("[DSCAdmin] Exploded player: " + steamId);
+        Print("[Citadel] Exploded player: " + steamId);
         return true;
     }
 
@@ -218,9 +218,9 @@ class DSCPlayerActions
      */
     static bool KickPlayer(string cmdJson, out string error)
     {
-        string params = DSCCommandRunner.ExtractParams(cmdJson);
-        string steamId = DSCCommandRunner.ExtractJsonString(params, "steamId");
-        string reason = DSCCommandRunner.ExtractJsonString(params, "reason");
+        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
+        string reason = CitadelCommandRunner.ExtractJsonString(params, "reason");
         if (reason == "") reason = "Kicked by admin";
 
         PlayerBase player = FindPlayerBySteamId(steamId);
@@ -235,7 +235,7 @@ class DSCPlayerActions
 
         // Workaround: disconnect the player's identity
         // The engine will handle the actual disconnection
-        Print("[DSCAdmin] Kicking player: " + steamId + " reason: " + reason);
+        Print("[Citadel] Kicking player: " + steamId + " reason: " + reason);
 
         // Schedule actual kick for next frame to allow message to be sent
         GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(

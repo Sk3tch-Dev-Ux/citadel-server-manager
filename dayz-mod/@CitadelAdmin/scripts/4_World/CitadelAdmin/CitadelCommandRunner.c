@@ -1,26 +1,26 @@
 /**
- * DSCCommandRunner — Main command processor.
+ * CitadelCommandRunner — Main command processor.
  *
  * Runs on a scheduled timer, reads command files from the queue directory,
  * dispatches them to the appropriate action handler, and writes response files.
  */
-class DSCCommandRunner
+class CitadelCommandRunner
 {
     // Paths (relative to profile directory)
-    static const string DSC_DIR = "$profile:DSC";
-    static const string CMD_DIR = "$profile:DSC\\commands";
-    static const string RES_DIR = "$profile:DSC\\responses";
+    static const string CITADEL_DIR = "$profile:Citadel";
+    static const string CMD_DIR = "$profile:Citadel\\commands";
+    static const string RES_DIR = "$profile:Citadel\\responses";
 
     // Poll interval in milliseconds
     static const int POLL_INTERVAL_MS = 500;
 
     protected ref Timer m_PollTimer;
 
-    void DSCCommandRunner()
+    void CitadelCommandRunner()
     {
         // Ensure directories exist
-        if (!FileExist(DSC_DIR))
-            MakeDirectory(DSC_DIR);
+        if (!FileExist(CITADEL_DIR))
+            MakeDirectory(CITADEL_DIR);
         if (!FileExist(CMD_DIR))
             MakeDirectory(CMD_DIR);
         if (!FileExist(RES_DIR))
@@ -30,10 +30,10 @@ class DSCCommandRunner
         m_PollTimer = new Timer();
         m_PollTimer.Run(POLL_INTERVAL_MS * 0.001, this, "ProcessQueue", null, true);
 
-        Print("[DSCAdmin] Command runner initialized — polling " + CMD_DIR);
+        Print("[Citadel] Command runner initialized — polling " + CMD_DIR);
     }
 
-    void ~DSCCommandRunner()
+    void ~CitadelCommandRunner()
     {
         if (m_PollTimer)
             m_PollTimer.Stop();
@@ -98,11 +98,11 @@ class DSCCommandRunner
 
         if (id == "" || action == "")
         {
-            Print("[DSCAdmin] Invalid command file: missing id or action");
+            Print("[Citadel] Invalid command file: missing id or action");
             return;
         }
 
-        Print("[DSCAdmin] Processing command: " + action + " (id: " + id + ")");
+        Print("[Citadel] Processing command: " + action + " (id: " + id + ")");
 
         // Dispatch to action handlers
         bool success = false;
@@ -110,45 +110,45 @@ class DSCCommandRunner
         string responseData = "{}";
 
         if (action == "player.heal")
-            success = DSCPlayerActions.HealPlayer(content, error);
+            success = CitadelPlayerActions.HealPlayer(content, error);
         else if (action == "player.kill")
-            success = DSCPlayerActions.KillPlayer(content, error);
+            success = CitadelPlayerActions.KillPlayer(content, error);
         else if (action == "player.teleport")
-            success = DSCPlayerActions.TeleportPlayer(content, error);
+            success = CitadelPlayerActions.TeleportPlayer(content, error);
         else if (action == "player.spawnItem")
-            success = DSCPlayerActions.SpawnItem(content, error);
+            success = CitadelPlayerActions.SpawnItem(content, error);
         else if (action == "player.strip")
-            success = DSCPlayerActions.StripPlayer(content, error);
+            success = CitadelPlayerActions.StripPlayer(content, error);
         else if (action == "player.explode")
-            success = DSCPlayerActions.ExplodePlayer(content, error);
+            success = CitadelPlayerActions.ExplodePlayer(content, error);
         else if (action == "player.kick")
-            success = DSCPlayerActions.KickPlayer(content, error);
+            success = CitadelPlayerActions.KickPlayer(content, error);
         else if (action == "vehicle.delete")
-            success = DSCVehicleActions.DeleteVehicle(content, error);
+            success = CitadelVehicleActions.DeleteVehicle(content, error);
         else if (action == "vehicle.repair")
-            success = DSCVehicleActions.RepairVehicle(content, error);
+            success = CitadelVehicleActions.RepairVehicle(content, error);
         else if (action == "vehicle.refuel")
-            success = DSCVehicleActions.RefuelVehicle(content, error);
+            success = CitadelVehicleActions.RefuelVehicle(content, error);
         else if (action == "vehicle.unstuck")
-            success = DSCVehicleActions.UnstuckVehicle(content, error);
+            success = CitadelVehicleActions.UnstuckVehicle(content, error);
         else if (action == "vehicle.explode")
-            success = DSCVehicleActions.ExplodeVehicle(content, error);
+            success = CitadelVehicleActions.ExplodeVehicle(content, error);
         else if (action == "vehicle.kill-engine")
-            success = DSCVehicleActions.KillEngine(content, error);
+            success = CitadelVehicleActions.KillEngine(content, error);
         else if (action == "vehicle.eject-driver")
-            success = DSCVehicleActions.EjectDriver(content, error);
+            success = CitadelVehicleActions.EjectDriver(content, error);
         else if (action == "world.time")
-            success = DSCWorldActions.SetTime(content, error);
+            success = CitadelWorldActions.SetTime(content, error);
         else if (action == "world.weather")
-            success = DSCWorldActions.SetWeather(content, error);
+            success = CitadelWorldActions.SetWeather(content, error);
         else if (action == "world.sunny")
-            success = DSCWorldActions.ClearWeather(error);
+            success = CitadelWorldActions.ClearWeather(error);
         else if (action == "world.wipeAI")
-            success = DSCWorldActions.WipeAI(error);
+            success = CitadelWorldActions.WipeAI(error);
         else if (action == "world.wipeVehicles")
-            success = DSCWorldActions.WipeVehicles(error);
+            success = CitadelWorldActions.WipeVehicles(error);
         else if (action == "world.spawnItem")
-            success = DSCWorldActions.SpawnItemWorld(content, error);
+            success = CitadelWorldActions.SpawnItemWorld(content, error);
         else
         {
             error = "Unknown action: " + action;
@@ -167,7 +167,7 @@ class DSCCommandRunner
         FileHandle file = OpenFile(resPath, FileMode.WRITE);
         if (file == 0)
         {
-            Print("[DSCAdmin] ERROR: Could not write response file: " + resPath);
+            Print("[Citadel] ERROR: Could not write response file: " + resPath);
             return;
         }
 

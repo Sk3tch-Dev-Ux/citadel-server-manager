@@ -1,5 +1,5 @@
 /**
- * DayZ Server Panel - Discord Bot
+ * Citadel — Discord Bot
  *
  * Professional control panel with categorized dropdown navigation.
  * Features:
@@ -128,7 +128,7 @@ function buildStatusEmbed(data) {
       { name: 'Status', value: `\`${status}\``, inline: true },
       { name: 'Players', value: `\`${data.playerCount || 0} / ${data.maxPlayers || 60}\``, inline: true },
     )
-    .setFooter({ text: 'DayZ Panel' })
+    .setFooter({ text: 'Citadel' })
     .setTimestamp();
 }
 
@@ -458,7 +458,7 @@ client.once('clientReady', () => {
   console.log(`Discord bot logged in as ${client.user.tag}`);
   client.user.setPresence({
     status: 'online',
-    activities: [{ name: 'DayZ Server Panel', type: 3 }],
+    activities: [{ name: 'Citadel', type: 3 }],
   });
 });
 

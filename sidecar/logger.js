@@ -1,5 +1,5 @@
 /**
- * DSC Sidecar — Logger (pino)
+ * Citadel Sidecar — Logger (pino)
  */
 const pino = require('pino');
 

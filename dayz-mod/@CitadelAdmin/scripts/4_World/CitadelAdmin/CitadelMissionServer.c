@@ -1,32 +1,32 @@
 /**
- * DSCAdmin Mod — Mission-level initialization.
+ * CitadelAdmin Mod — Mission-level initialization.
  *
  * Hooks into the DayZ mission lifecycle to start the command runner,
  * player tracker, and event logger on server startup.
  */
 modded class MissionServer
 {
-    protected ref DSCCommandRunner m_DSCCommandRunner;
-    protected ref DSCPlayerTracker m_DSCPlayerTracker;
+    protected ref CitadelCommandRunner m_CitadelCommandRunner;
+    protected ref CitadelPlayerTracker m_CitadelPlayerTracker;
 
     override void OnInit()
     {
         super.OnInit();
 
-        Print("[DSCAdmin] Initializing DSCAdmin mod...");
+        Print("[Citadel] Initializing CitadelAdmin mod...");
 
-        m_DSCCommandRunner = new DSCCommandRunner();
-        m_DSCPlayerTracker = new DSCPlayerTracker();
+        m_CitadelCommandRunner = new CitadelCommandRunner();
+        m_CitadelPlayerTracker = new CitadelPlayerTracker();
 
-        Print("[DSCAdmin] Mod initialized successfully");
+        Print("[Citadel] Mod initialized successfully");
     }
 
     override void OnMissionFinish()
     {
-        Print("[DSCAdmin] Shutting down...");
+        Print("[Citadel] Shutting down...");
 
-        m_DSCCommandRunner = null;
-        m_DSCPlayerTracker = null;
+        m_CitadelCommandRunner = null;
+        m_CitadelPlayerTracker = null;
 
         super.OnMissionFinish();
     }
@@ -39,7 +39,7 @@ modded class MissionServer
 
         if (identity)
         {
-            DSCEventLogger.LogConnect(identity.GetPlainId(), identity.GetName());
+            CitadelEventLogger.LogConnect(identity.GetPlainId(), identity.GetName());
         }
     }
 
@@ -51,7 +51,7 @@ modded class MissionServer
             if (identity)
             {
                 // Estimate session time (not perfect, but functional)
-                DSCEventLogger.LogDisconnect(identity.GetPlainId(), identity.GetName(), 0);
+                CitadelEventLogger.LogDisconnect(identity.GetPlainId(), identity.GetName(), 0);
             }
         }
 
@@ -85,7 +85,7 @@ modded class MissionServer
                 if (weaponInHands)
                     weapon = weaponInHands.GetType();
 
-                DSCEventLogger.LogKill(
+                CitadelEventLogger.LogKill(
                     killerId.GetPlainId(),
                     killerId.GetName(),
                     victimSteamId,
@@ -100,7 +100,7 @@ modded class MissionServer
         // Self-inflicted death
         if (killer == player || !killer)
         {
-            DSCEventLogger.LogSuicide(victimSteamId, victimName);
+            CitadelEventLogger.LogSuicide(victimSteamId, victimName);
         }
     }
 };
