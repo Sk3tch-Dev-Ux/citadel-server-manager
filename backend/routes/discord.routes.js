@@ -34,17 +34,58 @@ module.exports = function(app) {
       'mods','modStatus','modInstall','modUninstall','modEnable','modDisable',
       'chatFeed','banWhitelist','killfeed','watchList','priorityQueue','timeWeather','leaderboard',
       'playerInfo','actionHeal','actionKill','actionTeleport','actionSpawnItem',
+      'servers',
       // Backwards-compatible aliases (remove in next major version)
       'gameLabsHeal','gameLabsKill','gameLabsTeleport','gameLabsSpawnItem'];
     if (!action || !allowedActions.includes(action)) return res.status(400).json({ error: `Invalid action: ${sanitizeString(String(action || ''))}` });
     // Resolve aliases to new names
     const resolvedAction = ACTION_ALIASES[action] || action;
-    const defaultSrv = ctx.servers[0];
+    // Support multi-server: use params.serverId if provided, otherwise default to first server
+    const targetSrv = (params?.serverId && ctx.servers.find(s => s.id === params.serverId)) || ctx.servers[0];
+    const defaultSrv = targetSrv;
     const state = defaultSrv ? ctx.serverStates[defaultSrv.id] : null;
 
     switch (resolvedAction) {
-      case 'status':
-        return res.json({ status: state?.status || 'unknown', players: state?.players || [], playerCount: state?.players?.length || 0, maxPlayers: state?.config?.maxPlayers || 60, serverName: defaultSrv?.name || 'DayZ Server' });
+      case 'servers':
+        return res.json({
+          servers: ctx.servers.map(s => {
+            const st = ctx.serverStates[s.id];
+            return {
+              id: s.id,
+              name: s.name,
+              status: st?.status || 'unknown',
+              playerCount: st?.players?.length || 0,
+              maxPlayers: s.maxPlayers || st?.config?.maxPlayers || 60,
+              map: s.map || 'unknown',
+            };
+          }),
+        });
+      case 'status': {
+        const metrics = state?.metricsHistory || {};
+        const cpu = metrics.cpu?.length ? metrics.cpu[metrics.cpu.length - 1] : 0;
+        const ram = metrics.ram?.length ? metrics.ram[metrics.ram.length - 1] : 0;
+        const fps = metrics.fps?.length ? metrics.fps[metrics.fps.length - 1] : 0;
+        const ramMB = state?.pid ? Math.round((ram / 100) * require('os').totalmem() / (1024 * 1024)) : 0;
+        return res.json({
+          serverId: defaultSrv?.id,
+          status: state?.status || 'unknown',
+          players: state?.players || [],
+          playerCount: state?.players?.length || 0,
+          maxPlayers: defaultSrv?.maxPlayers || state?.config?.maxPlayers || 60,
+          serverName: defaultSrv?.name || 'DayZ Server',
+          cpu: Math.round(cpu * 10) / 10,
+          ram: Math.round(ram * 10) / 10,
+          ramMB,
+          fps: Math.round(fps * 10) / 10,
+          startedAt: state?.startedAt || null,
+          map: defaultSrv?.map || 'unknown',
+          ip: defaultSrv?.ip || '0.0.0.0',
+          gamePort: defaultSrv?.gamePort || 2302,
+          queryPort: defaultSrv?.queryPort || 2303,
+          modCount: state?.modList?.length || 0,
+          version: state?.config?.version || null,
+        });
+      }
       case 'start':
         if (!defaultSrv || !state) return res.status(400).json({ error: 'No server' });
         if (state.status === 'running' || state.status === 'starting') return res.json({ message: `Server is already ${state.status}` });
