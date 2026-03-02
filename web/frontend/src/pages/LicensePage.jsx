@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import API from '../api';
+import {
+  Shield, Crown, Check, Server, FolderOpen, Clock, Terminal, Package,
+  Map, Send, Globe, ShieldBan, Users, BarChart3, Skull, Zap,
+  Calendar, Mail, KeyRound, AlertTriangle, ArrowUpRight, BadgeCheck, Star, Infinity,
+} from '../components/Icon';
 
 export default function LicensePage() {
   const [license, setLicense] = useState(null);
@@ -7,16 +12,14 @@ export default function LicensePage() {
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     setLoading(true);
     try {
       const lic = await API.get('/api/license');
       if (lic && !lic.error) setLicense(lic);
-    } catch (err) {
+    } catch {
       window.addToast?.('Failed to load license info', 'error');
     }
     setLoading(false);
@@ -35,7 +38,7 @@ export default function LicensePage() {
       } else {
         window.addToast?.(result?.error || 'Activation failed', 'error');
       }
-    } catch (err) {
+    } catch {
       window.addToast?.('Failed to activate license', 'error');
     }
     setActivating(false);
@@ -52,133 +55,155 @@ export default function LicensePage() {
     }
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading license information...</div>;
+  if (loading) return <div className="license-loading">Loading license information...</div>;
 
   const isLicensed = license?.licensed === true;
+  const isExpired = license?.expiresAt && new Date(license.expiresAt) < new Date();
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto' }}>
+    <div className="license-page">
 
-      {/* License Status Card */}
-      <div className="card" style={{ marginBottom: 24, textAlign: 'center', padding: 32 }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: '50%',
-          background: isLicensed ? 'rgba(0, 255, 106, 0.12)' : 'rgba(255, 255, 255, 0.06)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 16px',
-          border: `2px solid ${isLicensed ? 'var(--accent)' : 'var(--border)'}`,
-        }}>
-          <span style={{ fontSize: 28 }}>{isLicensed ? '✓' : '○'}</span>
+      {/* Hero Status */}
+      <div className={`license-hero ${isLicensed ? 'licensed' : 'unlicensed'}`}>
+        <div className="license-hero-glow" />
+        <div className="license-hero-content">
+          <div className={`license-icon-ring ${isLicensed ? 'active' : ''}`}>
+            {isLicensed ? <Crown size={28} /> : <Shield size={28} />}
+          </div>
+          <div className="license-hero-text">
+            <div className={`license-status-badge ${isLicensed ? (isExpired ? 'expired' : 'active') : 'inactive'}`}>
+              {isLicensed ? (isExpired ? 'Expired' : 'Licensed') : 'Free Tier'}
+            </div>
+            <h2 className="license-hero-title">
+              {isLicensed
+                ? 'Citadel Pro'
+                : 'Upgrade to Citadel Pro'}
+            </h2>
+            <p className="license-hero-desc">
+              {isLicensed
+                ? 'Full access to all features and premium support.'
+                : 'Unlock the complete server management toolkit for your DayZ community.'}
+            </p>
+          </div>
         </div>
 
-        <div style={{
-          background: isLicensed ? 'var(--accent)' : '#6b7280',
-          color: isLicensed ? '#000' : '#fff',
-          padding: '6px 20px',
-          borderRadius: 6,
-          fontWeight: 700,
-          fontSize: 14,
-          letterSpacing: 0.5,
-          textTransform: 'uppercase',
-          display: 'inline-block',
-          marginBottom: 16,
-        }}>
-          {isLicensed ? 'Licensed' : 'Unlicensed'}
-        </div>
-
-        {isLicensed && license?.licensee && (
-          <div style={{ color: 'var(--text)', fontSize: 15, marginBottom: 4 }}>
-            Licensed to: <strong>{license.licensee}</strong>
+        {isLicensed && (
+          <div className="license-details-row">
+            {license?.licensee && (
+              <div className="license-detail">
+                <BadgeCheck size={14} />
+                <span>{license.licensee}</span>
+              </div>
+            )}
+            {license?.email && (
+              <div className="license-detail">
+                <Mail size={14} />
+                <span>{license.email}</span>
+              </div>
+            )}
+            {license?.expiresAt ? (
+              <div className={`license-detail ${isExpired ? 'expired' : ''}`}>
+                <Calendar size={14} />
+                <span>{isExpired ? 'Expired' : 'Expires'}: {new Date(license.expiresAt).toLocaleDateString()}</span>
+              </div>
+            ) : (
+              <div className="license-detail">
+                <Infinity size={14} />
+                <span>Permanent License</span>
+              </div>
+            )}
           </div>
-        )}
-        {isLicensed && license?.email && (
-          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 4 }}>{license.email}</div>
-        )}
-        {isLicensed && license?.expiresAt && (
-          <div style={{ color: new Date(license.expiresAt) < new Date() ? '#ef4444' : 'var(--text-muted)', fontSize: 13 }}>
-            {new Date(license.expiresAt) < new Date() ? 'Expired' : 'Expires'}: {new Date(license.expiresAt).toLocaleDateString()}
-          </div>
-        )}
-        {isLicensed && !license?.expiresAt && (
-          <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Permanent license</div>
-        )}
-
-        {!isLicensed && (
-          <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 8, lineHeight: 1.6 }}>
-            Purchase a license for <strong style={{ color: 'var(--text)' }}>$34.99 USD</strong> (one-time) to unlock full access to all Citadel features.
-          </div>
-        )}
-
-        {!isLicensed && license?.purchaseUrl && (
-          <a
-            href={license.purchaseUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-block',
-              marginTop: 16,
-              padding: '12px 32px',
-              background: 'var(--accent)',
-              color: '#000',
-              fontWeight: 700,
-              fontSize: 15,
-              borderRadius: 8,
-              textDecoration: 'none',
-              letterSpacing: 0.3,
-              transition: 'opacity 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-          >
-            Purchase License — $34.99
-          </a>
         )}
       </div>
 
-      {/* What You Get */}
+      {/* Pricing + Features */}
       {!isLicensed && (
-        <div className="card" style={{ marginBottom: 24 }}>
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>Full Access Includes</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            {[
-              'Unlimited Servers', 'File Manager', 'Scheduler', 'Backup System',
-              'RCON Console', 'Live Map', 'Mod Manager', 'Discord Bot',
-              'Webhooks', 'Priority Queue', 'Watchlist', 'SteamCMD Deploy',
-              'Leaderboards', 'Killfeed', 'Player Management', 'Ban Management',
-            ].map(f => (
-              <div key={f} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '4px 0', fontSize: 13, color: 'var(--text-muted)',
-              }}>
-                <span style={{ color: 'var(--accent)' }}>✓</span> {f}
-              </div>
-            ))}
+        <div className="license-offer-grid">
+          {/* Pricing Card */}
+          <div className="license-pricing-card">
+            <div className="license-pricing-header">
+              <Star size={16} />
+              <span>One-Time Purchase</span>
+            </div>
+            <div className="license-price">
+              <span className="license-price-dollar">$</span>
+              <span className="license-price-amount">34</span>
+              <span className="license-price-cents">.99</span>
+              <span className="license-price-unit">USD</span>
+            </div>
+            <div className="license-price-note">Pay once, own it forever. No subscriptions.</div>
+            {license?.purchaseUrl && (
+              <a href={license.purchaseUrl} target="_blank" rel="noopener noreferrer" className="license-buy-btn">
+                Purchase License <ArrowUpRight size={16} />
+              </a>
+            )}
+            <div className="license-guarantee">
+              <Shield size={12} />
+              <span>30-day money-back guarantee</span>
+            </div>
+          </div>
+
+          {/* Features Card */}
+          <div className="license-features-card">
+            <div className="license-features-header">Everything you need to run DayZ servers</div>
+            <div className="license-features-grid">
+              {[
+                { icon: <Server size={15} />, label: 'Unlimited Servers' },
+                { icon: <FolderOpen size={15} />, label: 'File Manager' },
+                { icon: <Clock size={15} />, label: 'Scheduler' },
+                { icon: <Zap size={15} />, label: 'Backup System' },
+                { icon: <Terminal size={15} />, label: 'RCON Console' },
+                { icon: <Map size={15} />, label: 'Live Map' },
+                { icon: <Package size={15} />, label: 'Mod Manager' },
+                { icon: <Send size={15} />, label: 'Discord Bot' },
+                { icon: <Globe size={15} />, label: 'Webhooks' },
+                { icon: <Users size={15} />, label: 'Priority Queue' },
+                { icon: <ShieldBan size={15} />, label: 'Ban Management' },
+                { icon: <BarChart3 size={15} />, label: 'Leaderboards' },
+                { icon: <Skull size={15} />, label: 'Killfeed' },
+                { icon: <Users size={15} />, label: 'Player Management' },
+                { icon: <AlertTriangle size={15} />, label: 'Watchlist' },
+                { icon: <Package size={15} />, label: 'SteamCMD Deploy' },
+              ].map(f => (
+                <div key={f.label} className="license-feature-item">
+                  <div className="license-feature-icon">{f.icon}</div>
+                  <span>{f.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Activate */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12 }}>
-          {isLicensed ? 'Change License Key' : 'Activate License'}
+      {/* Activate License */}
+      <div className="license-activate-card">
+        <div className="license-activate-header">
+          <KeyRound size={18} />
+          <div>
+            <div className="license-activate-title">{isLicensed ? 'Manage License' : 'Activate License'}</div>
+            <div className="license-activate-desc">
+              {isLicensed ? 'Change or deactivate your current license key.' : 'Already purchased? Enter your license key below.'}
+            </div>
+          </div>
         </div>
-        <form onSubmit={handleActivate} style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={handleActivate} className="license-activate-form">
           <input
             type="text"
-            className="input"
+            className="input license-key-input"
             value={activateKey}
             onChange={e => setActivateKey(e.target.value)}
-            placeholder="Paste your license key here..."
-            style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
+            placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
           />
-          <button className="btn btn-primary" type="submit" disabled={activating || !activateKey.trim()}>
-            {activating ? 'Activating...' : 'Activate'}
+          <button className="btn btn-primary license-activate-btn" type="submit" disabled={activating || !activateKey.trim()}>
+            {activating ? 'Activating...' : <><Check size={14} /> Activate</>}
           </button>
         </form>
         {isLicensed && (
-          <button className="btn btn-danger btn-sm" onClick={handleDeactivate} style={{ marginTop: 12 }}>
-            Deactivate License
-          </button>
+          <div className="license-deactivate-row">
+            <button className="btn btn-danger btn-sm" onClick={handleDeactivate}>
+              Deactivate License
+            </button>
+          </div>
         )}
       </div>
     </div>
