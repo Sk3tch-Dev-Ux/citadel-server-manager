@@ -2,6 +2,7 @@
  * Server state initialization, default server migration, and admin user creation.
  */
 const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
@@ -45,9 +46,19 @@ function initServerState(serverId) {
 }
 
 /**
+ * Check if initial setup wizard has been completed.
+ */
+function isSetupComplete() {
+  const setupFlagPath = path.join(ctx.CONFIG.dataDir, 'setup_complete.json');
+  return fs.existsSync(setupFlagPath);
+}
+
+/**
  * Migrate: if no servers exist but .env has a DayZ install, create the default one.
+ * Only runs after setup is complete — during first run, the setup wizard handles this.
  */
 function migrateDefaultServer() {
+  if (!isSetupComplete()) return;
   if (ctx.servers.length > 0) return;
   if (!ctx.CONFIG.dayz.installDir || !fs.existsSync(ctx.CONFIG.dayz.installDir)) return;
   const defaultServer = {
@@ -72,8 +83,10 @@ function migrateDefaultServer() {
 
 /**
  * Create the default admin user if no users exist.
+ * Only runs after setup is complete — during first run, the setup wizard handles this.
  */
 async function createDefaultAdmin() {
+  if (!isSetupComplete()) return;
   if (ctx.users.length > 0) return;
   const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin', 10);
   ctx.users.push({
