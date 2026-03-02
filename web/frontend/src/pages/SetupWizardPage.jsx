@@ -517,7 +517,7 @@ export default function SetupWizardPage() {
                   </div>
                   <div className="grid grid-2">
                     <div className="input-group">
-                      <label className="input-label">Game Title</label>
+                      <label className="input-label">Branch</label>
                       <select className="input" value={gameTitle} onChange={e => setGameTitle(e.target.value)}>
                         <option value="DayZ, PC">DayZ PC (Stable)</option>
                         <option value="DayZ, PC (Experimental)">DayZ PC (Experimental)</option>
