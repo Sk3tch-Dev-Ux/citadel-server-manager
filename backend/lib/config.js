@@ -44,6 +44,12 @@ const CONFIG = {
   },
 };
 
+// Citadel Cloud pairing (connects this local instance to Citadel Cloud as a plugin agent)
+CONFIG.cloud = {
+  url: process.env.CLOUD_URL || '',
+  apiKey: process.env.CLOUD_API_KEY || '',
+};
+
 // License purchase URL (Stripe Payment Link or custom checkout page)
 CONFIG.purchaseUrl = process.env.PURCHASE_URL || 'https://citadel.gg/purchase';
 

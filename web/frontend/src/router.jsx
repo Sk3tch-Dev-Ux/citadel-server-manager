@@ -6,6 +6,7 @@ import ServerLayout from './layouts/ServerLayout';
 import LoginScreen from './pages/LoginScreen';
 import SetupWizardPage from './pages/SetupWizardPage';
 import ServerHubPage from './pages/ServerHubPage';
+import SystemDashboardPage from './pages/SystemDashboardPage';
 import DeployPage from './pages/DeployPage';
 import UsersPage from './pages/UsersPage';
 import WebhooksPage from './pages/WebhooksPage';
@@ -106,6 +107,7 @@ export default function AppRouter() {
         <Route path="/setup" element={<><SetupWizardPage /><ToastContainer /></>} />
         <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route index element={<ServerHubPage />} />
+          <Route path="dashboard" element={<SystemDashboardPage />} />
           <Route path="deploy" element={<PermGuard permission="server.deploy"><DeployPage /></PermGuard>} />
           <Route path="users" element={<PermGuard permission="users.manage"><UsersPage /></PermGuard>} />
           <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><WebhooksPage /></PermGuard>} />
