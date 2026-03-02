@@ -1,5 +1,25 @@
 import { useRef, useEffect } from 'react';
 
+/**
+ * Resolve a CSS color value (including CSS variables) to a hex string
+ * that can be used with the Canvas API.
+ */
+function resolveColor(cssColor) {
+  if (!cssColor || !cssColor.startsWith('var(')) return cssColor;
+  const el = document.createElement('div');
+  el.style.color = cssColor;
+  document.body.appendChild(el);
+  const resolved = getComputedStyle(el).color;
+  document.body.removeChild(el);
+  // Convert rgb(r,g,b) to hex
+  const match = resolved.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (match) {
+    const hex = '#' + [match[1], match[2], match[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('');
+    return hex;
+  }
+  return cssColor;
+}
+
 export default function MiniChart({ data, color = '#6cb4f0', height = 200, label }) {
   const canvasRef = useRef(null);
 
@@ -12,6 +32,9 @@ export default function MiniChart({ data, color = '#6cb4f0', height = 200, label
     ctx.scale(2, 2);
     const cw = canvas.offsetWidth, ch = canvas.offsetHeight;
     ctx.clearRect(0, 0, cw, ch);
+
+    // Resolve CSS variables to hex for canvas compatibility
+    const resolvedColor = resolveColor(color);
 
     const max = Math.max(...data, 1);
     const points = data.map((v, i) => ({
@@ -34,22 +57,22 @@ export default function MiniChart({ data, color = '#6cb4f0', height = 200, label
     ctx.lineTo(points[points.length - 1]?.x || cw, ch);
     ctx.closePath();
     const grad = ctx.createLinearGradient(0, 0, 0, ch);
-    grad.addColorStop(0, color + '30');
-    grad.addColorStop(1, color + '05');
+    grad.addColorStop(0, resolvedColor + '30');
+    grad.addColorStop(1, resolvedColor + '05');
     ctx.fillStyle = grad;
     ctx.fill();
 
     // Line
     ctx.beginPath();
     points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = resolvedColor;
     ctx.lineWidth = 2;
     ctx.stroke();
 
     // Current value
     if (data.length > 0) {
       const last = data[data.length - 1];
-      ctx.fillStyle = color;
+      ctx.fillStyle = resolvedColor;
       ctx.font = 'bold 14px Outfit';
       ctx.fillText(`${typeof last === 'number' ? last.toFixed(1) : last}%`, 8, 18);
       if (label) { ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '11px Outfit'; ctx.fillText(label, 8, 34); }

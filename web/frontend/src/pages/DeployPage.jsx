@@ -107,7 +107,7 @@ export default function DeployPage() {
 
   const stepLabels = mode === 'existing'
     ? ['1. Mode', '2. Detect', '3. Executable', '4. Configuration']
-    : ['1. Mode', '2. Game Title', '3. Server Details', '4. Configuration'];
+    : ['1. Mode', '2. Branch', '3. Server Details', '4. Configuration'];
 
   return (
     <div>
@@ -141,7 +141,7 @@ export default function DeployPage() {
 
       {step === 2 && mode === 'new' && (
         <div>
-          <h3 style={{ marginBottom: 20 }}>Select Game Title</h3>
+          <h3 style={{ marginBottom: 20 }}>Select DayZ Branch</h3>
           <div className="grid grid-2" style={{ maxWidth: 500 }}>
             <div className={`game-card ${gameTitle === 'DayZ, PC' ? 'selected' : ''}`} onClick={() => setGameTitle('DayZ, PC')}>
               <div className="game-card-icon"><Monitor size={24} /></div>
@@ -203,7 +203,7 @@ export default function DeployPage() {
                 <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="My DayZ Server" />
               </div>
               <div className="input-group">
-                <label className="input-label">Game Title</label>
+                <label className="input-label">Branch</label>
                 <select className="input" value={gameTitle} onChange={e => setGameTitle(e.target.value)}>
                   <option value="DayZ, PC">DayZ PC (Stable)</option>
                   <option value="DayZ, PC (Experimental)">DayZ PC (Experimental)</option>

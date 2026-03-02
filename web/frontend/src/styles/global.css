@@ -155,13 +155,16 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 /* Server Hub Cards */
 .server-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
 .server-card:hover { border-color: var(--border-active); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-.server-card.running { border-color: rgba(108,180,240,0.25); }
-.server-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
-.server-card-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.server-card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-.server-card-stat { }
-.server-card-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
-.server-card-stat-value { font-size: 15px; font-weight: 600; font-family: var(--font-mono); }
+.server-card.running { border-color: rgba(92,184,92,0.25); }
+.server-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.server-card-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+.server-card-game { font-size: 11px; color: var(--text-muted); }
+.server-card-ports { display: flex; align-items: center; gap: 2px; font-size: 12px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.server-card-ports .port-sep { color: var(--border); margin: 0 4px; }
+.server-card-stats { display: flex; gap: 16px; }
+.server-card-stat { display: flex; align-items: center; gap: 6px; color: var(--text-muted); }
+.server-card-stat svg { flex-shrink: 0; }
+.server-card-stat-value { font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--text-primary); }
 .server-card-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); }
 .server-card-bar-fill { height: 100%; background: var(--accent-blue); transition: width 0.5s; }
 
@@ -963,3 +966,133 @@ tr:hover td { background: rgba(255,255,255,0.04); }
   .map-legend { top: auto; bottom: 12px; right: 12px; min-width: 160px; }
   .map-topbar__stat { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   System Dashboard — host metrics (like CFTools Dashboard)
+   ═══════════════════════════════════════════════════════ */
+
+/* Host identity bar */
+.system-host-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 20px; }
+.system-host-info { display: flex; align-items: center; gap: 12px; }
+.system-host-info svg { color: var(--accent-blue); }
+.system-host-name { font-size: 16px; font-weight: 700; }
+.system-host-meta { font-size: 12px; color: var(--text-muted); }
+.system-host-badges { display: flex; gap: 8px; }
+.cloud-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.cloud-badge.connected { background: rgba(92,184,92,0.12); color: var(--accent-green); }
+.cloud-badge.disconnected { background: rgba(107,115,132,0.1); color: var(--text-muted); }
+
+/* System info cards row */
+.system-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.system-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; position: relative; }
+.system-card.card-accent-blue { border-top: 3px solid var(--accent-blue); }
+.system-card.card-accent-purple { border-top: 3px solid var(--accent-purple); }
+.system-card.card-accent-orange { border-top: 3px solid var(--accent-orange); }
+.system-card.card-accent-green { border-top: 3px solid var(--accent-green); }
+.system-card-icon { color: var(--text-muted); margin-bottom: 10px; }
+.system-card-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+.system-card-value { font-size: 28px; font-weight: 700; font-family: var(--font-mono); }
+.system-card-dim { font-size: 16px; color: var(--text-muted); }
+.system-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* Live metrics row */
+.system-metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.system-metric-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+.system-metric-header { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); }
+.system-metric-header svg { color: var(--accent-blue); }
+.system-metric-value { font-size: 32px; font-weight: 700; font-family: var(--font-mono); }
+.system-metric-value.warning { color: var(--accent-yellow); }
+.system-metric-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.system-metric-chart { margin-top: 12px; }
+.system-metric-chart .chart-container { height: 80px; border: none; padding: 4px; background: transparent; }
+.system-metric-ring { display: flex; justify-content: center; margin: 8px 0; }
+.system-metric-disk-legend { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-muted); }
+.system-metric-disk-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.system-metric-disk-legend .dot.used { background: var(--accent-purple); }
+.system-metric-disk-legend .dot.free { background: var(--border); }
+.system-metric-network { display: flex; flex-direction: column; gap: 8px; }
+.net-row { display: flex; justify-content: space-between; align-items: center; }
+.net-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); font-weight: 600; }
+.net-value { font-size: 13px; font-family: var(--font-mono); color: var(--accent-blue); }
+
+/* Server list in dashboard */
+.system-servers-section { margin-bottom: 20px; }
+.section-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); }
+.section-title svg { color: var(--text-muted); }
+.system-server-list { display: flex; flex-direction: column; gap: 2px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.system-server-row { display: grid; grid-template-columns: 24px 1fr 100px 80px 60px 60px; align-items: center; gap: 8px; padding: 10px 16px; text-decoration: none; color: inherit; transition: background 0.12s; font-size: 13px; }
+.system-server-row:hover { background: rgba(255,255,255,0.03); }
+.system-server-status { display: flex; align-items: center; justify-content: center; }
+.status-dot-sm { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot-sm.status-running { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+.status-dot-sm.status-stopped { background: var(--text-muted); }
+.status-dot-sm.status-starting { background: var(--accent-yellow); animation: pulse 1s infinite; }
+.status-dot-sm.status-crashed { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+.system-server-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.system-server-game { font-size: 11px; color: var(--text-muted); }
+.system-server-players { font-family: var(--font-mono); font-size: 12px; text-align: right; }
+.system-server-cpu { font-family: var(--font-mono); font-size: 12px; text-align: right; color: var(--accent-blue); }
+.system-server-ram { font-family: var(--font-mono); font-size: 12px; text-align: right; color: var(--accent-purple); }
+
+/* Uptime bar */
+.system-uptime { display: flex; align-items: center; gap: 8px; padding: 12px 16px; font-size: 12px; color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
+.system-uptime-sep { color: var(--border); }
+
+@media (max-width: 1200px) { .system-cards, .system-metrics-row { grid-template-columns: repeat(2, 1fr); } }
+
+/* ═══════════════════════════════════════════════════════
+   Navigation Enhancements
+   ═══════════════════════════════════════════════════════ */
+
+/* Server items in sidebar */
+.nav-server-item { padding-left: 16px; }
+.nav-server-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.nav-server-dot.status-running { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+.nav-server-dot.status-stopped { background: var(--text-muted); }
+.nav-server-dot.status-starting { background: var(--accent-yellow); animation: pulse 1s infinite; }
+.nav-server-dot.status-crashed { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+.nav-server-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-empty { padding: 8px 20px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+.nav-divider { height: 1px; background: var(--border); margin: 8px 16px; }
+
+/* ═══════════════════════════════════════════════════════
+   Server Status Bar (top bar like CFTools CPU/RAM/Net badges)
+   ═══════════════════════════════════════════════════════ */
+.server-status-bar { display: flex; align-items: center; padding: 6px 28px; background: var(--bg-deep); border-bottom: 1px solid var(--border); }
+.status-bar-metrics { display: flex; gap: 12px; }
+.status-bar-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); background: rgba(92,184,92,0.12); color: var(--accent-green); }
+.status-bar-chip.warning { background: rgba(229,192,123,0.12); color: var(--accent-yellow); }
+
+/* ═══════════════════════════════════════════════════════
+   Server Overview Page — Port Cards & Metrics Grid
+   ═══════════════════════════════════════════════════════ */
+
+/* Identity */
+.overview-map-bar { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.overview-map-bar strong { color: var(--text-secondary); }
+
+/* Port cards — like CFTools prominent port display */
+.overview-ports { display: flex; align-items: center; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 32px; margin-bottom: 20px; gap: 0; }
+.port-card { flex: 1; text-align: center; }
+.port-value { font-size: 32px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary); }
+.port-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.port-divider { width: 1px; height: 48px; background: var(--border); margin: 0 16px; flex-shrink: 0; }
+
+/* Metrics grid */
+.overview-metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+.overview-metric-card { display: flex; align-items: flex-start; gap: 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; position: relative; overflow: hidden; }
+.overview-metric-icon { width: 40px; height: 40px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.overview-metric-icon.blue { background: rgba(108,180,240,0.12); color: var(--accent-blue); }
+.overview-metric-icon.purple { background: rgba(196,155,255,0.12); color: var(--accent-purple); }
+.overview-metric-icon.green { background: rgba(92,184,92,0.12); color: var(--accent-green); }
+.overview-metric-icon.yellow { background: rgba(229,192,123,0.12); color: var(--accent-yellow); }
+.overview-metric-icon.orange { background: rgba(224,151,107,0.12); color: var(--accent-orange); }
+.overview-metric-body { flex: 1; min-width: 0; }
+.overview-metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+.overview-metric-value { font-size: 24px; font-weight: 700; font-family: var(--font-mono); }
+.overview-metric-dim { font-size: 14px; color: var(--text-muted); }
+.overview-metric-spark { position: absolute; bottom: 0; right: 0; width: 120px; height: 50px; opacity: 0.6; }
+.overview-metric-spark .chart-container { height: 50px; border: none; padding: 0; background: transparent; }
+
+@media (max-width: 1200px) { .overview-metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 800px) { .overview-metrics-grid { grid-template-columns: 1fr; } .overview-ports { flex-direction: column; gap: 16px; } .port-divider { width: 60%; height: 1px; margin: 0; } }

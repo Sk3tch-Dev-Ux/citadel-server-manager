@@ -6,7 +6,7 @@ import API from '../api';
 import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound, Monitor, Gauge, Settings } from '../components/Icon';
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -28,6 +28,7 @@ export default function AppLayout() {
     : location.pathname === '/users' ? 'Users & Roles'
     : location.pathname === '/webhooks' ? 'Webhooks'
     : location.pathname === '/license' ? 'License'
+    : location.pathname === '/dashboard' ? 'Dashboard'
     : 'Server Hub';
 
   // Determine which server sub-tab is active
@@ -55,27 +56,17 @@ export default function AppLayout() {
     <div className="app">
       <div className="sidebar">
         <div className="sidebar-header">
-          <div className="sidebar-logo">
+          <Link to="/" className="sidebar-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
             <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 38, height: 38 }} />
             <div><div className="logo-text">Citadel</div><div className="logo-sub">Server Management</div></div>
-          </div>
-          {isServerPage && servers.length > 0 && (
-            <div className="server-selector">
-              <select value={selectedServerId || ''} onChange={e => navigate(`/servers/${e.target.value}/overview`)}>
-                {servers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.status})</option>)}
-              </select>
-            </div>
-          )}
+          </Link>
         </div>
 
         <div className="sidebar-nav">
-          <div className="nav-section">General</div>
-          <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
-            <span className="nav-icon"><Home size={16} /></span>Server Hub
-            {servers.filter(s => s.status === 'running').length > 0 && <span className="nav-badge">{servers.filter(s => s.status === 'running').length}</span>}
-          </Link>
-          <Link to="/deploy" className={`nav-item ${location.pathname === '/deploy' ? 'active' : ''}`}>
-            <span className="nav-icon"><Rocket size={16} /></span>Deploy Server
+          {/* System Section — Like CFTools "RADIANT-QUASAR" system section */}
+          <div className="nav-section">System</div>
+          <Link to="/dashboard" className={`nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`}>
+            <span className="nav-icon"><Gauge size={16} /></span>Dashboard
           </Link>
           <Link to="/users" className={`nav-item ${location.pathname === '/users' ? 'active' : ''}`}>
             <span className="nav-icon"><Users size={16} /></span>Users
@@ -89,6 +80,29 @@ export default function AppLayout() {
             </Link>
           )}
 
+          {/* Deploy */}
+          <Link to="/deploy" className={`nav-item ${location.pathname === '/deploy' ? 'active' : ''}`}>
+            <span className="nav-icon"><Rocket size={16} /></span>Deploy Server
+          </Link>
+
+          {/* Servers Section */}
+          <div className="nav-section" style={{ marginTop: 8 }}>Servers</div>
+          {servers.length === 0 ? (
+            <div className="nav-empty">No servers configured</div>
+          ) : (
+            servers.map(srv => (
+              <Link
+                key={srv.id}
+                to={`/servers/${srv.id}/overview`}
+                className={`nav-item nav-server-item ${selectedServerId === srv.id ? 'active' : ''}`}
+              >
+                <span className={`nav-server-dot status-${srv.status || 'stopped'}`} />
+                <span className="nav-server-name">{srv.name}</span>
+              </Link>
+            ))
+          )}
+
+          {/* Server sub-navigation when on a server page */}
           {isServerPage && <ServerNav serverId={selectedServerId} serverName={currentServer?.name} activeTab={serverTab} />}
         </div>
 
@@ -100,12 +114,23 @@ export default function AppLayout() {
       </div>
 
       <div className="main">
+        {/* Server status bar — shown on server pages, like CFTools top bar */}
+        {isServerPage && currentServer && (
+          <div className="server-status-bar">
+            <div className="status-bar-metrics">
+              <span className={`status-bar-chip ${(currentServer.cpu || 0) > 70 ? 'warning' : ''}`}>CPU: {(currentServer.cpu || 0).toFixed(1)}%</span>
+              <span className={`status-bar-chip ${(currentServer.ram || 0) > 70 ? 'warning' : ''}`}>RAM: {(currentServer.ram || 0).toFixed(1)}%</span>
+              <span className="status-bar-chip">Players: {currentServer.playerCount || 0}/{currentServer.maxPlayers || 60}</span>
+            </div>
+          </div>
+        )}
+
         <div className="main-header">
           <div>
             <div className="main-title">{pageTitle}</div>
             {isServerPage && <div className="main-subtitle">
               <span className={`status-badge status-${currentServerStatus}`} style={{ marginRight: 8 }}><span className="status-dot" />{currentServerStatus}</span>
-              {serverTab}
+              DayZ, PC
             </div>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -117,7 +142,7 @@ export default function AppLayout() {
                 <button className="btn btn-secondary btn-sm" onClick={handleRestart}><RotateCcw size={14} /> Restart</button>
               </div>
             )}
-            {location.pathname === '/' && (
+            {(location.pathname === '/' || location.pathname === '/dashboard') && (
               <button className="btn btn-blue btn-sm" onClick={() => loadServers()}><RefreshCw size={14} /> Refresh</button>
             )}
           </div>
@@ -135,7 +160,7 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, Settings, FileText, ShieldBan, Clock, Send, Wrench, AlertTriangle, Map } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, ShieldBan, Clock, Send, Wrench, AlertTriangle, Map } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const navItems = [
@@ -157,7 +182,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
 
   return (
     <>
-      <div className="nav-section" style={{ marginTop: 12 }}>{serverName || 'Server'}</div>
+      <div className="nav-divider" />
       {navItems.map(item => (
         <Link key={item.id} to={`/servers/${serverId}/${item.id}`} className={`nav-item ${activeTab === item.id ? 'active' : ''}`}>
           <span className="nav-icon">{item.icon}</span>{item.label}
