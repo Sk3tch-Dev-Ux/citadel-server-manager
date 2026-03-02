@@ -94,4 +94,12 @@ export {
   Link,
   Unlink,
   Gauge,
+  Crown,
+  Infinity,
+  Calendar,
+  Mail,
+  ChevronUp,
+  ArrowUpRight,
+  BadgeCheck,
+  Star,
 } from 'lucide-react';
