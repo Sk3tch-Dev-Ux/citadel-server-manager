@@ -293,6 +293,33 @@ function addMapEvent(serverId, event) {
 }
 
 /**
+ * Replace the event cache for a server with mod-sourced world events.
+ * The mod provides a full snapshot every ~10s, so we REPLACE (not append).
+ * Uses a 60-minute TTL for mod-sourced events.
+ *
+ * @param {string} serverId
+ * @param {Array} modEvents - [{id, className, displayName, icon, position: {x,y,z}}]
+ */
+function updateWorldEventsFromMod(serverId, modEvents) {
+  if (!Array.isArray(modEvents)) return;
+
+  const MOD_EVENT_TTL = 60 * 60 * 1000; // 60 minutes
+  const now = Date.now();
+
+  serverEvents[serverId] = modEvents.map(e => ({
+    id: e.id || `mod_${e.className}_${now}`,
+    type: e.className,
+    displayName: e.displayName || e.className,
+    icon: e.icon || 'marker',
+    position: e.position || { x: 0, y: 0, z: 0 },
+    detectedAt: now,
+    expiresAt: now + MOD_EVENT_TTL,
+  }));
+
+  logger.debug({ serverId, count: modEvents.length }, 'World events updated from mod');
+}
+
+/**
  * Clear all events for a server.
  */
 function clearMapEvents(serverId) {
@@ -323,6 +350,7 @@ module.exports = {
   getMapEvents,
   scrapeRPTForEvents,
   addMapEvent,
+  updateWorldEventsFromMod,
   clearMapEvents,
   detectMapKey,
   prettifyClassName,

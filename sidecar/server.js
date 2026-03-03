@@ -21,6 +21,7 @@ const auth = require('./auth');
 const { sendCommand, cleanupStaleFiles } = require('./command-queue');
 const banStore = require('./ban-store');
 const playerStore = require('./player-store');
+const gameDataStore = require('./game-data-store');
 
 const app = express();
 app.use(express.json());
@@ -327,6 +328,22 @@ app.get('/stats/:steamId', (req, res) => {
   res.json({ ok: true, data: stats });
 });
 
+// ─── Game Data (metrics, vehicles, world events) ────────
+
+app.get('/metrics', (req, res) => {
+  const data = gameDataStore.getMetrics();
+  if (!data) return res.json({ ok: true, data: null });
+  res.json({ ok: true, data });
+});
+
+app.get('/vehicles', (req, res) => {
+  res.json({ ok: true, data: gameDataStore.getVehicles() });
+});
+
+app.get('/world-events', (req, res) => {
+  res.json({ ok: true, data: gameDataStore.getWorldEvents() });
+});
+
 // ─── Priority Queue (local) ─────────────────────────────
 
 const fs = require('fs');
@@ -379,6 +396,11 @@ app.delete('/priority-queue/:id', (req, res) => {
 
 // Refresh player data from mod every 5 seconds
 setInterval(() => playerStore.refreshPlayers(), 5000);
+
+// Refresh game data (metrics, vehicles, world events) every 5 seconds
+setInterval(() => gameDataStore.refreshMetrics(), 5000);
+setInterval(() => gameDataStore.refreshVehicles(), 5000);
+setInterval(() => gameDataStore.refreshWorldEvents(), 5000);
 
 // Process event log (kills, deaths) every 10 seconds
 setInterval(() => playerStore.processEventLog(), 10000);

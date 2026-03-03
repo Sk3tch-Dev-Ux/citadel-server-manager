@@ -53,4 +53,85 @@ async function fetchPlayers(serverId) {
   }
 }
 
-module.exports = { fetchPlayers };
+/**
+ * Fetch mod-level server metrics from the sidecar /metrics endpoint.
+ * Returns the full metrics object (fps, players, ai_count, etc.) or null on failure.
+ */
+async function fetchModMetrics(serverId) {
+  const srv = ctx.servers.find(s => s.id === serverId);
+  const baseUrl = srv?.inHouseApiUrl;
+
+  if (!baseUrl) return null;
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
+
+    const res = await fetch(`${baseUrl}/metrics`, { headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const json = await res.json();
+    if (!json.ok || !json.data) throw new Error('Invalid metrics response');
+
+    return json.data;
+  } catch (err) {
+    logger.debug({ err: err.message, serverId }, 'Sidecar metrics fetch failed');
+    return null;
+  }
+}
+
+/**
+ * Fetch vehicle data from the sidecar /vehicles endpoint.
+ * Returns array of vehicle objects or empty array on failure.
+ */
+async function fetchModVehicles(serverId) {
+  const srv = ctx.servers.find(s => s.id === serverId);
+  const baseUrl = srv?.inHouseApiUrl;
+
+  if (!baseUrl) return [];
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
+
+    const res = await fetch(`${baseUrl}/vehicles`, { headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const json = await res.json();
+    if (!json.ok || !Array.isArray(json.data)) throw new Error('Invalid vehicles response');
+
+    return json.data;
+  } catch (err) {
+    logger.debug({ err: err.message, serverId }, 'Sidecar vehicles fetch failed');
+    return [];
+  }
+}
+
+/**
+ * Fetch world events from the sidecar /world-events endpoint.
+ * Returns array of event objects or empty array on failure.
+ */
+async function fetchModWorldEvents(serverId) {
+  const srv = ctx.servers.find(s => s.id === serverId);
+  const baseUrl = srv?.inHouseApiUrl;
+
+  if (!baseUrl) return [];
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
+
+    const res = await fetch(`${baseUrl}/world-events`, { headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const json = await res.json();
+    if (!json.ok || !Array.isArray(json.data)) throw new Error('Invalid world-events response');
+
+    return json.data;
+  } catch (err) {
+    logger.debug({ err: err.message, serverId }, 'Sidecar world-events fetch failed');
+    return [];
+  }
+}
+
+module.exports = { fetchPlayers, fetchModMetrics, fetchModVehicles, fetchModWorldEvents };

@@ -6,9 +6,6 @@
  */
 class CitadelPlayerActions
 {
-    /**
-     * Find a player by Steam64 ID.
-     */
     static PlayerBase FindPlayerBySteamId(string steamId)
     {
         ref array<Man> players = new array<Man>();
@@ -28,17 +25,13 @@ class CitadelPlayerActions
         return null;
     }
 
-    /**
-     * Heal player to full health, blood, and shock.
-     */
     static bool HealPlayer(string cmdJson, out string error)
     {
-        string steamId = CitadelCommandRunner.ExtractJsonString(cmdJson, "steamId");
+        string steamId = CitadelJson.ExtractString(cmdJson, "steamId");
         if (steamId == "")
         {
-            // Try from params
-            string params = CitadelCommandRunner.ExtractParams(cmdJson);
-            steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
+            string params = CitadelJson.ExtractParams(cmdJson);
+            steamId = CitadelJson.ExtractString(params, "steamId");
         }
 
         PlayerBase player = FindPlayerBySteamId(steamId);
@@ -52,7 +45,6 @@ class CitadelPlayerActions
         player.SetHealth("GlobalHealth", "Blood", player.GetMaxHealth("GlobalHealth", "Blood"));
         player.SetHealth("GlobalHealth", "Shock", player.GetMaxHealth("GlobalHealth", "Shock"));
 
-        // Remove all negative status effects
         player.GetStatHeatComfort().Set(0);
         player.GetStatTremor().Set(0);
         player.GetStatWater().Set(player.GetStatWater().GetMax());
@@ -62,13 +54,10 @@ class CitadelPlayerActions
         return true;
     }
 
-    /**
-     * Kill a player instantly.
-     */
     static bool KillPlayer(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -82,16 +71,13 @@ class CitadelPlayerActions
         return true;
     }
 
-    /**
-     * Teleport a player to coordinates.
-     */
     static bool TeleportPlayer(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
-        float x = CitadelCommandRunner.ExtractJsonFloat(params, "x");
-        float y = CitadelCommandRunner.ExtractJsonFloat(params, "y");
-        float z = CitadelCommandRunner.ExtractJsonFloat(params, "z");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        float x = CitadelJson.ExtractFloat(params, "x");
+        float y = CitadelJson.ExtractFloat(params, "y");
+        float z = CitadelJson.ExtractFloat(params, "z");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -100,8 +86,6 @@ class CitadelPlayerActions
             return false;
         }
 
-        // DayZ coordinates: x=east/west, y=altitude, z=north/south
-        // If altitude is 0, use terrain height at position
         if (y <= 0)
             y = GetGame().SurfaceY(x, z);
 
@@ -112,15 +96,12 @@ class CitadelPlayerActions
         return true;
     }
 
-    /**
-     * Spawn an item in a player's inventory.
-     */
     static bool SpawnItem(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
-        string itemClass = CitadelCommandRunner.ExtractJsonString(params, "itemClass");
-        int quantity = CitadelCommandRunner.ExtractJsonInt(params, "quantity");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string itemClass = CitadelJson.ExtractString(params, "itemClass");
+        int quantity = CitadelJson.ExtractInt(params, "quantity");
         if (quantity <= 0) quantity = 1;
 
         PlayerBase player = FindPlayerBySteamId(steamId);
@@ -135,7 +116,6 @@ class CitadelPlayerActions
             EntityAI item = player.GetInventory().CreateInInventory(itemClass);
             if (!item)
             {
-                // Inventory full — spawn near player
                 vector pos = player.GetPosition();
                 item = GetGame().CreateObjectEx(itemClass, pos, ECE_PLACE_ON_SURFACE);
             }
@@ -151,13 +131,10 @@ class CitadelPlayerActions
         return true;
     }
 
-    /**
-     * Remove all items from a player's inventory.
-     */
     static bool StripPlayer(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -166,13 +143,12 @@ class CitadelPlayerActions
             return false;
         }
 
-        // Remove all inventory items
         ref array<EntityAI> items = new array<EntityAI>();
         player.GetInventory().EnumerateInventory(InventoryTraversalType.PREORDER, items);
 
         foreach (EntityAI item : items)
         {
-            if (item != player) // Don't delete the player themselves
+            if (item != player)
                 GetGame().ObjectDelete(item);
         }
 
@@ -180,13 +156,10 @@ class CitadelPlayerActions
         return true;
     }
 
-    /**
-     * Create an explosion at a player's position (kills them spectacularly).
-     */
     static bool ExplodePlayer(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -195,32 +168,17 @@ class CitadelPlayerActions
             return false;
         }
 
-        vector pos = player.GetPosition();
-
-        // Create explosion
-        Grenade_Base grenade = Grenade_Base.Cast(GetGame().CreateObjectEx("RGD5Grenade", pos, ECE_PLACE_ON_SURFACE));
-        if (grenade)
-        {
-            grenade.Explode(DamageType.EXPLOSION, "RGD5Grenade_Ammo");
-        }
-        else
-        {
-            // Fallback: just kill them
-            player.SetHealth("GlobalHealth", "Health", 0);
-        }
+        player.Explode(DT_EXPLOSION, "LandFuelFeed_Ammo");
 
         Print("[Citadel] Exploded player: " + steamId);
         return true;
     }
 
-    /**
-     * Kick a player from the server.
-     */
     static bool KickPlayer(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string steamId = CitadelCommandRunner.ExtractJsonString(params, "steamId");
-        string reason = CitadelCommandRunner.ExtractJsonString(params, "reason");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string reason = CitadelJson.ExtractString(params, "reason");
         if (reason == "") reason = "Kicked by admin";
 
         PlayerBase player = FindPlayerBySteamId(steamId);
@@ -230,20 +188,39 @@ class CitadelPlayerActions
             return false;
         }
 
-        // Use BattlEye kick via GetGame
-        GetGame().SendPlayerMessage(player, reason);
-
-        // Workaround: disconnect the player's identity
-        // The engine will handle the actual disconnection
         Print("[Citadel] Kicking player: " + steamId + " reason: " + reason);
 
-        // Schedule actual kick for next frame to allow message to be sent
-        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(
-            GetGame().DisconnectPlayer,
-            100, false,
-            player.GetIdentity(), steamId
-        );
+        GetGame().DisconnectPlayer(player.GetIdentity(), reason);
 
+        return true;
+    }
+
+    /**
+     * Send a message to a player via server chat.
+     */
+    static bool MessagePlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string text = CitadelJson.ExtractString(params, "text");
+
+        if (text == "")
+        {
+            error = "Message text is required";
+            return false;
+        }
+
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player || !player.GetIdentity())
+        {
+            error = "Player not found: " + steamId;
+            return false;
+        }
+
+        // Server-side broadcast via admin chat
+        GetGame().ChatPlayer("[Citadel] " + text);
+
+        Print("[Citadel] Messaged player: " + steamId);
         return true;
     }
 };

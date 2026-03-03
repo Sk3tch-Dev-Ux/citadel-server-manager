@@ -43,6 +43,9 @@ if (!CONFIG.responseDir) CONFIG.responseDir = path.join(citadelDataDir, 'respons
 CONFIG.playerDataFile = path.join(citadelDataDir, 'players.json');
 CONFIG.banFile = path.join(citadelDataDir, 'bans.json');
 CONFIG.leaderboardFile = path.join(citadelDataDir, 'leaderboard.json');
+CONFIG.metricsFile = path.join(citadelDataDir, 'metrics.json');
+CONFIG.vehiclesFile = path.join(citadelDataDir, 'vehicles.json');
+CONFIG.worldEventsFile = path.join(citadelDataDir, 'events_world.json');
 
 // Ensure directories exist
 for (const dir of [CONFIG.queueDir, CONFIG.responseDir, citadelDataDir]) {

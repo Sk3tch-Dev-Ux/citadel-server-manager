@@ -1,29 +1,15 @@
 /**
  * CitadelVehicleActions — In-game vehicle action execution.
- *
- * Vehicle IDs are the network IDs assigned by the game engine.
- * The player tracker includes vehicle data; the sidecar maps networkId → vehicle.
  */
 class CitadelVehicleActions
 {
-    /**
-     * Find a vehicle entity by its network ID string.
-     */
     static CarScript FindVehicle(string vehicleId)
     {
-        // Try to find by persisted ID or network ID
-        int netId = vehicleId.ToInt();
-        if (netId <= 0)
+        if (vehicleId == "")
             return null;
 
-        // Iterate all vehicles in the world
-        ref array<CarScript> vehicles = new array<CarScript>();
-        // GetGame doesn't have a direct vehicle list — iterate all objects near each player's area
-        // A more robust approach: iterate the object pool
-        Object obj;
         CarScript car;
 
-        // Search within a large radius from world center
         ref array<Object> objects = new array<Object>();
         ref array<CargoBase> proxyCargos = new array<CargoBase>();
         GetGame().GetObjectsAtPosition(Vector(7500, 0, 7500), 15000, objects, proxyCargos);
@@ -33,8 +19,8 @@ class CitadelVehicleActions
             car = CarScript.Cast(o);
             if (car)
             {
-                // Compare network ID
-                if (car.GetNetworkID().ToString() == vehicleId)
+                EntityAI entity = EntityAI.Cast(car);
+                if (entity && entity.GetNetworkIDString() == vehicleId)
                     return car;
             }
         }
@@ -44,8 +30,8 @@ class CitadelVehicleActions
 
     static bool DeleteVehicle(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string vehicleId = CitadelJson.ExtractString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -61,8 +47,8 @@ class CitadelVehicleActions
 
     static bool RepairVehicle(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string vehicleId = CitadelJson.ExtractString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -71,7 +57,6 @@ class CitadelVehicleActions
             return false;
         }
 
-        // Restore all zones to full health
         ref array<string> zones = new array<string>();
         vehicle.GetDamageZones(zones);
 
@@ -80,7 +65,6 @@ class CitadelVehicleActions
             vehicle.SetHealth(zone, "Health", vehicle.GetMaxHealth(zone, "Health"));
         }
 
-        // Also repair engine, fuel tank, radiator
         vehicle.SetHealth("Engine", "Health", vehicle.GetMaxHealth("Engine", "Health"));
 
         Print("[Citadel] Repaired vehicle: " + vehicleId);
@@ -89,8 +73,8 @@ class CitadelVehicleActions
 
     static bool RefuelVehicle(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string vehicleId = CitadelJson.ExtractString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -99,7 +83,6 @@ class CitadelVehicleActions
             return false;
         }
 
-        // Fill fuel to max capacity
         vehicle.Fill(CarFluid.FUEL, vehicle.GetFluidCapacity(CarFluid.FUEL));
         vehicle.Fill(CarFluid.OIL, vehicle.GetFluidCapacity(CarFluid.OIL));
         vehicle.Fill(CarFluid.BRAKE, vehicle.GetFluidCapacity(CarFluid.BRAKE));
@@ -111,8 +94,8 @@ class CitadelVehicleActions
 
     static bool UnstuckVehicle(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string vehicleId = CitadelJson.ExtractString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -121,15 +104,13 @@ class CitadelVehicleActions
             return false;
         }
 
-        // Move vehicle slightly up and reset physics
         vector pos = vehicle.GetPosition();
         pos[1] = GetGame().SurfaceY(pos[0], pos[2]) + 1.0;
         vehicle.SetPosition(pos);
 
-        // Reset orientation to upright
         vector orient = vehicle.GetOrientation();
-        orient[1] = 0; // Remove pitch
-        orient[2] = 0; // Remove roll
+        orient[1] = 0;
+        orient[2] = 0;
         vehicle.SetOrientation(orient);
 
         Print("[Citadel] Unstuck vehicle: " + vehicleId);
@@ -138,8 +119,8 @@ class CitadelVehicleActions
 
     static bool ExplodeVehicle(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string vehicleId = CitadelJson.ExtractString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -148,8 +129,7 @@ class CitadelVehicleActions
             return false;
         }
 
-        // Destroy vehicle
-        vehicle.Explode(DamageType.EXPLOSION);
+        vehicle.Explode(DT_EXPLOSION, "LandFuelFeed_Ammo");
 
         Print("[Citadel] Exploded vehicle: " + vehicleId);
         return true;
@@ -157,8 +137,8 @@ class CitadelVehicleActions
 
     static bool KillEngine(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string vehicleId = CitadelJson.ExtractString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -175,8 +155,8 @@ class CitadelVehicleActions
 
     static bool EjectDriver(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string vehicleId = CitadelCommandRunner.ExtractJsonString(params, "vehicleId");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string vehicleId = CitadelJson.ExtractString(params, "vehicleId");
 
         CarScript vehicle = FindVehicle(vehicleId);
         if (!vehicle)
@@ -185,12 +165,24 @@ class CitadelVehicleActions
             return false;
         }
 
-        // Get crew and eject them
-        Human driver = vehicle.CrewMember(DayZPlayerConstants.VEHICLESEAT_DRIVER);
-        if (driver)
+        int c;
+        Human crew;
+        PlayerBase player;
+        for (c = 0; c < vehicle.CrewSize(); c++)
         {
-            // Force player out of vehicle
-            vehicle.CrewGetOut(DayZPlayerConstants.VEHICLESEAT_DRIVER);
+            crew = vehicle.CrewMember(c);
+            if (!crew) continue;
+
+            if (Class.CastTo(player, crew))
+            {
+                if (vehicle.CrewMemberIndex(player) == DayZPlayerConstants.VEHICLESEAT_DRIVER)
+                {
+                    HumanCommandVehicle vehCommand = player.GetCommand_Vehicle();
+                    if (vehCommand)
+                        vehCommand.GetOutVehicle();
+                    break;
+                }
+            }
         }
 
         Print("[Citadel] Ejected driver from vehicle: " + vehicleId);
