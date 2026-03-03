@@ -61,10 +61,10 @@ function buildLaunchParams(gamePort) {
 const STEAMCMD_ERRORS = {
   1: 'Unknown SteamCMD error — try restarting SteamCMD or check your install path.',
   2: 'SteamCMD is already running. Close any other SteamCMD instances and try again.',
-  5: 'Invalid Steam credentials. Check your username and password in Settings → Steam.',
+  5: 'Invalid Steam credentials. Check your username and password and try again.',
   6: 'Steam account is not authorized for this app. Ensure you own DayZ on this account.',
   7: 'Network timeout — SteamCMD could not reach Steam servers. Check your internet connection.',
-  8: 'SteamCMD failed to install the app. Common causes: Steam credentials required (anonymous login not supported for DayZ), disk full, or SteamCMD needs to self-update. Configure your Steam credentials in Settings → Steam and try again.',
+  8: 'SteamCMD failed to install the app. Common causes: Steam credentials required (anonymous login not supported for DayZ), disk full, or SteamCMD needs to self-update. Re-run the deploy wizard and verify your Steam login.',
   10: 'SteamCMD is already updating. Wait for the current operation to finish.',
 };
 
@@ -105,10 +105,10 @@ function runSteamCMD(cmdPath, args, resolvedDir, srv, emitEvent = 'deployProgres
       }
       // Parse SteamCMD output for specific errors
       if (output.includes('Invalid Password') || output.includes('Login Failure')) {
-        return reject(new Error('Invalid Steam credentials. Update them in Settings → Steam.'));
+        return reject(new Error('Invalid Steam credentials. Go back and re-verify your Steam login.'));
       }
       if (output.includes('Steam Guard') || output.includes('Two-factor') || output.includes('Enter the current code')) {
-        return reject(new Error('Steam Guard code required. Enter it in Settings → Steam and retry.'));
+        return reject(new Error('Steam Guard code required. Go back to the Steam Login step and enter your guard code.'));
       }
       if (output.includes('No subscription') || output.includes('not authorized')) {
         return reject(new Error('This Steam account does not own DayZ. A DayZ purchase is required to download the dedicated server.'));
@@ -134,8 +134,8 @@ module.exports = function(app) {
     if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) {
       return res.status(400).json({
         error: 'Steam credentials required',
-        message: 'DayZ Dedicated Server requires an authenticated Steam login. Configure your Steam credentials in Settings → Steam before deploying.',
-        fix: 'settings.steam',
+        message: 'DayZ Dedicated Server requires an authenticated Steam login. Use the Deploy wizard to verify your Steam credentials before deploying.',
+        fix: 'deploy.steam',
       });
     }
 
@@ -250,8 +250,8 @@ module.exports = function(app) {
     if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) {
       return res.status(400).json({
         error: 'Steam credentials required',
-        message: 'DayZ Dedicated Server requires an authenticated Steam login. Configure your Steam credentials in Settings → Steam before rebuilding.',
-        fix: 'settings.steam',
+        message: 'DayZ Dedicated Server requires an authenticated Steam login. Use the Deploy wizard to verify your Steam credentials before rebuilding.',
+        fix: 'deploy.steam',
       });
     }
 

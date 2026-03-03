@@ -1,5 +1,21 @@
 [
   {
+    "id": "923fcd8f-3206-4d01-b5ad-dda0382c96f0",
+    "timestamp": "2026-03-03T03:43:57.483Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying TestingBranch to C:\\Citadel\\deployments"
+  },
+  {
+    "id": "a39ba89c-712c-478b-a2b4-7566efb86a10",
+    "timestamp": "2026-03-03T03:42:38.149Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying TestingBranch to C:\\Citadel\\deployments"
+  },
+  {
     "id": "24f57afe-3bbd-4c4c-a92d-b50fe5d74c75",
     "timestamp": "2026-03-03T03:30:09.065Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
