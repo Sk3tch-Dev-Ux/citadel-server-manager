@@ -162,12 +162,30 @@ function createBackup(serverId, type) {
     const filename = `backup-${ts}.zip`;
     const zipPath = path.join(backupDir, filename);
 
-    // Build PowerShell command
-    const sources = validPaths.map(p => `'${p.replace(/'/g, "''")}'`).join(',');
-    const dest = zipPath.replace(/'/g, "''");
-    const cmd = `Compress-Archive -Path ${sources} -DestinationPath '${dest}' -Force`;
+    // DayZ holds file locks while running, so Compress-Archive fails silently on
+    // locked files (exits 0 but creates no ZIP). Solution: use robocopy to stage
+    // files to a temp dir first (handles locked files with /R:0 /W:0), then ZIP.
+    const stagingDir = path.join(backupDir, `_staging_${ts}`);
 
-    logger.info({ serverId, type, filename, pathCount: validPaths.length }, 'Backup: starting ZIP creation');
+    // Build PowerShell script: robocopy each source → staging, then Compress-Archive
+    const robocopySteps = validPaths.map(p => {
+      const name = path.basename(p);
+      const escaped = p.replace(/'/g, "''");
+      const destDir = path.join(stagingDir, name).replace(/'/g, "''");
+      // robocopy exit codes 0-7 are success; /E = include subdirs; /R:0 /W:0 = skip locked files
+      return `robocopy '${escaped}' '${destDir}' /E /R:0 /W:0 /NP /NJH /NJS /NDL /NFL; if ($LASTEXITCODE -ge 8) { Write-Warning "robocopy failed for ${name}: exit $LASTEXITCODE" }`;
+    }).join('; ');
+
+    const escapedStaging = stagingDir.replace(/'/g, "''");
+    const escapedDest = zipPath.replace(/'/g, "''");
+    const cmd = [
+      `New-Item -ItemType Directory -Path '${escapedStaging}' -Force | Out-Null`,
+      robocopySteps,
+      `Compress-Archive -Path '${escapedStaging}\\*' -DestinationPath '${escapedDest}' -Force`,
+      `Remove-Item '${escapedStaging}' -Recurse -Force -ErrorAction SilentlyContinue`,
+    ].join('; ');
+
+    logger.info({ serverId, type, filename, pathCount: validPaths.length }, 'Backup: starting (robocopy + ZIP)');
 
     const proc = spawn('powershell', [
       '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', cmd,
@@ -178,6 +196,8 @@ function createBackup(serverId, type) {
 
     const timeout = setTimeout(() => {
       try { proc.kill(); } catch (_) { /* ignore */ }
+      // Clean up staging dir if it exists
+      try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch (_) { /* ignore */ }
       logger.error({ serverId }, 'Backup: timed out after 5 minutes');
       if (state?.backup) state.backup.inProgress = false;
       resolve(null);
@@ -187,9 +207,13 @@ function createBackup(serverId, type) {
       clearTimeout(timeout);
       if (state?.backup) state.backup.inProgress = false;
 
-      if (code !== 0) {
-        logger.error({ serverId, code, stderr: stderr.slice(0, 500) }, 'Backup: PowerShell Compress-Archive failed');
-        addLog(serverId, 'error', 'backup', `Backup failed: exit code ${code}`);
+      // Clean up staging dir if PowerShell didn't
+      try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch (_) { /* ignore */ }
+
+      // Verify the ZIP file was actually created
+      if (!fs.existsSync(zipPath)) {
+        logger.error({ serverId, code, stderr: stderr.slice(0, 500) }, 'Backup: ZIP file was not created');
+        addLog(serverId, 'error', 'backup', `Backup failed: ZIP not created (code ${code})${stderr ? ' — ' + stderr.slice(0, 200) : ''}`);
         resolve(null);
         return;
       }
@@ -206,7 +230,8 @@ function createBackup(serverId, type) {
 
       // Log + notify
       const sizeMB = (size / 1024 / 1024).toFixed(1);
-      addLog(serverId, 'info', 'backup', `${type === 'manual' ? 'Manual' : 'Automated'} backup created: ${filename} (${sizeMB} MB)`);
+      const skipped = stderr.includes('robocopy failed') ? ' (some locked files skipped)' : '';
+      addLog(serverId, 'info', 'backup', `${type === 'manual' ? 'Manual' : 'Automated'} backup created: ${filename} (${sizeMB} MB)${skipped}`);
       addNotification(serverId, 'backup.created', 'Backup Created', `${srv.name}: ${filename} (${sizeMB} MB)`, 'info');
 
       if (ctx.io) {
@@ -220,6 +245,7 @@ function createBackup(serverId, type) {
     proc.on('error', (err) => {
       clearTimeout(timeout);
       if (state?.backup) state.backup.inProgress = false;
+      try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch (_) { /* ignore */ }
       logger.error({ err, serverId }, 'Backup: spawn error');
       addLog(serverId, 'error', 'backup', `Backup failed: ${err.message}`);
       resolve(null);

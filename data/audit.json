@@ -1,5 +1,45 @@
 [
   {
+    "id": "d797c1e7-f438-41a7-9b3f-3b4f721daeba",
+    "timestamp": "2026-03-03T22:40:10.429Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "backup.manual",
+    "details": "Manual backup on server Test"
+  },
+  {
+    "id": "0891918c-fc80-4869-a9d7-f3989ac88f61",
+    "timestamp": "2026-03-03T22:39:36.612Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "backup.manual",
+    "details": "Manual backup on server Test"
+  },
+  {
+    "id": "7001ffcf-ebeb-4a31-88a2-b8cec73bc122",
+    "timestamp": "2026-03-03T22:39:09.948Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "job.update",
+    "details": "Updated \"Morning Restart\" on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "f2fb6520-3c39-4326-9309-395cb617a5e1",
+    "timestamp": "2026-03-03T22:35:03.523Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarted: Test (success: true)"
+  },
+  {
+    "id": "d480bc94-a2a9-4933-8d8b-cf6b8c1b31ae",
+    "timestamp": "2026-03-03T22:34:50.447Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
     "id": "400576c5-17b4-4ed9-803b-8b0478bc1f76",
     "timestamp": "2026-03-03T22:25:56.686Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
