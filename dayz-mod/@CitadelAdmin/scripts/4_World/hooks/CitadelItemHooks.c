@@ -10,6 +10,7 @@
 modded class ItemBase extends InventoryItem
 {
     private ref CitadelTrackedEvent m_CitMarkerEvent;
+    float m_CitStartQty; // Used by action hooks to measure food/drink consumption
 
     // ─── Map Marker Registration ─────────────────────────
 

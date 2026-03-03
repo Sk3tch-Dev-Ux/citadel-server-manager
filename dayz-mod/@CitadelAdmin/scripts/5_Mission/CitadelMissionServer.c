@@ -116,18 +116,9 @@ modded class MissionServer
 
         // Query entities in this sector
         array<Object> sceneObjects = new array<Object>;
-        array<Object> physicsObjects = new array<Object>;
         array<CargoBase> proxyCargos = new array<CargoBase>;
 
         GetGame().GetObjectsAtPosition3D(mins, maxs - mins, sceneObjects, proxyCargos);
-
-        // Merge both lists
-        for (int p = 0; p < physicsObjects.Count(); p++)
-        {
-            Object phys = physicsObjects.Get(p);
-            if (phys && sceneObjects.Find(phys) < 0)
-                sceneObjects.Insert(phys);
-        }
 
         // Process entities in this sector
         for (int i = 0; i < sceneObjects.Count(); i++)
@@ -270,10 +261,10 @@ modded class MissionServer
 
                 // Find the player who sent the message using our own registry
                 string senderSteamId = "";
-                map<string, PlayerBase> chatPlayers = GetCitadel().GetActivePlayers();
+                map<string, Man> chatPlayers = GetCitadel().GetActivePlayers();
                 for (int ci = 0; ci < chatPlayers.Count(); ci++)
                 {
-                    PlayerBase chatPlayer = chatPlayers.GetElement(ci);
+                    PlayerBase chatPlayer = PlayerBase.Cast(chatPlayers.GetElement(ci));
                     if (chatPlayer && chatPlayer.GetIdentity())
                     {
                         if (chatPlayer.GetIdentity().GetName() == senderName)
