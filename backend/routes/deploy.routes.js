@@ -58,7 +58,7 @@ function scaffoldDeployment(installDir) {
  * Includes @CitadelAdmin mod for live map and admin actions.
  */
 function buildLaunchParams(gamePort) {
-  return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles "-mod=@CitadelAdmin" -dologs -adminlog -netlog -freezecheck`;
+  return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck -serverMod=@CitadelAdmin`;
 }
 
 /**

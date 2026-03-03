@@ -16,11 +16,11 @@ const logger = require('./logger');
 const ctx = require('./context');
 const { getProcessMetrics, getProcessCPU } = require('./process-manager');
 const { scrapeRPTForFPS } = require('./rpt-scraper');
-const { fetchPlayers } = require('./cftools-players');
+const { fetchPlayers, fetchModMetrics, fetchModVehicles, fetchModWorldEvents } = require('./cftools-players');
 const { addLog } = require('./audit');
 const { pushMetrics } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
-const { scrapeRPTForEvents, getMapData } = require('./map-data');
+const { scrapeRPTForEvents, getMapData, updateWorldEventsFromMod } = require('./map-data');
 const { restartServer } = require('./server-lifecycle');
 const { HEALTH_ALERT_COOLDOWN_MS } = require('./constants');
 
@@ -41,12 +41,20 @@ async function collectMetrics(srv, state, pid) {
   const cpu = await getProcessCPU(pid);
   if (metrics) metrics.cpu = cpu;
 
-  let fps = scrapeRPTForFPS(srv);
-  if (!fps && state.rcon) {
-    try {
-      if (!state.rcon.monitorEnabled && state.rcon.loggedIn) await state.rcon.enableMonitor();
-      fps = state.rcon.getFPS() || 0;
-    } catch { /* RCON not available */ }
+  // ─── FPS: prefer sidecar /metrics, fallback to RPT/RCON ──
+  let fps = 0;
+  const modMetrics = await fetchModMetrics(srv.id);
+  if (modMetrics && typeof modMetrics.fps === 'number') {
+    fps = modMetrics.fps; // sidecar returns fps already divided by 100
+    state.modMetrics = modMetrics;
+  } else {
+    fps = scrapeRPTForFPS(srv);
+    if (!fps && state.rcon) {
+      try {
+        if (!state.rcon.monitorEnabled && state.rcon.loggedIn) await state.rcon.enableMonitor();
+        fps = state.rcon.getFPS() || 0;
+      } catch { /* RCON not available */ }
+    }
   }
 
   if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps);
@@ -61,8 +69,25 @@ async function collectMetrics(srv, state, pid) {
     logger.debug({ err, serverId: srv.id }, 'Player poll failed');
   }
 
-  // ─── RPT event scraping (helicrashes, airdrops, etc.) ──
-  try { scrapeRPTForEvents(srv); } catch { /* ignore */ }
+  // ─── Vehicle data from sidecar ────────────────────────
+  try {
+    const vehicles = await fetchModVehicles(srv.id);
+    if (vehicles.length > 0) state.vehicles = vehicles;
+  } catch (err) {
+    logger.debug({ err, serverId: srv.id }, 'Vehicle poll failed');
+  }
+
+  // ─── World events: prefer sidecar, fallback to RPT scraping ──
+  try {
+    const modEvents = await fetchModWorldEvents(srv.id);
+    if (modEvents.length > 0) {
+      updateWorldEventsFromMod(srv.id, modEvents);
+    } else {
+      scrapeRPTForEvents(srv);
+    }
+  } catch {
+    try { scrapeRPTForEvents(srv); } catch { /* ignore */ }
+  }
 
   // ─── Emit combined map data for live map page ──────────
   try {

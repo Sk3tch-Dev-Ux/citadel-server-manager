@@ -1,20 +1,16 @@
 /**
  * CitadelWorldActions — In-game world/environment action execution.
  *
- * Controls time, weather, entity cleanup, and world-space item spawning.
+ * Controls time, weather, entity cleanup, world-space item spawning, and broadcasts.
  */
 class CitadelWorldActions
 {
-    /**
-     * Set the in-game world time.
-     */
     static bool SetTime(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        int hour = CitadelCommandRunner.ExtractJsonInt(params, "hour");
-        int minute = CitadelCommandRunner.ExtractJsonInt(params, "minute");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        int hour = CitadelJson.ExtractInt(params, "hour");
+        int minute = CitadelJson.ExtractInt(params, "minute");
 
-        // Validate
         if (hour < 0 || hour > 23)
         {
             error = "Invalid hour: " + hour.ToString();
@@ -23,7 +19,6 @@ class CitadelWorldActions
         if (minute < 0 || minute > 59)
             minute = 0;
 
-        // Get current date and change time
         int year, month, day, currentHour, currentMinute;
         GetGame().GetWorld().GetDate(year, month, day, currentHour, currentMinute);
         GetGame().GetWorld().SetDate(year, month, day, hour, minute);
@@ -32,13 +27,9 @@ class CitadelWorldActions
         return true;
     }
 
-    /**
-     * Set weather parameters.
-     * Values are 0.0 to 1.0 floats.
-     */
     static bool SetWeather(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
+        string params = CitadelJson.ExtractParams(cmdJson);
 
         Weather weather = GetGame().GetWeather();
         if (!weather)
@@ -47,14 +38,12 @@ class CitadelWorldActions
             return false;
         }
 
-        // Each parameter is optional — only set what's provided
-        float overcast = CitadelCommandRunner.ExtractJsonFloat(params, "overcast");
-        float rain = CitadelCommandRunner.ExtractJsonFloat(params, "rain");
-        float fog = CitadelCommandRunner.ExtractJsonFloat(params, "fog");
-        float snow = CitadelCommandRunner.ExtractJsonFloat(params, "snow");
-        float wind = CitadelCommandRunner.ExtractJsonFloat(params, "wind");
+        float overcast = CitadelJson.ExtractFloat(params, "overcast");
+        float rain = CitadelJson.ExtractFloat(params, "rain");
+        float fog = CitadelJson.ExtractFloat(params, "fog");
+        float snow = CitadelJson.ExtractFloat(params, "snow");
+        float wind = CitadelJson.ExtractFloat(params, "wind");
 
-        // Check if params were actually in the JSON (not just defaulting to 0)
         if (params.IndexOf("\"overcast\"") >= 0)
             weather.GetOvercast().Set(Math.Clamp(overcast, 0, 1), 0, 300);
 
@@ -69,8 +58,7 @@ class CitadelWorldActions
 
         if (params.IndexOf("\"wind\"") >= 0)
         {
-            // Wind speed: scale 0-1 to magnitude
-            float windMag = Math.Clamp(wind, 0, 1) * 20.0; // 0-20 m/s
+            float windMag = Math.Clamp(wind, 0, 1) * 20.0;
             weather.SetWindSpeed(windMag);
         }
 
@@ -78,9 +66,6 @@ class CitadelWorldActions
         return true;
     }
 
-    /**
-     * Reset weather to clear/sunny.
-     */
     static bool ClearWeather(out string error)
     {
         Weather weather = GetGame().GetWeather();
@@ -100,14 +85,10 @@ class CitadelWorldActions
         return true;
     }
 
-    /**
-     * Delete all AI entities (zombies, animals).
-     */
     static bool WipeAI(out string error)
     {
         int count = 0;
 
-        // Delete all zombie/infected entities
         ref array<Object> objects = new array<Object>();
         ref array<CargoBase> proxyCargos = new array<CargoBase>();
         GetGame().GetObjectsAtPosition(Vector(7500, 0, 7500), 15000, objects, proxyCargos);
@@ -134,9 +115,6 @@ class CitadelWorldActions
         return true;
     }
 
-    /**
-     * Delete all vehicle entities.
-     */
     static bool WipeVehicles(out string error)
     {
         int count = 0;
@@ -159,16 +137,13 @@ class CitadelWorldActions
         return true;
     }
 
-    /**
-     * Spawn an item at a world position.
-     */
     static bool SpawnItemWorld(string cmdJson, out string error)
     {
-        string params = CitadelCommandRunner.ExtractParams(cmdJson);
-        string itemClass = CitadelCommandRunner.ExtractJsonString(params, "itemClass");
-        float x = CitadelCommandRunner.ExtractJsonFloat(params, "x");
-        float y = CitadelCommandRunner.ExtractJsonFloat(params, "y");
-        float z = CitadelCommandRunner.ExtractJsonFloat(params, "z");
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string itemClass = CitadelJson.ExtractString(params, "itemClass");
+        float x = CitadelJson.ExtractFloat(params, "x");
+        float y = CitadelJson.ExtractFloat(params, "y");
+        float z = CitadelJson.ExtractFloat(params, "z");
 
         if (itemClass == "")
         {
@@ -176,7 +151,6 @@ class CitadelWorldActions
             return false;
         }
 
-        // If altitude is 0, use ground level
         if (y <= 0)
             y = GetGame().SurfaceY(x, z);
 
@@ -190,6 +164,27 @@ class CitadelWorldActions
         }
 
         Print("[Citadel] Spawned " + itemClass + " at " + pos.ToString());
+        return true;
+    }
+
+    /**
+     * Broadcast a message to all connected players.
+     */
+    static bool BroadcastMessage(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string text = CitadelJson.ExtractString(params, "text");
+
+        if (text == "")
+        {
+            error = "Message text is required";
+            return false;
+        }
+
+        // Broadcast via server admin chat (visible to all)
+        GetGame().ChatPlayer("[Citadel] " + text);
+
+        Print("[Citadel] Broadcast: " + text);
         return true;
     }
 };

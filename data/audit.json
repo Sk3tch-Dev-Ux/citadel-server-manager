@@ -1,5 +1,93 @@
 [
   {
+    "id": "22b9fdac-994f-4d2b-bf4d-0608bfd81d0f",
+    "timestamp": "2026-03-03T15:43:36.846Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "webhook.create",
+    "details": "Created webhook for server.restarted"
+  },
+  {
+    "id": "ee132482-b3fd-4c29-8250-ffd71880ed2f",
+    "timestamp": "2026-03-03T15:43:29.770Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "webhook.create",
+    "details": "Created webhook for server.stopped"
+  },
+  {
+    "id": "c10d63ea-a9b3-482e-a7c2-8260f127f3ff",
+    "timestamp": "2026-03-03T15:42:55.394Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "webhook.create",
+    "details": "Created webhook for server.started"
+  },
+  {
+    "id": "7b654eb5-6485-46b5-8e4d-29c29e6a39d0",
+    "timestamp": "2026-03-03T15:40:04.686Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "message.create",
+    "details": "Created message on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "cbe086ad-4a93-4bae-8485-cf8cfc2e9d72",
+    "timestamp": "2026-03-03T15:39:19.531Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "job.create",
+    "details": "Created \"AM Restart\" on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "3effe5c9-1031-4435-b7b1-d5069b535277",
+    "timestamp": "2026-03-03T15:39:06.031Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "job.create",
+    "details": "Created \"Evening Restart\" on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "b7974d4f-23f2-47fa-b6c2-fd3465144917",
+    "timestamp": "2026-03-03T15:38:55.435Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "job.create",
+    "details": "Created \"Noon Restart\" on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "3f5b1cf3-e31e-4b65-a933-d67274f3317c",
+    "timestamp": "2026-03-03T15:38:41.515Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "job.update",
+    "details": "Updated \"Morning Restart\" on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "7aad04b4-308b-4fe2-a03c-1ca335c78bd1",
+    "timestamp": "2026-03-03T15:38:23.224Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "job.create",
+    "details": "Created \"6 Hour Restarts\" on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "3e332945-1f8c-46a2-9d39-a745906c1c7d",
+    "timestamp": "2026-03-03T15:32:50.246Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
+    "id": "cda7b7be-929c-48af-a1e1-640e0d32b28d",
+    "timestamp": "2026-03-03T15:32:38.389Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.type",
+    "details": "Changed @CitadelServerSide to server on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
     "id": "6e7975bc-a5b7-459b-a2ac-00986c6d8ac3",
     "timestamp": "2026-03-03T15:28:31.450Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
