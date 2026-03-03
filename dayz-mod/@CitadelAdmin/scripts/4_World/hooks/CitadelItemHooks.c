@@ -1,19 +1,82 @@
 /**
- * CitadelItemHooks — Item interaction tracking.
+ * CitadelItemHooks — Item interaction and map marker tracking.
  *
  * Hooks into ItemBase to track:
  * - Items picked up by players
  * - Items dropped by players
  * - Weapon looting
+ * - Configurable map markers (register/unregister based on MapMarkers.json)
  */
 modded class ItemBase extends InventoryItem
 {
+    private ref CitadelTrackedEvent m_CitMarkerEvent;
+
+    // ─── Map Marker Registration ─────────────────────────
+
+    override void EEInit()
+    {
+        super.EEInit();
+
+        if (!GetGame().IsServer()) return;
+        if (!GetCitadel().GetConfiguration().GetTrackMapMarkers()) return;
+
+        RegisterMapMarker();
+    }
+
+    override void EEDelete(EntityAI parent)
+    {
+        if (GetGame().IsServer())
+        {
+            UnregisterMapMarker();
+        }
+
+        super.EEDelete(parent);
+    }
+
+    protected void RegisterMapMarker()
+    {
+        if (m_CitMarkerEvent) return; // Already registered
+
+        string className = GetType();
+        CitadelMapMarkerEntry config = GetMarkerManager().GetConfig(className);
+        if (!config) return;
+
+        // Build a stable ID for duplicate tracking
+        string objectId = className + "_" + GetPosition().ToString();
+        if (GetMarkerManager().IsRegistered(objectId)) return;
+
+        string displayName = config.displayName;
+        if (displayName == "")
+            displayName = className;
+
+        m_CitMarkerEvent = new CitadelTrackedEvent(className, config.icon, this, displayName);
+        GetCitadel().RegisterEvent(m_CitMarkerEvent);
+        GetMarkerManager().MarkRegistered(objectId);
+
+        GetCitadel().GetLogger().Debug(string.Format("[MapMarker] Registered item: %1 (%2)", displayName, className));
+    }
+
+    protected void UnregisterMapMarker()
+    {
+        if (!m_CitMarkerEvent) return;
+
+        string className = GetType();
+        string objectId = className + "_" + GetPosition().ToString();
+
+        GetCitadel().RemoveEvent(m_CitMarkerEvent);
+        GetMarkerManager().UnmarkRegistered(objectId);
+        m_CitMarkerEvent = null;
+
+        GetCitadel().GetLogger().Debug(string.Format("[MapMarker] Unregistered item: %1", className));
+    }
+
+    // ─── Item Pickup / Drop Tracking ─────────────────────
+
     override void EEItemLocationChanged(notnull InventoryLocation oldLoc, notnull InventoryLocation newLoc)
     {
         super.EEItemLocationChanged(oldLoc, newLoc);
 
         if (!GetGame().IsServer()) return;
-        if (!GetCitadel().GetConfiguration().GetTrackItems()) return;
 
         PlayerBase oldPlayer = null;
         PlayerBase newPlayer = null;
@@ -30,29 +93,43 @@ modded class ItemBase extends InventoryItem
         // Item picked up (from world/ground to player inventory)
         if (!oldPlayer && newPlayer)
         {
-            string steamId = newPlayer.GetCitSteamId();
-            if (steamId != "")
-            {
-                CitadelPlayerStats stats = GetCitadel().GetPlayerStats(steamId);
-                if (stats)
-                {
-                    stats.itemsPickedUp++;
+            // Unregister map marker when picked up
+            if (GetCitadel().GetConfiguration().GetTrackMapMarkers())
+                UnregisterMapMarker();
 
-                    // Track weapon looting
-                    if (IsInherited(Weapon_Base))
-                        stats.weaponsLooted++;
+            if (GetCitadel().GetConfiguration().GetTrackItems())
+            {
+                string steamId = newPlayer.GetCitSteamId();
+                if (steamId != "")
+                {
+                    CitadelPlayerStats stats = GetCitadel().GetPlayerStats(steamId);
+                    if (stats)
+                    {
+                        stats.itemsPickedUp++;
+
+                        // Track weapon looting
+                        if (IsInherited(Weapon_Base))
+                            stats.weaponsLooted++;
+                    }
                 }
             }
         }
         // Item dropped (from player inventory to world/ground)
         else if (oldPlayer && !newPlayer)
         {
-            string dropSteamId = oldPlayer.GetCitSteamId();
-            if (dropSteamId != "")
+            // Re-register map marker when dropped back to world
+            if (GetCitadel().GetConfiguration().GetTrackMapMarkers())
+                RegisterMapMarker();
+
+            if (GetCitadel().GetConfiguration().GetTrackItems())
             {
-                CitadelPlayerStats dropStats = GetCitadel().GetPlayerStats(dropSteamId);
-                if (dropStats)
-                    dropStats.itemsDropped++;
+                string dropSteamId = oldPlayer.GetCitSteamId();
+                if (dropSteamId != "")
+                {
+                    CitadelPlayerStats dropStats = GetCitadel().GetPlayerStats(dropSteamId);
+                    if (dropStats)
+                        dropStats.itemsDropped++;
+                }
             }
         }
     }

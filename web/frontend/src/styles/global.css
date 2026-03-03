@@ -895,6 +895,7 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .map-marker__dot--airdrop { border-color: #8b5cf6; background: rgba(139,92,246,0.15); box-shadow: 0 0 12px rgba(139,92,246,0.5); }
 .map-marker__dot--contamination { border-color: #eab308; background: rgba(234,179,8,0.15); box-shadow: 0 0 12px rgba(234,179,8,0.5); }
 .map-marker__dot--horde { border-color: #dc2626; background: rgba(220,38,38,0.15); box-shadow: 0 0 12px rgba(220,38,38,0.5); }
+.map-marker__dot--custom-marker { border-color: #22d3ee; background: rgba(34,211,238,0.15); box-shadow: 0 0 12px rgba(34,211,238,0.5); }
 
 @keyframes pulse-blue {
   0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.6), 0 0 16px rgba(59,130,246,0.3); }
