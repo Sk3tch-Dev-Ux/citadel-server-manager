@@ -51,8 +51,8 @@ async function sendCommand(action, params = {}) {
   const cmdFile = path.join(config.queueDir, `${id}.cmd.json`);
   const resFile = path.join(config.responseDir, `${id}.res.json`);
 
-  // Write command file
-  fs.writeFileSync(cmdFile, JSON.stringify(command, null, 2));
+  // Write compact JSON — the DayZ mod parser expects no spaces after colons
+  fs.writeFileSync(cmdFile, JSON.stringify(command));
   logger.debug({ id, action }, 'Command queued');
 
   // Poll for response
@@ -107,7 +107,7 @@ function sendCommandAsync(action, params = {}) {
   const cmdFile = path.join(config.queueDir, `${id}.cmd.json`);
 
   try {
-    fs.writeFileSync(cmdFile, JSON.stringify(command, null, 2));
+    fs.writeFileSync(cmdFile, JSON.stringify(command));
     logger.debug({ id, action }, 'Async command queued');
   } catch (err) {
     logger.error({ err: err.message, action }, 'Failed to queue async command');

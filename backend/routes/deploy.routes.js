@@ -28,10 +28,7 @@ const { addNotification } = require('../lib/notifications');
 const { scaffoldHookDirectory } = require('../lib/lifecycle-hooks');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
-const { getSidecarPort } = require('../lib/sidecar-manager');
-
-// Path to the bundled @CitadelAdmin mod
-const MOD_SOURCE = path.resolve(__dirname, '..', '..', 'dayz-mod', '@CitadelAdmin');
+const { getSidecarPort, ensureCitadelMod } = require('../lib/sidecar-manager');
 
 /**
  * Scaffold the deployment directory structure.
@@ -62,20 +59,11 @@ function buildLaunchParams(gamePort) {
 }
 
 /**
- * Copy the @CitadelAdmin mod into a server's install directory.
+ * Install @CitadelAdmin mod into a server's install directory.
+ * Delegates to the shared ensureCitadelMod in sidecar-manager.
  */
 function installCitadelMod(installDir) {
-  const dest = path.join(installDir, '@CitadelAdmin');
-  try {
-    if (fs.existsSync(MOD_SOURCE)) {
-      fs.cpSync(MOD_SOURCE, dest, { recursive: true, force: true });
-      logger.info({ dest }, 'Installed @CitadelAdmin mod');
-    } else {
-      logger.warn({ source: MOD_SOURCE }, '@CitadelAdmin mod source not found, skipping install');
-    }
-  } catch (err) {
-    logger.error({ err, dest }, 'Failed to install @CitadelAdmin mod');
-  }
+  ensureCitadelMod(installDir);
 }
 
 /**

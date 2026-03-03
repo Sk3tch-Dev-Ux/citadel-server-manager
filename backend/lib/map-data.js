@@ -164,14 +164,15 @@ function getMapVehicles(serverId) {
     id: v.id,
     className: v.className,
     displayName: v.displayName || prettifyClassName(v.className),
-    vehicleType: v.vehicleType || 'car',
+    vehicleType: v.vehicleType || v.type || 'car',
     icon: v.icon || 'car',
     position: {
       x: v.position?.x || v.position?.[0] || 0,
       z: v.position?.z || v.position?.[2] || 0,
       y: v.position?.y || v.position?.[1] || 0,
     },
-    health: v.health || 0,
+    // Normalize health to 0-1 range; mod writes raw health/maxHealth values
+    health: v.maxHealth > 0 ? Math.min(1, v.health / v.maxHealth) : (v.health > 1 ? 1 : (v.health || 0)),
     speed: v.speed || 0,
   }));
 }

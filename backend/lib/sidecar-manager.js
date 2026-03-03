@@ -8,6 +8,7 @@
  * Each server gets its own sidecar on a unique port derived from gamePort:
  *   sidecarPort = 9100 + (gamePort - 2302)
  */
+const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('./logger');
@@ -16,6 +17,7 @@ const ctx = require('./context');
 // Project root — two levels up from backend/lib/
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const SIDECAR_ENTRY = path.join(PROJECT_ROOT, 'sidecar', 'server.js');
+const MOD_SOURCE = path.join(PROJECT_ROOT, 'dayz-mod', '@CitadelAdmin');
 
 /**
  * Derive sidecar port from server's game port.
@@ -27,12 +29,35 @@ function getSidecarPort(srv) {
 }
 
 /**
+ * Copy the @CitadelAdmin mod into a server's install directory.
+ * Called before every sidecar start to ensure the mod is present and up-to-date.
+ */
+function ensureCitadelMod(installDir) {
+  if (!installDir) return;
+  const dest = path.join(installDir, '@CitadelAdmin');
+  try {
+    if (fs.existsSync(MOD_SOURCE)) {
+      fs.cpSync(MOD_SOURCE, dest, { recursive: true, force: true });
+      logger.debug({ dest }, '@CitadelAdmin mod synced');
+    } else {
+      logger.warn({ source: MOD_SOURCE }, '@CitadelAdmin mod source not found');
+    }
+  } catch (err) {
+    logger.error({ err, dest }, 'Failed to install @CitadelAdmin mod');
+  }
+}
+
+/**
  * Start the sidecar process for a server.
+ * Also ensures @CitadelAdmin mod is installed before starting.
  * No-op if already running.
  */
 function startSidecar(srv) {
   const state = ctx.serverStates[srv.id];
   if (!state) return;
+
+  // Ensure the @CitadelAdmin mod is installed in the server directory
+  ensureCitadelMod(srv.installDir);
 
   // Already running?
   if (state.sidecarPid && state.sidecarProcess) {
@@ -129,4 +154,4 @@ function isSidecarRunning(serverId) {
   }
 }
 
-module.exports = { startSidecar, stopSidecar, isSidecarRunning, getSidecarPort };
+module.exports = { startSidecar, stopSidecar, isSidecarRunning, getSidecarPort, ensureCitadelMod };
