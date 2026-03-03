@@ -10,6 +10,7 @@ const ctx = require('./context');
 const { loadJSON, saveJSON } = require('./data-store');
 const { readServerConfig } = require('./dayz-config');
 const { autoDetectMods } = require('./mod-manager');
+const { getSidecarPort } = require('./sidecar-manager');
 const RCONClient = require('./rcon-client');
 
 /**
@@ -98,13 +99,46 @@ async function createDefaultAdmin() {
 }
 
 /**
+ * Migrate existing servers: ensure they have inHouseApiUrl set
+ * so the sidecar/live map pipeline works.
+ */
+function migrateInHouseApiUrl() {
+  let changed = false;
+  for (const srv of ctx.servers) {
+    if (!srv.inHouseApiUrl) {
+      const sidecarPort = getSidecarPort(srv);
+      srv.inHouseApiUrl = `http://127.0.0.1:${sidecarPort}`;
+      logger.info({ server: srv.name, inHouseApiUrl: srv.inHouseApiUrl }, 'Migrated server: set inHouseApiUrl');
+      changed = true;
+    }
+    // Ensure @CitadelAdmin is in launch params
+    if (srv.launchParams && !srv.launchParams.includes('@CitadelAdmin')) {
+      // Insert -mod=@CitadelAdmin before -dologs or at the end
+      if (srv.launchParams.includes('-mod=')) {
+        // Append to existing -mod= param
+        srv.launchParams = srv.launchParams.replace(/(-mod=)([^\s]+)/, '$1$2;@CitadelAdmin');
+      } else {
+        srv.launchParams = srv.launchParams.replace('-dologs', '"-mod=@CitadelAdmin" -dologs');
+      }
+      logger.info({ server: srv.name, launchParams: srv.launchParams }, 'Migrated server: added @CitadelAdmin to launch params');
+      changed = true;
+    }
+  }
+  if (changed) {
+    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+  }
+}
+
+/**
  * Run the full startup sequence:
  * 1. Migrate default server if needed
- * 2. Initialize all server states
- * 3. Create default admin
+ * 2. Migrate inHouseApiUrl for existing servers
+ * 3. Initialize all server states
+ * 4. Create default admin
  */
 async function startup() {
   migrateDefaultServer();
+  migrateInHouseApiUrl();
   ctx.servers.forEach(s => initServerState(s.id));
   await createDefaultAdmin();
 }

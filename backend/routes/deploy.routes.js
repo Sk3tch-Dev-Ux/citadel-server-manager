@@ -27,6 +27,10 @@ const { addAudit } = require('../lib/audit');
 const { addNotification } = require('../lib/notifications');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
+const { getSidecarPort } = require('../lib/sidecar-manager');
+
+// Path to the bundled @CitadelAdmin mod
+const MOD_SOURCE = path.resolve(__dirname, '..', '..', 'dayz-mod', '@CitadelAdmin');
 
 /**
  * Scaffold the deployment directory structure.
@@ -50,9 +54,27 @@ function scaffoldDeployment(installDir) {
 
 /**
  * Build default launch params for a DayZ server.
+ * Includes @CitadelAdmin mod for live map and admin actions.
  */
 function buildLaunchParams(gamePort) {
-  return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck`;
+  return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles "-mod=@CitadelAdmin" -dologs -adminlog -netlog -freezecheck`;
+}
+
+/**
+ * Copy the @CitadelAdmin mod into a server's install directory.
+ */
+function installCitadelMod(installDir) {
+  const dest = path.join(installDir, '@CitadelAdmin');
+  try {
+    if (fs.existsSync(MOD_SOURCE)) {
+      fs.cpSync(MOD_SOURCE, dest, { recursive: true, force: true });
+      logger.info({ dest }, 'Installed @CitadelAdmin mod');
+    } else {
+      logger.warn({ source: MOD_SOURCE }, '@CitadelAdmin mod source not found, skipping install');
+    }
+  } catch (err) {
+    logger.error({ err, dest }, 'Failed to install @CitadelAdmin mod');
+  }
 }
 
 /**
@@ -226,6 +248,13 @@ module.exports = function(app) {
       // Scaffold deployment directory structure
       scaffoldDeployment(resolvedDir);
 
+      // Install @CitadelAdmin mod for live map + admin actions
+      installCitadelMod(resolvedDir);
+
+      // Configure sidecar API URL for this server
+      const sidecarPort = getSidecarPort(srv);
+      srv.inHouseApiUrl = `http://127.0.0.1:${sidecarPort}`;
+
       // Create default config
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
       if (!fs.existsSync(cfgPath)) {
@@ -316,6 +345,9 @@ module.exports = function(app) {
 
       // Scaffold deployment directory structure
       scaffoldDeployment(resolvedDir);
+
+      // Re-install @CitadelAdmin mod
+      installCitadelMod(resolvedDir);
 
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
       if (!fs.existsSync(cfgPath)) {

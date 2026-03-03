@@ -16,6 +16,7 @@ const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notific
 const { startSchedulerEngine } = require('./scheduler-engine');
 const { startBackupEngine, runStartupBackups } = require('./backup-engine');
 const { scrapeRPTForEvents, getMapData } = require('./map-data');
+const { startSidecar, stopSidecar } = require('./sidecar-manager');
 
 // ─── Steam Update Polling ────────────────────────────────
 let lastModVersions = {};
@@ -120,12 +121,14 @@ function startMetricsPolling() {
               sendDiscordWebhook(`⚠️ **${srv.name}** health alert: ${reason}`);
             } else if (action === 'restart') {
               addLog(srv.id, 'warn', 'health', 'Auto-restarting due to health threshold');
+              stopSidecar(srv.id);
               try { await killProcess(state.pid, srv.executable); } catch (err) { logger.debug({ err }, 'Kill during health restart'); }
               state.pid = null; state.process = null; state.players = [];
               state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
               await new Promise(r => setTimeout(r, 3000));
               const { child, launchFailed } = spawnDayZServer(srv);
               state.process = child; state.pid = child.pid;
+              startSidecar(srv);
               launchFailed.then(async (failReason) => {
                 if (failReason) {
                   addLog(srv.id, 'error', 'health', `Health restart spawn failed: ${failReason}`);
@@ -172,6 +175,7 @@ async function runStartupDetection() {
       ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
       addLog(srv.id, 'info', 'server', `Detected running process for ${srv.name} (PID: ${pid})`);
       applyProcessSettings(pid, srv);
+      startSidecar(srv); // Ensure sidecar is running for live map
     } else if (pid && claimedPids.has(pid)) {
       addLog(srv.id, 'info', 'server', `PID ${pid} already claimed by another server instance — skipping`);
     }
@@ -185,6 +189,7 @@ async function runStartupDetection() {
         state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
         const { child, launchFailed } = spawnDayZServer(srv);
         state.process = child; state.pid = child.pid;
+        startSidecar(srv); // Start sidecar alongside auto-started server
         addLog(srv.id, 'info', 'server', `Auto-start initiated (PID: ${child.pid || 'none'})`);
         launchFailed.then(async (failReason) => {
           if (failReason) {
@@ -294,12 +299,13 @@ function gracefulShutdown(httpServer, signal) {
   intervals.forEach(id => clearInterval(id));
   // Close HTTP server
   httpServer.close(() => logger.info('HTTP server closed'));
-  // Disconnect all RCON clients
+  // Disconnect all RCON clients and stop sidecars
   for (const srv of ctx.servers) {
     const state = ctx.serverStates[srv.id];
     if (state?.rcon) {
       try { state.rcon.disconnect(); } catch (err) { logger.debug({ err }, 'RCON disconnect during shutdown'); }
     }
+    stopSidecar(srv.id);
   }
   // Close WebSocket server
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
