@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "id": "1e33bde8-0eb1-478c-af72-b84627fc6de4",
+    "name": "Testing Branch",
+    "installDir": "C:\\DayZServer",
+    "executable": "DayZServer_x64.exe",
+    "startBat": "",
+    "launchParams": "-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck",
+    "ip": "127.0.0.1",
+    "gamePort": 2302,
+    "queryPort": 2303,
+    "rconPort": 2305,
+    "rconPassword": "Test123",
+    "maxPlayers": 60,
+    "map": "chernarusplus",
+    "gameTitle": "DayZ, PC",
+    "profileDir": "",
+    "createdAt": "2026-03-02T23:58:51.514Z",
+    "deploying": false
+  }
+]
