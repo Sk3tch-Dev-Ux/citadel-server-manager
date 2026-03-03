@@ -8,7 +8,7 @@ const ctx = require('../lib/context');
 const { sanitizeString } = require('../lib/helpers');
 const { detectRunningProcess, detectProcessByPid, killProcess, spawnDayZServer } = require('../lib/process-manager');
 const { downloadWorkshopMod } = require('../lib/steamcmd');
-const { installModToServer, updateStartBatMods } = require('../lib/mod-manager');
+const { installModToServer, updateLaunchParamsMods } = require('../lib/mod-manager');
 const { scrapeRPTForKills } = require('../lib/rpt-scraper');
 const { listBans } = require('../lib/cftools-bans');
 const { getProviderForAction, findSession, ActionType } = require('../lib/server-actions/executor');
@@ -163,7 +163,7 @@ module.exports = function(app) {
             ctx.activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
             const folderName = installModToServer(contentPath, name, String(workshopId), defaultSrv.installDir);
             state.modList.push({ name: folderName, workshopId: String(workshopId), enabled: true, order: state.modList.length });
-            updateStartBatMods(defaultSrv.id);
+            updateLaunchParamsMods(defaultSrv.id);
             ctx.activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
             ctx.io.emit('modInstallProgress', { serverId: defaultSrv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
           })
@@ -181,21 +181,21 @@ module.exports = function(app) {
         const modPath = path.join(defaultSrv.installDir, mod.name);
         try { if (fs.existsSync(modPath)) fs.rmSync(modPath, { recursive: true, force: true }); } catch {}
         state.modList = state.modList.filter(m => m.workshopId !== String(unWid));
-        updateStartBatMods(defaultSrv.id);
+        updateLaunchParamsMods(defaultSrv.id);
         return res.json({ message: `Mod ${unWid} uninstalled` });
       }
       case 'modEnable': {
         const mod = state?.modList?.find(m => m.workshopId === String(params?.workshopId));
         if (!mod) return res.json({ error: 'Mod not found' });
         mod.enabled = true;
-        updateStartBatMods(defaultSrv.id);
+        updateLaunchParamsMods(defaultSrv.id);
         return res.json({ message: `Mod ${params?.workshopId} enabled` });
       }
       case 'modDisable': {
         const mod = state?.modList?.find(m => m.workshopId === String(params?.workshopId));
         if (!mod) return res.json({ error: 'Mod not found' });
         mod.enabled = false;
-        updateStartBatMods(defaultSrv.id);
+        updateLaunchParamsMods(defaultSrv.id);
         return res.json({ message: `Mod ${params?.workshopId} disabled` });
       }
       case 'chatFeed':

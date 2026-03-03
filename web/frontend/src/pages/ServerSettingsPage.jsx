@@ -214,10 +214,6 @@ export default function ServerSettingsPage({ serverId }) {
           <div className="settings-row-value"><input className="input" value={srv.executable || ''} onChange={e => update('executable', e.target.value)} /></div>
         </div>
         <div className="settings-row">
-          <span className="settings-row-label">Start Batch File</span>
-          <div className="settings-row-value"><input className="input" value={srv.startBat || ''} onChange={e => update('startBat', e.target.value)} placeholder="Optional .bat file" /></div>
-        </div>
-        <div className="settings-row">
           <span className="settings-row-label">Server IP</span>
           <div className="settings-row-value"><input className="input" value={srv.ip || '127.0.0.1'} onChange={e => update('ip', e.target.value)} /></div>
         </div>

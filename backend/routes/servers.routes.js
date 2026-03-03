@@ -20,6 +20,8 @@ const TEMPLATE_TO_MAP = {
   'enoch': 'enoch',
   'deerisle': 'deerisle',
   'namalsk': 'namalsk',
+  'sakhal': 'sakhal',
+  'takistanplus': 'takistanplus',
 };
 
 module.exports = function(app) {
@@ -41,20 +43,11 @@ module.exports = function(app) {
     // Check for serverDZ.cfg
     const hasCfg = fs.existsSync(path.join(dir, 'serverDZ.cfg'));
 
-    // Check for .bat files
-    const batFiles = [];
-    try {
-      const files = fs.readdirSync(dir);
-      for (const f of files) {
-        if (f.toLowerCase().endsWith('.bat')) batFiles.push(f);
-      }
-    } catch { /* ignore read errors */ }
-
     if (!executable && !hasCfg) {
       return res.json({ found: false, reason: 'No DayZ server executable or serverDZ.cfg found in this directory' });
     }
 
-    const result = { found: true, executable, hasCfg, batFiles };
+    const result = { found: true, executable, hasCfg };
 
     // Parse serverDZ.cfg if it exists
     if (hasCfg) {
@@ -64,15 +57,6 @@ module.exports = function(app) {
       if (cfg.maxPlayers) result.config.maxPlayers = cfg.maxPlayers;
       if (cfg.template) result.config.map = TEMPLATE_TO_MAP[cfg.template.toLowerCase()] || cfg.template;
       if (cfg.steamQueryPort) result.config.queryPort = cfg.steamQueryPort;
-
-      // Try to detect game port from launch params in .bat files
-      for (const bat of batFiles) {
-        try {
-          const content = fs.readFileSync(path.join(dir, bat), 'utf8');
-          const portMatch = content.match(/-port=(\d+)/);
-          if (portMatch) { result.config.gamePort = parseInt(portMatch[1], 10); break; }
-        } catch { /* ignore */ }
-      }
 
       // Detect if experimental based on directory or config hints
       const dirLower = dir.toLowerCase();
@@ -111,16 +95,16 @@ module.exports = function(app) {
   });
 
   app.post('/api/servers', auth('server.deploy'), requireLicense(), async (req, res) => {
-    const { name, installDir, executable, startBat, launchParams, ip, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map, gameTitle } = req.body;
+    const { name, installDir, executable, launchParams, ip, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map, gameTitle } = req.body;
     if (!name || !installDir) return res.status(400).json({ error: 'Name and installDir required' });
     const srv = {
       id: uuid(), name, installDir: installDir.replace(/\//g, '\\'),
-      executable: executable || 'DayZServer_x64.exe', startBat: startBat || '',
-      launchParams: launchParams || '-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck',
+      executable: executable || 'DayZServer_x64.exe',
+      launchParams: launchParams || `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck`,
       ip: ip || '127.0.0.1', gamePort: gamePort || 2302, queryPort: queryPort || 2303,
       rconPort: rconPort || 2305, rconPassword: rconPassword || '',
       maxPlayers: maxPlayers || 60, map: map || 'chernarusplus',
-      gameTitle: gameTitle || 'DayZ, PC', profileDir: '', createdAt: new Date().toISOString(),
+      gameTitle: gameTitle || 'DayZ, PC', profileDir: 'profiles', createdAt: new Date().toISOString(),
     };
     ctx.servers.push(srv);
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
@@ -132,7 +116,7 @@ module.exports = function(app) {
   app.patch('/api/servers/:id', auth('server.deploy'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
-    const allowed = ['name','installDir','executable','startBat','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreServerModUpdates','cftoolsServerApiId','cftoolsBanlistId','inHouseApiUrl','inHouseApiKey'];
+    const allowed = ['name','installDir','executable','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreServerModUpdates','cftoolsServerApiId','cftoolsBanlistId','inHouseApiUrl','inHouseApiKey'];
     for (const key of allowed) { if (req.body[key] !== undefined) srv[key] = req.body[key]; }
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
     addAudit(req.user.id, req.user.username, 'server.update', `Updated server: ${srv.name}`);

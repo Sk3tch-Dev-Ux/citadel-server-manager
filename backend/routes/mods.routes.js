@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const ctx = require('../lib/context');
 const { downloadWorkshopMod } = require('../lib/steamcmd');
-const { installModToServer, updateStartBatMods } = require('../lib/mod-manager');
+const { installModToServer, updateLaunchParamsMods } = require('../lib/mod-manager');
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
 const auth = require('../middleware/auth');
@@ -33,7 +33,7 @@ module.exports = function(app) {
       ctx.activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
       const folderName = installModToServer(contentPath, name, String(workshopId), srv.installDir);
       state.modList.push({ name: folderName, workshopId: String(workshopId), enabled: true, order: state.modList.length });
-      updateStartBatMods(srv.id);
+      updateLaunchParamsMods(srv.id);
       ctx.activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
       ctx.io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
       ctx.io.emit('mods', { serverId: srv.id, mods: state.modList });
@@ -58,7 +58,7 @@ module.exports = function(app) {
       const modPath = path.join(srv.installDir, mod.name);
       if (fs.existsSync(modPath)) fs.rmSync(modPath, { recursive: true, force: true });
       state.modList = state.modList.filter(m => m.workshopId !== req.params.workshopId);
-      updateStartBatMods(srv.id);
+      updateLaunchParamsMods(srv.id);
       ctx.io.emit('mods', { serverId: srv.id, mods: state.modList });
       addAudit(req.user.id, req.user.username, 'mod.uninstall', `Uninstalled ${mod.name} from ${srv.name}`);
       addNotification(srv.id, 'mod.removed', 'Mod Uninstalled', `${mod.name} removed from ${srv.name}`, 'info');
@@ -73,7 +73,7 @@ module.exports = function(app) {
     const mod = state.modList.find(m => m.workshopId === req.params.workshopId);
     if (!mod) return res.status(404).json({ error: 'Mod not found' });
     Object.assign(mod, req.body);
-    updateStartBatMods(req.params.id);
+    updateLaunchParamsMods(req.params.id);
     res.json(mod);
   });
 

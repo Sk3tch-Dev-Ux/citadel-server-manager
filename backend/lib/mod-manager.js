@@ -1,15 +1,16 @@
 /**
- * Mod detection, installation, and batch file management for DayZ servers.
+ * Mod detection, installation, and launch params management for DayZ servers.
  */
 const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
 const ctx = require('./context');
 const { copyDirSync } = require('./helpers');
+const { saveJSON } = require('./data-store');
 
 /**
  * Auto-detect installed mods by scanning for @-prefixed directories.
- * Parses meta.cpp for workshop IDs and checks .bat for active mods.
+ * Parses meta.cpp for workshop IDs and checks launchParams for active mods.
  */
 function autoDetectMods(serverId) {
   const srv = ctx.servers.find(s => s.id === serverId);
@@ -26,14 +27,10 @@ function autoDetectMods(serverId) {
     return;
   }
   let activeMods = new Set();
-  if (srv.startBat) {
-    try {
-      const batContent = fs.readFileSync(path.join(installDir, srv.startBat), 'utf8');
-      const modMatch = batContent.match(/["\s]-mod=([^"\n]+)/i) || batContent.match(/-mod=([^\s]+)/i);
-      if (modMatch) modMatch[1].replace(/["]/g, '').trim().split(';').forEach(m => { if (m.trim()) activeMods.add(m.trim()); });
-    } catch (err) {
-      logger.debug({ err }, 'Failed to read start bat for mod detection');
-    }
+  const params = srv.launchParams || '';
+  const modMatch = params.match(/-mod=([^\s]+)/i);
+  if (modMatch) {
+    modMatch[1].replace(/["]/g, '').trim().split(';').forEach(m => { if (m.trim()) activeMods.add(m.trim()); });
   }
   state.modList = installedMods.map((name, index) => {
     let workshopId = '';
@@ -78,27 +75,30 @@ function installModToServer(workshopContentPath, modName, workshopId, installDir
 }
 
 /**
- * Update the server's start .bat file with the current enabled mod list.
- * Creates a timestamped backup before modifying.
+ * Update the server's launchParams with the current enabled mod list.
+ * Persists the change to servers.json.
  */
-function updateStartBatMods(serverId) {
+function updateLaunchParamsMods(serverId) {
   const srv = ctx.servers.find(s => s.id === serverId);
   const state = ctx.serverStates[serverId];
-  if (!srv || !state || !srv.startBat) return;
-  const batPath = path.join(srv.installDir, srv.startBat);
-  if (!fs.existsSync(batPath)) return;
+  if (!srv || !state) return;
   try {
-    let content = fs.readFileSync(batPath, 'utf8');
     const enabledMods = state.modList.filter(m => m.enabled).map(m => m.name).join(';');
-    const backupDir = path.join(srv.installDir, '.backups');
-    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-    fs.copyFileSync(batPath, path.join(backupDir, `${srv.startBat}.${Date.now()}.bak`));
-    if (content.match(/"-mod=[^"]*"/i)) content = content.replace(/"-mod=[^"]*"/i, `"-mod=${enabledMods}"`);
-    else if (content.match(/-mod=[^\s"]+/i)) content = content.replace(/-mod=[^\s"]+/i, `-mod=${enabledMods}`);
-    fs.writeFileSync(batPath, content);
+    let params = srv.launchParams || '';
+    if (enabledMods) {
+      if (params.match(/-mod=[^\s]+/i)) {
+        params = params.replace(/-mod=[^\s]+/i, `-mod=${enabledMods}`);
+      } else {
+        params = `${params} -mod=${enabledMods}`.trim();
+      }
+    } else {
+      params = params.replace(/\s*-mod=[^\s]+/i, '').trim();
+    }
+    srv.launchParams = params;
+    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
   } catch (err) {
-    logger.error({ err, serverId }, 'Failed to update start bat mods');
+    logger.error({ err, serverId }, 'Failed to update launch params mods');
   }
 }
 
-module.exports = { autoDetectMods, installModToServer, updateStartBatMods };
+module.exports = { autoDetectMods, installModToServer, updateLaunchParamsMods };
