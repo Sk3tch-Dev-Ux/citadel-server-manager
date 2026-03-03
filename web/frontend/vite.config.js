@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-switch', '@radix-ui/react-tabs', '@radix-ui/react-tooltip'],
-          // map chunk removed — Live Map is a Citadel Cloud exclusive feature
+          map: ['leaflet', 'react-leaflet'],
         },
       },
     },

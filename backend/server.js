@@ -209,17 +209,10 @@ const { startAllPolling, gracefulShutdown } = require('./lib/polling');
   // Start all polling loops (metrics, mod detection, leaderboard, steam updates, RCON)
   await startAllPolling();
 
-  // Start Citadel Cloud connector (if configured)
-  const { init: initCloud } = require('./lib/cloud-connector');
-  const cloud = initCloud({ cloudUrl: CONFIG.cloud.url, cloudApiKey: CONFIG.cloud.apiKey }, ctx);
-  ctx.cloudConnector = cloud;
-  cloud.start();
-
   // Listen
   server.listen(CONFIG.port, () => {
-    logger.info(`Citadel API v2.0 running on ${useHttps ? 'https' : 'http'}://localhost:${CONFIG.port}`);
+    logger.info(`Citadel v2.0 (All-In-One) running on ${useHttps ? 'https' : 'http'}://localhost:${CONFIG.port}`);
     logger.info(`${ctx.servers.length} server(s) configured, ${ctx.users.length} user(s)`);
-    if (cloud.enabled) logger.info(`Cloud connector: ${cloud.connected ? 'connected' : 'connecting'} to ${CONFIG.cloud.url}`);
   });
 })();
 
