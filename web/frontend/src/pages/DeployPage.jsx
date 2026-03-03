@@ -5,6 +5,12 @@ import { useServers } from '../contexts/ServersContext';
 import API from '../api';
 import { Rocket, CheckCircle, XCircle, ArrowLeft, ArrowRight, Monitor, Zap, FolderOpen, Search, Shield, AlertTriangle, Loader } from '../components/Icon';
 
+const DEPLOY_BASE = 'C:\\Citadel\\deployments';
+
+function sanitizeDirName(name) {
+  return name.trim().replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_');
+}
+
 export default function DeployPage() {
   const socket = useSocket();
   const navigate = useNavigate();
@@ -13,7 +19,8 @@ export default function DeployPage() {
   const [step, setStep] = useState(1);
   const [gameTitle, setGameTitle] = useState('DayZ, PC');
   const [name, setName] = useState('');
-  const [installDir, setInstallDir] = useState('C:\\Citadel\\deployments\\');
+  const [installDir, setInstallDir] = useState(DEPLOY_BASE + '\\');
+  const [dirManuallyEdited, setDirManuallyEdited] = useState(false);
   const [executable, setExecutable] = useState('DayZServer_x64.exe');
   const [gamePort, setGamePort] = useState(2302);
   const [queryPort, setQueryPort] = useState(2303);
@@ -290,8 +297,17 @@ export default function DeployPage() {
       {step === 3 && mode === 'new' && (
         <div style={{ maxWidth: 500 }}>
           <h3 style={{ marginBottom: 20 }}>Server Details</h3>
-          <div className="input-group"><label className="input-label">Server Name</label><input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="My DayZ Server" /></div>
-          <div className="input-group"><label className="input-label">Install Directory</label><input className="input" value={installDir} onChange={e => setInstallDir(e.target.value)} /></div>
+          <div className="input-group"><label className="input-label">Server Name</label><input className="input" value={name} onChange={e => {
+            const newName = e.target.value;
+            setName(newName);
+            if (!dirManuallyEdited) {
+              const sanitized = sanitizeDirName(newName);
+              setInstallDir(sanitized ? DEPLOY_BASE + '\\' + sanitized : DEPLOY_BASE + '\\');
+            }
+          }} placeholder="My DayZ Server" /></div>
+          <div className="input-group"><label className="input-label">Install Directory</label><input className="input" value={installDir} onChange={e => { setInstallDir(e.target.value); setDirManuallyEdited(true); }} />
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Auto-generated from server name. Edit to override.</div>
+          </div>
           <div className="input-group"><label className="input-label">Map</label>
             <select className="input" value={map} onChange={e => setMap(e.target.value)}>
               <option value="chernarusplus">Chernarus</option>

@@ -163,7 +163,16 @@ module.exports = function(app) {
     }
 
     const appId = gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
-    const resolvedDir = path.resolve(installDir);
+
+    // Ensure each server gets its own subdirectory — if installDir is a bare
+    // deployments base (no server-specific folder), append a sanitized server name
+    let finalDir = installDir;
+    const baseName = path.basename(path.resolve(installDir));
+    if (baseName === 'deployments' || baseName === 'Citadel' || finalDir.endsWith('\\') || finalDir.endsWith('/')) {
+      const sanitized = name.trim().replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_');
+      if (sanitized) finalDir = path.join(installDir, sanitized);
+    }
+    const resolvedDir = path.resolve(finalDir);
 
     addAudit(req.user.id, req.user.username, 'server.deploy', `Deploying ${name} to ${resolvedDir}`);
     ctx.io.emit('deployProgress', { status: 'starting', message: 'Preparing deployment...' });
