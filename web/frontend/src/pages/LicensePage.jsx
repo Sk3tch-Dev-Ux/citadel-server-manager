@@ -153,7 +153,7 @@ export default function LicensePage() {
                 { icon: <Clock size={15} />, label: 'Scheduler' },
                 { icon: <Zap size={15} />, label: 'Backup System' },
                 { icon: <Terminal size={15} />, label: 'RCON Console' },
-                { icon: <Map size={15} />, label: 'Live Map' },
+                { icon: <Map size={15} />, label: 'Cloud Integration' },
                 { icon: <Package size={15} />, label: 'Mod Manager' },
                 { icon: <Send size={15} />, label: 'Discord Bot' },
                 { icon: <Globe size={15} />, label: 'Webhooks' },

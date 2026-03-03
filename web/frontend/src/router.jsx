@@ -23,7 +23,7 @@ import SchedulerPage from './pages/SchedulerPage';
 import MessengerPage from './pages/MessengerPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
 import DangerzonePage from './pages/DangerzonePage';
-import LiveMapPage from './pages/LiveMapPage';
+// LiveMapPage removed from local — available exclusively via Citadel Cloud
 import LicensePage from './pages/LicensePage';
 import ToastContainer from './components/ToastContainer';
 import API from './api';
@@ -125,7 +125,7 @@ export default function AppRouter() {
             <Route path="bans" element={<PermGuard permission="bans.manage"><ServerPage Component={BansPage} /></PermGuard>} />
             <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ServerPage Component={SchedulerPage} /></PermGuard>} />
             <Route path="messenger" element={<PermGuard permission="chat.send"><ServerPage Component={MessengerPage} /></PermGuard>} />
-            <Route path="map" element={<ServerPage Component={LiveMapPage} />} />
+            {/* Live Map is a Citadel Cloud exclusive feature */}
             <Route path="settings" element={<PermGuard permission="server.settings"><ServerPage Component={ServerSettingsPage} /></PermGuard>} />
             <Route path="dangerzone" element={<PermGuard permission="server.dangerzone"><ServerPage Component={DangerzonePage} /></PermGuard>} />
           </Route>
