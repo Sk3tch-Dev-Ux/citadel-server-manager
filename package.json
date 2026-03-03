@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "license": "UNLICENSED",
-  "description": "Citadel — Enterprise DayZ server management platform with web UI, Discord bot, and in-game admin mod",
+  "description": "Citadel — All-In-One DayZ server management tool with web UI, Discord bot, Live Map, and in-game admin mod",
   "engines": {
     "node": ">=18.0.0"
   },

@@ -58,7 +58,7 @@ export default function AppLayout() {
         <div className="sidebar-header">
           <Link to="/" className="sidebar-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
             <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 38, height: 38 }} />
-            <div><div className="logo-text">Citadel</div><div className="logo-sub">Server Management</div></div>
+            <div><div className="logo-text">Citadel</div><div className="logo-sub">All-In-One DayZ Tool</div></div>
           </Link>
         </div>
 
@@ -160,11 +160,12 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, ShieldBan, Clock, Send, Wrench, AlertTriangle } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, ShieldBan, Clock, Send, Wrench, AlertTriangle, Map } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const navItems = [
     { id: 'overview', icon: <LayoutDashboard size={16} />, label: 'Overview' },
+    { id: 'map', icon: <Map size={16} />, label: 'Live Map' },
     { id: 'metrics', icon: <BarChart3 size={16} />, label: 'Metrics' },
     { id: 'console', icon: <Terminal size={16} />, label: 'Console' },
     { id: 'players', icon: <Users size={16} />, label: 'Players' },

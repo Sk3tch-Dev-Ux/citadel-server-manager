@@ -82,7 +82,7 @@ export default function LicensePage() {
             <p className="license-hero-desc">
               {isLicensed
                 ? 'Full access to all features and premium support.'
-                : 'Unlock the complete server management toolkit for your DayZ community.'}
+                : 'Unlock the complete All-In-One DayZ toolkit for your community.'}
             </p>
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function LicensePage() {
 
           {/* Features Card */}
           <div className="license-features-card">
-            <div className="license-features-header">Everything you need to run DayZ servers</div>
+            <div className="license-features-header">Everything included — one tool, one price</div>
             <div className="license-features-grid">
               {[
                 { icon: <Server size={15} />, label: 'Unlimited Servers' },
@@ -153,7 +153,7 @@ export default function LicensePage() {
                 { icon: <Clock size={15} />, label: 'Scheduler' },
                 { icon: <Zap size={15} />, label: 'Backup System' },
                 { icon: <Terminal size={15} />, label: 'RCON Console' },
-                { icon: <Map size={15} />, label: 'Cloud Integration' },
+                { icon: <Map size={15} />, label: 'Live Map' },
                 { icon: <Package size={15} />, label: 'Mod Manager' },
                 { icon: <Send size={15} />, label: 'Discord Bot' },
                 { icon: <Globe size={15} />, label: 'Webhooks' },

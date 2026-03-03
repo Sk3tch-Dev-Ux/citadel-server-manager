@@ -89,11 +89,6 @@ PANEL_API_URL=http://localhost:3001
 # INHOUSE_SIDECAR_PORT=9100
 # INHOUSE_API_KEY=${generateSecret(16)}
 
-# Citadel Cloud Pairing (connects this instance to Citadel Cloud)
-# Generate an API key from your Citadel Cloud team dashboard
-# CLOUD_URL=https://your-citadel-cloud-instance.com
-# CLOUD_API_KEY=
-
 # CFTools Cloud Integration (DEPRECATED — use InHouse sidecar instead)
 # Only needed if you still use CFTools for some servers.
 # CFTOOLS_APPLICATION_ID=
