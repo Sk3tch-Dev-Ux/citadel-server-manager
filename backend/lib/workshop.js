@@ -12,7 +12,6 @@ const DAYZ_APP_ID = 221100;
 async function enrichWorkshopResults(items) {
   if (items.length === 0) return items;
   try {
-    const fetch = (await import('node-fetch')).default;
     const params = new URLSearchParams();
     params.append('itemcount', items.length);
     items.forEach((item, i) => params.append(`publishedfileids[${i}]`, item.workshopId));
@@ -44,7 +43,6 @@ async function enrichWorkshopResults(items) {
  * Uses multiple regex patterns to handle different Steam HTML layouts.
  */
 async function scrapeWorkshopSearch(query, page) {
-  const fetch = (await import('node-fetch')).default;
   const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&searchtext=${encodeURIComponent(query)}&browsesort=textsearch&section=readytouseitems&actualsort=textsearch&p=${page}`;
   const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, timeout: 15000 });
   const html = await response.text();

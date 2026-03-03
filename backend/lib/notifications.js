@@ -7,6 +7,7 @@ const logger = require('./logger');
 const ctx = require('./context');
 const { saveJSON } = require('./data-store');
 const { sanitizeString } = require('./helpers');
+const { MAX_NOTIFICATION_COUNT, MAX_WEBHOOK_DELIVERIES } = require('./constants');
 
 /**
  * Supported webhook event types with human-readable descriptions.
@@ -51,7 +52,7 @@ function addNotification(serverId, type, title, message, severity) {
     timestamp: new Date().toISOString(), read: false,
   };
   ctx.notifications.unshift(n);
-  if (ctx.notifications.length > 200) ctx.notifications.length = 200;
+  if (ctx.notifications.length > MAX_NOTIFICATION_COUNT) ctx.notifications.length = MAX_NOTIFICATION_COUNT;
   if (ctx.io) ctx.io.emit('notification', n);
   return n;
 }
@@ -62,7 +63,6 @@ function addNotification(serverId, type, title, message, severity) {
 async function sendDiscordWebhook(content, embeds) {
   if (!ctx.CONFIG.webhookUrl) return;
   try {
-    const fetch = (await import('node-fetch')).default;
     await fetch(ctx.CONFIG.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -154,7 +154,6 @@ async function deliverWebhook(wh, eventType, data, attemptNum, maxRetries) {
   };
 
   try {
-    const fetch = (await import('node-fetch')).default;
     if (wh.url.includes('discord.com/api/webhooks')) {
       // Substitute variables across the ENTIRE template, then parse
       const raw = substituteVariables(wh.template || '{}', eventType, data);
@@ -186,7 +185,7 @@ async function deliverWebhook(wh, eventType, data, attemptNum, maxRetries) {
       timestamp: new Date().toISOString(), status: 'success', event: eventType,
       idempotenceToken, attempt: attemptNum,
     });
-    if (wh.deliveries.length > 50) wh.deliveries = wh.deliveries.slice(0, 50);
+    if (wh.deliveries.length > MAX_WEBHOOK_DELIVERIES) wh.deliveries = wh.deliveries.slice(0, MAX_WEBHOOK_DELIVERIES);
     saveJSON(ctx.CONFIG.dataDir, 'webhooks.json', ctx.webhooks);
   } catch (err) {
     // Record failure
@@ -196,7 +195,7 @@ async function deliverWebhook(wh, eventType, data, attemptNum, maxRetries) {
       timestamp: new Date().toISOString(), status: 'failed', event: eventType,
       error: err.message, idempotenceToken, attempt: attemptNum,
     });
-    if (wh.deliveries.length > 50) wh.deliveries = wh.deliveries.slice(0, 50);
+    if (wh.deliveries.length > MAX_WEBHOOK_DELIVERIES) wh.deliveries = wh.deliveries.slice(0, MAX_WEBHOOK_DELIVERIES);
     saveJSON(ctx.CONFIG.dataDir, 'webhooks.json', ctx.webhooks);
 
     // Retry with exponential backoff — use separate counter, do NOT mutate wh._retryCount

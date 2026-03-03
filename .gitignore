@@ -5,6 +5,9 @@ node_modules/
 .env
 .env.*
 
+# Structured config (user-specific, may contain non-default settings)
+citadel.config.json
+
 # Logs
 *.log
 logs/

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import API from '../api';
 import Modal from '../components/ui/Modal';
+import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { Save, Bookmark, Trash2, RotateCcw, Plus, Clock } from '../components/Icon';
 
 const MAX_TEMPLATES = 20;
@@ -39,6 +40,9 @@ export default function ConfigPage({ serverId }) {
     window.addToast('Config saved', 'success');
     setSaving(false);
   };
+
+  // Ctrl+S to save config
+  useKeyboardShortcuts({ 'ctrl+s': () => save() });
 
   // ─── Template actions ─────────────────────────────────
 

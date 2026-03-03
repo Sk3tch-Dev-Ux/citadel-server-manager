@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('./logger');
+const { PROCESS_CMD_TIMEOUT_MS, LAUNCH_GRACE_PERIOD_MS } = require('./constants');
 
 // Guards to prevent overlapping spawns (one per executable/pid)
 const _pendingDetect = new Set();
@@ -20,7 +21,7 @@ function detectRunningProcess(executable) {
       stdio: ['ignore', 'pipe', 'ignore'],
     });
     let stdout = '';
-    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, PROCESS_CMD_TIMEOUT_MS);
     proc.stdout.on('data', (data) => { stdout += data.toString(); });
     proc.on('error', () => { clearTimeout(killTimer); _pendingDetect.delete(executable); resolve(null); });
     proc.on('close', () => {
@@ -51,7 +52,7 @@ function getProcessMetrics(pid) {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stdout = '';
-    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, PROCESS_CMD_TIMEOUT_MS);
     proc.stdout.on('data', (data) => { stdout += data.toString(); });
     proc.on('error', () => { clearTimeout(killTimer); _pendingMetrics.delete(safePid); resolve(null); });
     proc.on('close', () => {
@@ -157,8 +158,8 @@ function spawnDayZServer(serverConfig) {
       settle(`Process exited early (code: ${code}, signal: ${signal})`);
     });
 
-    // If still alive after 10s, consider the launch not-failed
-    setTimeout(() => settle(null), 10000);
+    // If still alive after the grace period, consider the launch not-failed
+    setTimeout(() => settle(null), LAUNCH_GRACE_PERIOD_MS);
   });
 
   if (child && child.pid) {
@@ -182,7 +183,7 @@ function detectProcessByPid(pid) {
       stdio: ['ignore', 'pipe', 'ignore'],
     });
     let stdout = '';
-    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, PROCESS_CMD_TIMEOUT_MS);
     proc.stdout.on('data', (data) => { stdout += data.toString(); });
     proc.on('error', () => { clearTimeout(killTimer); resolve(false); });
     proc.on('close', () => {
@@ -210,7 +211,7 @@ function applyProcessSettings(pid, serverConfig) {
       windowsHide: true,
       stdio: ['ignore', 'ignore', 'pipe'],
     });
-    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, 5000);
+    const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, PROCESS_CMD_TIMEOUT_MS);
     proc.on('error', (err) => { clearTimeout(killTimer); logger.error({ err, pid: safePid }, 'Failed to apply process settings'); });
     proc.on('close', () => clearTimeout(killTimer));
   }

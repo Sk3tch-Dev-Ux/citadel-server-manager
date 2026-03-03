@@ -22,6 +22,7 @@ const { pushMetrics } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { scrapeRPTForEvents, getMapData } = require('./map-data');
 const { restartServer } = require('./server-lifecycle');
+const { HEALTH_ALERT_COOLDOWN_MS } = require('./constants');
 
 /**
  * Collect metrics for a single running server.
@@ -105,9 +106,8 @@ function checkHealthThresholds(srv, state, metrics, fps) {
   }
 
   const now = Date.now();
-  const cooldown = 5 * 60 * 1000;
 
-  if (triggered && (!state.lastHealthAlert || now - state.lastHealthAlert > cooldown)) {
+  if (triggered && (!state.lastHealthAlert || now - state.lastHealthAlert > HEALTH_ALERT_COOLDOWN_MS)) {
     state.lastHealthAlert = now;
     addLog(srv.id, 'warn', 'health', 'Health alert: ' + reason);
     addNotification(srv.id, 'server.health', 'Health Alert', `${srv.name}: ${reason}`, 'warning');

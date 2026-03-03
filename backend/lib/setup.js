@@ -2,6 +2,7 @@
 /**
  * First-run setup script.
  * Auto-generates .env with secure defaults if it doesn't exist.
+ * Also generates citadel.config.json with structured defaults.
  * Safe to run multiple times — never overwrites existing values.
  */
 const fs = require('fs');
@@ -12,6 +13,7 @@ const ROOT = path.join(__dirname, '..', '..');
 const ENV_PATH = path.join(ROOT, '.env');
 const ENV_EXAMPLE = path.join(ROOT, '.env.example');
 const DATA_DIR = path.join(ROOT, 'data');
+const CONFIG_FILE = path.join(ROOT, 'citadel.config.json');
 
 function generateSecret(bytes = 32) {
   return crypto.randomBytes(bytes).toString('hex');
@@ -49,6 +51,9 @@ function setup() {
     }
 
     console.log('[setup] .env exists — skipping creation');
+
+    // Still generate citadel.config.json if it doesn't exist
+    generateConfigFile();
     return;
   }
 
@@ -97,7 +102,49 @@ PANEL_API_URL=http://localhost:3001
 
   fs.writeFileSync(ENV_PATH, env);
   console.log('[setup] Created .env with secure JWT_SECRET');
+
+  // Generate citadel.config.json alongside .env
+  generateConfigFile();
+
   console.log('[setup] Start the panel and complete setup via the web interface');
+}
+
+/**
+ * Generate citadel.config.json with populated defaults if it doesn't exist.
+ * Safe to call multiple times — never overwrites an existing file.
+ */
+function generateConfigFile() {
+  if (fs.existsSync(CONFIG_FILE)) {
+    console.log('[setup] citadel.config.json exists — skipping creation');
+    return;
+  }
+
+  try {
+    // Lazy-require to avoid circular deps when run standalone
+    const { getDefaults, CONFIG_SCHEMA } = require('./config-schema');
+    const defaults = getDefaults();
+
+    // Build a clean config with non-sensitive defaults only
+    const configToWrite = {};
+    for (const [section, fields] of Object.entries(CONFIG_SCHEMA)) {
+      const sectionData = {};
+      let hasFields = false;
+      for (const [key, def] of Object.entries(fields)) {
+        // Never write sensitive defaults to the config file
+        if (def.sensitive) continue;
+        sectionData[key] = defaults[section][key];
+        hasFields = true;
+      }
+      if (hasFields) {
+        configToWrite[section] = sectionData;
+      }
+    }
+
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(configToWrite, null, 2) + '\n', 'utf-8');
+    console.log('[setup] Created citadel.config.json with defaults');
+  } catch (err) {
+    console.warn(`[setup] Could not generate citadel.config.json: ${err.message}`);
+  }
 }
 
 // Run if called directly
@@ -105,4 +152,4 @@ if (require.main === module) {
   setup();
 }
 
-module.exports = { setup };
+module.exports = { setup, generateConfigFile };

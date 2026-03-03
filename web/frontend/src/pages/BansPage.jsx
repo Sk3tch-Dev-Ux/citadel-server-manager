@@ -13,7 +13,13 @@ export default function BansPage({ serverId }) {
   };
   return (
     <div>
-      {bans.length === 0 ? <div className="empty-state"><div className="empty-icon"><ShieldBan size={48} /></div><div className="empty-title">No Active Bans</div></div> : (
+      {bans.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon empty-state-icon-large"><ShieldBan size={48} /></div>
+          <div className="empty-title">No Active Bans</div>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, maxWidth: 360, lineHeight: 1.5 }}>Banned players will appear here. Use the Players page to issue bans.</p>
+        </div>
+      ) : (
         <div className="table-wrap"><table>
           <thead><tr><th>Name</th><th>ID</th><th>Reason</th><th>Date</th><th>Actions</th></tr></thead>
           <tbody>{bans.map(b => (

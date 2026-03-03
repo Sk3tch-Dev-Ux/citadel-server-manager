@@ -6,6 +6,12 @@ const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('./logger');
 const ctx = require('./context');
+const {
+  STEAMCMD_INIT_TIMEOUT_MS,
+  STEAMCMD_LOGIN_TIMEOUT_MS,
+  STEAMCMD_DOWNLOAD_TIMEOUT_MS,
+  STEAMCMD_UPDATE_TIMEOUT_MS,
+} = require('./constants');
 
 async function ensureSteamCMD() {
   if (ctx.steamCmdPath && fs.existsSync(ctx.steamCmdPath)) return ctx.steamCmdPath;
@@ -18,7 +24,6 @@ async function ensureSteamCMD() {
   const steamCmdDir = path.join(__dirname, '..', '..', 'steamcmd');
   const zipPath = path.join(steamCmdDir, 'steamcmd.zip');
   if (!fs.existsSync(steamCmdDir)) fs.mkdirSync(steamCmdDir, { recursive: true });
-  const fetch = (await import('node-fetch')).default;
   const resp = await fetch('https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip');
   if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
   fs.writeFileSync(zipPath, Buffer.from(await resp.arrayBuffer()));
@@ -32,7 +37,7 @@ async function ensureSteamCMD() {
   await new Promise((resolve) => {
     const proc = spawn(exePath, ['+quit'], { cwd: steamCmdDir });
     proc.on('exit', () => resolve()); proc.on('error', () => resolve());
-    setTimeout(() => { try { proc.kill(); } catch (err) { logger.debug({ err }, 'SteamCMD init kill'); } resolve(); }, 120000);
+    setTimeout(() => { try { proc.kill(); } catch (err) { logger.debug({ err }, 'SteamCMD init kill'); } resolve(); }, STEAMCMD_INIT_TIMEOUT_MS);
   });
   ctx.steamCmdPath = exePath;
   try { fs.unlinkSync(zipPath); } catch (err) { logger.debug({ err }, 'Failed to clean up steamcmd.zip'); }
@@ -96,7 +101,7 @@ async function downloadWorkshopMod(workshopId, modName, serverId) {
       }
     };
     proc.stdout?.on('data', handleData); proc.stderr?.on('data', handleData);
-    const timeout = setTimeout(() => { try { proc.kill(); } catch (err) { logger.debug({ err }, 'Kill steamcmd on timeout'); } reject(new Error('Download timed out')); }, 30 * 60 * 1000);
+    const timeout = setTimeout(() => { try { proc.kill(); } catch (err) { logger.debug({ err }, 'Kill steamcmd on timeout'); } reject(new Error('Download timed out')); }, STEAMCMD_DOWNLOAD_TIMEOUT_MS);
     proc.on('exit', () => {
       clearTimeout(timeout);
       if (needsSteamGuard) { ctx.steamLoginValidated = false; return reject(new Error('Steam Guard code required.')); }
@@ -156,7 +161,7 @@ async function validateSteamLogin(username, password, guardCode) {
     const timeout = setTimeout(() => {
       if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) done({ success: true });
       else done({ success: false, error: 'Login timed out — SteamCMD did not respond within 60 seconds' });
-    }, 60000);  // Longer timeout to let SteamCMD fully complete
+    }, STEAMCMD_LOGIN_TIMEOUT_MS);  // Longer timeout to let SteamCMD fully complete
     proc.on('exit', () => {
       if (resolved) return;
       if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) done({ success: true });
@@ -225,7 +230,7 @@ async function updateServerApp(serverId, installDir) {
     const timeout = setTimeout(() => {
       try { proc.kill(); } catch { /* ok */ }
       reject(new Error('Game update timed out after 60 minutes'));
-    }, 60 * 60 * 1000);
+    }, STEAMCMD_UPDATE_TIMEOUT_MS);
 
     proc.on('exit', (code) => {
       clearTimeout(timeout);
@@ -316,7 +321,7 @@ async function updateWorkshopMod(serverId, installDir, modId) {
     const timeout = setTimeout(() => {
       try { proc.kill(); } catch { /* ok */ }
       reject(new Error('Mod update timed out after 30 minutes'));
-    }, 30 * 60 * 1000);
+    }, STEAMCMD_DOWNLOAD_TIMEOUT_MS);
 
     proc.on('exit', () => {
       clearTimeout(timeout);

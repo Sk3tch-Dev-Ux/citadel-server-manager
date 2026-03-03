@@ -27,9 +27,7 @@ const { spawn } = require('child_process');
 const logger = require('./logger');
 const ctx = require('./context');
 const { addLog } = require('./audit');
-
-// Default timeout per hook execution (ms)
-const DEFAULT_HOOK_TIMEOUT = 30000;
+const { HOOK_TIMEOUT_MS } = require('./constants');
 
 // Supported file extensions and their spawn commands
 const RUNNERS = {
@@ -224,7 +222,7 @@ async function executeHooks(serverId, event, extraEnv) {
   }
 
   const env = buildHookEnv(serverId, extraEnv);
-  const timeout = srv.hookTimeout || DEFAULT_HOOK_TIMEOUT;
+  const timeout = srv.hookTimeout || HOOK_TIMEOUT_MS;
   const isBlocking = BLOCKING_EVENTS.has(event);
 
   addLog(serverId, 'info', 'hooks', `Executing ${hooks.length} ${event} hook(s)`);

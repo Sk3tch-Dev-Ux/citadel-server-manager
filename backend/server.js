@@ -29,6 +29,13 @@ const ctx = require('./lib/context');
 const { loadJSON } = require('./lib/data-store');
 const { activateLicense } = require('./lib/license');
 
+// ─── Service mode detection ─────────────────────────────
+const isServiceMode = process.env.CITADEL_SERVICE_MODE === '1';
+if (isServiceMode) {
+  logger.info('Running in Windows Service mode (CITADEL_SERVICE_MODE=1)');
+}
+ctx.isServiceMode = isServiceMode;
+
 // ─── Wire CONFIG into context ────────────────────────────
 ctx.CONFIG = CONFIG;
 
