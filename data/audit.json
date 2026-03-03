@@ -1,5 +1,13 @@
 [
   {
+    "id": "27e21150-0e90-48b8-b7ad-f8ded26535d8",
+    "timestamp": "2026-03-03T23:19:54.414Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: Test"
+  },
+  {
     "id": "8e882eb3-621b-421a-8144-f56f8149b506",
     "timestamp": "2026-03-03T23:00:07.125Z",
     "userId": "system",
