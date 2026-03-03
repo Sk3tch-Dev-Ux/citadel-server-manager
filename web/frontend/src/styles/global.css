@@ -959,6 +959,11 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 }
 .map-notice code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px; font-size: 11px; }
 .map-notice__hint { color: var(--text-muted); }
+.map-notice--info {
+  background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.25);
+  color: var(--text-secondary); bottom: 48px;
+}
+.map-notice--info strong { color: var(--text-primary); }
 
 /* ─── Responsive ──────────────────────────────────────── */
 @media (max-width: 700px) {
