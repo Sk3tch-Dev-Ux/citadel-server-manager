@@ -53,3 +53,4 @@ tools/license-server/.env
 tools/license-server/.vercel/
 tools/license-server/node_modules/
 /data
+/data
