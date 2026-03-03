@@ -1,5 +1,29 @@
 [
   {
+    "id": "a75d8cdc-a57b-4425-aecd-660bbab4c2be",
+    "timestamp": "2026-03-03T03:04:57.412Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.delete",
+    "details": "Deleted server: Testing"
+  },
+  {
+    "id": "93806cdb-b686-4750-bd4e-1ec3877b3fb4",
+    "timestamp": "2026-03-03T03:04:22.326Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying Testing to C:\\Citadel\\deployments"
+  },
+  {
+    "id": "fe762307-5c09-4779-8b9e-ae4094136803",
+    "timestamp": "2026-03-03T03:03:55.114Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.delete",
+    "details": "Deleted server: Testing"
+  },
+  {
     "id": "dee80e35-6b04-4c73-bb5a-f150d1c73eef",
     "timestamp": "2026-03-03T02:59:41.752Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
