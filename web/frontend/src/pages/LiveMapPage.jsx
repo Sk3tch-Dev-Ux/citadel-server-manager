@@ -34,59 +34,65 @@ function playerIcon(name) {
   );
 }
 
-// Vehicle icons by type
+// Vehicle icons by type (Font Awesome)
 function vehicleIcon(type) {
   const typeClass = type === 'truck' ? 'truck' : type === 'boat' ? 'boat' : 'car';
-  const symbols = { car: '\u{1F697}', truck: '\u{1F69A}', boat: '\u26F5' };
+  const faIcons = { car: 'fa-car-side', truck: 'fa-truck', boat: 'fa-sailboat' };
   return createDivIcon(`map-marker--vehicle map-marker--${typeClass}`,
-    `<div class="map-marker__dot map-marker__dot--vehicle">${symbols[typeClass] || '\u{1F697}'}</div>`,
+    `<div class="map-marker__dot map-marker__dot--vehicle"><i class="fa-solid ${faIcons[typeClass] || 'fa-car-side'}"></i></div>`,
     [32, 32]
   );
 }
 
-// Icon name → emoji mapping (covers built-in event types + custom marker icons from MapMarkers.json)
-const MARKER_ICON_MAP = {
-  // Built-in event types
-  helicrash: '\u{1F681}',     // helicopter
-  airdrop: '\u{1F4E6}',       // package
-  contamination: '\u2622\uFE0F', // biohazard
-  horde: '\u{1F480}',         // skull
-  custom: '\u{1F4CD}',        // pushpin
-  // Common marker icon names (from mod MapMarkers.json config)
-  helicopter: '\u{1F681}',
-  biohazard: '\u2622\uFE0F',
-  skull: '\u{1F480}',
-  chest: '\u{1F9F0}',         // toolbox
-  'box-open': '\u{1F4E6}',    // package
-  barrel: '\u{1FAA3}',        // bucket
-  house: '\u{1F3E0}',         // house
-  home: '\u{1F3E0}',
-  tent: '\u26FA',              // tent
-  flag: '\u{1F6A9}',          // flag
-  hammer: '\u{1F528}',        // hammer
-  wrench: '\u{1F527}',        // wrench
-  car: '\u{1F697}',           // car
-  truck: '\u{1F69A}',         // truck
-  boat: '\u26F5',              // sailboat
-  marker: '\u{1F4CD}',        // pushpin
-  star: '\u2B50',              // star
-  warning: '\u26A0\uFE0F',    // warning
-  medical: '\u{1F3E5}',       // hospital
-  food: '\u{1F372}',          // pot of food
-  water: '\u{1F4A7}',         // droplet
-  fire: '\u{1F525}',          // fire
-  lock: '\u{1F512}',          // locked
-  key: '\u{1F511}',           // key
-  military: '\u{1FA96}',      // military helmet
-  camp: '\u{1F3D5}\uFE0F',   // camping
+// Icon name → Font Awesome class mapping (covers built-in event types + mod marker icons)
+const FA_ICON_MAP = {
+  // RPT-detected event types
+  helicrash: 'fa-helicopter',
+  airdrop: 'fa-parachute-box',
+  contamination: 'fa-biohazard',
+  horde: 'fa-skull-crossbones',
+  custom: 'fa-location-dot',
+  // Dynamic event icons (from mod hooks)
+  helicopter: 'fa-helicopter',
+  biohazard: 'fa-biohazard',
+  skull: 'fa-skull',
+  'container-storage': 'fa-lock',
+  briefcase: 'fa-briefcase',
+  bolt: 'fa-bolt',
+  flag: 'fa-flag',
+  // MapMarkers.json config icons
+  chest: 'fa-box-open',
+  'box-open': 'fa-box-open',
+  barrel: 'fa-oil-drum',
+  house: 'fa-house',
+  home: 'fa-house',
+  tent: 'fa-campground',
+  hammer: 'fa-hammer',
+  wrench: 'fa-wrench',
+  car: 'fa-car-side',
+  truck: 'fa-truck',
+  boat: 'fa-sailboat',
+  ship: 'fa-ship',
+  // Generic icons
+  marker: 'fa-location-dot',
+  star: 'fa-star',
+  warning: 'fa-triangle-exclamation',
+  medical: 'fa-kit-medical',
+  food: 'fa-utensils',
+  water: 'fa-droplet',
+  fire: 'fa-fire',
+  lock: 'fa-lock',
+  key: 'fa-key',
+  military: 'fa-shield-halved',
+  camp: 'fa-campground',
 };
 
-// Event icons — checks event.icon (from mod config), then event.type, then fallback
+// Event icons (Font Awesome) — checks event.icon (from mod config), then event.type, then fallback
 function eventIcon(type, icon) {
-  const emoji = MARKER_ICON_MAP[icon] || MARKER_ICON_MAP[type] || '\u{1F4CD}';
-  const cssType = MARKER_ICON_MAP[type] ? type : 'custom-marker';
+  const faClass = FA_ICON_MAP[icon] || FA_ICON_MAP[type] || 'fa-location-dot';
+  const cssType = FA_ICON_MAP[type] ? type : 'custom-marker';
   return createDivIcon(`map-marker--event map-marker--${cssType}`,
-    `<div class="map-marker__dot map-marker__dot--event map-marker__dot--${cssType}">${emoji}</div>`,
+    `<div class="map-marker__dot map-marker__dot--event map-marker__dot--${cssType}"><i class="fa-solid ${faClass}"></i></div>`,
     [34, 34]
   );
 }

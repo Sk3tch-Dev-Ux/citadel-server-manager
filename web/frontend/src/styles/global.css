@@ -876,27 +876,28 @@ tr:hover td { background: rgba(255,255,255,0.04); }
   margin-top: 2px; pointer-events: none;
 }
 
-/* Vehicle markers */
+/* Vehicle markers (Font Awesome icons) */
 .map-marker__dot--vehicle {
   width: 28px; height: 28px; background: rgba(34,197,94,0.15);
   border: 2px solid #22c55e; border-radius: 6px;
   box-shadow: 0 0 8px rgba(34,197,94,0.4);
-  font-size: 14px;
+  color: #22c55e; font-size: 13px;
 }
 
-/* Event markers */
+/* Event markers (Font Awesome icons) */
 .map-marker__dot--event {
   width: 30px; height: 30px; background: rgba(249,115,22,0.15);
   border: 2px solid #f97316; border-radius: 50%;
   box-shadow: 0 0 12px rgba(249,115,22,0.5);
   animation: pulse-event 1.5s ease-in-out infinite;
-  font-size: 14px;
+  color: #f97316; font-size: 13px;
 }
-.map-marker__dot--helicrash { border-color: #ef4444; background: rgba(239,68,68,0.15); box-shadow: 0 0 12px rgba(239,68,68,0.5); }
-.map-marker__dot--airdrop { border-color: #8b5cf6; background: rgba(139,92,246,0.15); box-shadow: 0 0 12px rgba(139,92,246,0.5); }
-.map-marker__dot--contamination { border-color: #eab308; background: rgba(234,179,8,0.15); box-shadow: 0 0 12px rgba(234,179,8,0.5); }
-.map-marker__dot--horde { border-color: #dc2626; background: rgba(220,38,38,0.15); box-shadow: 0 0 12px rgba(220,38,38,0.5); }
-.map-marker__dot--custom-marker { border-color: #22d3ee; background: rgba(34,211,238,0.15); box-shadow: 0 0 12px rgba(34,211,238,0.5); }
+.map-marker__dot--event i, .map-marker__dot--vehicle i { line-height: 1; }
+.map-marker__dot--helicrash { border-color: #ef4444; background: rgba(239,68,68,0.15); box-shadow: 0 0 12px rgba(239,68,68,0.5); color: #ef4444; }
+.map-marker__dot--airdrop { border-color: #8b5cf6; background: rgba(139,92,246,0.15); box-shadow: 0 0 12px rgba(139,92,246,0.5); color: #8b5cf6; }
+.map-marker__dot--contamination { border-color: #eab308; background: rgba(234,179,8,0.15); box-shadow: 0 0 12px rgba(234,179,8,0.5); color: #eab308; }
+.map-marker__dot--horde { border-color: #dc2626; background: rgba(220,38,38,0.15); box-shadow: 0 0 12px rgba(220,38,38,0.5); color: #dc2626; }
+.map-marker__dot--custom-marker { border-color: #22d3ee; background: rgba(34,211,238,0.15); box-shadow: 0 0 12px rgba(34,211,238,0.5); color: #22d3ee; }
 
 @keyframes pulse-blue {
   0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.6), 0 0 16px rgba(59,130,246,0.3); }
