@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import API from '../api';
+import { useServers } from '../contexts/ServersContext';
 import { Modal, Toggle, EmptyState, Button, Input, FormField } from '../components/ui';
-import { Send, Plus, Trash2, Edit, Check, X, Clock } from '../components/Icon';
+import { Send, Plus, Trash2, Edit, Check, X, Clock, Server, ChevronDown } from '../components/Icon';
 
 function formatInterval(seconds) {
   if (seconds < 60) return `${seconds}s`;
@@ -14,6 +15,49 @@ function formatInterval(seconds) {
 function formatDelay(seconds) {
   if (!seconds || seconds === 0) return 'Immediate';
   return `After ${formatInterval(seconds)}`;
+}
+
+// ─── Server Multi-Select ─────────────────────────────────
+function ServerSelect({ servers, selected, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (id) => {
+    const next = selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id];
+    onChange(next);
+  };
+
+  return (
+    <div className="wh-event-filter-select" ref={ref}>
+      <div className="wh-event-filter-trigger input" onClick={() => setOpen(!open)}>
+        <span className="wh-event-filter-text">
+          {selected.length === 0 ? 'Current server only' : `${selected.length} additional server${selected.length !== 1 ? 's' : ''}`}
+        </span>
+        <ChevronDown size={14} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </div>
+      {open && (
+        <div className="wh-event-filter-dropdown">
+          <div className="wh-event-filter-list">
+            {servers.map(srv => (
+              <label key={srv.id} className="wh-event-filter-item" onClick={() => toggle(srv.id)}>
+                <span className={`wh-event-filter-check ${selected.includes(srv.id) ? 'checked' : ''}`}>
+                  {selected.includes(srv.id) && <Check size={10} />}
+                </span>
+                <span className="wh-event-filter-icon"><Server size={14} /></span>
+                <span className="wh-event-filter-label">{srv.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Message Card ─────────────────────────────────────────
@@ -53,11 +97,12 @@ function MessageCard({ msg, onToggle, onEdit, onDelete }) {
 }
 
 // ─── Create/Edit Modal ───────────────────────────────────
-function MessageModal({ open, onClose, onSave, editingMsg }) {
+function MessageModal({ open, onClose, onSave, editingMsg, servers, currentServerId }) {
   const isEdit = !!editingMsg;
   const [text, setText] = useState('');
   const [intervalMinutes, setIntervalMinutes] = useState(5);
   const [startDelayMinutes, setStartDelayMinutes] = useState(0);
+  const [additionalServerIds, setAdditionalServerIds] = useState([]);
 
   useEffect(() => {
     if (editingMsg) {
@@ -69,6 +114,7 @@ function MessageModal({ open, onClose, onSave, editingMsg }) {
       setIntervalMinutes(5);
       setStartDelayMinutes(0);
     }
+    setAdditionalServerIds([]);
   }, [editingMsg, open]);
 
   const handleSave = () => {
@@ -79,6 +125,7 @@ function MessageModal({ open, onClose, onSave, editingMsg }) {
       text: text.trim(),
       intervalSeconds: intervalMinutes * 60,
       startDelaySeconds: startDelayMinutes * 60,
+      additionalServerIds,
     });
   };
 
@@ -107,6 +154,17 @@ function MessageModal({ open, onClose, onSave, editingMsg }) {
           </FormField>
         </div>
 
+        {!isEdit && servers && servers.length > 1 && (
+          <FormField label="Also create on other servers">
+            <ServerSelect
+              servers={servers.filter(s => s.id !== currentServerId)}
+              selected={additionalServerIds}
+              onChange={setAdditionalServerIds}
+            />
+            <span className="form-hint">Optionally copy this message to additional servers</span>
+          </FormField>
+        )}
+
         <div className="scheduler-modal-actions">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={handleSave}>
@@ -120,6 +178,7 @@ function MessageModal({ open, onClose, onSave, editingMsg }) {
 
 // ─── Main Page ────────────────────────────────────────────
 export default function MessengerPage({ serverId }) {
+  const { servers } = useServers();
   const [messenger, setMessenger] = useState({ enabled: true, messages: [] });
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -181,21 +240,33 @@ export default function MessengerPage({ serverId }) {
   };
 
   const handleSave = async (data) => {
+    const { additionalServerIds, ...msgData } = data;
     try {
-      if (data.id) {
-        const updated = await API.put(`/api/servers/${serverId}/messenger/${data.id}`, data);
+      if (msgData.id) {
+        const updated = await API.put(`/api/servers/${serverId}/messenger/${msgData.id}`, msgData);
         setMessenger(prev => ({
           ...prev,
-          messages: prev.messages.map(m => m.id === data.id ? updated : m),
+          messages: prev.messages.map(m => m.id === msgData.id ? updated : m),
         }));
         window.addToast?.('Message updated', 'success');
       } else {
-        const created = await API.post(`/api/servers/${serverId}/messenger`, data);
+        const created = await API.post(`/api/servers/${serverId}/messenger`, msgData);
         setMessenger(prev => ({
           ...prev,
           messages: [...prev.messages, created],
         }));
-        window.addToast?.('Message created', 'success');
+
+        // Copy to additional servers
+        let copied = 0;
+        for (const extraId of (additionalServerIds || [])) {
+          try {
+            await API.post(`/api/servers/${extraId}/messenger`, msgData);
+            copied++;
+          } catch { /* silent — some servers may not be available */ }
+        }
+
+        const msg = copied > 0 ? `Message created (+ copied to ${copied} server${copied !== 1 ? 's' : ''})` : 'Message created';
+        window.addToast?.(msg, 'success');
       }
       setModalOpen(false);
       setEditingMsg(null);
@@ -233,7 +304,7 @@ export default function MessengerPage({ serverId }) {
         </div>
       )}
 
-      <MessageModal open={modalOpen} onClose={() => { setModalOpen(false); setEditingMsg(null); }} onSave={handleSave} editingMsg={editingMsg} />
+      <MessageModal open={modalOpen} onClose={() => { setModalOpen(false); setEditingMsg(null); }} onSave={handleSave} editingMsg={editingMsg} servers={servers} currentServerId={serverId} />
     </div>
   );
 }

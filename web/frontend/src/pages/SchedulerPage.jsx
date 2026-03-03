@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import API from '../api';
+import { useServers } from '../contexts/ServersContext';
 import { Modal, Toggle, EmptyState, Button, Input, FormField } from '../components/ui';
-import { Clock, Plus, Trash2, Edit, Check, X, AlertTriangle, Lock, Power, RotateCcw, Square, Play, Download, Save, Terminal, Webhook } from '../components/Icon';
+import { Clock, Plus, Trash2, Edit, Check, X, AlertTriangle, Lock, Power, RotateCcw, Square, Play, Download, Save, Terminal, Webhook, Server, ChevronDown } from '../components/Icon';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEFAULT_WARNINGS = [15, 10, 5, 1];
@@ -122,8 +123,51 @@ function JobCard({ job, onToggle, onEdit, onDelete }) {
   );
 }
 
+// ─── Server Multi-Select ─────────────────────────────────
+function ServerSelect({ servers, selected, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (id) => {
+    const next = selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id];
+    onChange(next);
+  };
+
+  return (
+    <div className="wh-event-filter-select" ref={ref}>
+      <div className="wh-event-filter-trigger input" onClick={() => setOpen(!open)}>
+        <span className="wh-event-filter-text">
+          {selected.length === 0 ? 'Current server only' : `${selected.length} additional server${selected.length !== 1 ? 's' : ''}`}
+        </span>
+        <ChevronDown size={14} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </div>
+      {open && (
+        <div className="wh-event-filter-dropdown">
+          <div className="wh-event-filter-list">
+            {servers.map(srv => (
+              <label key={srv.id} className="wh-event-filter-item" onClick={() => toggle(srv.id)}>
+                <span className={`wh-event-filter-check ${selected.includes(srv.id) ? 'checked' : ''}`}>
+                  {selected.includes(srv.id) && <Check size={10} />}
+                </span>
+                <span className="wh-event-filter-icon"><Server size={14} /></span>
+                <span className="wh-event-filter-label">{srv.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Create/Edit Modal ───────────────────────────────────
-function JobModal({ open, onClose, onSave, editingJob }) {
+function JobModal({ open, onClose, onSave, editingJob, servers, currentServerId }) {
   const isEdit = !!editingJob;
   const [title, setTitle] = useState('');
   const [hour, setHour] = useState(4);
@@ -140,6 +184,7 @@ function JobModal({ open, onClose, onSave, editingJob }) {
   const [kickPlayers, setKickPlayers] = useState(false);
   const [kickMinutesBefore, setKickMinutesBefore] = useState(1);
   const [warningInput, setWarningInput] = useState('');
+  const [additionalServerIds, setAdditionalServerIds] = useState([]);
 
   useEffect(() => {
     if (editingJob) {
@@ -174,6 +219,7 @@ function JobModal({ open, onClose, onSave, editingJob }) {
       setKickMinutesBefore(1);
     }
     setWarningInput('');
+    setAdditionalServerIds([]);
   }, [editingJob, open]);
 
   const toggleDay = (dayIndex) => {
@@ -203,6 +249,7 @@ function JobModal({ open, onClose, onSave, editingJob }) {
       warningMinutes, warningMessage, lockServer, lockMinutesBefore, kickPlayers, kickMinutesBefore,
       ...(action === 'rcon_command' ? { rconCommand: rconCommand.trim() } : {}),
       ...(action === 'webhook' ? { webhookEvent: webhookEvent.trim() } : {}),
+      additionalServerIds,
     });
   };
 
@@ -299,6 +346,17 @@ function JobModal({ open, onClose, onSave, editingJob }) {
           <span className="form-hint">Use {'{minutes}'} as a placeholder</span>
         </FormField>
 
+        {!isEdit && servers && servers.length > 1 && (
+          <FormField label="Also create on other servers">
+            <ServerSelect
+              servers={servers.filter(s => s.id !== currentServerId)}
+              selected={additionalServerIds}
+              onChange={setAdditionalServerIds}
+            />
+            <span className="form-hint">Optionally copy this job to additional servers</span>
+          </FormField>
+        )}
+
         <div className="scheduler-modal-actions">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={handleSave}>
@@ -312,6 +370,7 @@ function JobModal({ open, onClose, onSave, editingJob }) {
 
 // ─── Main Page ────────────────────────────────────────────
 export default function SchedulerPage({ serverId }) {
+  const { servers } = useServers();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -354,15 +413,27 @@ export default function SchedulerPage({ serverId }) {
   };
 
   const handleSave = async (data) => {
+    const { additionalServerIds, ...jobData } = data;
     try {
-      if (data.id) {
-        const updated = await API.put(`/api/servers/${serverId}/scheduler/${data.id}`, data);
-        setJobs(prev => prev.map(j => j.id === data.id ? updated : j));
+      if (jobData.id) {
+        const updated = await API.put(`/api/servers/${serverId}/scheduler/${jobData.id}`, jobData);
+        setJobs(prev => prev.map(j => j.id === jobData.id ? updated : j));
         window.addToast?.('Job updated', 'success');
       } else {
-        const created = await API.post(`/api/servers/${serverId}/scheduler`, data);
+        const created = await API.post(`/api/servers/${serverId}/scheduler`, jobData);
         setJobs(prev => [...prev, created]);
-        window.addToast?.('Job created', 'success');
+
+        // Copy to additional servers
+        let copied = 0;
+        for (const extraId of (additionalServerIds || [])) {
+          try {
+            await API.post(`/api/servers/${extraId}/scheduler`, jobData);
+            copied++;
+          } catch { /* silent — some servers may not be available */ }
+        }
+
+        const msg = copied > 0 ? `Job created (+ copied to ${copied} server${copied !== 1 ? 's' : ''})` : 'Job created';
+        window.addToast?.(msg, 'success');
       }
       setModalOpen(false);
       setEditingJob(null);
@@ -392,7 +463,7 @@ export default function SchedulerPage({ serverId }) {
         </div>
       )}
 
-      <JobModal open={modalOpen} onClose={() => { setModalOpen(false); setEditingJob(null); }} onSave={handleSave} editingJob={editingJob} />
+      <JobModal open={modalOpen} onClose={() => { setModalOpen(false); setEditingJob(null); }} onSave={handleSave} editingJob={editingJob} servers={servers} currentServerId={serverId} />
     </div>
   );
 }

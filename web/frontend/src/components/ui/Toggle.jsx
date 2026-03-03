@@ -1,11 +1,12 @@
 import * as Switch from '@radix-ui/react-switch';
 
-export default function Toggle({ checked, onChange, label }) {
+export default function Toggle({ checked, onChange, onCheckedChange, label }) {
+  const handler = onCheckedChange || onChange;
   return (
     <Switch.Root
       className={'toggle' + (checked ? ' on' : '')}
       checked={checked}
-      onCheckedChange={onChange}
+      onCheckedChange={handler}
     >
       <Switch.Thumb className="toggle-knob" />
     </Switch.Root>

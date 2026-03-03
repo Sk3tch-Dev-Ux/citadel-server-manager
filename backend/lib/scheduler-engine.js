@@ -184,7 +184,7 @@ async function processJob(job, server, state) {
       const msg = (job.warningMessage || 'Server restart in {minutes} minute(s)!')
         .replace(/\{minutes\}/g, String(warnMin));
       try {
-        state.rcon.say(msg);
+        await state.rcon.say(msg);
         logger.info({ serverId: server.id, job: job.title, warning: warnMin }, 'Scheduler: broadcast warning');
       } catch (err) {
         logger.warn({ err, serverId: server.id }, 'Scheduler: failed to broadcast warning');
@@ -196,7 +196,7 @@ async function processJob(job, server, state) {
   // ─── Lock server ───
   if (job.lockServer && minutesUntil <= (job.lockMinutesBefore || 2) && !pending.locked) {
     try {
-      state.rcon.lock();
+      await state.rcon.lock();
       logger.info({ serverId: server.id, job: job.title }, 'Scheduler: locked server');
     } catch (err) {
       logger.warn({ err }, 'Scheduler: failed to lock server');
@@ -208,7 +208,7 @@ async function processJob(job, server, state) {
   if (job.kickPlayers && minutesUntil <= (job.kickMinutesBefore || 1) && !pending.kicked) {
     try {
       for (const player of (state.players || [])) {
-        state.rcon.kick(player.id || player.number, 'Server restarting');
+        await state.rcon.kick(player.id || player.number, 'Server restarting');
       }
       logger.info({ serverId: server.id, job: job.title, count: (state.players || []).length }, 'Scheduler: kicked players');
     } catch (err) {
