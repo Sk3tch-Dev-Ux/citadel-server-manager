@@ -1,5 +1,16 @@
 /**
  * Server deployment and rebuild (dangerzone) routes.
+ *
+ * Deployment structure (modeled after CFTools Architect):
+ *   deployments/<ServerName>/
+ *   ├── profiles/          ← RPT files, BattlEye, mod configs
+ *   ├── .backups/          ← server backups
+ *   ├── ban.txt            ← ban list
+ *   ├── whitelist.txt      ← whitelist
+ *   ├── serverDZ.cfg       ← server config
+ *   └── DayZServer_x64.exe ← installed by SteamCMD
+ *
+ * No batch files. The executable is always spawned directly.
  */
 const fs = require('fs');
 const path = require('path');
@@ -17,6 +28,33 @@ const { addNotification } = require('../lib/notifications');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 
+/**
+ * Scaffold the deployment directory structure.
+ * Creates profiles/, .backups/, ban.txt, whitelist.txt.
+ */
+function scaffoldDeployment(installDir) {
+  const dirs = [
+    path.join(installDir, 'profiles'),
+    path.join(installDir, 'profiles', 'BattlEye'),
+    path.join(installDir, '.backups'),
+  ];
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+  const placeholders = ['ban.txt', 'whitelist.txt'];
+  for (const file of placeholders) {
+    const filePath = path.join(installDir, file);
+    if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, '');
+  }
+}
+
+/**
+ * Build default launch params for a DayZ server.
+ */
+function buildLaunchParams(gamePort) {
+  return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck`;
+}
+
 module.exports = function(app) {
   app.post('/api/deploy', auth('server.deploy'), requireLicense(), async (req, res) => {
     const { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map } = req.body;
@@ -30,12 +68,12 @@ module.exports = function(app) {
 
     const srv = {
       id: uuid(), name, installDir: resolvedDir,
-      executable: 'DayZServer_x64.exe', startBat: '',
-      launchParams: `-config=serverDZ.cfg -port=${gamePort || 2302} -dologs -adminlog -netlog -freezecheck`,
+      executable: 'DayZServer_x64.exe',
+      launchParams: buildLaunchParams(gamePort),
       ip: '127.0.0.1', gamePort: gamePort || 2302, queryPort: queryPort || 2303,
       rconPort: rconPort || 2305, rconPassword: rconPassword || '',
       maxPlayers: maxPlayers || 60, map: map || 'chernarusplus',
-      gameTitle: gameTitle || 'DayZ, PC', profileDir: '', createdAt: new Date().toISOString(), deploying: true,
+      gameTitle: gameTitle || 'DayZ, PC', profileDir: 'profiles', createdAt: new Date().toISOString(), deploying: true,
     };
     ctx.servers.push(srv);
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
@@ -77,6 +115,9 @@ module.exports = function(app) {
         });
         proc.on('error', (err) => { clearTimeout(timeout); reject(err); });
       });
+
+      // Scaffold deployment directory structure
+      scaffoldDeployment(resolvedDir);
 
       // Create default config
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
@@ -145,6 +186,9 @@ module.exports = function(app) {
         });
         proc.on('error', (err) => { clearTimeout(timeout); reject(err); });
       });
+      // Scaffold deployment directory structure
+      scaffoldDeployment(resolvedDir);
+
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
       if (!fs.existsSync(cfgPath)) {
         fs.writeFileSync(cfgPath, `hostname = "${srv.name}";\npassword = "";\npasswordAdmin = "";\nmaxPlayers = ${srv.maxPlayers || 60};\nverifySignatures = 2;\nforceSameBuild = 1;\ndisableThirdPerson = 0;\nserverTime = "SystemTime";\nserverTimeAcceleration = 1;\nserverTimePersistent = 0;\nguaranteedUpdates = 1;\nloginQueueConcurrentPlayers = 5;\nloginQueueMaxPlayers = 500;\ninstanceId = 1;\nstorageAutoFix = 1;\nrespawnTime = 5;\ntimeStampFormat = "Short";\ntemplate = "${srv.map || 'chernarusplus'}";\n`);

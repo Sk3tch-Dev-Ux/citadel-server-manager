@@ -66,7 +66,6 @@ function migrateDefaultServer() {
     name: readServerConfig(ctx.CONFIG.dayz.installDir).hostname || 'DayZ Server',
     installDir: ctx.CONFIG.dayz.installDir,
     executable: ctx.CONFIG.dayz.executable || 'DayZServer_x64.exe',
-    startBat: ctx.CONFIG.dayz.startBat || '',
     launchParams: ctx.CONFIG.dayz.launchParams || '',
     ip: ctx.CONFIG.dayz.ip || '127.0.0.1',
     gamePort: 2302, queryPort: 2303,

@@ -44,7 +44,7 @@ export default function SetupWizardPage() {
   // Server step
   const [serverMode, setServerMode] = useState(null); // 'new' | 'existing' | 'skip'
   const [serverName, setServerName] = useState('My DayZ Server');
-  const [installDir, setInstallDir] = useState('C:\\DayZServer');
+  const [installDir, setInstallDir] = useState('C:\\Citadel\\deployments\\');
   const [gameTitle, setGameTitle] = useState('DayZ, PC');
   const [map, setMap] = useState('chernarusplus');
   const [gamePort, setGamePort] = useState(2302);
@@ -165,8 +165,8 @@ export default function SetupWizardPage() {
         // Add existing server
         const result = await API.post('/api/servers', {
           name: serverName, installDir,
-          executable: 'DayZServer_x64.exe', startBat: '',
-          launchParams: `-config=serverDZ.cfg -port=${gamePort} -dologs -adminlog -netlog -freezecheck`,
+          executable: 'DayZServer_x64.exe',
+          launchParams: `-config=serverDZ.cfg -port=${gamePort} -profiles=profiles -dologs -adminlog -netlog -freezecheck`,
           gameTitle, gamePort, queryPort: gamePort + 1, rconPort, rconPassword, maxPlayers, map,
         });
         if (result.error) {
@@ -530,6 +530,8 @@ export default function SetupWizardPage() {
                         <option value="enoch">Livonia</option>
                         <option value="deerisle">Deer Isle</option>
                         <option value="namalsk">Namalsk</option>
+                        <option value="sakhal">Sakhal</option>
+                        <option value="takistanplus">Takistan</option>
                       </select>
                     </div>
                   </div>

@@ -13,9 +13,8 @@ export default function DeployPage() {
   const [step, setStep] = useState(1);
   const [gameTitle, setGameTitle] = useState('DayZ, PC');
   const [name, setName] = useState('');
-  const [installDir, setInstallDir] = useState('C:\\DayZServer');
+  const [installDir, setInstallDir] = useState('C:\\Citadel\\deployments\\');
   const [executable, setExecutable] = useState('DayZServer_x64.exe');
-  const [startBat, setStartBat] = useState('');
   const [gamePort, setGamePort] = useState(2302);
   const [queryPort, setQueryPort] = useState(2303);
   const [rconPort, setRconPort] = useState(2305);
@@ -50,7 +49,6 @@ export default function DeployPage() {
         setDetected(result);
         // Auto-fill fields from detected config
         if (result.executable) setExecutable(result.executable);
-        if (result.batFiles?.length) setStartBat(result.batFiles[0]);
         if (result.config) {
           if (result.config.name) setName(result.config.name);
           if (result.config.maxPlayers) setMaxPlayers(result.config.maxPlayers);
@@ -73,7 +71,7 @@ export default function DeployPage() {
 
   const deploy = async () => {
     if (!name || !installDir) { window.addToast('Name and install directory required', 'error'); return; }
-    setDeploying(true); setStep(5);
+    setDeploying(true); setStep(5); // new mode confirm step
     try {
       const result = await API.post('/api/deploy', { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map });
       if (result && result.error) { setProgress({ status: 'error', message: result.error }); setDeploying(false); }
@@ -84,11 +82,11 @@ export default function DeployPage() {
 
   const addExisting = async () => {
     if (!name || !installDir) { window.addToast('Name and install directory required', 'error'); return; }
-    setDeploying(true); setStep(5);
+    setDeploying(true); setStep(4); // existing mode confirm step
     try {
       const result = await API.post('/api/servers', {
-        name, installDir, executable, startBat, gameTitle,
-        launchParams: `-config=serverDZ.cfg -port=${gamePort || 2302} -dologs -adminlog -netlog -freezecheck`,
+        name, installDir, executable, gameTitle,
+        launchParams: `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck`,
         gamePort, queryPort, rconPort, rconPassword, maxPlayers, map,
       });
       if (result && result.error) {
@@ -106,7 +104,7 @@ export default function DeployPage() {
   const cancelDeploy = () => { setStep(1); setMode(null); setDeploying(false); setDetected(null); setProgress({ status: '', message: '', progress: 0 }); };
 
   const stepLabels = mode === 'existing'
-    ? ['1. Mode', '2. Detect', '3. Executable', '4. Configuration']
+    ? ['1. Mode', '2. Detect', '3. Configuration']
     : ['1. Mode', '2. Branch', '3. Server Details', '4. Configuration'];
 
   return (
@@ -115,7 +113,7 @@ export default function DeployPage() {
         {stepLabels.map((label, i) => (
           <div key={i} className={`deploy-step ${step >= i + 1 ? (step > i + 1 ? 'done' : 'active') : ''}`}>{label}</div>
         ))}
-        <div className={`deploy-step ${step >= 5 ? 'active' : ''}`}>{mode === 'existing' ? '5. Confirm' : '5. Deploy'}</div>
+        <div className={`deploy-step ${(mode === 'existing' ? step >= 4 : step >= 5) ? (mode === 'existing' ? (step > 4 ? 'done' : 'active') : (step > 5 ? 'done' : 'active')) : ''}`}>{mode === 'existing' ? '4. Confirm' : '5. Deploy'}</div>
       </div>
 
       {step === 1 && (
@@ -185,7 +183,6 @@ export default function DeployPage() {
                 {detected.config?.maxPlayers && <div><span style={{ color: 'var(--text-muted)' }}>Max Players:</span> {detected.config.maxPlayers}</div>}
                 {detected.config?.map && <div><span style={{ color: 'var(--text-muted)' }}>Map:</span> {detected.config.map}</div>}
                 {detected.modCount > 0 && <div><span style={{ color: 'var(--text-muted)' }}>Mod Keys:</span> {detected.modCount}</div>}
-                {detected.batFiles?.length > 0 && <div><span style={{ color: 'var(--text-muted)' }}>Batch Files:</span> {detected.batFiles.join(', ')}</div>}
               </div>
             </div>
           )}
@@ -216,6 +213,8 @@ export default function DeployPage() {
                   <option value="enoch">Livonia</option>
                   <option value="deerisle">Deer Isle</option>
                   <option value="namalsk">Namalsk</option>
+                  <option value="sakhal">Sakhal</option>
+                  <option value="takistanplus">Takistan</option>
                 </select>
               </div>
             </>
@@ -239,6 +238,8 @@ export default function DeployPage() {
               <option value="enoch">Livonia</option>
               <option value="deerisle">Deer Isle</option>
               <option value="namalsk">Namalsk</option>
+              <option value="sakhal">Sakhal</option>
+              <option value="takistanplus">Takistan</option>
             </select>
           </div>
           <div className="btn-group" style={{ marginTop: 16 }}>
@@ -248,34 +249,7 @@ export default function DeployPage() {
         </div>
       )}
 
-      {step === 3 && mode === 'existing' && (
-        <div style={{ maxWidth: 500 }}>
-          <h3 style={{ marginBottom: 20 }}>Executable Settings</h3>
-          <div className="input-group">
-            <label className="input-label">Server Executable</label>
-            <input className="input" value={executable} onChange={e => setExecutable(e.target.value)} placeholder="DayZServer_x64.exe" />
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>The .exe file inside your install directory</div>
-          </div>
-          <div className="input-group">
-            <label className="input-label">Start Batch File (optional)</label>
-            {detected?.batFiles?.length > 0 ? (
-              <select className="input" value={startBat} onChange={e => setStartBat(e.target.value)}>
-                <option value="">None (use executable directly)</option>
-                {detected.batFiles.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
-            ) : (
-              <input className="input" value={startBat} onChange={e => setStartBat(e.target.value)} placeholder="start.bat" />
-            )}
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>If set, this .bat file will be used to start the server instead of the executable directly</div>
-          </div>
-          <div className="btn-group" style={{ marginTop: 16 }}>
-            <button className="btn btn-secondary" onClick={() => setStep(2)}><ArrowLeft size={14} /> Back</button>
-            <button className="btn btn-blue" onClick={() => setStep(4)}>Next <ArrowRight size={14} /></button>
-          </div>
-        </div>
-      )}
-
-      {step === 4 && (
+      {((step === 3 && mode === 'existing') || (step === 4 && mode === 'new')) && (
         <div style={{ maxWidth: 500 }}>
           <h3 style={{ marginBottom: 20 }}>Configuration</h3>
           <div className="grid grid-2">
@@ -286,7 +260,7 @@ export default function DeployPage() {
           </div>
           <div className="input-group"><label className="input-label">RCON Password</label><input className="input" type="password" value={rconPassword} onChange={e => setRconPassword(e.target.value)} /></div>
           <div className="btn-group" style={{ marginTop: 16 }}>
-            <button className="btn btn-secondary" onClick={() => setStep(3)}><ArrowLeft size={14} /> Back</button>
+            <button className="btn btn-secondary" onClick={() => setStep(mode === 'existing' ? 2 : 3)}><ArrowLeft size={14} /> Back</button>
             {mode === 'new' ? (
               <button className="btn btn-primary" onClick={deploy}><Rocket size={14} /> Deploy Server</button>
             ) : (
@@ -296,7 +270,7 @@ export default function DeployPage() {
         </div>
       )}
 
-      {step === 5 && (
+      {((step === 4 && mode === 'existing') || (step === 5 && mode === 'new')) && (
         <div style={{ maxWidth: 500, textAlign: 'center', padding: '40px 0' }}>
           <div style={{ marginBottom: 16 }}>{progress.status === 'complete' ? <CheckCircle size={48} /> : progress.status === 'error' ? <XCircle size={48} /> : <Rocket size={48} />}</div>
           <h3 style={{ marginBottom: 12 }}>{progress.status === 'complete' ? (mode === 'existing' ? 'Server Added!' : 'Deployment Complete!') : progress.status === 'error' ? (mode === 'existing' ? 'Failed to Add Server' : 'Deployment Failed') : 'Deploying...'}</h3>
@@ -307,7 +281,7 @@ export default function DeployPage() {
             </div>
           )}
           {progress.status === 'complete' && <button className="btn btn-primary" onClick={cancelDeploy}>Done</button>}
-          {progress.status === 'error' && <button className="btn btn-secondary" onClick={() => { setStep(4); setDeploying(false); }}><ArrowLeft size={14} /> Go Back</button>}
+          {progress.status === 'error' && <button className="btn btn-secondary" onClick={() => { setStep(mode === 'existing' ? 3 : 4); setDeploying(false); }}><ArrowLeft size={14} /> Go Back</button>}
           {progress.status !== 'complete' && progress.status !== 'error' && (
             <button className="btn btn-secondary" style={{ marginTop: 16 }} onClick={cancelDeploy}>Cancel</button>
           )}

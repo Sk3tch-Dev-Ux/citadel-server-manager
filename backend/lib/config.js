@@ -24,8 +24,7 @@ const CONFIG = {
     installDir: process.env.DAYZ_INSTALL_DIR || 'C:\\DayZServer',
     profileDir: process.env.DAYZ_PROFILE_DIR || '',
     executable: process.env.DAYZ_EXECUTABLE || 'DayZServer_x64.exe',
-    startBat: process.env.DAYZ_START_BAT || '',
-    launchParams: process.env.DAYZ_LAUNCH_PARAMS || '-config=serverDZ.cfg -port=2302 -dologs -adminlog -netlog -freezecheck',
+    launchParams: process.env.DAYZ_LAUNCH_PARAMS || '-config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -adminlog -netlog -freezecheck',
   },
   cftools: {
     // DEPRECATED — CFTools is no longer required. Configure InHouse sidecar
