@@ -136,7 +136,7 @@ async function executeAction(actionType, job, server, state) {
 
     case 'webhook': {
       const eventName = job.webhookEvent || 'scheduler.custom';
-      fireWebhooks(eventName, server, { trigger: 'scheduler', job: job.title, event: eventName });
+      fireWebhooks(eventName, { serverId: server.id, serverName: server.name, trigger: 'scheduler', job: job.title, action: 'webhook' });
       logger.info({ serverId: server.id, job: job.title, event: eventName }, 'Scheduler: executed webhook');
       break;
     }
@@ -234,7 +234,7 @@ async function processJob(job, server, state) {
       addAudit('system', 'scheduler', 'scheduler.execute', `${job.title} [${actionLabel}] on ${server.name}`);
 
       // Fire scheduler.executed webhook for all action types
-      try { fireWebhooks('scheduler.executed', server, { trigger: 'scheduler', job: job.title, action: actionType }); } catch (_) { /* ignore */ }
+      try { fireWebhooks('scheduler.executed', { serverId: server.id, serverName: server.name, trigger: 'scheduler', job: job.title, action: actionType }); } catch (_) { /* ignore */ }
 
       // Emit socket event
       if (ctx.io) {

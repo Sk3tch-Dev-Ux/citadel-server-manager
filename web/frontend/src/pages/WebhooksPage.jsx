@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import API from '../api';
+import { useServers } from '../contexts/ServersContext';
 import {
   CheckCircle, XCircle, AlertTriangle, RotateCcw, Activity, Ban, Shield, Package,
   Trash2, Webhook, Send, Plus, MoreVertical, Clock, Copy, ExternalLink, Eye, EyeOff,
-  Power, Zap, Check, X, ChevronDown, Edit, RefreshCw, Play, Users, Globe,
+  Power, Zap, Check, X, ChevronDown, Edit, RefreshCw, Play, Users, Globe, Server,
 } from '../components/Icon';
 
 /* ─── Template Definitions ─── */
@@ -300,10 +301,10 @@ const TEMPLATE_CATEGORIES = [
 /** Fallback event list used before the API responds */
 const FALLBACK_EVENTS = [
   'agent.ready', 'session.begin', 'session.ended',
-  'server.started', 'server.stopped', 'server.crashed', 'server.restarted',
-  'title.updated', 'mod.updated',
+  'server.started', 'server.stopped', 'server.crashed', 'server.restarted', 'server.health',
+  'title.updated', 'mod.updated', 'mod.installed', 'mod.removed',
   'server.updated_title', 'server.updated_mod',
-  'player.joined', 'player.left',
+  'player.joined', 'player.left', 'player.kick', 'player.ban',
   'backup.created', 'backup.restored',
   'scheduler.executed',
 ];
@@ -494,9 +495,60 @@ function EventFilterSelect({ allEvents, eventDescriptions, selected, onChange })
   );
 }
 
+/* ─── Server Filter Multi-Select ─── */
+
+function ServerFilterSelect({ servers, selected, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (id) => {
+    const next = selected.includes(id) ? selected.filter(s => s !== id) : [...selected, id];
+    onChange(next);
+  };
+
+  const selectAll = () => onChange(servers.map(s => s.id));
+  const clearAll = () => onChange([]);
+
+  return (
+    <div className="wh-event-filter-select" ref={ref}>
+      <div className="wh-event-filter-trigger input" onClick={() => setOpen(!open)}>
+        <span className="wh-event-filter-text">
+          {selected.length === 0 ? 'All servers (no filter)' : `${selected.length} server${selected.length !== 1 ? 's' : ''} selected`}
+        </span>
+        <ChevronDown size={14} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </div>
+      {open && (
+        <div className="wh-event-filter-dropdown">
+          <div className="wh-event-filter-actions">
+            <button className="btn btn-xs btn-secondary" onClick={selectAll}>Select All</button>
+            <button className="btn btn-xs btn-secondary" onClick={clearAll}>Clear</button>
+          </div>
+          <div className="wh-event-filter-list">
+            {servers.map(srv => (
+              <label key={srv.id} className="wh-event-filter-item" onClick={() => toggle(srv.id)}>
+                <span className={`wh-event-filter-check ${selected.includes(srv.id) ? 'checked' : ''}`}>
+                  {selected.includes(srv.id) && <Check size={10} />}
+                </span>
+                <span className="wh-event-filter-icon"><Server size={14} /></span>
+                <span className="wh-event-filter-label">{srv.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Create / Edit Webhook Modal ─── */
 
-function WebhookFormModal({ initial, events, eventDescriptions, onSave, onClose, title }) {
+function WebhookFormModal({ initial, events, eventDescriptions, servers, onSave, onClose, title }) {
   const [form, setForm] = useState(initial);
   const [jsonError, setJsonError] = useState('');
 
@@ -537,6 +589,17 @@ function WebhookFormModal({ initial, events, eventDescriptions, onSave, onClose,
           />
         </div>
 
+        {servers && servers.length > 0 && (
+          <div className="input-group">
+            <label className="input-label">Server Filter <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 6 }}>Leave empty to fire for all servers</span></label>
+            <ServerFilterSelect
+              servers={servers}
+              selected={form.serverIds || []}
+              onChange={(ids) => setForm(f => ({ ...f, serverIds: ids }))}
+            />
+          </div>
+        )}
+
         <div className="input-group">
           <label className="input-label">Webhook URL</label>
           <input
@@ -563,7 +626,7 @@ function WebhookFormModal({ initial, events, eventDescriptions, onSave, onClose,
           />
           {jsonError && <div className="wh-json-error">{jsonError}</div>}
           <div className="wh-variables-hint">
-            Variables: <code>{'{{server}}'}</code> <code>{'{{server_id}}'}</code> <code>{'{{timestamp}}'}</code> <code>{'{{date_iso}}'}</code> <code>{'{{event}}'}</code> <code>{'{{reason}}'}</code> <code>{'{{player}}'}</code> <code>{'{{mod}}'}</code>
+            Variables: <code>{'{{server}}'}</code> <code>{'{{server_id}}'}</code> <code>{'{{timestamp}}'}</code> <code>{'{{date_iso}}'}</code> <code>{'{{event}}'}</code> <code>{'{{reason}}'}</code> <code>{'{{player}}'}</code> <code>{'{{player_name}}'}</code> <code>{'{{player_id}}'}</code> <code>{'{{mod}}'}</code> <code>{'{{mod_id}}'}</code> <code>{'{{build}}'}</code> <code>{'{{action}}'}</code> <code>{'{{job}}'}</code>
           </div>
         </div>
 
@@ -606,6 +669,7 @@ function WebhookFormModal({ initial, events, eventDescriptions, onSave, onClose,
 /* ─── Main Page ─── */
 
 export default function WebhooksPage() {
+  const { servers } = useServers();
   const [webhooks, setWebhooks] = useState([]);
   const [tab, setTab] = useState('webhooks');
   const [showCreate, setShowCreate] = useState(false);
@@ -614,7 +678,7 @@ export default function WebhooksPage() {
   const [selectedWh, setSelectedWh] = useState(null);
   const [deliveries, setDeliveries] = useState([]);
   const [openMenu, setOpenMenu] = useState(null);
-  const [createDefaults, setCreateDefaults] = useState({ event: 'server.started', url: '', template: '', retryEnabled: true, retryCount: 3, events: [] });
+  const [createDefaults, setCreateDefaults] = useState({ event: 'server.started', url: '', template: '', retryEnabled: true, retryCount: 3, events: [], serverIds: [] });
   const [eventTypes, setEventTypes] = useState({});
   const menuRef = useRef(null);
 
@@ -685,12 +749,13 @@ export default function WebhooksPage() {
       retryEnabled: true,
       retryCount: 3,
       events: tpl.events || [],
+      serverIds: [],
     });
     setShowCreate(true);
   };
 
   const handleOpenCreate = () => {
-    setCreateDefaults({ event: 'server.started', url: '', template: '', retryEnabled: true, retryCount: 3, events: [] });
+    setCreateDefaults({ event: 'server.started', url: '', template: '', retryEnabled: true, retryCount: 3, events: [], serverIds: [] });
     setShowCreate(true);
   };
 
@@ -755,6 +820,14 @@ export default function WebhooksPage() {
                         {wh.events.length > 5 && <span className="wh-event-chip wh-event-chip-sm wh-badge-default">+{wh.events.length - 5} more</span>}
                       </div>
                     )}
+                    {Array.isArray(wh.serverIds) && wh.serverIds.length > 0 && (
+                      <div className="wh-card-events">
+                        {wh.serverIds.map(sid => {
+                          const srv = servers.find(s => s.id === sid);
+                          return <span key={sid} className="wh-event-chip wh-event-chip-sm wh-badge-server">{srv?.name || sid}</span>;
+                        })}
+                      </div>
+                    )}
                     <div className="wh-card-meta">
                       ID: {truncateId(wh.id)} &bull; Timeout {(wh.timeout || 60000) / 1000}s &bull; <span style={{ color: wh.retryEnabled ? 'var(--accent-green)' : 'var(--text-muted)' }}>{wh.retryEnabled ? `Retry ${wh.retryCount || 3}x` : 'No retry'}</span>
                     </div>
@@ -792,6 +865,7 @@ export default function WebhooksPage() {
               initial={createDefaults}
               events={allEvents}
               eventDescriptions={eventTypes}
+              servers={servers}
               onSave={addWebhook}
               onClose={() => setShowCreate(false)}
               title="Create Webhook"
@@ -808,9 +882,11 @@ export default function WebhooksPage() {
                 retryEnabled: editingWh.retryEnabled,
                 retryCount: editingWh.retryCount || 3,
                 events: editingWh.events || [],
+                serverIds: editingWh.serverIds || [],
               }}
               events={allEvents}
               eventDescriptions={eventTypes}
+              servers={servers}
               onSave={updateWebhook}
               onClose={() => setEditingWh(null)}
               title="Edit Webhook"

@@ -20,12 +20,17 @@ const WEBHOOK_EVENTS = {
   'server.stopped':       'Server process stopped',
   'server.crashed':       'Server crash detected',
   'server.restarted':     'Server restart completed',
+  'server.health':        'Server health alert triggered',
   'title.updated':        'Game update available',
   'mod.updated':          'Mod update available',
+  'mod.installed':        'Mod installed on server',
+  'mod.removed':          'Mod removed from server',
   'server.updated_title': 'Game update applied to server',
   'server.updated_mod':   'Mod update applied to server',
   'player.joined':        'Player connected',
   'player.left':          'Player disconnected',
+  'player.kick':          'Player kicked from server',
+  'player.ban':           'Player banned from server',
   'backup.created':       'Backup created',
   'backup.restored':      'Backup restored',
   'scheduler.executed':   'Scheduled task executed',
@@ -87,17 +92,23 @@ function jsonSafeValue(val) {
 function substituteVariables(templateStr, eventType, data) {
   const now = new Date();
   const vars = {
-    'server':     jsonSafeValue(data.serverName || 'Unknown'),
-    'server_id':  jsonSafeValue(data.serverId || ''),
-    'timestamp':  jsonSafeValue(now.toLocaleString()),
-    'date_iso':   now.toISOString(),
-    'event':      jsonSafeValue(eventType),
-    'reason':     jsonSafeValue(data.reason || 'N/A'),
-    'player':     jsonSafeValue(data.playerId || data.playerName || ''),
-    'mod':        jsonSafeValue(data.modName || ''),
+    'server':       jsonSafeValue(data.serverName || 'Unknown'),
+    'server_id':    jsonSafeValue(data.serverId || ''),
+    'timestamp':    jsonSafeValue(now.toLocaleString()),
+    'date_iso':     now.toISOString(),
+    'event':        jsonSafeValue(eventType),
+    'reason':       jsonSafeValue(data.reason || 'N/A'),
+    'player':       jsonSafeValue(data.playerId || data.playerName || ''),
+    'player_name':  jsonSafeValue(data.playerName || ''),
+    'player_id':    jsonSafeValue(data.playerId || ''),
+    'mod':          jsonSafeValue(data.modName || ''),
+    'mod_id':       jsonSafeValue(data.modId || ''),
+    'build':        jsonSafeValue(data.build || ''),
+    'action':       jsonSafeValue(data.action || ''),
+    'job':          jsonSafeValue(data.job || ''),
     // Legacy aliases
-    'server.name': jsonSafeValue(data.serverName || 'Unknown'),
-    'server.id':   jsonSafeValue(data.serverId || ''),
+    'server.name':  jsonSafeValue(data.serverName || 'Unknown'),
+    'server.id':    jsonSafeValue(data.serverId || ''),
   };
 
   let result = templateStr;
@@ -136,6 +147,18 @@ function webhookMatchesEvent(wh, eventType) {
     return wh.event === eventType;
   }
   // No filter at all — fire for everything
+  return true;
+}
+
+/**
+ * Check if a webhook should fire for a given server.
+ * If the webhook has a non-empty `serverIds` array, the server must be in that list.
+ * Empty or missing serverIds means the webhook fires for all servers.
+ */
+function webhookMatchesServer(wh, data) {
+  if (Array.isArray(wh.serverIds) && wh.serverIds.length > 0) {
+    return wh.serverIds.includes(data.serverId);
+  }
   return true;
 }
 
@@ -213,7 +236,7 @@ async function deliverWebhook(wh, eventType, data, attemptNum, maxRetries) {
  * Includes standard HTTP headers, idempotence tokens, event filtering, and delivery TTL cleanup.
  */
 async function fireWebhooks(eventType, data) {
-  const matching = ctx.webhooks.filter(w => w.enabled && webhookMatchesEvent(w, eventType));
+  const matching = ctx.webhooks.filter(w => w.enabled && webhookMatchesEvent(w, eventType) && webhookMatchesServer(w, data));
   for (const wh of matching) {
     const maxRetries = Math.min(Math.max(parseInt(wh.retryCount, 10) || 3, 1), 10);
     await deliverWebhook(wh, eventType, data, 1, maxRetries);

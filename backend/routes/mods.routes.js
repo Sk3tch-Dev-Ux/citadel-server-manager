@@ -49,7 +49,7 @@ module.exports = function(app) {
       ctx.io.emit('mods', { serverId: srv.id, mods: state.modList });
       addAudit(req.user.id, req.user.username, 'mod.install', `Installed ${name} on ${srv.name}`);
       addNotification(srv.id, 'mod.installed', 'Mod Installed', `${name} installed on ${srv.name}`, 'success');
-      fireWebhooks('mod.installed', { serverId: srv.id, modName: name });
+      fireWebhooks('mod.installed', { serverId: srv.id, serverName: srv.name, modName: name, modId: String(workshopId) });
       setTimeout(() => delete ctx.activeInstalls[workshopId], 30000);
     } catch (err) {
       ctx.activeInstalls[workshopId] = { status: 'error', progress: 0, name, error: err.message };
@@ -72,7 +72,7 @@ module.exports = function(app) {
       ctx.io.emit('mods', { serverId: srv.id, mods: state.modList });
       addAudit(req.user.id, req.user.username, 'mod.uninstall', `Uninstalled ${mod.name} from ${srv.name}`);
       addNotification(srv.id, 'mod.removed', 'Mod Uninstalled', `${mod.name} removed from ${srv.name}`, 'info');
-      fireWebhooks('mod.removed', { serverId: srv.id, modName: mod.name });
+      fireWebhooks('mod.removed', { serverId: srv.id, serverName: srv.name, modName: mod.name, modId: mod.workshopId });
       res.json({ message: `${mod.name} uninstalled` });
     } catch (err) { res.status(500).json({ error: err.message }); }
   });

@@ -34,7 +34,8 @@ module.exports = function(app) {
     ctx.io.emit('players', { serverId: req.params.id, players: state.players });
     addAudit(req.user.id, req.user.username, 'player.kick', `Kicked player ${req.params.playerId}`);
     addNotification(req.params.id, 'player.kick', 'Player Kicked', `Player ${req.params.playerId} was kicked`, 'warning');
-    fireWebhooks('player.kick', { serverId: req.params.id, playerId: req.params.playerId, reason: req.body.reason || 'Kicked' });
+    const kickSrv = ctx.servers.find(s => s.id === req.params.id);
+    fireWebhooks('player.kick', { serverId: req.params.id, serverName: kickSrv?.name || 'Unknown', playerId: req.params.playerId, reason: req.body.reason || 'Kicked' });
     res.json({ message: 'Kicked' });
   });
 
@@ -46,7 +47,8 @@ module.exports = function(app) {
     ctx.io.emit('players', { serverId: req.params.id, players: state.players });
     addAudit(req.user.id, req.user.username, 'player.ban', `Banned player ${req.params.playerId}`);
     addNotification(req.params.id, 'player.ban', 'Player Banned', `Player ${req.params.playerId} was banned`, 'error');
-    fireWebhooks('player.ban', { serverId: req.params.id, playerId: req.params.playerId, reason: req.body.reason || 'Banned' });
+    const banSrv = ctx.servers.find(s => s.id === req.params.id);
+    fireWebhooks('player.ban', { serverId: req.params.id, serverName: banSrv?.name || 'Unknown', playerId: req.params.playerId, reason: req.body.reason || 'Banned' });
     res.json({ message: 'Banned' });
   });
 

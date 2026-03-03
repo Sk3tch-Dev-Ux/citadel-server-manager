@@ -42,7 +42,7 @@ module.exports = function(app) {
   });
 
   app.post('/api/webhooks', auth('webhooks.manage'), (req, res) => {
-    const { event, url, template, retryEnabled, retryCount, timeout, headers, events } = req.body;
+    const { event, url, template, retryEnabled, retryCount, timeout, headers, events, serverIds } = req.body;
     const error = validateFields(req.body, {
       event: { required: true, type: 'string', minLength: 2 },
       url: { required: true, type: 'string', pattern: /^https?:\/\// },
@@ -77,6 +77,7 @@ module.exports = function(app) {
       timeout: timeout || 60000,
       headers: headers || {}, enabled: true, isDiscord, isValidJson,
       events: Array.isArray(events) ? events : [],
+      serverIds: Array.isArray(serverIds) ? serverIds : [],
       deliveries: [], createdAt: new Date().toISOString(),
     };
     ctx.webhooks.push(wh); saveJSON(ctx.CONFIG.dataDir, 'webhooks.json', ctx.webhooks);
@@ -101,7 +102,12 @@ module.exports = function(app) {
       req.body.retryCount = Math.min(Math.max(parseInt(req.body.retryCount, 10) || 3, 1), 10);
     }
 
-    const allowed = ['event','url','template','retryEnabled','retryCount','timeout','headers','enabled','events'];
+    // Validate serverIds array if provided
+    if (req.body.serverIds !== undefined) {
+      if (!Array.isArray(req.body.serverIds)) return res.status(400).json({ error: 'serverIds must be an array' });
+    }
+
+    const allowed = ['event','url','template','retryEnabled','retryCount','timeout','headers','enabled','events','serverIds'];
     for (const key of allowed) { if (req.body[key] !== undefined) wh[key] = req.body[key]; }
     wh.isDiscord = wh.url.includes('discord.com/api/webhooks');
     if (wh.template) { try { JSON.parse(wh.template); wh.isValidJson = true; } catch { wh.isValidJson = false; } }
@@ -125,7 +131,10 @@ module.exports = function(app) {
     const wh = ctx.webhooks.find(w => w.id === req.params.id);
     if (!wh) return res.status(404).json({ error: 'Not found' });
     // Fire using the webhook's primary event so it matches its own filter
-    try { await fireWebhooks(wh.event, { serverId: 'test', serverName: 'Test Server' }); res.json({ message: 'Test fired' }); }
+    // Use the first configured serverId (or 'test') so server filtering doesn't block the test
+    const testServerId = Array.isArray(wh.serverIds) && wh.serverIds.length > 0 ? wh.serverIds[0] : 'test';
+    const testServer = ctx.servers.find(s => s.id === testServerId);
+    try { await fireWebhooks(wh.event, { serverId: testServerId, serverName: testServer?.name || 'Test Server' }); res.json({ message: 'Test fired' }); }
     catch (err) { res.status(500).json({ error: err.message }); }
   });
 };
