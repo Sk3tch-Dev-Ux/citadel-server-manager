@@ -3,7 +3,7 @@ import { useSocket } from '../../contexts/SocketContext';
 import API from '../../api';
 import WorkshopItem from './WorkshopItem';
 import SteamSettingsPanel from './SteamSettingsPanel';
-import { Puzzle, Search, Flame, Settings, Package, Trash2 } from '../../components/Icon';
+import { Puzzle, Search, Flame, Settings, Package, Trash2, ChevronUp, ChevronDown } from '../../components/Icon';
 
 const formatSubs = (n) => {
   if (!n) return '0';
@@ -94,6 +94,38 @@ export default function ModsPage({ serverId }) {
     setMods(m => m.map(mod => mod.workshopId === workshopId ? { ...mod, enabled: !enabled } : mod));
   };
 
+  // ─── Reorder handler ───────────────────────────────────────────────
+  const moveMod = async (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= mods.length) return;
+    const reordered = [...mods];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(newIndex, 0, moved);
+    // Optimistic update
+    setMods(reordered);
+    try {
+      await API.post(`/api/servers/${serverId}/mods/reorder`, {
+        order: reordered.map(m => m.name),
+      });
+    } catch (err) {
+      window.addToast('Reorder failed: ' + (err.message || 'Unknown error'), 'error');
+      // Revert on failure
+      API.get(`/api/servers/${serverId}/mods`).then(d => setMods(Array.isArray(d) ? d : []));
+    }
+  };
+
+  // ─── Type change handler ───────────────────────────────────────────
+  const changeModType = async (modName, newType) => {
+    // Optimistic update
+    setMods(prev => prev.map(m => m.name === modName ? { ...m, type: newType } : m));
+    try {
+      await API.patch(`/api/servers/${serverId}/mods/${encodeURIComponent(modName)}/type`, { type: newType });
+    } catch (err) {
+      window.addToast('Type change failed: ' + (err.message || 'Unknown error'), 'error');
+      API.get(`/api/servers/${serverId}/mods`).then(d => setMods(Array.isArray(d) ? d : []));
+    }
+  };
+
   useEffect(() => {
     const handler = (data) => {
       if (data.serverId !== serverId) return;
@@ -131,8 +163,28 @@ export default function ModsPage({ serverId }) {
               {mods.map((mod, i) => (
                 <div className="mod-item" key={mod.workshopId || mod.name}>
                   <span className="mod-order">#{i + 1}</span>
+                  <div className="mod-reorder">
+                    <button onClick={() => moveMod(i, -1)} disabled={i === 0} title="Move up">
+                      <ChevronUp size={12} />
+                    </button>
+                    <button onClick={() => moveMod(i, 1)} disabled={i === mods.length - 1} title="Move down">
+                      <ChevronDown size={12} />
+                    </button>
+                  </div>
                   <div className={`toggle ${mod.enabled ? 'on' : ''}`} onClick={() => toggleMod(mod.workshopId, mod.enabled)}><div className="toggle-knob" /></div>
                   <span className="mod-name" style={{ opacity: mod.enabled ? 1 : 0.4 }}>{mod.name}</span>
+                  <select
+                    className="mod-type-select"
+                    value={mod.type || 'client'}
+                    onChange={(e) => changeModType(mod.name, e.target.value)}
+                    title="Mod type: Client mods use -mod= (downloaded by players), Server mods use -serverMod= (server-only)"
+                  >
+                    <option value="client">Client</option>
+                    <option value="server">Server</option>
+                  </select>
+                  <span className={`mod-type-badge ${mod.type || 'client'}`}>
+                    {(mod.type || 'client') === 'server' ? 'Server' : 'Client'}
+                  </span>
                   <a href={mod.workshopId ? `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod.workshopId}` : '#'}
                     target="_blank" rel="noopener" className="mod-id" title="Open on Steam Workshop">
                     {mod.workshopId || 'local'}

@@ -102,4 +102,5 @@ export {
   ArrowUpRight,
   BadgeCheck,
   Star,
+  Bookmark,
 } from 'lucide-react';

@@ -4,12 +4,23 @@
  * Ticks every 10 seconds to:
  * 1. Check scheduler jobs — broadcast warnings, kick/lock, then execute action
  * 2. Check messenger messages — send RCON broadcasts at configured intervals
+ *
+ * Supported action types:
+ *   restart      — Restart server via RCON (default)
+ *   stop         — Stop the server (kill process)
+ *   start        — Start the server if currently stopped
+ *   update       — Trigger a manual game update via auto-updater
+ *   backup       — Create a server backup
+ *   rcon_command  — Execute an arbitrary RCON command
+ *   webhook      — Fire a custom webhook event
  */
 const logger = require('./logger');
 const ctx = require('./context');
 const { saveJSON } = require('./data-store');
 const { addNotification, fireWebhooks } = require('./notifications');
 const { addAudit } = require('./audit');
+
+const VALID_ACTIONS = ['restart', 'stop', 'start', 'update', 'backup', 'rcon_command', 'webhook'];
 
 const TICK_MS = 10_000; // 10 seconds
 
@@ -56,9 +67,86 @@ function computeMinutesUntil(job, state) {
 }
 
 /**
+ * Execute the configured action for a scheduler job.
+ * Lazy-loads modules to avoid circular dependencies.
+ */
+async function executeAction(actionType, job, server, state) {
+  switch (actionType) {
+    case 'restart':
+    default: {
+      state.rcon.restart();
+      logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed restart');
+      break;
+    }
+
+    case 'stop': {
+      const { killProcess } = require('./process-manager');
+      if (state.pid) {
+        await killProcess(state.pid, server.executable || 'DayZServer_x64.exe');
+        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed stop');
+      } else {
+        logger.warn({ serverId: server.id, job: job.title }, 'Scheduler: stop requested but no PID found');
+      }
+      break;
+    }
+
+    case 'start': {
+      if (state.status === 'running' || state.status === 'starting') {
+        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: start skipped — server already running');
+        break;
+      }
+      const { spawnDayZServer } = require('./process-manager');
+      spawnDayZServer(server);
+      logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed start');
+      break;
+    }
+
+    case 'update': {
+      const { triggerManualUpdate } = require('./auto-updater');
+      const result = triggerManualUpdate(server.id, 'game', {});
+      if (!result.success) {
+        logger.warn({ serverId: server.id, job: job.title, error: result.error }, 'Scheduler: update could not be triggered');
+      } else {
+        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed update');
+      }
+      break;
+    }
+
+    case 'backup': {
+      const { createBackup } = require('./backup-engine');
+      const backupResult = await createBackup(server.id, 'automated');
+      if (backupResult) {
+        logger.info({ serverId: server.id, job: job.title, file: backupResult.filename }, 'Scheduler: executed backup');
+      } else {
+        logger.warn({ serverId: server.id, job: job.title }, 'Scheduler: backup returned null (may already be in progress)');
+      }
+      break;
+    }
+
+    case 'rcon_command': {
+      const cmd = job.rconCommand;
+      if (!cmd || typeof cmd !== 'string' || cmd.trim().length === 0) {
+        logger.warn({ serverId: server.id, job: job.title }, 'Scheduler: rcon_command has no command configured');
+        break;
+      }
+      state.rcon.command(cmd.trim());
+      logger.info({ serverId: server.id, job: job.title, rconCommand: cmd.trim() }, 'Scheduler: executed rcon_command');
+      break;
+    }
+
+    case 'webhook': {
+      const eventName = job.webhookEvent || 'scheduler.custom';
+      fireWebhooks(eventName, server, { trigger: 'scheduler', job: job.title, event: eventName });
+      logger.info({ serverId: server.id, job: job.title, event: eventName }, 'Scheduler: executed webhook');
+      break;
+    }
+  }
+}
+
+/**
  * Process a single scheduler job — warnings, pre-actions, and execution.
  */
-function processJob(job, server, state) {
+async function processJob(job, server, state) {
   if (!job.enabled) return;
   if (!state.rcon) return;
 
@@ -131,29 +219,30 @@ function processJob(job, server, state) {
 
   // ─── Execute action ───
   if (minutesUntil <= 0) {
+    const actionType = job.action || 'restart';
+
     try {
-      if (job.action === 'restart' || !job.action) {
-        state.rcon.restart();
-        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed restart');
-      }
+      await executeAction(actionType, job, server, state);
 
       // Update lastExecutedAt and persist
       job.lastExecutedAt = new Date().toISOString();
       saveJSON(ctx.CONFIG.dataDir, `scheduler-${server.id}.json`, { jobs: state.scheduler.jobs });
 
       // Notifications & audit
-      addNotification(server.id, 'scheduler.execute', 'Scheduled Restart', `${job.title} executed`, 'info');
-      addAudit('system', 'scheduler', 'scheduler.execute', `${job.title} on ${server.name}`);
+      const actionLabel = actionType.replace(/_/g, ' ');
+      addNotification(server.id, 'scheduler.execute', `Scheduled ${actionLabel}`, `${job.title} executed (${actionLabel})`, 'info');
+      addAudit('system', 'scheduler', 'scheduler.execute', `${job.title} [${actionLabel}] on ${server.name}`);
 
-      // Fire webhooks
-      try { fireWebhooks('server.restarted', server, { trigger: 'scheduler', job: job.title }); } catch (_) { /* ignore */ }
+      // Fire scheduler.executed webhook for all action types
+      try { fireWebhooks('scheduler.executed', server, { trigger: 'scheduler', job: job.title, action: actionType }); } catch (_) { /* ignore */ }
 
       // Emit socket event
       if (ctx.io) {
-        ctx.io.emit('schedulerExecution', { serverId: server.id, jobId: job.id, title: job.title, action: job.action || 'restart' });
+        ctx.io.emit('schedulerExecution', { serverId: server.id, jobId: job.id, title: job.title, action: actionType });
       }
     } catch (err) {
-      logger.error({ err, serverId: server.id, job: job.title }, 'Scheduler: failed to execute action');
+      logger.error({ err, serverId: server.id, job: job.title, action: actionType }, 'Scheduler: failed to execute action');
+      addNotification(server.id, 'scheduler.error', 'Scheduler Error', `${job.title} failed: ${err.message}`, 'error');
     }
 
     // Clear pending state
@@ -209,7 +298,7 @@ function processMessenger(server, state) {
 
 // ─── Main Tick ────────────────────────────────────────
 
-function tick() {
+async function tick() {
   for (const server of ctx.servers) {
     const state = ctx.serverStates[server.id];
     if (!state || state.status !== 'running') continue;
@@ -218,7 +307,7 @@ function tick() {
     if (state.scheduler && state.scheduler.jobs) {
       for (const job of state.scheduler.jobs) {
         try {
-          processJob(job, server, state);
+          await processJob(job, server, state);
         } catch (err) {
           logger.error({ err, serverId: server.id, jobId: job.id }, 'Scheduler tick error');
         }
@@ -242,4 +331,4 @@ function startSchedulerEngine() {
   return setInterval(tick, TICK_MS);
 }
 
-module.exports = { startSchedulerEngine };
+module.exports = { startSchedulerEngine, VALID_ACTIONS };
