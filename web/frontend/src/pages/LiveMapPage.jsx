@@ -44,17 +44,49 @@ function vehicleIcon(type) {
   );
 }
 
-// Event icons by type
-function eventIcon(type) {
-  const icons = {
-    helicrash: '\u{1F681}',
-    airdrop: '\u{1F4E6}',
-    contamination: '\u2622\uFE0F',
-    horde: '\u{1F480}',
-    custom: '\u{1F4CD}',
-  };
-  return createDivIcon(`map-marker--event map-marker--${type}`,
-    `<div class="map-marker__dot map-marker__dot--event map-marker__dot--${type}">${icons[type] || '\u{1F4CD}'}</div>`,
+// Icon name → emoji mapping (covers built-in event types + custom marker icons from MapMarkers.json)
+const MARKER_ICON_MAP = {
+  // Built-in event types
+  helicrash: '\u{1F681}',     // helicopter
+  airdrop: '\u{1F4E6}',       // package
+  contamination: '\u2622\uFE0F', // biohazard
+  horde: '\u{1F480}',         // skull
+  custom: '\u{1F4CD}',        // pushpin
+  // Common marker icon names (from mod MapMarkers.json config)
+  helicopter: '\u{1F681}',
+  biohazard: '\u2622\uFE0F',
+  skull: '\u{1F480}',
+  chest: '\u{1F9F0}',         // toolbox
+  'box-open': '\u{1F4E6}',    // package
+  barrel: '\u{1FAA3}',        // bucket
+  house: '\u{1F3E0}',         // house
+  home: '\u{1F3E0}',
+  tent: '\u26FA',              // tent
+  flag: '\u{1F6A9}',          // flag
+  hammer: '\u{1F528}',        // hammer
+  wrench: '\u{1F527}',        // wrench
+  car: '\u{1F697}',           // car
+  truck: '\u{1F69A}',         // truck
+  boat: '\u26F5',              // sailboat
+  marker: '\u{1F4CD}',        // pushpin
+  star: '\u2B50',              // star
+  warning: '\u26A0\uFE0F',    // warning
+  medical: '\u{1F3E5}',       // hospital
+  food: '\u{1F372}',          // pot of food
+  water: '\u{1F4A7}',         // droplet
+  fire: '\u{1F525}',          // fire
+  lock: '\u{1F512}',          // locked
+  key: '\u{1F511}',           // key
+  military: '\u{1FA96}',      // military helmet
+  camp: '\u{1F3D5}\uFE0F',   // camping
+};
+
+// Event icons — checks event.icon (from mod config), then event.type, then fallback
+function eventIcon(type, icon) {
+  const emoji = MARKER_ICON_MAP[icon] || MARKER_ICON_MAP[type] || '\u{1F4CD}';
+  const cssType = MARKER_ICON_MAP[type] ? type : 'custom-marker';
+  return createDivIcon(`map-marker--event map-marker--${cssType}`,
+    `<div class="map-marker__dot map-marker__dot--event map-marker__dot--${cssType}">${emoji}</div>`,
     [34, 34]
   );
 }
@@ -412,7 +444,7 @@ export default function LiveMapPage({ serverId }) {
             <Marker
               key={`e-${event.id}`}
               position={toLatLng(event.position)}
-              icon={eventIcon(event.type)}
+              icon={eventIcon(event.type, event.icon)}
             >
               <Popup className="map-popup">
                 <div className="map-popup__header map-popup__header--event">

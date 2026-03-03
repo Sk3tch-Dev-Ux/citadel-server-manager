@@ -35,6 +35,7 @@ class CitadelConfiguration
     bool trackBaseBuilding = true;
     bool trackPlayerStats = true;
     bool trackItems = true;
+    bool trackMapMarkers = true;
 
     // Metrics
     bool enableMetricsDump = false;
@@ -81,6 +82,7 @@ class CitadelConfiguration
     bool GetTrackBaseBuilding() { return trackBaseBuilding; }
     bool GetTrackPlayerStats() { return trackPlayerStats; }
     bool GetTrackItems() { return trackItems; }
+    bool GetTrackMapMarkers() { return trackMapMarkers; }
 
     bool GetMetricsDump() { return enableMetricsDump; }
 

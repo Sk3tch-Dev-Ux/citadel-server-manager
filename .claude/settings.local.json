@@ -75,7 +75,8 @@
       "WebFetch(domain:help.cftools.com)",
       "WebFetch(domain:app.swaggerhub.com)",
       "Bash(node backend/lib/service-installer.js status)",
-      "Bash(node backend/lib/service-installer.js)"
+      "Bash(node backend/lib/service-installer.js)",
+      "Bash(find \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZ\\\\!Workshop\\\\@CW_Gamelabs\\\\addons\\\\CW_Gamelabs\\\\CW_Gamelabs\" -type f)"
     ]
   }
 }
