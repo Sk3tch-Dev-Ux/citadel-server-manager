@@ -3,6 +3,7 @@
  */
 const ctx = require('../lib/context');
 const { detectRunningProcess, detectProcessByPid, killProcess, spawnDayZServer } = require('../lib/process-manager');
+const { startSidecar, stopSidecar } = require('../lib/sidecar-manager');
 const { addLog } = require('../lib/audit');
 const { addAudit } = require('../lib/audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('../lib/notifications');
@@ -40,6 +41,7 @@ module.exports = function(app) {
     if (existingPid) {
       state.pid = existingPid; state.status = 'running'; state.startedAt = new Date().toISOString();
       ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+      startSidecar(srv); // Ensure sidecar is running too
       return res.json({ message: `Already running (PID: ${existingPid})` });
     }
 
@@ -56,6 +58,9 @@ module.exports = function(app) {
       }
 
       addLog(srv.id, 'info', 'server', `Process spawned with PID: ${child.pid}`);
+
+      // Start the sidecar (live map + admin actions API)
+      startSidecar(srv);
 
       // Monitor the launch asynchronously — launchFailed resolves to an error string
       // if the process exits/errors within 10s, or null if still alive
@@ -107,6 +112,7 @@ module.exports = function(app) {
     try {
       if (state.rcon?.loggedIn) { try { await state.rcon.shutdown(); await new Promise(r => setTimeout(r, 5000)); } catch {} }
       await killProcess(state.pid, srv.executable);
+      stopSidecar(srv.id); // Stop the sidecar alongside the server
       state.status = 'stopped'; state.pid = null; state.process = null; state.players = []; state.startedAt = null;
       ctx.io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
       ctx.io.emit('players', { serverId: srv.id, players: [] });
@@ -116,6 +122,7 @@ module.exports = function(app) {
       sendDiscordWebhook(`🔴 **${srv.name}** stopped`);
       res.json({ message: 'Stopped' });
     } catch {
+      stopSidecar(srv.id);
       state.status = 'stopped'; state.pid = null;
       ctx.io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
       res.json({ message: 'Stopped (force)' });
@@ -130,6 +137,7 @@ module.exports = function(app) {
 
     addLog(srv.id, 'info', 'server', `Restart initiated by ${req.user.username}`);
     state.status = 'stopping'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'stopping' });
+    stopSidecar(srv.id); // Stop sidecar before restart cycle
     let restartSuccess = false;
     let lastError = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -155,6 +163,7 @@ module.exports = function(app) {
           fireWebhooks('server.restarted', { serverId: srv.id, serverName: srv.name });
           sendDiscordWebhook(`🔄 **${srv.name}** restarted`);
           addLog(srv.id, 'info', 'server', `Restart succeeded on attempt ${attempt}`);
+          startSidecar(srv); // Restart sidecar alongside server
           restartSuccess = true;
           break;
         } else {

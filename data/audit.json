@@ -1,5 +1,37 @@
 [
   {
+    "id": "9ac2b41a-b877-421a-85c2-bd9d7687f756",
+    "timestamp": "2026-03-03T04:23:49.894Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: Test"
+  },
+  {
+    "id": "535788d8-17e6-4f56-b579-5a5d76061435",
+    "timestamp": "2026-03-03T04:06:05.032Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
+    "id": "41f0dafa-a2b0-43bb-833c-008959ed99c0",
+    "timestamp": "2026-03-03T04:03:24.468Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying Test to C:\\Citadel\\deployments"
+  },
+  {
+    "id": "df2b623d-6117-4a16-9c50-03c8eb834c39",
+    "timestamp": "2026-03-03T04:02:34.775Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.delete",
+    "details": "Deleted server: EXAMPLE NAME"
+  },
+  {
     "id": "c20c5f68-e0b3-418a-a153-3f7e7b3c273d",
     "timestamp": "2026-03-03T03:48:56.391Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
