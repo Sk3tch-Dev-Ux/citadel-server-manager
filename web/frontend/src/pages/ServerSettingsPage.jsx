@@ -21,6 +21,11 @@ export default function ServerSettingsPage({ serverId }) {
   const [backingUp, setBackingUp] = useState(false);
   const [restoring, setRestoring] = useState(null); // filename of currently restoring backup
 
+  const saveRef = { current: null };
+
+  // Ctrl+S to save settings (must be before any conditional returns)
+  useKeyboardShortcuts({ 'ctrl+s': () => saveRef.current?.() });
+
   useEffect(() => {
     API.get('/api/servers').then(servers => {
       const s = servers.find(x => x.id === serverId);
@@ -75,8 +80,8 @@ export default function ServerSettingsPage({ serverId }) {
     setSaving(false);
   };
 
-  // Ctrl+S to save settings
-  useKeyboardShortcuts({ 'ctrl+s': () => save() });
+  // Wire save function to keyboard shortcut ref
+  saveRef.current = save;
 
   // ─── Backup helpers ─────────────────────────────────────
   const addBackupPath = (pathStr) => {
