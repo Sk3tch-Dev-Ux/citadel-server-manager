@@ -176,14 +176,22 @@ module.exports = function(app) {
       } catch { /* SteamCMD self-update is best-effort */ }
 
       // Step 2: Build SteamCMD arguments
-      // Note: Do NOT pass the guard code here if login was already validated.
-      // SteamCMD caches the auth token in config/config.vdf after a successful
-      // login. Re-sending a used guard code can actually cause auth failures.
+      // After a successful login (especially with Steam Guard), SteamCMD caches
+      // an auth token in config/config.vdf. To reuse the cached session, we
+      // login with USERNAME ONLY (no password). Sending the password forces a
+      // full re-authentication which may trigger Steam Guard again.
+      // This mirrors how CFTools Architect handles seamless SteamCMD sessions.
       const args = ['+force_install_dir', resolvedDir];
-      if (!ctx.steamLoginValidated && ctx.steamCredentials.guardCode) {
-        args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+      if (ctx.steamLoginValidated) {
+        // Cached session: username-only login leverages the saved auth token
+        args.push('+login', ctx.steamCredentials.username);
+      } else {
+        // Fresh login: include password (and guard code if provided)
+        if (ctx.steamCredentials.guardCode) {
+          args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+        }
+        args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
       }
-      args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
       args.push('+app_update', appId, 'validate', '+quit');
 
       // Step 3: Download with retry (SteamCMD often needs 2 attempts for large downloads)
@@ -268,12 +276,16 @@ module.exports = function(app) {
       const cmdPath = await ensureSteamCMD();
       const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
 
-      // Build SteamCMD arguments (don't re-send guard code if already validated)
+      // Build SteamCMD arguments — use cached session if already validated
       const args = ['+force_install_dir', resolvedDir];
-      if (!ctx.steamLoginValidated && ctx.steamCredentials.guardCode) {
-        args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+      if (ctx.steamLoginValidated) {
+        args.push('+login', ctx.steamCredentials.username);
+      } else {
+        if (ctx.steamCredentials.guardCode) {
+          args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+        }
+        args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
       }
-      args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
       args.push('+app_update', appId, 'validate', '+quit');
 
       // Download with retry

@@ -313,9 +313,12 @@ export default function DeployPage() {
       {step === 4 && mode === 'new' && (
         <div style={{ maxWidth: 500 }}>
           <h3 style={{ marginBottom: 8 }}>Steam Login</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>
             DayZ Dedicated Server requires an authenticated Steam account to download. Enter your credentials below and verify the connection before deploying.
           </p>
+          <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
+            <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> For the smoothest experience, we recommend using a dedicated Steam account for server management with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator). After your first login, SteamCMD caches the session so you won't need to re-enter a guard code each time.
+          </div>
 
           {steamLoading ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
