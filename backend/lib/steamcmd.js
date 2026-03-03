@@ -56,12 +56,18 @@ function findWorkshopContent(workshopId) {
 async function downloadWorkshopMod(workshopId, modName, serverId) {
   const cmdPath = await ensureSteamCMD();
   const appId = ctx.CONFIG.steam.appId;
-  if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) throw new Error('Steam credentials required.');
+  if (!ctx.steamCredentials.username) throw new Error('Steam credentials required.');
+  if (!ctx.steamLoginValidated && !ctx.steamCredentials.password) throw new Error('Steam credentials required.');
   const args = [];
-  if (!ctx.steamLoginValidated && ctx.steamCredentials.guardCode) {
-    args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+  if (ctx.steamLoginValidated) {
+    // Use cached SteamCMD session — username-only login reuses the auth token
+    args.push('+login', ctx.steamCredentials.username);
+  } else {
+    if (ctx.steamCredentials.guardCode) {
+      args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+    }
+    args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
   }
-  args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
   const srv = ctx.servers.find(s => s.id === serverId);
   if (srv) args.push('+force_install_dir', srv.installDir);
   args.push('+workshop_download_item', appId, workshopId, 'validate', '+quit');

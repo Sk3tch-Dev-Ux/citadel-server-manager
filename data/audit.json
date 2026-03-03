@@ -1,5 +1,53 @@
 [
   {
+    "id": "24f57afe-3bbd-4c4c-a92d-b50fe5d74c75",
+    "timestamp": "2026-03-03T03:30:09.065Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.delete",
+    "details": "Deleted server: Testing"
+  },
+  {
+    "id": "29f59940-747c-4abc-8fef-6c25254aa7bb",
+    "timestamp": "2026-03-03T03:30:00.512Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.delete",
+    "details": "Deleted server: Testing"
+  },
+  {
+    "id": "777e545e-9964-4fe6-a201-e2ea52b9de79",
+    "timestamp": "2026-03-03T03:29:19.213Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying Testing to C:\\Citadel\\deployments"
+  },
+  {
+    "id": "510a6e24-8bca-4643-8e80-f617c0ed8344",
+    "timestamp": "2026-03-03T03:28:27.285Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying Testing to C:\\Citadel\\deployments"
+  },
+  {
+    "id": "14571afa-d84c-40ae-9116-3cc4844d7076",
+    "timestamp": "2026-03-03T03:25:13.751Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.delete",
+    "details": "Deleted server: EXAMPLE NAME"
+  },
+  {
+    "id": "54556ac8-2aa3-4c10-a0cb-16ef1eb7c357",
+    "timestamp": "2026-03-03T03:25:05.560Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.delete",
+    "details": "Deleted server: Testing"
+  },
+  {
     "id": "9624e34b-4888-4fdf-81ca-b9bd9c1ea73e",
     "timestamp": "2026-03-03T03:19:14.147Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

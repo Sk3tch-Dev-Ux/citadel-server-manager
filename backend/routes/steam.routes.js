@@ -70,6 +70,9 @@ module.exports = function(app) {
 
     if (result.success) {
       ctx.steamLoginValidated = true;
+      // Clear the one-time guard code so it's never re-sent to SteamCMD.
+      // The auth token is now cached in SteamCMD's config/config.vdf.
+      ctx.steamCredentials.guardCode = '';
       // Persist to .env so credentials survive restarts
       persistSteamCredentials(ctx.steamCredentials.username, ctx.steamCredentials.password);
       res.json({ success: true, message: `Logged in as ${ctx.steamCredentials.username}` });
