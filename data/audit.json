@@ -1,5 +1,45 @@
 [
   {
+    "id": "abbe8c06-2d39-4675-bca1-f11bb36c2ab8",
+    "timestamp": "2026-03-03T20:50:54.591Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarted: Test (success: true)"
+  },
+  {
+    "id": "1d638a0b-e7a4-463e-8aa0-ce59b6ee9a60",
+    "timestamp": "2026-03-03T20:50:41.425Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
+    "id": "b2e26ee7-61cb-4ed4-a3e0-14e622cd358a",
+    "timestamp": "2026-03-03T20:50:39.166Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.type",
+    "details": "Changed @CitadelServerSide to server on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "4eb3912a-f187-4201-b586-bf06384986ce",
+    "timestamp": "2026-03-03T20:45:58.271Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
+    "id": "000b1870-f8af-42c8-b2c3-ccc9700c4b4e",
+    "timestamp": "2026-03-03T20:43:08.933Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "webhook.create",
+    "details": "Created webhook for mod.installed"
+  },
+  {
     "id": "9061d9e1-0a56-4368-9bdb-8e68db42342f",
     "timestamp": "2026-03-03T16:22:03.912Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

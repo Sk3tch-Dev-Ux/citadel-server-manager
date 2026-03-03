@@ -21,7 +21,7 @@ class CitadelCore
     // Player tracking
     private ref map<string, ref CitadelPlayerStats> m_PlayerStats;
     private ref map<string, int> m_PlayerSessionStart;
-    private ref map<string, PlayerBase> m_ActivePlayers;
+    private ref map<string, Man> m_ActivePlayers;
 
     // Entity registries
     private ref array<ref CitadelTrackedAI> m_TrackedAI;
@@ -47,7 +47,7 @@ class CitadelCore
 
         m_PlayerStats = new map<string, ref CitadelPlayerStats>;
         m_PlayerSessionStart = new map<string, int>;
-        m_ActivePlayers = new map<string, PlayerBase>;
+        m_ActivePlayers = new map<string, Man>;
 
         m_TrackedAI = new array<ref CitadelTrackedAI>;
         m_TrackedVehicles = new array<ref CitadelTrackedVehicle>;
@@ -120,7 +120,7 @@ class CitadelCore
 
     // ─── Player Statistics ────────────────────────────
 
-    void RegisterPlayer(string steamId, PlayerBase player)
+    void RegisterPlayer(string steamId, Man player)
     {
         if (!m_IsServer) return;
         if (!m_PlayerStats.Contains(steamId))
@@ -142,7 +142,7 @@ class CitadelCore
         m_Logger.Debug("UnregisterPlayer: " + steamId);
     }
 
-    map<string, PlayerBase> GetActivePlayers() { return m_ActivePlayers; }
+    map<string, Man> GetActivePlayers() { return m_ActivePlayers; }
     int GetActivePlayerCount() { return m_ActivePlayers.Count(); }
 
     CitadelPlayerStats GetPlayerStats(string steamId)
