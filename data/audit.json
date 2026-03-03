@@ -1,5 +1,61 @@
 [
   {
+    "id": "761f8843-1af2-41bf-b2c9-ab7cd64d6748",
+    "timestamp": "2026-03-03T16:07:24.560Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarted: Test (success: true)"
+  },
+  {
+    "id": "255876b6-ea13-4383-bd3e-621f06b9acca",
+    "timestamp": "2026-03-03T16:07:11.397Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
+    "id": "9ebe78d2-0832-4339-ba46-ef5e4ffe6971",
+    "timestamp": "2026-03-03T15:56:23.288Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
+    "id": "6dab61f3-12ea-4566-bbb7-f0411aaa299e",
+    "timestamp": "2026-03-03T15:54:04.701Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
+    "id": "5ae9fb17-1163-49e7-9d7b-d74e0f0c0274",
+    "timestamp": "2026-03-03T15:50:26.555Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: Test"
+  },
+  {
+    "id": "89cf28c1-afd5-4fa8-8094-41e6b9c72e24",
+    "timestamp": "2026-03-03T15:48:06.438Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
+    "id": "7438d7d6-7a4e-4a92-a465-de514ffa55e1",
+    "timestamp": "2026-03-03T15:48:01.062Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.type",
+    "details": "Changed @CitadelServerSide to server on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
     "id": "22b9fdac-994f-4d2b-bf4d-0608bfd81d0f",
     "timestamp": "2026-03-03T15:43:36.846Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

@@ -62,6 +62,9 @@ modded class MissionServer
         string steamId = identity.GetPlainId();
         string name = identity.GetName();
 
+        // Register in core (tracks entity ref, stats, session start)
+        GetCitadel().RegisterPlayer(steamId, player);
+
         // Set identity on the player hooks
         player.CitSetIdentity(steamId, name);
 
@@ -140,14 +143,12 @@ modded class MissionServer
                     }
                 }
 
-                // Find the player who sent the message to get their steamId
+                // Find the player who sent the message using our own registry
                 string senderSteamId = "";
-                ref array<Man> players = new array<Man>();
-                GetGame().GetPlayers(players);
-
-                foreach (Man man : players)
+                map<string, PlayerBase> chatPlayers = GetCitadel().GetActivePlayers();
+                for (int ci = 0; ci < chatPlayers.Count(); ci++)
                 {
-                    PlayerBase chatPlayer = PlayerBase.Cast(man);
+                    PlayerBase chatPlayer = chatPlayers.GetElement(ci);
                     if (chatPlayer && chatPlayer.GetIdentity())
                     {
                         if (chatPlayer.GetIdentity().GetName() == senderName)

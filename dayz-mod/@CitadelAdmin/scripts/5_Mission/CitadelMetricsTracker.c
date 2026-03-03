@@ -31,10 +31,9 @@ class CitadelMetricsTracker
 
     void CollectMetrics()
     {
-        // Player count
-        ref array<Man> players = new array<Man>();
-        GetGame().GetPlayers(players);
-        int playerCount = players.Count();
+        // Player count — use our own registry (GetGame().GetPlayers() can
+        // return empty on some DayZ dedicated server versions)
+        int playerCount = GetCitadel().GetActivePlayerCount();
 
         // Entity counts from CitadelCore registries (no 15km scan needed)
         int aiCount = GetCitadel().GetAICount();
