@@ -1,10 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import API from '../api';
 import { Modal, Toggle, EmptyState, Button, Input, FormField } from '../components/ui';
-import { Clock, Plus, Trash2, Edit, Check, X, AlertTriangle, Lock, Power } from '../components/Icon';
+import { Clock, Plus, Trash2, Edit, Check, X, AlertTriangle, Lock, Power, RotateCcw, Square, Play, Download, Save, Terminal, Webhook } from '../components/Icon';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEFAULT_WARNINGS = [15, 10, 5, 1];
+
+const ACTION_TYPES = [
+  { value: 'restart',      label: 'Restart',      icon: RotateCcw, description: 'Restart the server via RCON' },
+  { value: 'stop',         label: 'Stop',         icon: Square,    description: 'Stop the server (kill process)' },
+  { value: 'start',        label: 'Start',        icon: Play,      description: 'Start the server if stopped' },
+  { value: 'update',       label: 'Update',       icon: Download,  description: 'Trigger a game update' },
+  { value: 'backup',       label: 'Backup',       icon: Save,      description: 'Create a server backup' },
+  { value: 'rcon_command',  label: 'RCON Command', icon: Terminal,  description: 'Execute an RCON command' },
+  { value: 'webhook',      label: 'Webhook',      icon: Webhook,   description: 'Fire a custom webhook event' },
+];
+
+function getActionMeta(action) {
+  return ACTION_TYPES.find(a => a.value === action) || ACTION_TYPES[0];
+}
 
 function formatTime(hour, minute) {
   const h = String(hour).padStart(2, '0');
@@ -28,6 +42,8 @@ function formatLastExec(iso) {
 // ─── Job Card ─────────────────────────────────────────────
 function JobCard({ job, onToggle, onEdit, onDelete }) {
   const allDays = !job.daysOfWeek || job.daysOfWeek.length === 7;
+  const actionMeta = getActionMeta(job.action || 'restart');
+  const ActionIcon = actionMeta.icon;
 
   return (
     <div className={`scheduler-card ${!job.enabled ? 'scheduler-card--disabled' : ''}`}>
@@ -77,6 +93,18 @@ function JobCard({ job, onToggle, onEdit, onDelete }) {
               Kick {job.kickMinutesBefore || 1}m
             </span>
           )}
+          {job.action === 'rcon_command' && job.rconCommand && (
+            <span className="scheduler-meta-item" title={`RCON: ${job.rconCommand}`}>
+              <Terminal size={12} />
+              {job.rconCommand}
+            </span>
+          )}
+          {job.action === 'webhook' && job.webhookEvent && (
+            <span className="scheduler-meta-item" title={`Event: ${job.webhookEvent}`}>
+              <Webhook size={12} />
+              {job.webhookEvent}
+            </span>
+          )}
           <span className="scheduler-meta-item scheduler-meta-item--last">
             Last: {formatLastExec(job.lastExecutedAt)}
           </span>
@@ -84,7 +112,10 @@ function JobCard({ job, onToggle, onEdit, onDelete }) {
       </div>
 
       <div className="scheduler-card-footer">
-        <span className="scheduler-action-badge">{job.action || 'restart'}</span>
+        <span className="scheduler-action-badge" title={actionMeta.description}>
+          <ActionIcon size={12} />
+          {actionMeta.label}
+        </span>
         <Toggle checked={job.enabled} onCheckedChange={() => onToggle(job)} />
       </div>
     </div>
@@ -98,6 +129,8 @@ function JobModal({ open, onClose, onSave, editingJob }) {
   const [hour, setHour] = useState(4);
   const [minute, setMinute] = useState(0);
   const [action, setAction] = useState('restart');
+  const [rconCommand, setRconCommand] = useState('');
+  const [webhookEvent, setWebhookEvent] = useState('');
   const [daysOfWeek, setDaysOfWeek] = useState([0, 1, 2, 3, 4, 5, 6]);
   const [useUptime, setUseUptime] = useState(false);
   const [warningMinutes, setWarningMinutes] = useState([...DEFAULT_WARNINGS]);
@@ -114,6 +147,8 @@ function JobModal({ open, onClose, onSave, editingJob }) {
       setHour(editingJob.hour ?? 4);
       setMinute(editingJob.minute ?? 0);
       setAction(editingJob.action || 'restart');
+      setRconCommand(editingJob.rconCommand || '');
+      setWebhookEvent(editingJob.webhookEvent || '');
       setDaysOfWeek(editingJob.daysOfWeek || [0, 1, 2, 3, 4, 5, 6]);
       setUseUptime(!!editingJob.useUptime);
       setWarningMinutes(editingJob.warningMinutes || [...DEFAULT_WARNINGS]);
@@ -127,6 +162,8 @@ function JobModal({ open, onClose, onSave, editingJob }) {
       setHour(4);
       setMinute(0);
       setAction('restart');
+      setRconCommand('');
+      setWebhookEvent('');
       setDaysOfWeek([0, 1, 2, 3, 4, 5, 6]);
       setUseUptime(false);
       setWarningMinutes([...DEFAULT_WARNINGS]);
@@ -159,10 +196,13 @@ function JobModal({ open, onClose, onSave, editingJob }) {
 
   const handleSave = () => {
     if (!title.trim()) { window.addToast?.('Title is required', 'error'); return; }
+    if (action === 'rcon_command' && !rconCommand.trim()) { window.addToast?.('RCON command is required', 'error'); return; }
     onSave({
       ...(editingJob ? { id: editingJob.id } : {}),
       title: title.trim(), hour, minute, action, daysOfWeek, useUptime,
       warningMinutes, warningMessage, lockServer, lockMinutesBefore, kickPlayers, kickMinutesBefore,
+      ...(action === 'rcon_command' ? { rconCommand: rconCommand.trim() } : {}),
+      ...(action === 'webhook' ? { webhookEvent: webhookEvent.trim() } : {}),
     });
   };
 
@@ -182,10 +222,27 @@ function JobModal({ open, onClose, onSave, editingJob }) {
           </FormField>
           <FormField label="Action">
             <select className="input" value={action} onChange={e => setAction(e.target.value)}>
-              <option value="restart">Restart</option>
+              {ACTION_TYPES.map(at => (
+                <option key={at.value} value={at.value}>{at.label}</option>
+              ))}
             </select>
+            <span className="form-hint">{getActionMeta(action).description}</span>
           </FormField>
         </div>
+
+        {action === 'rcon_command' && (
+          <FormField label="RCON Command">
+            <Input value={rconCommand} onChange={e => setRconCommand(e.target.value)} placeholder="e.g. say -1 Server maintenance in progress" />
+            <span className="form-hint">The raw RCON command to execute on the server</span>
+          </FormField>
+        )}
+
+        {action === 'webhook' && (
+          <FormField label="Webhook Event Name">
+            <Input value={webhookEvent} onChange={e => setWebhookEvent(e.target.value)} placeholder="e.g. scheduler.custom" />
+            <span className="form-hint">Custom event name fired to configured webhook endpoints (defaults to scheduler.custom)</span>
+          </FormField>
+        )}
 
         <FormField label="Days of Week">
           <div className="scheduler-day-chips scheduler-day-chips--edit">
@@ -319,14 +376,14 @@ export default function SchedulerPage({ serverId }) {
       <div className="scheduler-header">
         <div>
           <p className="scheduler-description">
-            Schedule automated server restarts with warning broadcasts, player kicks, and server locks.
+            Schedule automated server actions — restarts, stops, starts, updates, backups, RCON commands, and webhooks.
           </p>
         </div>
         <Button variant="primary" onClick={handleCreate}><Plus size={14} /> New Job</Button>
       </div>
 
       {jobs.length === 0 ? (
-        <EmptyState icon={<Clock size={48} />} title="No Scheduled Jobs" description="Create your first scheduled restart to keep your server running smoothly." action={<Button variant="primary" onClick={handleCreate}><Plus size={14} /> Create Job</Button>} />
+        <EmptyState icon={<Clock size={48} />} title="No Scheduled Jobs" description="Create your first scheduled job to automate server restarts, backups, updates, and more." action={<Button variant="primary" onClick={handleCreate}><Plus size={14} /> Create Job</Button>} />
       ) : (
         <div className="scheduler-grid">
           {jobs.map(job => (

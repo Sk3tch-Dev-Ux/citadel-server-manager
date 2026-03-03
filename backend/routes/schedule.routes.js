@@ -9,6 +9,7 @@ const { authForServer } = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
+const { VALID_ACTIONS } = require('../lib/scheduler-engine');
 
 function getJobs(serverId) {
   const state = ctx.serverStates[serverId];
@@ -33,17 +34,30 @@ module.exports = function (app) {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
-    const { title, hour, minute, action, daysOfWeek, useUptime, warningMinutes, warningMessage, lockServer, lockMinutesBefore, kickPlayers, kickMinutesBefore } = req.body;
+    const { title, hour, minute, action, rconCommand, webhookEvent, daysOfWeek, useUptime, warningMinutes, warningMessage, lockServer, lockMinutesBefore, kickPlayers, kickMinutesBefore } = req.body;
 
     if (!title || title.trim().length === 0) return res.status(400).json({ error: 'Title is required' });
     if (hour == null || minute == null) return res.status(400).json({ error: 'Hour and minute are required' });
+
+    // Validate action type
+    const resolvedAction = action || 'restart';
+    if (!VALID_ACTIONS.includes(resolvedAction)) {
+      return res.status(400).json({ error: `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}` });
+    }
+
+    // Validate rcon_command requires a command string
+    if (resolvedAction === 'rcon_command' && (!rconCommand || typeof rconCommand !== 'string' || rconCommand.trim().length === 0)) {
+      return res.status(400).json({ error: 'RCON command is required when action is rcon_command' });
+    }
 
     const job = {
       id: uuid(),
       title: title.trim(),
       hour: Math.max(0, Math.min(23, parseInt(hour, 10) || 0)),
       minute: Math.max(0, Math.min(59, parseInt(minute, 10) || 0)),
-      action: action || 'restart',
+      action: resolvedAction,
+      rconCommand: resolvedAction === 'rcon_command' ? rconCommand.trim() : undefined,
+      webhookEvent: resolvedAction === 'webhook' && webhookEvent ? webhookEvent.trim() : undefined,
       daysOfWeek: Array.isArray(daysOfWeek) ? daysOfWeek.filter(d => d >= 0 && d <= 6) : [0, 1, 2, 3, 4, 5, 6],
       useUptime: !!useUptime,
       warningMinutes: Array.isArray(warningMinutes) ? warningMinutes.filter(m => m > 0).sort((a, b) => b - a) : [15, 10, 5, 1],
@@ -74,12 +88,29 @@ module.exports = function (app) {
     const job = jobs.find(j => j.id === req.params.jobId);
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
-    const { title, hour, minute, action, daysOfWeek, useUptime, warningMinutes, warningMessage, lockServer, lockMinutesBefore, kickPlayers, kickMinutesBefore, enabled } = req.body;
+    const { title, hour, minute, action, rconCommand, webhookEvent, daysOfWeek, useUptime, warningMinutes, warningMessage, lockServer, lockMinutesBefore, kickPlayers, kickMinutesBefore, enabled } = req.body;
+
+    // Validate action type if provided
+    if (action !== undefined && !VALID_ACTIONS.includes(action)) {
+      return res.status(400).json({ error: `Invalid action. Must be one of: ${VALID_ACTIONS.join(', ')}` });
+    }
+
+    const resolvedAction = action !== undefined ? action : job.action;
+
+    // Validate rcon_command requires a command string
+    if (resolvedAction === 'rcon_command') {
+      const cmd = rconCommand !== undefined ? rconCommand : job.rconCommand;
+      if (!cmd || typeof cmd !== 'string' || cmd.trim().length === 0) {
+        return res.status(400).json({ error: 'RCON command is required when action is rcon_command' });
+      }
+    }
 
     if (title !== undefined) job.title = title.trim();
     if (hour !== undefined) job.hour = Math.max(0, Math.min(23, parseInt(hour, 10) || 0));
     if (minute !== undefined) job.minute = Math.max(0, Math.min(59, parseInt(minute, 10) || 0));
     if (action !== undefined) job.action = action;
+    if (rconCommand !== undefined) job.rconCommand = resolvedAction === 'rcon_command' ? rconCommand.trim() : undefined;
+    if (webhookEvent !== undefined) job.webhookEvent = resolvedAction === 'webhook' && webhookEvent ? webhookEvent.trim() : undefined;
     if (daysOfWeek !== undefined) job.daysOfWeek = Array.isArray(daysOfWeek) ? daysOfWeek.filter(d => d >= 0 && d <= 6) : job.daysOfWeek;
     if (useUptime !== undefined) job.useUptime = !!useUptime;
     if (warningMinutes !== undefined) job.warningMinutes = Array.isArray(warningMinutes) ? warningMinutes.filter(m => m > 0).sort((a, b) => b - a) : job.warningMinutes;
@@ -89,6 +120,10 @@ module.exports = function (app) {
     if (kickPlayers !== undefined) job.kickPlayers = !!kickPlayers;
     if (kickMinutesBefore !== undefined) job.kickMinutesBefore = parseInt(kickMinutesBefore, 10) || 1;
     if (enabled !== undefined) job.enabled = !!enabled;
+
+    // Clean up fields that don't apply to the current action
+    if (job.action !== 'rcon_command') delete job.rconCommand;
+    if (job.action !== 'webhook') delete job.webhookEvent;
 
     persistJobs(req.params.id);
     addAudit(req.user?.id || 'system', req.user?.username || 'system', 'job.update', `Updated "${job.title}" on server ${req.params.id}`);

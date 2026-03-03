@@ -1,25 +1,34 @@
 /**
- * All polling loops (metrics, mod detection, leaderboard, steam updates, RCON connect)
- * and graceful shutdown handler.
+ * Polling Orchestrator.
+ *
+ * Thin coordinator that starts all polling loops and delegates to focused modules:
+ *   - metrics-collector.js  — CPU/RAM/FPS sampling, player polling, health monitoring
+ *   - crash-detector.js     — process disappearance detection, crash hooks & notifications
+ *
+ * Keeps in this file (tightly coupled or simple):
+ *   - PID detection & status transitions (starting → running)
+ *   - Steam update polling (integrated with auto-updater)
+ *   - RCON connection management
+ *   - Mod detection (simple periodic scan)
+ *   - Map data scraping (simple, called from metrics-collector)
+ *   - Startup detection & auto-start
+ *   - Graceful shutdown
  */
 const logger = require('./logger');
 const ctx = require('./context');
 const { flushAll } = require('./data-store');
-const { detectRunningProcess, detectProcessByPid, getProcessMetrics, getProcessCPU, spawnDayZServer, applyProcessSettings } = require('./process-manager');
-const { scrapeRPTForFPS } = require('./rpt-scraper');
+const { detectRunningProcess, detectProcessByPid, spawnDayZServer, applyProcessSettings } = require('./process-manager');
 const { updateLeaderboard } = require('./cftools-leaderboard');
 const { fetchPlayers } = require('./cftools-players');
 const { autoDetectMods } = require('./mod-manager');
 const { addLog } = require('./audit');
-const { pushMetrics } = require('./audit');
-const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
+const { addNotification, fireWebhooks } = require('./notifications');
 const { startSchedulerEngine } = require('./scheduler-engine');
 const { startBackupEngine, runStartupBackups } = require('./backup-engine');
-const { scrapeRPTForEvents, getMapData } = require('./map-data');
 const { startSidecar, stopSidecar } = require('./sidecar-manager');
-const { executeHooks } = require('./lifecycle-hooks');
-const { restartServer } = require('./server-lifecycle');
 const { triggerAutoUpdate } = require('./auto-updater');
+const { collectMetrics } = require('./metrics-collector');
+const { handleCrash } = require('./crash-detector');
 
 // ─── Steam Update Polling ────────────────────────────────
 let lastModVersions = {};
@@ -76,71 +85,11 @@ function startMetricsPolling() {
           state.status = 'running'; state.startedAt = state.startedAt || new Date().toISOString();
           ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
         }
-        const metrics = await getProcessMetrics(pid);
-        // Get CPU from delta-based sampling (wmic, no PowerShell windows)
-        const cpu = await getProcessCPU(pid);
-        if (metrics) metrics.cpu = cpu;
-        let fps = scrapeRPTForFPS(srv);
-        if (!fps && state.rcon) {
-          try {
-            if (!state.rcon.monitorEnabled && state.rcon.loggedIn) await state.rcon.enableMonitor();
-            fps = state.rcon.getFPS() || 0;
-          } catch { /* RCON not available */ }
-        }
-        if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps);
-        // Player list polling (InHouse sidecar or RCON)
-        try {
-          const players = await fetchPlayers(srv.id);
-          state.players = players;
-          // Always emit — positions change even when player count doesn't (needed for live map)
-          ctx.io.emit('players', { serverId: srv.id, players: state.players });
-        } catch (err) { logger.debug({ err, serverId: srv.id }, 'Player poll failed'); }
-        // Scrape RPT for dynamic events (helicrashes, airdrops, etc.)
-        try { scrapeRPTForEvents(srv); } catch { /* ignore */ }
-        // Emit combined map data for live map page
-        try {
-          const mapData = getMapData(srv.id);
-          if (mapData.players.length > 0 || mapData.vehicles.length > 0 || mapData.events.length > 0) {
-            ctx.io.emit('mapData', { serverId: srv.id, ...mapData });
-          }
-        } catch { /* ignore */ }
-        // Health monitoring checks (5-minute cooldown between alerts)
-        if (srv.healthMonitoring && metrics) {
-          const minFPS = srv.healthMinFPS || 5;
-          const maxRAM = srv.healthMaxRAM || 90;
-          const action = srv.healthAction || 'log';
-          let triggered = false;
-          let reason = '';
-          if (fps > 0 && fps < minFPS) { triggered = true; reason = `FPS (${fps.toFixed(1)}) below threshold (${minFPS})`; }
-          if (metrics.ram > maxRAM) { triggered = true; reason += (reason ? ' & ' : '') + `RAM (${metrics.ram.toFixed(1)}%) above threshold (${maxRAM}%)`; }
-          const now = Date.now();
-          const cooldown = 5 * 60 * 1000;
-          if (triggered && (!state.lastHealthAlert || now - state.lastHealthAlert > cooldown)) {
-            state.lastHealthAlert = now;
-            addLog(srv.id, 'warn', 'health', 'Health alert: ' + reason);
-            addNotification(srv.id, 'server.health', 'Health Alert', `${srv.name}: ${reason}`, 'warning');
-            if (action === 'webhook') {
-              fireWebhooks('server.health', { serverId: srv.id, serverName: srv.name, reason });
-              sendDiscordWebhook(`⚠️ **${srv.name}** health alert: ${reason}`);
-            } else if (action === 'restart') {
-              addLog(srv.id, 'warn', 'health', 'Auto-restarting due to health threshold');
-              // Use shared restart logic (includes lifecycle hooks)
-              restartServer(srv.id, `Health threshold: ${reason}`).catch((err) => {
-                logger.error({ err, serverId: srv.id }, 'Health auto-restart failed');
-              });
-            }
-          }
-        }
+        // Delegate metrics collection + health monitoring to focused module
+        await collectMetrics(srv, state, pid);
       } else if (state.status === 'running') {
-        addLog(srv.id, 'error', 'server', 'Process no longer running');
-        state.status = 'crashed'; state.players = []; state.pid = null; state.process = null;
-        ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
-        ctx.io.emit('players', { serverId: srv.id, players: [] });
-        addNotification(srv.id, 'server.crashed', 'Server Crashed', `${srv.name} is no longer running`, 'error');
-        fireWebhooks('server.crashed', { serverId: srv.id, serverName: srv.name });
-        sendDiscordWebhook(`💥 **${srv.name}** crashed`);
-        // Execute crashed hooks (blocking, sequential)
-        executeHooks(srv.id, 'crashed').catch(() => {});
+        // Delegate crash handling to focused module
+        await handleCrash(srv, state);
       }
     }
     } finally { _metricsPollingRunning = false; }

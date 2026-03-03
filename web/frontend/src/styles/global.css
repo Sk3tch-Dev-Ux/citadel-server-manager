@@ -296,6 +296,15 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .mod-name { flex: 1; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mod-id { font-size: 11px; font-family: var(--font-mono); color: var(--accent-blue); text-decoration: none; }
 .mod-id:hover { text-decoration: underline; }
+.mod-reorder { display: flex; flex-direction: column; gap: 1px; }
+.mod-reorder button { background: none; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; padding: 1px 4px; border-radius: 3px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.mod-reorder button:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); border-color: var(--border-active); }
+.mod-reorder button:disabled { opacity: 0.25; cursor: default; }
+.mod-type-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 3px; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; white-space: nowrap; user-select: none; }
+.mod-type-badge.client { background: rgba(108,180,240,0.15); color: var(--accent-blue); border-color: rgba(108,180,240,0.3); }
+.mod-type-badge.server { background: rgba(198,160,246,0.15); color: #c6a0f6; border-color: rgba(198,160,246,0.3); }
+.mod-type-select { font-size: 11px; padding: 2px 6px; background: var(--bg-deep); color: var(--text-primary); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; font-family: var(--font-display); }
+.mod-type-select:focus { outline: none; border-color: var(--accent-blue); }
 
 /* Notification Bell & Panel */
 .notif-bell { position: relative; cursor: pointer; padding: 6px 8px; border-radius: var(--radius); transition: background 0.15s; border: none; background: none; color: var(--text-secondary); font-size: 18px; }
