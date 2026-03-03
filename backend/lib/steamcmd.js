@@ -44,10 +44,11 @@ async function ensureSteamCMD() {
   return exePath;
 }
 
-function findWorkshopContent(workshopId) {
+function findWorkshopContent(workshopId, serverInstallDir) {
   const appId = ctx.CONFIG.steam.appId;
   const cmdDir = ctx.steamCmdPath ? path.dirname(ctx.steamCmdPath) : '';
   const searchPaths = [
+    serverInstallDir ? path.join(serverInstallDir, 'steamapps', 'workshop', 'content', appId, workshopId) : '',
     path.join(ctx.CONFIG.dayz.installDir, 'steamapps', 'workshop', 'content', appId, workshopId),
     cmdDir ? path.join(cmdDir, 'steamapps', 'workshop', 'content', appId, workshopId) : '',
     path.join(ctx.CONFIG.dayz.installDir, '..', '..', 'workshop', 'content', appId, workshopId),
@@ -106,7 +107,8 @@ async function downloadWorkshopMod(workshopId, modName, serverId) {
       clearTimeout(timeout);
       if (needsSteamGuard) { ctx.steamLoginValidated = false; return reject(new Error('Steam Guard code required.')); }
       if (output.includes('Invalid Password') || output.includes('Login Failure')) { ctx.steamLoginValidated = false; return reject(new Error('Invalid Steam credentials.')); }
-      const contentPath = findWorkshopContent(workshopId);
+      const srvDir = ctx.servers.find(s => s.id === serverId)?.installDir;
+      const contentPath = findWorkshopContent(workshopId, srvDir);
       if (contentPath) { ctx.steamLoginValidated = true; resolve(contentPath); }
       else reject(new Error('Download failed — content not found.'));
     });
@@ -338,7 +340,7 @@ async function updateWorkshopMod(serverId, installDir, modId) {
         return resolve();
       }
       // Check if workshop content exists
-      const contentPath = findWorkshopContent(String(modId));
+      const contentPath = findWorkshopContent(String(modId), installDir);
       if (contentPath) {
         ctx.steamLoginValidated = true;
         return resolve();
