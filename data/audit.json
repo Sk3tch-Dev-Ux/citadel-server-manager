@@ -1,5 +1,13 @@
 [
   {
+    "id": "9624e34b-4888-4fdf-81ca-b9bd9c1ea73e",
+    "timestamp": "2026-03-03T03:19:14.147Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying Testing to C:\\Citadel\\deployments"
+  },
+  {
     "id": "a75d8cdc-a57b-4425-aecd-660bbab4c2be",
     "timestamp": "2026-03-03T03:04:57.412Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
