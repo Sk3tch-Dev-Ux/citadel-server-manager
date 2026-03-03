@@ -105,20 +105,20 @@ modded class MissionServer
 
         float sectorSize = worldSize / GRID_SIZE;
 
-        // Calculate sector bounds
+        // Calculate sector center and radius
         float minX = m_ScanGridX * sectorSize;
         float minZ = m_ScanGridY * sectorSize;
-        float maxX = minX + sectorSize;
-        float maxZ = minZ + sectorSize;
+        float centerX = minX + sectorSize * 0.5;
+        float centerZ = minZ + sectorSize * 0.5;
+        float radius = sectorSize * 0.707;
 
-        vector mins = Vector(minX, -1500, minZ);
-        vector maxs = Vector(maxX, 1500, maxZ);
+        vector center = Vector(centerX, 0, centerZ);
 
         // Query entities in this sector
         array<Object> sceneObjects = new array<Object>;
         array<CargoBase> proxyCargos = new array<CargoBase>;
 
-        GetGame().GetObjectsAtPosition3D(mins, maxs - mins, sceneObjects, proxyCargos);
+        GetGame().GetObjectsAtPosition(center, radius, sceneObjects, proxyCargos);
 
         // Process entities in this sector
         for (int i = 0; i < sceneObjects.Count(); i++)
