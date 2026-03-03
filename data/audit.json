@@ -1,5 +1,45 @@
 [
   {
+    "id": "8e882eb3-621b-421a-8144-f56f8149b506",
+    "timestamp": "2026-03-03T23:00:07.125Z",
+    "userId": "system",
+    "username": "scheduler",
+    "action": "scheduler.execute",
+    "details": "Evening Restart [restart] on Test"
+  },
+  {
+    "id": "0895e169-bef4-443b-999a-0521484a305b",
+    "timestamp": "2026-03-03T23:00:00.213Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarted: Test (success: true)"
+  },
+  {
+    "id": "bf09b9a3-229e-4ff2-9b82-f30f29935af7",
+    "timestamp": "2026-03-03T22:59:47.026Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
+    "id": "1707f1ef-6e5a-43fc-97cc-a2471d00212c",
+    "timestamp": "2026-03-03T22:59:04.578Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarted: Test (success: true)"
+  },
+  {
+    "id": "0a26f9ac-5a77-41d8-8a32-bbc44e0b1d31",
+    "timestamp": "2026-03-03T22:58:51.476Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
     "id": "646faf58-379a-4b28-bad2-c320b5cc6477",
     "timestamp": "2026-03-03T22:46:58.815Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

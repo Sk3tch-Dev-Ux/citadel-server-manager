@@ -8,8 +8,17 @@ class CitadelJson
 {
     static string ExtractString(string json, string key)
     {
+        // Try compact format: "key":"value"
         string search = "\"" + key + "\":\"";
         int pos = json.IndexOf(search);
+
+        // Fallback: space after colon: "key": "value"
+        if (pos < 0)
+        {
+            search = "\"" + key + "\": \"";
+            pos = json.IndexOf(search);
+        }
+
         if (pos < 0)
             return "";
 
@@ -65,12 +74,31 @@ class CitadelJson
 
     static string ExtractParams(string json)
     {
+        // Try compact format: "params":{
         string search = "\"params\":{";
         int pos = json.IndexOf(search);
+
+        // Fallback: space variants: "params": { or "params":{
+        if (pos < 0)
+        {
+            search = "\"params\": {";
+            pos = json.IndexOf(search);
+        }
+        if (pos < 0)
+        {
+            search = "\"params\":  {";
+            pos = json.IndexOf(search);
+        }
+
         if (pos < 0)
             return "{}";
 
-        int start = pos + search.Length() - 1;
+        // Find the opening brace within the search match
+        int bracePos = json.IndexOfFrom(pos, "{");
+        if (bracePos < 0)
+            return "{}";
+
+        int start = bracePos;
         int depth = 0;
         int i = start;
         string ch;
