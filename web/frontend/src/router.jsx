@@ -25,6 +25,7 @@ import ServerSettingsPage from './pages/ServerSettingsPage';
 import DangerzonePage from './pages/DangerzonePage';
 import LiveMapPage from './pages/LiveMapPage';
 import LicensePage from './pages/LicensePage';
+import SettingsPage from './pages/SettingsPage';
 import ToastContainer from './components/ToastContainer';
 import API from './api';
 
@@ -111,6 +112,7 @@ export default function AppRouter() {
           <Route path="deploy" element={<PermGuard permission="server.deploy"><DeployPage /></PermGuard>} />
           <Route path="users" element={<PermGuard permission="users.manage"><UsersPage /></PermGuard>} />
           <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><WebhooksPage /></PermGuard>} />
+          <Route path="settings" element={<PermGuard permission="license.manage"><SettingsPage /></PermGuard>} />
           <Route path="license" element={<PermGuard permission="license.manage"><LicensePage /></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />

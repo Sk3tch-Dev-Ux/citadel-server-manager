@@ -309,63 +309,66 @@ export default function DeployPage() {
         </div>
       )}
 
-      {/* ─── Step 4 (New): Steam Login Verification ─── */}
+      {/* ─── Step 4 (New): Steam Login Check ─── */}
       {step === 4 && mode === 'new' && (
         <div style={{ maxWidth: 500 }}>
           <h3 style={{ marginBottom: 8 }}>Steam Login</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>
-            DayZ Dedicated Server requires an authenticated Steam account to download. Enter your credentials below and verify the connection before deploying.
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
+            DayZ Dedicated Server requires an authenticated Steam account to download.
           </p>
-          <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
-            <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> For the smoothest experience, we recommend using a dedicated Steam account for server management with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator). After your first login, SteamCMD caches the session so you won't need to re-enter a guard code each time.
-          </div>
 
           {steamLoading ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
               <Loader size={24} /> Checking Steam status...
             </div>
           ) : steamVerified ? (
-            /* Already verified — show green status */
+            /* Already verified — show green status, no form needed */
             <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, textAlign: 'center' }}>
               <Shield size={36} style={{ color: 'var(--text-success, #22c55e)', marginBottom: 12 }} />
               <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Steam Connected</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Logged in as <strong>{steamStatus?.username}</strong></div>
-              <button className="btn btn-secondary" style={{ marginTop: 16, fontSize: 12 }} onClick={() => { setSteamStatus(prev => ({ ...prev, loginValidated: false })); setSteamPassword(''); }}>
-                Use Different Account
-              </button>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+                You can change your Steam account in <a href="/settings" style={{ color: 'var(--accent-blue)' }}>Settings</a>.
+              </div>
             </div>
           ) : (
-            /* Credential form */
-            <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
-              <div className="input-group">
-                <label className="input-label">Steam Username</label>
-                <input className="input" value={steamUsername} onChange={e => setSteamUsername(e.target.value)} placeholder="your_steam_username" autoComplete="off" />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Steam Password</label>
-                <input className="input" type="password" value={steamPassword} onChange={e => setSteamPassword(e.target.value)} placeholder="your_steam_password" autoComplete="off" />
+            /* Not verified — show inline form as fallback */
+            <div>
+              <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> For the smoothest experience, use a dedicated Steam account with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator).
               </div>
 
-              {steamNeedsGuard && (
+              <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
                 <div className="input-group">
-                  <label className="input-label">Steam Guard Code</label>
-                  <input className="input" value={steamGuardCode} onChange={e => setSteamGuardCode(e.target.value)} placeholder="XXXXX" maxLength={5} style={{ letterSpacing: '0.2em', textAlign: 'center', maxWidth: 140 }} autoComplete="off" />
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Check your email or Steam mobile app for the code</div>
+                  <label className="input-label">Steam Username</label>
+                  <input className="input" value={steamUsername} onChange={e => setSteamUsername(e.target.value)} placeholder="your_steam_username" autoComplete="off" />
                 </div>
-              )}
-
-              {steamError && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, marginBottom: 12, fontSize: 13, color: '#ef4444' }}>
-                  <AlertTriangle size={14} /> {steamError}
+                <div className="input-group">
+                  <label className="input-label">Steam Password</label>
+                  <input className="input" type="password" value={steamPassword} onChange={e => setSteamPassword(e.target.value)} placeholder="your_steam_password" autoComplete="off" />
                 </div>
-              )}
 
-              <button className="btn btn-primary" onClick={validateSteamCredentials} disabled={steamValidating || !steamUsername || !steamPassword} style={{ width: '100%' }}>
-                {steamValidating ? 'Verifying...' : (steamNeedsGuard ? 'Submit Guard Code' : 'Verify Steam Login')}
-              </button>
+                {steamNeedsGuard && (
+                  <div className="input-group">
+                    <label className="input-label">Steam Guard Code</label>
+                    <input className="input" value={steamGuardCode} onChange={e => setSteamGuardCode(e.target.value)} placeholder="XXXXX" maxLength={5} style={{ letterSpacing: '0.2em', textAlign: 'center', maxWidth: 140 }} autoComplete="off" />
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Check your email or Steam mobile app for the code</div>
+                  </div>
+                )}
 
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
-                Your credentials are stored locally and used only for SteamCMD operations. They are never sent to any third party.
+                {steamError && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, marginBottom: 12, fontSize: 13, color: '#ef4444' }}>
+                    <AlertTriangle size={14} /> {steamError}
+                  </div>
+                )}
+
+                <button className="btn btn-primary" onClick={validateSteamCredentials} disabled={steamValidating || !steamUsername || !steamPassword} style={{ width: '100%' }}>
+                  {steamValidating ? 'Verifying...' : (steamNeedsGuard ? 'Submit Guard Code' : 'Verify Steam Login')}
+                </button>
+
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
+                  Your credentials are stored locally and used only for SteamCMD operations.
+                </div>
               </div>
             </div>
           )}
