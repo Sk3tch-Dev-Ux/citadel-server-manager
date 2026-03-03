@@ -55,10 +55,89 @@ function buildLaunchParams(gamePort) {
   return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck`;
 }
 
+/**
+ * Human-readable error messages for common SteamCMD exit codes.
+ */
+const STEAMCMD_ERRORS = {
+  1: 'Unknown SteamCMD error — try restarting SteamCMD or check your install path.',
+  2: 'SteamCMD is already running. Close any other SteamCMD instances and try again.',
+  5: 'Invalid Steam credentials. Check your username and password in Settings → Steam.',
+  6: 'Steam account is not authorized for this app. Ensure you own DayZ on this account.',
+  7: 'Network timeout — SteamCMD could not reach Steam servers. Check your internet connection.',
+  8: 'SteamCMD failed to install the app. Common causes: Steam credentials required (anonymous login not supported for DayZ), disk full, or SteamCMD needs to self-update. Configure your Steam credentials in Settings → Steam and try again.',
+  10: 'SteamCMD is already updating. Wait for the current operation to finish.',
+};
+
+/**
+ * Run a single SteamCMD download attempt.
+ * Returns a promise that resolves on success or rejects with a descriptive error.
+ */
+function runSteamCMD(cmdPath, args, resolvedDir, srv, emitEvent = 'deployProgress') {
+  return new Promise((resolve, reject) => {
+    let output = '';
+    const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
+
+    proc.stdout?.on('data', (data) => {
+      const text = data.toString();
+      output += text;
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed.match(/(\d+\.?\d*)\s*%/)) {
+          const pct = parseFloat(trimmed.match(/(\d+\.?\d*)\s*%/)[1]);
+          ctx.io.emit(emitEvent, { serverId: srv.id, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
+        } else if (trimmed.includes('Update state')) {
+          ctx.io.emit(emitEvent, { serverId: srv.id, status: 'downloading', message: trimmed });
+        }
+      }
+    });
+    proc.stderr?.on('data', (data) => { output += data.toString(); });
+
+    const timeout = setTimeout(() => {
+      try { proc.kill(); } catch (err) { logger.debug({ err }, 'Kill steamcmd on deploy timeout'); }
+      reject(new Error('Deploy timed out after 60 minutes'));
+    }, 60 * 60 * 1000);
+
+    proc.on('exit', (code) => {
+      clearTimeout(timeout);
+      // Success: clean exit or the server exe was installed despite non-zero code
+      if (code === 0 || fs.existsSync(path.join(resolvedDir, 'DayZServer_x64.exe'))) {
+        return resolve();
+      }
+      // Parse SteamCMD output for specific errors
+      if (output.includes('Invalid Password') || output.includes('Login Failure')) {
+        return reject(new Error('Invalid Steam credentials. Update them in Settings → Steam.'));
+      }
+      if (output.includes('Steam Guard') || output.includes('Two-factor') || output.includes('Enter the current code')) {
+        return reject(new Error('Steam Guard code required. Enter it in Settings → Steam and retry.'));
+      }
+      if (output.includes('No subscription') || output.includes('not authorized')) {
+        return reject(new Error('This Steam account does not own DayZ. A DayZ purchase is required to download the dedicated server.'));
+      }
+      // Fallback to exit code lookup
+      const friendly = STEAMCMD_ERRORS[code] || `SteamCMD exited with code ${code}. Check SteamCMD logs for details.`;
+      reject(new Error(friendly));
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(new Error(`Failed to launch SteamCMD: ${err.message}`));
+    });
+  });
+}
+
 module.exports = function(app) {
   app.post('/api/deploy', auth('server.deploy'), requireLicense(), async (req, res) => {
     const { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map } = req.body;
     if (!name || !installDir) return res.status(400).json({ error: 'Name and install directory required' });
+
+    // Pre-flight: DayZ DS requires authenticated Steam login
+    if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) {
+      return res.status(400).json({
+        error: 'Steam credentials required',
+        message: 'DayZ Dedicated Server requires an authenticated Steam login. Configure your Steam credentials in Settings → Steam before deploying.',
+        fix: 'settings.steam',
+      });
+    }
 
     const appId = gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
     const resolvedDir = path.resolve(installDir);
@@ -80,41 +159,56 @@ module.exports = function(app) {
     initServerState(srv.id);
     res.json({ message: 'Deployment started', server: srv });
 
-    // Background download
+    // Background download with retry
     try {
       const cmdPath = await ensureSteamCMD();
       if (!fs.existsSync(resolvedDir)) fs.mkdirSync(resolvedDir, { recursive: true });
-      ctx.io.emit('deployProgress', { serverId: srv.id, status: 'downloading', message: 'Downloading DayZ Server via SteamCMD...' });
 
+      // Step 1: Self-update SteamCMD (prevents exit code 8 on stale installs)
+      ctx.io.emit('deployProgress', { serverId: srv.id, status: 'updating', message: 'Updating SteamCMD...' });
+      try {
+        await new Promise((resolve, reject) => {
+          const proc = spawn(cmdPath, ['+quit'], { cwd: path.dirname(cmdPath) });
+          const t = setTimeout(() => { try { proc.kill(); } catch { /* ok */ } resolve(); }, 120000);
+          proc.on('exit', () => { clearTimeout(t); resolve(); });
+          proc.on('error', () => { clearTimeout(t); resolve(); }); // Non-fatal
+        });
+      } catch { /* SteamCMD self-update is best-effort */ }
+
+      // Step 2: Build SteamCMD arguments
       const args = ['+force_install_dir', resolvedDir];
-      if (ctx.steamCredentials.username && ctx.steamCredentials.password) {
-        if (ctx.steamCredentials.guardCode) args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
-        args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
-      } else { args.push('+login', 'anonymous'); }
+      if (ctx.steamCredentials.guardCode) args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+      args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
       args.push('+app_update', appId, 'validate', '+quit');
 
-      await new Promise((resolve, reject) => {
-        const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
-        proc.stdout?.on('data', (data) => {
-          for (const line of data.toString().split('\n')) {
-            const trimmed = line.trim();
-            if (trimmed.match(/(\d+\.?\d*)\s*%/)) {
-              const pct = parseFloat(trimmed.match(/(\d+\.?\d*)\s*%/)[1]);
-              ctx.io.emit('deployProgress', { serverId: srv.id, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
-            } else if (trimmed.includes('Update state')) {
-              ctx.io.emit('deployProgress', { serverId: srv.id, status: 'downloading', message: trimmed });
-            }
+      // Step 3: Download with retry (SteamCMD often needs 2 attempts for large downloads)
+      const MAX_RETRIES = 3;
+      let lastError;
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          ctx.io.emit('deployProgress', {
+            serverId: srv.id, status: 'downloading',
+            message: attempt === 1
+              ? 'Downloading DayZ Server via SteamCMD...'
+              : `Retrying download (attempt ${attempt}/${MAX_RETRIES})...`,
+          });
+          await runSteamCMD(cmdPath, args, resolvedDir, srv);
+          lastError = null;
+          break; // Success
+        } catch (err) {
+          lastError = err;
+          logger.warn({ attempt, error: err.message }, 'SteamCMD deploy attempt failed');
+          // Don't retry on credential or authorization errors — those won't self-resolve
+          if (err.message.includes('credentials') || err.message.includes('Steam Guard') || err.message.includes('not own')) {
+            break;
           }
-        });
-        proc.stderr?.on('data', () => {});
-        const timeout = setTimeout(() => { try { proc.kill(); } catch (err) { logger.debug({ err }, 'Kill steamcmd on deploy timeout'); } reject(new Error('Deploy timed out')); }, 60 * 60 * 1000);
-        proc.on('exit', (code) => {
-          clearTimeout(timeout);
-          if (code === 0 || fs.existsSync(path.join(resolvedDir, 'DayZServer_x64.exe'))) resolve();
-          else reject(new Error(`SteamCMD exit code: ${code}`));
-        });
-        proc.on('error', (err) => { clearTimeout(timeout); reject(err); });
-      });
+          if (attempt < MAX_RETRIES) {
+            ctx.io.emit('deployProgress', { serverId: srv.id, status: 'retrying', message: `Attempt ${attempt} failed: ${err.message}. Retrying in 5s...` });
+            await new Promise(r => setTimeout(r, 5000));
+          }
+        }
+      }
+      if (lastError) throw lastError;
 
       // Scaffold deployment directory structure
       scaffoldDeployment(resolvedDir);
@@ -138,6 +232,16 @@ module.exports = function(app) {
   app.post('/api/servers/:id/rebuild', auth('server.rebuild'), async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
+
+    // Pre-flight: require Steam credentials
+    if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) {
+      return res.status(400).json({
+        error: 'Steam credentials required',
+        message: 'DayZ Dedicated Server requires an authenticated Steam login. Configure your Steam credentials in Settings → Steam before rebuilding.',
+        fix: 'settings.steam',
+      });
+    }
+
     const resolvedDir = path.resolve(srv.installDir);
     addAudit(req.user.id, req.user.username, 'server.rebuild', `Rebuilding ${srv.name} at ${resolvedDir}`);
     ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'starting', message: 'Preparing to wipe and reinstall server...' });
@@ -158,34 +262,39 @@ module.exports = function(app) {
       ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'wiping', message: 'Directory wiped. Reinstalling via SteamCMD...' });
       const cmdPath = await ensureSteamCMD();
       const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
+
+      // Build SteamCMD arguments
       const args = ['+force_install_dir', resolvedDir];
-      if (ctx.steamCredentials.username && ctx.steamCredentials.password) {
-        if (ctx.steamCredentials.guardCode) args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
-        args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
-      } else { args.push('+login', 'anonymous'); }
+      if (ctx.steamCredentials.guardCode) args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+      args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
       args.push('+app_update', appId, 'validate', '+quit');
-      await new Promise((resolve, reject) => {
-        const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
-        proc.stdout?.on('data', (data) => {
-          for (const line of data.toString().split('\n')) {
-            const trimmed = line.trim();
-            if (trimmed.match(/(\d+\.?\d*)\s*%/)) {
-              const pct = parseFloat(trimmed.match(/(\d+\.?\d*)\s*%/)[1]);
-              ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
-            } else if (trimmed.includes('Update state')) {
-              ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'downloading', message: trimmed });
-            }
+
+      // Download with retry
+      const MAX_RETRIES = 3;
+      let lastError;
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          ctx.io.emit('dangerzoneProgress', {
+            serverId: srv.id, status: 'downloading',
+            message: attempt === 1
+              ? 'Downloading DayZ Server via SteamCMD...'
+              : `Retrying download (attempt ${attempt}/${MAX_RETRIES})...`,
+          });
+          await runSteamCMD(cmdPath, args, resolvedDir, srv, 'dangerzoneProgress');
+          lastError = null;
+          break;
+        } catch (err) {
+          lastError = err;
+          logger.warn({ attempt, error: err.message }, 'SteamCMD rebuild attempt failed');
+          if (err.message.includes('credentials') || err.message.includes('Steam Guard') || err.message.includes('not own')) break;
+          if (attempt < MAX_RETRIES) {
+            ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'retrying', message: `Attempt ${attempt} failed: ${err.message}. Retrying in 5s...` });
+            await new Promise(r => setTimeout(r, 5000));
           }
-        });
-        proc.stderr?.on('data', () => {});
-        const timeout = setTimeout(() => { try { proc.kill(); } catch (err) { logger.debug({ err }, 'Kill steamcmd on rebuild timeout'); } reject(new Error('Rebuild timed out')); }, 60 * 60 * 1000);
-        proc.on('exit', (code) => {
-          clearTimeout(timeout);
-          if (code === 0 || fs.existsSync(path.join(resolvedDir, 'DayZServer_x64.exe'))) resolve();
-          else reject(new Error(`SteamCMD exit code: ${code}`));
-        });
-        proc.on('error', (err) => { clearTimeout(timeout); reject(err); });
-      });
+        }
+      }
+      if (lastError) throw lastError;
+
       // Scaffold deployment directory structure
       scaffoldDeployment(resolvedDir);
 
