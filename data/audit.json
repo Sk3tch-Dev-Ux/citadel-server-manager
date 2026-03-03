@@ -1,5 +1,29 @@
 [
   {
+    "id": "9061d9e1-0a56-4368-9bdb-8e68db42342f",
+    "timestamp": "2026-03-03T16:22:03.912Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
+    "id": "6107697d-9fdf-453c-81ff-2ca7d0bb02f4",
+    "timestamp": "2026-03-03T16:22:00.277Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.type",
+    "details": "Changed @CitadelServerSide to server on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "97d8a390-4844-47a1-9b72-cd0cc51868fd",
+    "timestamp": "2026-03-03T16:19:58.206Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: Test"
+  },
+  {
     "id": "761f8843-1af2-41bf-b2c9-ab7cd64d6748",
     "timestamp": "2026-03-03T16:07:24.560Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
