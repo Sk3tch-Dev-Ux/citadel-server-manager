@@ -176,8 +176,13 @@ module.exports = function(app) {
       } catch { /* SteamCMD self-update is best-effort */ }
 
       // Step 2: Build SteamCMD arguments
+      // Note: Do NOT pass the guard code here if login was already validated.
+      // SteamCMD caches the auth token in config/config.vdf after a successful
+      // login. Re-sending a used guard code can actually cause auth failures.
       const args = ['+force_install_dir', resolvedDir];
-      if (ctx.steamCredentials.guardCode) args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+      if (!ctx.steamLoginValidated && ctx.steamCredentials.guardCode) {
+        args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+      }
       args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
       args.push('+app_update', appId, 'validate', '+quit');
 
@@ -263,9 +268,11 @@ module.exports = function(app) {
       const cmdPath = await ensureSteamCMD();
       const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
 
-      // Build SteamCMD arguments
+      // Build SteamCMD arguments (don't re-send guard code if already validated)
       const args = ['+force_install_dir', resolvedDir];
-      if (ctx.steamCredentials.guardCode) args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+      if (!ctx.steamLoginValidated && ctx.steamCredentials.guardCode) {
+        args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+      }
       args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
       args.push('+app_update', appId, 'validate', '+quit');
 

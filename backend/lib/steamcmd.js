@@ -58,7 +58,9 @@ async function downloadWorkshopMod(workshopId, modName, serverId) {
   const appId = ctx.CONFIG.steam.appId;
   if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) throw new Error('Steam credentials required.');
   const args = [];
-  if (ctx.steamCredentials.guardCode) args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+  if (!ctx.steamLoginValidated && ctx.steamCredentials.guardCode) {
+    args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+  }
   args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
   const srv = ctx.servers.find(s => s.id === serverId);
   if (srv) args.push('+force_install_dir', srv.installDir);
@@ -101,6 +103,17 @@ async function downloadWorkshopMod(workshopId, modName, serverId) {
   });
 }
 
+/**
+ * Validate Steam credentials by performing a real SteamCMD login.
+ *
+ * IMPORTANT: After a successful login (especially with a Steam Guard code),
+ * SteamCMD caches an auth token in its config/ directory. Subsequent logins
+ * with the same username from the same SteamCMD directory should reuse
+ * the cached token WITHOUT needing a new guard code.
+ *
+ * To ensure the token is properly cached, we let SteamCMD fully complete
+ * its login + quit cycle instead of killing it early.
+ */
 async function validateSteamLogin(username, password, guardCode) {
   const cmdPath = await ensureSteamCMD();
   const args = [];
@@ -109,23 +122,35 @@ async function validateSteamLogin(username, password, guardCode) {
   return new Promise((resolve) => {
     const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
     let output = ''; let resolved = false;
-    const done = (result) => { if (resolved) return; resolved = true; clearTimeout(timeout); try { proc.kill(); } catch (err) { logger.debug({ err }, 'Kill steamcmd after validation'); } resolve(result); };
+    const done = (result) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      // DON'T kill proc immediately on success — let SteamCMD finish its
+      // login cycle and write the auth token to config/config.vdf.
+      // Only kill on errors to avoid hanging.
+      if (!result.success) {
+        try { proc.kill(); } catch (err) { logger.debug({ err }, 'Kill steamcmd after validation'); }
+      }
+      resolve(result);
+    };
     const handleData = (data) => {
       const text = data.toString(); output += text;
       if (text.includes('Steam Guard') || text.includes('Two-factor') || text.includes('authenticator') || text.includes('Enter the current code'))
         done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
-      else if (text.includes('Logged in OK') || text.includes('Waiting for user info...OK'))
-        done({ success: true });
       else if (text.includes('Invalid Password') || text.includes('Login Failure'))
         done({ success: false, error: 'Invalid username or password' });
       else if (text.includes('rate limit') || text.includes('too many'))
         done({ success: false, error: 'Too many attempts — wait and retry' });
+      // Note: we no longer call done() on success from data events.
+      // Instead, we wait for the process to exit cleanly so the auth
+      // token is fully written to disk.
     };
     proc.stdout?.on('data', handleData); proc.stderr?.on('data', handleData);
     const timeout = setTimeout(() => {
       if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) done({ success: true });
-      else done({ success: false, error: 'Login timed out' });
-    }, 30000);
+      else done({ success: false, error: 'Login timed out — SteamCMD did not respond within 60 seconds' });
+    }, 60000);  // Longer timeout to let SteamCMD fully complete
     proc.on('exit', () => {
       if (resolved) return;
       if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) done({ success: true });
