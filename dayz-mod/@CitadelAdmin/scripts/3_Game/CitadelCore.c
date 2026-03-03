@@ -319,6 +319,33 @@ class CitadelCore
         m_Logger.Debug(string.Format("RegisterEventRadiusExclusive(%1<%2>) - success", tracked.GetClassName(), tracked.GetDisplayName()));
     }
 
+    void RegisterEventRadiusExclusiveSecondary(CitadelTrackedEvent tracked, float radius, string blocker)
+    {
+        if (!tracked || !tracked.Ref() || IsProcessingBlocked()) return;
+
+        for (int i = 0; i < m_TrackedEvents.Count(); i++)
+        {
+            CitadelTrackedEvent existing = m_TrackedEvents.Get(i);
+            if (existing.Equals(tracked))
+            {
+                m_Logger.Debug(string.Format("RegisterEventRadiusExclusiveSecondary(%1) - duplicate", tracked.GetClassName()));
+                return;
+            }
+            if (existing.Ref() && existing.Ref().GetType() == blocker)
+            {
+                float dist = vector.Distance(existing.Ref().GetPosition(), tracked.Ref().GetPosition());
+                if (dist <= radius)
+                {
+                    m_Logger.Debug(string.Format("RegisterEventRadiusExclusiveSecondary(%1) - blocker %2 within %3m", tracked.GetClassName(), blocker, dist.ToString()));
+                    return;
+                }
+            }
+        }
+
+        m_TrackedEvents.Insert(tracked);
+        m_Logger.Debug(string.Format("RegisterEventRadiusExclusiveSecondary(%1<%2>) - success", tracked.GetClassName(), tracked.GetDisplayName()));
+    }
+
     void RemoveEvent(CitadelTrackedEvent tracked)
     {
         if (!tracked || IsProcessingBlocked()) return;

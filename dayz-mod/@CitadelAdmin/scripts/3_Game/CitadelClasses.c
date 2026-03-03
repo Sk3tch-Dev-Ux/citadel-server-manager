@@ -164,6 +164,7 @@ class CitadelTrackedEvent
     string GetID() { return m_Id; }
     string GetClassName() { return m_ClassName; }
     string GetDisplayName() { return m_DisplayName; }
+    void SetDisplayName(string name) { m_DisplayName = name; }
     string GetIcon() { return m_Icon; }
     Object Ref() { return m_Reference; }
 

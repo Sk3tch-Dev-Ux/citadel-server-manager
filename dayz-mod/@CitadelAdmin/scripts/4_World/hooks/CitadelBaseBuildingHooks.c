@@ -64,3 +64,115 @@ modded class BaseBuildingBase extends ItemBase
         return raw;
     }
 };
+
+// ─── Territory Flag Kit (Ownership Capture) ─────────────
+
+modded class TerritoryFlagKit
+{
+    override void OnPlacementComplete(Man player, vector position = "0 0 0", vector orientation = "0 0 0")
+    {
+        super.OnPlacementComplete(player, position, orientation);
+
+        if (!GetGame().IsServer()) return;
+
+        PlayerBase playerBase = PlayerBase.Cast(player);
+        if (!playerBase) return;
+
+        PlayerIdentity identity = playerBase.GetIdentity();
+        if (!identity) return;
+
+        string steamId = identity.GetPlainId();
+
+        // Find the TerritoryFlag that was just created nearby
+        vector playerPos = player.GetPosition();
+        ref array<Object> nearestObjects = new array<Object>();
+        GetGame().GetObjectsAtPosition(playerPos, 15.0, nearestObjects, null);
+
+        TerritoryFlag relatedFlag;
+        foreach (Object nearestObject : nearestObjects)
+        {
+            EntityAI ent = EntityAI.Cast(nearestObject);
+            if (!ent) continue;
+            if (ent.GetType() != "TerritoryFlag") continue;
+
+            TerritoryFlag tmpFlag = TerritoryFlag.Cast(ent);
+            if (tmpFlag && tmpFlag.CitGetOwner() == "")
+            {
+                relatedFlag = tmpFlag;
+                break;
+            }
+        }
+
+        if (relatedFlag)
+        {
+            relatedFlag.CitSetOwner(steamId);
+            GetCitadel().GetLogger().Debug(string.Format("[TerritoryFlagKit] Owner %1 associated with flag at %2", steamId, playerPos.ToString()));
+        }
+        else
+        {
+            GetCitadel().GetLogger().Debug(string.Format("[TerritoryFlagKit] No TerritoryFlag found near %1 for owner %2", playerPos.ToString(), steamId));
+        }
+    }
+};
+
+// ─── Territory Flag (Map Marker + Lifetime Display) ─────
+
+modded class TerritoryFlag
+{
+    private ref CitadelTrackedEvent m_CitEvent;
+
+    override void EEInit()
+    {
+        super.EEInit();
+
+        if (!GetGame().IsServer()) return;
+        if (!GetCitadel().GetConfiguration().GetTrackBaseBuilding()) return;
+
+        vector pos = GetPosition();
+        if (pos[0] <= 0 && pos[1] <= 0 && pos[2] <= 0) return;
+
+        string displayName = CitBuildFlagDisplayName();
+        m_CitEvent = new CitadelTrackedEvent(GetType(), "flag", this, displayName);
+        GetCitadel().RegisterEvent(m_CitEvent);
+        CitadelEventLogger.LogDynamicEvent("spawn", GetType(), displayName, pos);
+
+        // Refresh display name every hour (3600000ms)
+        GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLater(CitRefreshDisplayName, 3600000, true);
+    }
+
+    override void EEDelete(EntityAI parent)
+    {
+        if (GetGame().IsServer())
+        {
+            GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).Remove(CitRefreshDisplayName);
+
+            if (m_CitEvent)
+            {
+                GetCitadel().RemoveEvent(m_CitEvent);
+                CitadelEventLogger.LogDynamicEvent("despawn", GetType(), "Territory Flag", GetPosition());
+            }
+        }
+
+        super.EEDelete(parent);
+    }
+
+    void CitRefreshDisplayName()
+    {
+        if (!m_CitEvent) return;
+        m_CitEvent.SetDisplayName(CitBuildFlagDisplayName());
+    }
+
+    protected string CitBuildFlagDisplayName()
+    {
+        string name = "Territory Flag";
+        string owner = CitGetOwner();
+        if (owner != "")
+            name = name + " | Owner: " + owner;
+
+        float lifetime01 = GetRefresherTime01();
+        int lifetimePct = Math.Round(lifetime01 * 100);
+        name = name + " | Lifetime: " + lifetimePct.ToString() + "%";
+
+        return name;
+    }
+};

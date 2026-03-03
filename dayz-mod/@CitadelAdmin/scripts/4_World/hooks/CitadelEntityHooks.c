@@ -58,6 +58,36 @@ modded class CarScript
     }
 };
 
+// ─── Boat Tracking ───────────────────────────────────
+
+modded class BoatScript
+{
+    private ref CitadelTrackedVehicle m_CitTracked;
+
+    override void EEInit()
+    {
+        super.EEInit();
+
+        if (!GetGame().IsServer()) return;
+        if (!GetCitadel().GetConfiguration().GetTrackVehicles()) return;
+
+        m_CitTracked = new CitadelTrackedVehicle(this, "ship", "boat");
+        GetCitadel().RegisterVehicle(m_CitTracked);
+        GetCitadel().IncrVehicleCount();
+    }
+
+    override void EEDelete(EntityAI parent)
+    {
+        if (GetGame().IsServer() && m_CitTracked)
+        {
+            GetCitadel().RemoveVehicle(m_CitTracked);
+            GetCitadel().DecrVehicleCount();
+        }
+
+        super.EEDelete(parent);
+    }
+};
+
 // ─── Infected (Zombie) Tracking ───────────────────────
 
 modded class ZombieBase extends DayZInfected

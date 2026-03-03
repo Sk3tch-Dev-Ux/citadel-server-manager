@@ -29,7 +29,7 @@ class CitadelPlayerTracker
         // Use our own registry instead of GetGame().GetPlayers() which
         // can return empty on some DayZ dedicated server versions.
         // The registry is populated by InvokeOnConnect/InvokeOnDisconnect.
-        map<string, PlayerBase> activePlayers = GetCitadel().GetActivePlayers();
+        map<string, Man> activePlayers = GetCitadel().GetActivePlayers();
 
         string json = "[";
         bool first = true;
@@ -37,7 +37,7 @@ class CitadelPlayerTracker
         for (int i = 0; i < activePlayers.Count(); i++)
         {
             string regSteamId = activePlayers.GetKey(i);
-            PlayerBase player = activePlayers.GetElement(i);
+            PlayerBase player = PlayerBase.Cast(activePlayers.GetElement(i));
             if (!player) continue;
 
             PlayerIdentity identity = player.GetIdentity();
