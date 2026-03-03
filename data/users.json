@@ -1,11 +1,11 @@
 [
   {
-    "id": "4b602ca5-a09c-4dab-b434-7e56fc9b0747",
+    "id": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
     "username": "admin",
-    "passwordHash": "$2a$10$.XCxi3nEAeO1e6lw0kqSDukSRgvYWz5id8E6ALrm1HH34RjyFD5Vq",
+    "passwordHash": "$2a$10$KDyEaUY8BgXPdhoDGoq1FeYIOVEhVcJRKNfq1QYq/wgGEdNSJJ2xy",
     "role": "admin",
     "isRoot": true,
-    "createdAt": "2026-03-02T23:58:39.475Z",
+    "createdAt": "2026-03-03T02:53:00.832Z",
     "description": "This is the root user. It can not be modified or deleted."
   }
 ]

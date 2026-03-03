@@ -1,34 +1,50 @@
 [
   {
-    "id": "3e05fea4-1aeb-4278-aee4-a5ca49702691",
-    "timestamp": "2026-03-03T00:51:34.345Z",
-    "userId": "4b602ca5-a09c-4dab-b434-7e56fc9b0747",
+    "id": "b53a07b7-e7b0-4ff1-8280-e86a1d1bb500",
+    "timestamp": "2026-03-03T02:54:46.388Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
     "username": "admin",
-    "action": "server.start",
-    "details": "Started: Testing Branch"
+    "action": "login",
+    "details": "User logged in"
   },
   {
-    "id": "9b02ead9-142c-44b7-bbcf-673b134bbd73",
-    "timestamp": "2026-03-03T00:43:14.061Z",
-    "userId": "4b602ca5-a09c-4dab-b434-7e56fc9b0747",
+    "id": "7e6b90aa-5f1a-4f1d-964d-de43a2417d21",
+    "timestamp": "2026-03-03T02:54:20.538Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
     "username": "admin",
-    "action": "server.stop",
-    "details": "Stopped: Testing Branch"
+    "action": "login",
+    "details": "User logged in"
   },
   {
-    "id": "d82e7346-4719-4271-a6bb-d2172d0e915d",
-    "timestamp": "2026-03-03T00:20:14.901Z",
-    "userId": "4b602ca5-a09c-4dab-b434-7e56fc9b0747",
+    "id": "39698d7a-cdc1-4331-b171-9a2a251d8998",
+    "timestamp": "2026-03-03T02:53:41.499Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
     "username": "admin",
-    "action": "server.start",
-    "details": "Started: Testing Branch"
+    "action": "login",
+    "details": "User logged in"
   },
   {
-    "id": "2d8c3b4a-2edb-4ef5-b702-a4ec2a95aa62",
-    "timestamp": "2026-03-02T23:58:51.513Z",
-    "userId": "4b602ca5-a09c-4dab-b434-7e56fc9b0747",
+    "id": "88199a93-8a92-4e19-aca1-abe8672cc25a",
+    "timestamp": "2026-03-03T02:53:14.774Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
     "username": "admin",
-    "action": "server.deploy",
-    "details": "Deploying Testing Branch to C:\\DayZServer"
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "2022ec9c-669f-4fcd-b14f-58bded7ccf4e",
+    "timestamp": "2026-03-03T02:53:09.328Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "7953620f-0184-47c6-b3e1-4e766925690f",
+    "timestamp": "2026-03-03T02:53:00.882Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
   }
 ]
