@@ -7,13 +7,15 @@ const { authenticator } = require('otplib');
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
 const logger = require('../lib/logger');
+const { fail2ban, recordLoginFailure, recordLoginSuccess } = require('../middleware/rate-limit');
 
 const loginAttempts = {};
 const MAX_ATTEMPTS = 5;
 const LOCK_TIME = 10 * 60 * 1000; // 10 minutes
 
 module.exports = function(app) {
-  app.post('/api/auth/login', async (req, res) => {
+  // Fail2Ban middleware applied before the login handler
+  app.post('/api/auth/login', fail2ban, async (req, res) => {
     const { username, password, mfa } = req.body;
     const user = ctx.users.find(u => u.username === username);
 
@@ -31,6 +33,7 @@ module.exports = function(app) {
     }
 
     const valid = await bcrypt.compare(password || '', hashToCompare);
+    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
     if (!user || !valid) {
       loginAttempts[key].count++;
       loginAttempts[key].last = now;
@@ -38,9 +41,13 @@ module.exports = function(app) {
         loginAttempts[key].lockedUntil = now + LOCK_TIME;
         logger.warn({ username: key }, 'Account locked due to failed login attempts');
       }
+      // Record IP-level failure for fail2ban
+      recordLoginFailure(clientIp);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     loginAttempts[key] = { count: 0, last: now, lockedUntil: 0 };
+    // Reset IP-level failure tracking on success
+    recordLoginSuccess(clientIp);
 
     // MFA validation (TOTP)
     if (user.mfaEnabled && user.mfaSecret) {

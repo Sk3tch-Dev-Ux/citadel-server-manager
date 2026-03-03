@@ -25,6 +25,7 @@ const { killProcess } = require('../lib/process-manager');
 const { initServerState } = require('../lib/server-init');
 const { addAudit } = require('../lib/audit');
 const { addNotification } = require('../lib/notifications');
+const { scaffoldHookDirectory } = require('../lib/lifecycle-hooks');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 const { getSidecarPort } = require('../lib/sidecar-manager');
@@ -248,6 +249,9 @@ module.exports = function(app) {
       // Scaffold deployment directory structure
       scaffoldDeployment(resolvedDir);
 
+      // Scaffold lifecycle hooks directory
+      scaffoldHookDirectory(resolvedDir);
+
       // Install @CitadelAdmin mod for live map + admin actions
       installCitadelMod(resolvedDir);
 
@@ -345,6 +349,9 @@ module.exports = function(app) {
 
       // Scaffold deployment directory structure
       scaffoldDeployment(resolvedDir);
+
+      // Scaffold lifecycle hooks directory
+      scaffoldHookDirectory(resolvedDir);
 
       // Re-install @CitadelAdmin mod
       installCitadelMod(resolvedDir);

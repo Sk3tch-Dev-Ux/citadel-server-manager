@@ -4,7 +4,7 @@ import API from '../api';
 import Accordion from '../components/Accordion';
 import SettingsToggle from '../components/SettingsToggle';
 import DirectoryBrowserModal from '../components/DirectoryBrowserModal';
-import { X, Info, Download, Trash2, HardDrive } from '../components/Icon';
+import { X, Info, Download, Trash2, HardDrive, RotateCcw } from '../components/Icon';
 
 export default function ServerSettingsPage({ serverId }) {
   const socket = useSocket();
@@ -18,6 +18,7 @@ export default function ServerSettingsPage({ serverId }) {
   const [newBackupPath, setNewBackupPath] = useState('');
   const [dirBrowserOpen, setDirBrowserOpen] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
+  const [restoring, setRestoring] = useState(null); // filename of currently restoring backup
 
   useEffect(() => {
     API.get('/api/servers').then(servers => {
@@ -116,6 +117,22 @@ export default function ServerSettingsPage({ serverId }) {
 
   const downloadBackup = (filename, type) => {
     window.open(`/api/servers/${serverId}/backups/${encodeURIComponent(filename)}/download?type=${type}&token=${API.token}`, '_blank');
+  };
+
+  const handleRestoreBackup = async (filename, type) => {
+    if (!window.confirm(`Restore backup "${filename}"?\n\nThis will overwrite current server files. A safety backup will be created first.\n\nThe server must be stopped before restoring.`)) return;
+    setRestoring(filename);
+    try {
+      const result = await API.post(`/api/servers/${serverId}/backups/${encodeURIComponent(filename)}/restore?type=${type}`);
+      if (result.error) throw new Error(result.error);
+      window.addToast?.(result.message || 'Backup restored successfully', 'success');
+      // Refresh backup list (safety backup may have been created)
+      const updated = await API.get(`/api/servers/${serverId}/backups`);
+      if (Array.isArray(updated)) setBackups(updated);
+    } catch (e) {
+      window.addToast?.('Restore failed: ' + (e.message || 'Unknown error'), 'error');
+    }
+    setRestoring(null);
   };
 
   const formatSize = (bytes) => {
@@ -294,7 +311,7 @@ export default function ServerSettingsPage({ serverId }) {
             <div className="info-banner">
               <Info size={14} />
               <span>
-                <strong>Important:</strong> Define directory paths to backup. Use the Browse button to select directories or enter relative paths manually like &quot;saves&quot; or &quot;mpmissions&quot;. Without paths, backups will not function.
+                <strong>Important:</strong> Define directory paths to backup. Use the Browse button to select directories or enter relative paths manually like &quot;saves&quot; or &quot;mpmissions&quot;. Wildcards are supported (e.g., &quot;profiles/*.ADM&quot;, &quot;mpmissions/*&quot;). Without paths, backups will not function.
               </span>
             </div>
 
@@ -345,6 +362,10 @@ export default function ServerSettingsPage({ serverId }) {
                       </div>
                     </div>
                     <div className="backup-actions">
+                      <button className="btn btn-sm btn-icon btn-ghost" onClick={() => handleRestoreBackup(b.filename, b.type)}
+                        title="Restore" disabled={restoring === b.filename}>
+                        <RotateCcw size={14} className={restoring === b.filename ? 'spin' : ''} />
+                      </button>
                       <button className="btn btn-sm btn-icon btn-ghost" onClick={() => downloadBackup(b.filename, b.type)} title="Download">
                         <Download size={14} />
                       </button>

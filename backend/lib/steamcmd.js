@@ -168,4 +168,184 @@ async function validateSteamLogin(username, password, guardCode) {
   });
 }
 
-module.exports = { ensureSteamCMD, findWorkshopContent, downloadWorkshopMod, validateSteamLogin };
+/**
+ * Update the DayZ dedicated server app via SteamCMD (+app_update 223350 validate).
+ * Reuses cached Steam session when available.
+ *
+ * @param {string} serverId - Server ID (for logging and progress events)
+ * @param {string} installDir - Server installation directory
+ * @returns {Promise<void>} Resolves on success, rejects on failure
+ */
+async function updateServerApp(serverId, installDir) {
+  const cmdPath = await ensureSteamCMD();
+  if (!ctx.steamCredentials.username) throw new Error('Steam credentials required.');
+  if (!ctx.steamLoginValidated && !ctx.steamCredentials.password) throw new Error('Steam credentials required.');
+
+  const srv = ctx.servers.find(s => s.id === serverId);
+  const appId = (srv && srv.gameTitle === 'DayZ, PC (Experimental)') ? '1024020' : '223350';
+  const resolvedDir = path.resolve(installDir);
+
+  const args = ['+force_install_dir', resolvedDir];
+  if (ctx.steamLoginValidated) {
+    args.push('+login', ctx.steamCredentials.username);
+  } else {
+    if (ctx.steamCredentials.guardCode) {
+      args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+    }
+    args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
+  }
+  args.push('+app_update', appId, 'validate', '+quit');
+
+  if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: 'Updating game files via SteamCMD...' });
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
+    let output = '';
+
+    const handleData = (data) => {
+      const text = data.toString();
+      output += text;
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        if (trimmed.includes('Steam Guard') || trimmed.includes('Two-factor') || trimmed.includes('Enter the current code')) {
+          try { proc.kill(); } catch { /* ok */ }
+        }
+        const pctMatch = trimmed.match(/(\d+\.?\d*)\s*%/);
+        if (pctMatch) {
+          const pct = parseFloat(pctMatch[1]);
+          if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', progress: pct, message: `Updating game... ${pct.toFixed(0)}%` });
+        }
+      }
+    };
+
+    proc.stdout?.on('data', handleData);
+    proc.stderr?.on('data', handleData);
+
+    const timeout = setTimeout(() => {
+      try { proc.kill(); } catch { /* ok */ }
+      reject(new Error('Game update timed out after 60 minutes'));
+    }, 60 * 60 * 1000);
+
+    proc.on('exit', (code) => {
+      clearTimeout(timeout);
+      if (output.includes('Invalid Password') || output.includes('Login Failure')) {
+        ctx.steamLoginValidated = false;
+        return reject(new Error('Invalid Steam credentials.'));
+      }
+      if (output.includes('Steam Guard') || output.includes('Enter the current code')) {
+        ctx.steamLoginValidated = false;
+        return reject(new Error('Steam Guard code required.'));
+      }
+      // SteamCMD may exit with non-zero but still succeed if the files are present
+      if (code === 0 || output.includes('Success! App') || output.includes('already up to date')) {
+        ctx.steamLoginValidated = true;
+        return resolve();
+      }
+      // Check if the executable exists post-update (success despite non-zero exit)
+      const exePath = path.join(resolvedDir, 'DayZServer_x64.exe');
+      if (fs.existsSync(exePath)) {
+        ctx.steamLoginValidated = true;
+        return resolve();
+      }
+      reject(new Error(`SteamCMD app_update failed (exit code ${code})`));
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
+}
+
+/**
+ * Update a single workshop mod via SteamCMD.
+ * Reuses cached Steam session when available.
+ *
+ * @param {string} serverId - Server ID (for logging and progress events)
+ * @param {string} installDir - Server installation directory
+ * @param {string} modId - Steam Workshop item ID
+ * @returns {Promise<void>} Resolves on success, rejects on failure
+ */
+async function updateWorkshopMod(serverId, installDir, modId) {
+  const cmdPath = await ensureSteamCMD();
+  const appId = ctx.CONFIG.steam.appId;
+  if (!ctx.steamCredentials.username) throw new Error('Steam credentials required.');
+  if (!ctx.steamLoginValidated && !ctx.steamCredentials.password) throw new Error('Steam credentials required.');
+
+  const args = [];
+  if (ctx.steamLoginValidated) {
+    args.push('+login', ctx.steamCredentials.username);
+  } else {
+    if (ctx.steamCredentials.guardCode) {
+      args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+    }
+    args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
+  }
+
+  const srv = ctx.servers.find(s => s.id === serverId);
+  if (srv) args.push('+force_install_dir', srv.installDir);
+  args.push('+workshop_download_item', appId, String(modId), 'validate', '+quit');
+
+  if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: `Updating mod ${modId} via SteamCMD...` });
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
+    let output = '';
+
+    const handleData = (data) => {
+      const text = data.toString();
+      output += text;
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        if (trimmed.includes('Steam Guard') || trimmed.includes('Two-factor') || trimmed.includes('Enter the current code')) {
+          try { proc.kill(); } catch { /* ok */ }
+        }
+        const pctMatch = trimmed.match(/(\d+\.?\d*)\s*%/);
+        if (pctMatch) {
+          const pct = parseFloat(pctMatch[1]);
+          if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', progress: pct, message: `Updating mod... ${pct.toFixed(0)}%` });
+        }
+      }
+    };
+
+    proc.stdout?.on('data', handleData);
+    proc.stderr?.on('data', handleData);
+
+    const timeout = setTimeout(() => {
+      try { proc.kill(); } catch { /* ok */ }
+      reject(new Error('Mod update timed out after 30 minutes'));
+    }, 30 * 60 * 1000);
+
+    proc.on('exit', () => {
+      clearTimeout(timeout);
+      if (output.includes('Invalid Password') || output.includes('Login Failure')) {
+        ctx.steamLoginValidated = false;
+        return reject(new Error('Invalid Steam credentials.'));
+      }
+      if (output.includes('Steam Guard') || output.includes('Enter the current code')) {
+        ctx.steamLoginValidated = false;
+        return reject(new Error('Steam Guard code required.'));
+      }
+      if (output.includes('Success. Downloaded item')) {
+        ctx.steamLoginValidated = true;
+        return resolve();
+      }
+      // Check if workshop content exists
+      const contentPath = findWorkshopContent(String(modId));
+      if (contentPath) {
+        ctx.steamLoginValidated = true;
+        return resolve();
+      }
+      reject(new Error(`Workshop mod update failed for item ${modId}`));
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
+}
+
+module.exports = { ensureSteamCMD, findWorkshopContent, downloadWorkshopMod, validateSteamLogin, updateServerApp, updateWorkshopMod };

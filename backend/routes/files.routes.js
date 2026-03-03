@@ -6,10 +6,10 @@ const path = require('path');
 const ctx = require('../lib/context');
 const { safePath } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
-const auth = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 
 module.exports = function(app) {
-  app.get('/api/servers/:id/files', auth('files.browse'), (req, res) => {
+  app.get('/api/servers/:id/files', authForServer('files.browse'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const { dir } = req.query;
@@ -31,7 +31,7 @@ module.exports = function(app) {
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
 
-  app.get('/api/servers/:id/files/read', auth('files.edit'), (req, res) => {
+  app.get('/api/servers/:id/files/read', authForServer('files.edit'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const { file } = req.query;
@@ -47,7 +47,7 @@ module.exports = function(app) {
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
 
-  app.put('/api/servers/:id/files/write', auth('files.edit'), (req, res) => {
+  app.put('/api/servers/:id/files/write', authForServer('files.edit'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const { file, content } = req.body;

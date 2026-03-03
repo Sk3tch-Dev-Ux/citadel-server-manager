@@ -7,10 +7,12 @@ const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
 const auth = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 const { safePath } = require('../lib/helpers');
 const {
   createBackup, listBackups, deleteBackup,
+  restoreBackup, findBackupFile, listBackupContents,
   getBackupConfig, saveBackupConfig, DEFAULT_CONFIG,
 } = require('../lib/backup-engine');
 
@@ -60,14 +62,14 @@ module.exports = function (app) {
   // ════════════════════════════════════════════════════════
 
   // ─── Get backup config ─────────────────────────────────
-  app.get('/api/servers/:id/backup-config', auth(), requireLicense(), (req, res) => {
+  app.get('/api/servers/:id/backup-config', authForServer(), requireLicense(), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
     res.json(getBackupConfig(req.params.id));
   });
 
   // ─── Update backup config ─────────────────────────────
-  app.put('/api/servers/:id/backup-config', auth('server.restart'), (req, res) => {
+  app.put('/api/servers/:id/backup-config', authForServer('server.restart'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
@@ -100,14 +102,14 @@ module.exports = function (app) {
   });
 
   // ─── List all backups ──────────────────────────────────
-  app.get('/api/servers/:id/backups', auth(), (req, res) => {
+  app.get('/api/servers/:id/backups', authForServer(), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
     res.json(listBackups(req.params.id));
   });
 
   // ─── Trigger manual backup ─────────────────────────────
-  app.post('/api/servers/:id/backups', auth('server.restart'), async (req, res) => {
+  app.post('/api/servers/:id/backups', authForServer('server.restart'), async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
@@ -122,7 +124,7 @@ module.exports = function (app) {
   });
 
   // ─── Delete a backup ───────────────────────────────────
-  app.delete('/api/servers/:id/backups/:filename', auth('server.restart'), (req, res) => {
+  app.delete('/api/servers/:id/backups/:filename', authForServer('server.restart'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
@@ -143,7 +145,7 @@ module.exports = function (app) {
       req.headers.authorization = `Bearer ${req.query.token}`;
     }
     next();
-  }, auth('server.restart'), (req, res) => {
+  }, authForServer('server.restart'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
@@ -157,5 +159,61 @@ module.exports = function (app) {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${req.params.filename}"`);
     fs.createReadStream(fullPath).pipe(res);
+  });
+
+  // ─── Restore a backup ───────────────────────────────────
+  app.post('/api/servers/:id/backups/:filename/restore', authForServer('server.restart'), async (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+
+    const filename = req.params.filename;
+    const type = req.query.type || undefined; // optional: 'automated' or 'manual'
+
+    // Validate that the backup file exists
+    const found = findBackupFile(req.params.id, filename, type);
+    if (!found) return res.status(404).json({ error: 'Backup file not found' });
+
+    // Validate that the server is stopped
+    const state = ctx.serverStates[req.params.id];
+    if (state && state.status && state.status !== 'stopped' && state.status !== 'offline') {
+      return res.status(409).json({ error: `Server must be stopped before restoring (current status: ${state.status})` });
+    }
+
+    try {
+      const result = await restoreBackup(req.params.id, filename, found.type);
+      if (!result.success) {
+        return res.status(500).json({ error: result.error || 'Restore failed' });
+      }
+      addAudit(
+        req.user?.id || 'system',
+        req.user?.username || 'system',
+        'backup.restore',
+        `Restored backup ${filename} on server ${srv.name}`
+      );
+      res.json({ message: 'Backup restored successfully', filename });
+    } catch (err) {
+      res.status(500).json({ error: err.message || 'Restore failed' });
+    }
+  });
+
+  // ─── Preview backup contents ──────────────────────────────
+  app.get('/api/servers/:id/backups/:filename/contents', authForServer(), (req, res) => {
+    const state = ctx.serverStates[req.params.id];
+    if (!state) return res.status(404).json({ error: 'Server not found' });
+
+    const filename = req.params.filename;
+    const type = req.query.type || undefined;
+
+    const found = findBackupFile(req.params.id, filename, type);
+    if (!found) return res.status(404).json({ error: 'Backup file not found' });
+
+    listBackupContents(req.params.id, filename, found.type)
+      .then(result => {
+        if (result.error) return res.status(500).json({ error: result.error });
+        res.json({ filename, type: found.type, entries: result.entries });
+      })
+      .catch(err => {
+        res.status(500).json({ error: err.message || 'Failed to list contents' });
+      });
   });
 };

@@ -8,14 +8,14 @@ const { downloadWorkshopMod } = require('../lib/steamcmd');
 const { installModToServer, updateLaunchParamsMods } = require('../lib/mod-manager');
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
-const auth = require('../middleware/auth');
+const { auth, authForServer } = require('../middleware/auth');
 
 module.exports = function(app) {
-  app.get('/api/servers/:id/mods', auth('mods.view'), (req, res) => {
+  app.get('/api/servers/:id/mods', authForServer('mods.view'), (req, res) => {
     res.json(ctx.serverStates[req.params.id]?.modList || []);
   });
 
-  app.post('/api/servers/:id/mods/install', auth('mods.install'), async (req, res) => {
+  app.post('/api/servers/:id/mods/install', authForServer('mods.install'), async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const state = ctx.serverStates[srv.id];
@@ -48,7 +48,7 @@ module.exports = function(app) {
     }
   });
 
-  app.delete('/api/servers/:id/mods/uninstall/:workshopId', auth('mods.install'), (req, res) => {
+  app.delete('/api/servers/:id/mods/uninstall/:workshopId', authForServer('mods.install'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const state = ctx.serverStates[srv.id];
@@ -67,7 +67,7 @@ module.exports = function(app) {
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
 
-  app.patch('/api/servers/:id/mods/:workshopId', auth('mods.install'), (req, res) => {
+  app.patch('/api/servers/:id/mods/:workshopId', authForServer('mods.install'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
     const mod = state.modList.find(m => m.workshopId === req.params.workshopId);
