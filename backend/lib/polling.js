@@ -5,7 +5,7 @@
 const logger = require('./logger');
 const ctx = require('./context');
 const { flushAll } = require('./data-store');
-const { detectRunningProcess, detectProcessByPid, getProcessMetrics, getProcessCPU, killProcess, spawnDayZServer, applyProcessSettings } = require('./process-manager');
+const { detectRunningProcess, detectProcessByPid, getProcessMetrics, getProcessCPU, spawnDayZServer, applyProcessSettings } = require('./process-manager');
 const { scrapeRPTForFPS } = require('./rpt-scraper');
 const { updateLeaderboard } = require('./cftools-leaderboard');
 const { fetchPlayers } = require('./cftools-players');
@@ -17,6 +17,9 @@ const { startSchedulerEngine } = require('./scheduler-engine');
 const { startBackupEngine, runStartupBackups } = require('./backup-engine');
 const { scrapeRPTForEvents, getMapData } = require('./map-data');
 const { startSidecar, stopSidecar } = require('./sidecar-manager');
+const { executeHooks } = require('./lifecycle-hooks');
+const { restartServer } = require('./server-lifecycle');
+const { triggerAutoUpdate } = require('./auto-updater');
 
 // ─── Steam Update Polling ────────────────────────────────
 let lastModVersions = {};
@@ -121,24 +124,9 @@ function startMetricsPolling() {
               sendDiscordWebhook(`⚠️ **${srv.name}** health alert: ${reason}`);
             } else if (action === 'restart') {
               addLog(srv.id, 'warn', 'health', 'Auto-restarting due to health threshold');
-              stopSidecar(srv.id);
-              try { await killProcess(state.pid, srv.executable); } catch (err) { logger.debug({ err }, 'Kill during health restart'); }
-              state.pid = null; state.process = null; state.players = [];
-              state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
-              await new Promise(r => setTimeout(r, 3000));
-              const { child, launchFailed } = spawnDayZServer(srv);
-              state.process = child; state.pid = child.pid;
-              startSidecar(srv);
-              launchFailed.then(async (failReason) => {
-                if (failReason) {
-                  addLog(srv.id, 'error', 'health', `Health restart spawn failed: ${failReason}`);
-                  state.status = 'crashed'; state.pid = null; state.process = null;
-                  ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
-                  return;
-                }
-                const alive = await detectProcessByPid(child.pid);
-                if (alive) { state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString(); ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' }); }
-                else { state.status = 'crashed'; state.pid = null; state.process = null; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' }); }
+              // Use shared restart logic (includes lifecycle hooks)
+              restartServer(srv.id, `Health threshold: ${reason}`).catch((err) => {
+                logger.error({ err, serverId: srv.id }, 'Health auto-restart failed');
               });
             }
           }
@@ -151,6 +139,8 @@ function startMetricsPolling() {
         addNotification(srv.id, 'server.crashed', 'Server Crashed', `${srv.name} is no longer running`, 'error');
         fireWebhooks('server.crashed', { serverId: srv.id, serverName: srv.name });
         sendDiscordWebhook(`💥 **${srv.name}** crashed`);
+        // Execute crashed hooks (blocking, sequential)
+        executeHooks(srv.id, 'crashed').catch(() => {});
       }
     }
     } finally { _metricsPollingRunning = false; }
@@ -229,11 +219,14 @@ function startSteamUpdatePolling() {
           if (!mod.workshopId) continue;
           const remoteVersion = await getWorkshopModVersion(mod.workshopId);
           if (remoteVersion && lastModVersions[mod.workshopId] && remoteVersion > lastModVersions[mod.workshopId]) {
-            addNotification(srv.id, 'mod.update', 'Mod Update Detected', `Workshop mod ${mod.name} updated. Restarting in ${srv.restartCountdown || 60} seconds.`, 'warning');
-            ctx.io.emit('modUpdate', { serverId: srv.id, mod: mod.name, countdown: srv.restartCountdown || 60 });
-            setTimeout(() => {
-              ctx.io.emit('serverStatus', { serverId: srv.id, status: 'restarting' });
-            }, (srv.restartCountdown || 60) * 1000);
+            addLog(srv.id, 'info', 'updates', `Workshop mod ${mod.name} update detected (${lastModVersions[mod.workshopId]} -> ${remoteVersion})`);
+            addNotification(srv.id, 'mod.update', 'Mod Update Available', `Workshop mod ${mod.name} has a new version available.`, 'warning');
+            fireWebhooks('mod.updated', { serverId: srv.id, serverName: srv.name, modName: mod.name });
+            ctx.io.emit('modUpdate', { serverId: srv.id, mod: mod.name });
+            // Auto-updater integration: trigger update pipeline when enabled
+            if (srv.autoUpdateEnabled) {
+              triggerAutoUpdate(srv.id, 'mod', { modId: mod.workshopId, modName: mod.name });
+            }
           }
           lastModVersions[mod.workshopId] = remoteVersion;
         }
@@ -241,11 +234,14 @@ function startSteamUpdatePolling() {
       // Game build update polling
       const remoteBuild = await getDayZBuildVersion();
       if (remoteBuild && lastGameBuild && remoteBuild !== lastGameBuild) {
-        addNotification(srv.id, 'game.update', 'Game Update Detected', `DayZ game build updated. Restarting in ${srv.restartCountdown || 60} seconds.`, 'warning');
-        ctx.io.emit('gameUpdate', { serverId: srv.id, build: remoteBuild, countdown: srv.restartCountdown || 60 });
-        setTimeout(() => {
-          ctx.io.emit('serverStatus', { serverId: srv.id, status: 'restarting' });
-        }, (srv.restartCountdown || 60) * 1000);
+        addLog(srv.id, 'info', 'updates', `DayZ game build updated (${lastGameBuild} -> ${remoteBuild})`);
+        addNotification(srv.id, 'game.update', 'Game Update Available', `DayZ game build ${remoteBuild} is available.`, 'warning');
+        fireWebhooks('title.updated', { serverId: srv.id, serverName: srv.name, build: remoteBuild });
+        ctx.io.emit('gameUpdate', { serverId: srv.id, build: remoteBuild });
+        // Auto-updater integration: trigger update pipeline when enabled
+        if (srv.autoUpdateEnabled) {
+          triggerAutoUpdate(srv.id, 'game', { build: remoteBuild });
+        }
       }
       lastGameBuild = remoteBuild;
     }

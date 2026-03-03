@@ -5,7 +5,7 @@
  */
 const { v4: uuid } = require('uuid');
 const ctx = require('../lib/context');
-const auth = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
@@ -22,14 +22,14 @@ function persistJobs(serverId) {
 
 module.exports = function (app) {
   // ─── List all jobs ──────────────────────────────────────
-  app.get('/api/servers/:id/scheduler', auth(), requireLicense(), (req, res) => {
+  app.get('/api/servers/:id/scheduler', authForServer(), requireLicense(), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
     res.json({ jobs: getJobs(req.params.id) });
   });
 
   // ─── Create a new job ──────────────────────────────────
-  app.post('/api/servers/:id/scheduler', auth('server.restart'), (req, res) => {
+  app.post('/api/servers/:id/scheduler', authForServer('server.restart'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
@@ -66,7 +66,7 @@ module.exports = function (app) {
   });
 
   // ─── Update a job ──────────────────────────────────────
-  app.put('/api/servers/:id/scheduler/:jobId', auth('server.restart'), (req, res) => {
+  app.put('/api/servers/:id/scheduler/:jobId', authForServer('server.restart'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
@@ -96,7 +96,7 @@ module.exports = function (app) {
   });
 
   // ─── Toggle a job ──────────────────────────────────────
-  app.patch('/api/servers/:id/scheduler/:jobId/toggle', auth('server.restart'), (req, res) => {
+  app.patch('/api/servers/:id/scheduler/:jobId/toggle', authForServer('server.restart'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
@@ -110,7 +110,7 @@ module.exports = function (app) {
   });
 
   // ─── Delete a job ──────────────────────────────────────
-  app.delete('/api/servers/:id/scheduler/:jobId', auth('server.restart'), (req, res) => {
+  app.delete('/api/servers/:id/scheduler/:jobId', authForServer('server.restart'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 

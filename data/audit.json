@@ -1,5 +1,21 @@
 [
   {
+    "id": "d5defc81-6d42-4da4-ac50-58a5036fb61d",
+    "timestamp": "2026-03-03T04:45:14.428Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: Test"
+  },
+  {
+    "id": "16849368-e0d0-48d0-986e-3af66458cf27",
+    "timestamp": "2026-03-03T04:36:29.366Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
     "id": "9ac2b41a-b877-421a-85c2-bd9d7687f756",
     "timestamp": "2026-03-03T04:23:49.894Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

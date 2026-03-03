@@ -40,6 +40,64 @@ function saveBackupConfig(serverId, config) {
   if (state?.backup) state.backup.config = config;
 }
 
+// ─── Wildcard Path Expansion ────────────────────────────
+
+/**
+ * Convert a simple wildcard pattern (using * only) to a RegExp.
+ * E.g. "*.ADM" → /^.*\.ADM$/
+ */
+function wildcardToRegex(pattern) {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+  return new RegExp('^' + escaped + '$');
+}
+
+/**
+ * Expand a relative path that may contain a `*` wildcard into concrete paths.
+ * - If the path has no wildcard, it behaves like before (returns the full path if it exists).
+ * - If the last segment contains `*`, the parent dir is listed and entries matching
+ *   the wildcard are returned.
+ * E.g. "mpmissions/*" → all entries inside mpmissions/
+ * E.g. "profiles/*.ADM" → all .ADM files inside profiles/
+ * @param {string} installDir - absolute base directory
+ * @param {string} relPath - relative path, possibly with wildcard in the last segment
+ * @returns {string[]} array of resolved absolute paths
+ */
+function expandWildcardPath(installDir, relPath) {
+  // Normalize separators
+  const normalized = relPath.replace(/\\/g, '/');
+
+  // If no wildcard, fall back to original behavior
+  if (!normalized.includes('*')) {
+    const full = safePath(installDir, normalized);
+    if (full && fs.existsSync(full)) return [full];
+    return [];
+  }
+
+  // Split into parent dir + wildcard segment
+  const lastSlash = normalized.lastIndexOf('/');
+  const parentRel = lastSlash >= 0 ? normalized.slice(0, lastSlash) : '.';
+  const pattern = lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
+
+  const parentFull = safePath(installDir, parentRel);
+  if (!parentFull || !fs.existsSync(parentFull)) return [];
+
+  try {
+    const regex = wildcardToRegex(pattern);
+    const entries = fs.readdirSync(parentFull);
+    const matches = [];
+    for (const entry of entries) {
+      if (regex.test(entry)) {
+        const entryFull = path.join(parentFull, entry);
+        matches.push(entryFull);
+      }
+    }
+    return matches;
+  } catch (err) {
+    logger.debug({ err, relPath }, 'Backup: wildcard expansion failed');
+    return [];
+  }
+}
+
 // ─── Create Backup ───────────────────────────────────────
 
 /**
@@ -68,14 +126,15 @@ function createBackup(serverId, type) {
       return;
     }
 
-    // Validate paths exist
+    // Validate paths (with wildcard expansion)
     const validPaths = [];
     for (const relPath of config.paths) {
-      const full = safePath(srv.installDir, relPath);
-      if (full && fs.existsSync(full)) {
-        validPaths.push(full);
-      } else {
-        logger.debug({ serverId, path: relPath }, 'Backup: path does not exist or invalid, skipping');
+      const expanded = expandWildcardPath(srv.installDir, relPath);
+      for (const full of expanded) {
+        if (!validPaths.includes(full)) validPaths.push(full);
+      }
+      if (expanded.length === 0) {
+        logger.debug({ serverId, path: relPath }, 'Backup: path does not exist, invalid, or no wildcard matches, skipping');
       }
     }
 
@@ -260,6 +319,260 @@ function deleteBackup(serverId, filename, type) {
   }
 }
 
+// ─── Restore Backup ─────────────────────────────────────
+
+/**
+ * Resolve a backup filename + type to its absolute path.
+ * Searches both automated and manual dirs if type is not specified.
+ * @param {string} serverId
+ * @param {string} filename
+ * @param {string} [type] - 'automated' or 'manual'. If omitted, searches both.
+ * @returns {{ zipPath: string, type: string } | null}
+ */
+function findBackupFile(serverId, filename, type) {
+  const srv = ctx.servers.find(s => s.id === serverId);
+  if (!srv || !srv.installDir) return null;
+
+  const typesToCheck = type ? [type] : ['manual', 'automated'];
+  for (const t of typesToCheck) {
+    const backupsRoot = path.join(srv.installDir, '.backups', t);
+    const fullPath = safePath(backupsRoot, filename);
+    if (fullPath && fs.existsSync(fullPath)) {
+      return { zipPath: fullPath, type: t };
+    }
+  }
+  return null;
+}
+
+/**
+ * Restore a backup ZIP to the server's install directory.
+ * Creates a safety backup before restoring. Requires the server to be stopped.
+ * @param {string} serverId
+ * @param {string} filename
+ * @param {string} [type] - 'automated' or 'manual'
+ * @returns {Promise<{ success: boolean, error?: string }>}
+ */
+function restoreBackup(serverId, filename, type) {
+  return new Promise(async (resolve) => {
+    const srv = ctx.servers.find(s => s.id === serverId);
+    if (!srv || !srv.installDir) {
+      return resolve({ success: false, error: 'Server not found or missing installDir' });
+    }
+
+    // Check server is stopped
+    const state = ctx.serverStates[serverId];
+    if (state && state.status && state.status !== 'stopped' && state.status !== 'offline') {
+      return resolve({ success: false, error: `Server must be stopped before restoring (current status: ${state.status})` });
+    }
+
+    // Find the backup file
+    const found = findBackupFile(serverId, filename, type);
+    if (!found) {
+      return resolve({ success: false, error: `Backup file not found: ${filename}` });
+    }
+    const { zipPath } = found;
+
+    // Emit progress: starting
+    if (ctx.io) {
+      ctx.io.emit('backupRestore', { serverId, status: 'starting', filename });
+    }
+
+    logger.info({ serverId, filename }, 'Backup Restore: starting');
+
+    // Create safety backup before restoring
+    try {
+      const safetyTs = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const safetyFilename = `pre-restore-${safetyTs}.zip`;
+      const safetyDir = path.join(srv.installDir, '.backups', 'manual');
+      try { fs.mkdirSync(safetyDir, { recursive: true }); } catch (_) { /* ignore */ }
+      const safetyZipPath = path.join(safetyDir, safetyFilename);
+
+      // Get the current backup config paths to know what to back up
+      const config = getBackupConfig(serverId);
+      const safetySources = [];
+      for (const relPath of (config.paths || [])) {
+        const expanded = expandWildcardPath(srv.installDir, relPath);
+        for (const p of expanded) {
+          if (!safetySources.includes(p)) safetySources.push(p);
+        }
+      }
+
+      if (safetySources.length > 0) {
+        const sources = safetySources.map(p => `'${p.replace(/'/g, "''")}'`).join(',');
+        const dest = safetyZipPath.replace(/'/g, "''");
+        const safetyCmd = `Compress-Archive -Path ${sources} -DestinationPath '${dest}' -Force`;
+
+        logger.info({ serverId, safetyFilename }, 'Backup Restore: creating safety backup');
+
+        await new Promise((res) => {
+          const proc = spawn('powershell', [
+            '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', safetyCmd,
+          ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+
+          let stderr = '';
+          proc.stderr.on('data', (data) => { stderr += data.toString(); });
+
+          const timeout = setTimeout(() => {
+            try { proc.kill(); } catch (_) { /* ignore */ }
+            res(false);
+          }, 300_000);
+
+          proc.on('close', (code) => {
+            clearTimeout(timeout);
+            if (code !== 0) {
+              logger.warn({ serverId, code, stderr: stderr.slice(0, 500) }, 'Backup Restore: safety backup failed, proceeding anyway');
+            } else {
+              logger.info({ serverId, safetyFilename }, 'Backup Restore: safety backup created');
+              addLog(serverId, 'info', 'backup', `Safety backup created before restore: ${safetyFilename}`);
+            }
+            res(true);
+          });
+
+          proc.on('error', () => {
+            clearTimeout(timeout);
+            res(false);
+          });
+        });
+      } else {
+        logger.info({ serverId }, 'Backup Restore: no backup paths configured, skipping safety backup');
+      }
+    } catch (err) {
+      logger.warn({ err, serverId }, 'Backup Restore: safety backup failed, proceeding with restore');
+    }
+
+    // Extract the backup ZIP to installDir
+    const escapedZip = zipPath.replace(/'/g, "''");
+    const escapedDest = srv.installDir.replace(/'/g, "''");
+    const restoreCmd = `Expand-Archive -Path '${escapedZip}' -DestinationPath '${escapedDest}' -Force`;
+
+    logger.info({ serverId, filename, installDir: srv.installDir }, 'Backup Restore: extracting ZIP');
+
+    const proc = spawn('powershell', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', restoreCmd,
+    ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    let stderr = '';
+    proc.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    const timeout = setTimeout(() => {
+      try { proc.kill(); } catch (_) { /* ignore */ }
+      logger.error({ serverId }, 'Backup Restore: timed out after 10 minutes');
+      if (ctx.io) {
+        ctx.io.emit('backupRestore', { serverId, status: 'error', filename, error: 'Restore timed out after 10 minutes' });
+      }
+      resolve({ success: false, error: 'Restore timed out after 10 minutes' });
+    }, 600_000); // 10 minute timeout for restore
+
+    proc.on('close', (code) => {
+      clearTimeout(timeout);
+
+      if (code !== 0) {
+        const errMsg = `Restore failed: PowerShell exit code ${code}`;
+        logger.error({ serverId, code, stderr: stderr.slice(0, 500) }, 'Backup Restore: Expand-Archive failed');
+        addLog(serverId, 'error', 'backup', `Restore failed for ${filename}: exit code ${code}`);
+        if (ctx.io) {
+          ctx.io.emit('backupRestore', { serverId, status: 'error', filename, error: errMsg });
+        }
+        resolve({ success: false, error: errMsg });
+        return;
+      }
+
+      addLog(serverId, 'info', 'backup', `Backup restored: ${filename}`);
+      addNotification(serverId, 'backup.restored', 'Backup Restored', `${srv.name}: restored from ${filename}`, 'info');
+
+      if (ctx.io) {
+        ctx.io.emit('backupRestore', { serverId, status: 'complete', filename });
+      }
+
+      logger.info({ serverId, filename }, 'Backup Restore: completed successfully');
+      resolve({ success: true });
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      const errMsg = `Restore failed: ${err.message}`;
+      logger.error({ err, serverId }, 'Backup Restore: spawn error');
+      addLog(serverId, 'error', 'backup', errMsg);
+      if (ctx.io) {
+        ctx.io.emit('backupRestore', { serverId, status: 'error', filename, error: errMsg });
+      }
+      resolve({ success: false, error: errMsg });
+    });
+  });
+}
+
+// ─── List Backup Contents ───────────────────────────────
+
+/**
+ * List the contents of a backup ZIP file without extracting.
+ * Uses PowerShell to read the ZIP entries.
+ * @param {string} serverId
+ * @param {string} filename
+ * @param {string} [type] - 'automated' or 'manual'
+ * @returns {Promise<{ entries: Array<{ name: string, size: number, compressedSize: number }>, error?: string }>}
+ */
+function listBackupContents(serverId, filename, type) {
+  return new Promise((resolve) => {
+    const found = findBackupFile(serverId, filename, type);
+    if (!found) {
+      return resolve({ entries: [], error: 'Backup file not found' });
+    }
+    const { zipPath } = found;
+
+    const escapedZip = zipPath.replace(/'/g, "''");
+    // Use .NET ZipFile to read entries and output as JSON
+    const cmd = [
+      `Add-Type -AssemblyName System.IO.Compression.FileSystem;`,
+      `$zip = [System.IO.Compression.ZipFile]::OpenRead('${escapedZip}');`,
+      `$entries = $zip.Entries | Select-Object FullName, Length, CompressedLength;`,
+      `$zip.Dispose();`,
+      `$entries | ConvertTo-Json -Compress`,
+    ].join(' ');
+
+    const proc = spawn('powershell', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', cmd,
+    ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    proc.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    const timeout = setTimeout(() => {
+      try { proc.kill(); } catch (_) { /* ignore */ }
+      resolve({ entries: [], error: 'Listing timed out' });
+    }, 30_000);
+
+    proc.on('close', (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) {
+        logger.error({ serverId, code, stderr: stderr.slice(0, 300) }, 'Backup Contents: failed to list');
+        return resolve({ entries: [], error: 'Failed to read backup contents' });
+      }
+
+      try {
+        let parsed = JSON.parse(stdout);
+        // PowerShell returns a single object (not array) if there's only one entry
+        if (!Array.isArray(parsed)) parsed = [parsed];
+        const entries = parsed.map(e => ({
+          name: e.FullName,
+          size: e.Length || 0,
+          compressedSize: e.CompressedLength || 0,
+        }));
+        resolve({ entries });
+      } catch (err) {
+        logger.debug({ err, stdout: stdout.slice(0, 300) }, 'Backup Contents: JSON parse failed');
+        resolve({ entries: [], error: 'Failed to parse backup contents' });
+      }
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      resolve({ entries: [], error: err.message });
+    });
+  });
+}
+
 // ─── Backup Engine Tick ─────────────────────────────────
 
 let _tickRunning = false;
@@ -315,6 +628,9 @@ module.exports = {
   cleanupOldBackups,
   listBackups,
   deleteBackup,
+  restoreBackup,
+  findBackupFile,
+  listBackupContents,
   startBackupEngine,
   runStartupBackups,
   getBackupConfig,

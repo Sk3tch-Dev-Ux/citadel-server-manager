@@ -69,7 +69,11 @@
       "Bash(powershell -NoProfile -Command \"Get-Content ''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZServer\\\\@CitadelServerSide\\\\meta.cpp'' -ErrorAction SilentlyContinue\")",
       "Bash(powershell -NoProfile -Command \"Write-Host ''=== Citadel IPC dirs ===''; $profilePaths = @\\(''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZServer\\\\profiles\\\\Citadel'', ''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZServer\\\\Citadel''\\); foreach \\($p in $profilePaths\\) { if \\(Test-Path $p\\) { Write-Host \"\"FOUND: $p\"\"; Get-ChildItem $p -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Length,LastWriteTime } else { Write-Host \"\"NOT FOUND: $p\"\" } }; Write-Host ''=== Log files ===''; Get-ChildItem ''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZServer\\\\logs'' -ErrorAction SilentlyContinue | Select-Object Name,Length,LastWriteTime; Write-Host ''=== RPT files anywhere ===''; Get-ChildItem ''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZServer\\\\*.rpt'' -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Length,LastWriteTime\")",
       "Bash(powershell -NoProfile -Command \"Write-Host ''=== Citadel IPC \\(profiles\\) ===''; Test-Path ''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZServer\\\\profiles\\\\Citadel''; Write-Host ''=== Citadel IPC \\(root\\) ===''; Test-Path ''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZServer\\\\Citadel''\")",
-      "Bash(powershell -NoProfile:*)"
+      "Bash(powershell -NoProfile:*)",
+      "WebFetch(domain:youtu.be)",
+      "WebFetch(domain:www.youtube.com)",
+      "WebFetch(domain:help.cftools.com)",
+      "WebFetch(domain:app.swaggerhub.com)"
     ]
   }
 }

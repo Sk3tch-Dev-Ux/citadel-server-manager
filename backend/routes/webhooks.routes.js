@@ -1,36 +1,82 @@
 /**
- * Webhook CRUD and test routes.
+ * Webhook CRUD, test, and event listing routes.
  */
 const { v4: uuid } = require('uuid');
 const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { validateFields } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
-const { fireWebhooks } = require('../lib/notifications');
+const { fireWebhooks, WEBHOOK_EVENTS } = require('../lib/notifications');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 
+/** Delivery record TTL: 7 days in milliseconds */
+const DELIVERY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Prune delivery records older than 7 days from all webhooks. */
+function pruneAllDeliveries() {
+  const cutoff = Date.now() - DELIVERY_TTL_MS;
+  let pruned = false;
+  for (const wh of ctx.webhooks) {
+    if (!wh.deliveries || wh.deliveries.length === 0) continue;
+    const before = wh.deliveries.length;
+    wh.deliveries = wh.deliveries.filter(d => new Date(d.timestamp).getTime() > cutoff);
+    if (wh.deliveries.length !== before) pruned = true;
+  }
+  if (pruned) saveJSON(ctx.CONFIG.dataDir, 'webhooks.json', ctx.webhooks);
+}
+
 module.exports = function(app) {
-  app.get('/api/webhooks', auth('webhooks.manage'), requireLicense(), (req, res) => { res.json(ctx.webhooks); });
+  /**
+   * GET /api/webhooks/events — Return all supported event types with descriptions.
+   * This must be registered BEFORE the parameterized /api/webhooks/:id routes.
+   */
+  app.get('/api/webhooks/events', auth('webhooks.manage'), (req, res) => {
+    res.json(WEBHOOK_EVENTS);
+  });
+
+  app.get('/api/webhooks', auth('webhooks.manage'), requireLicense(), (req, res) => {
+    // Prune old delivery records on list access
+    pruneAllDeliveries();
+    res.json(ctx.webhooks);
+  });
 
   app.post('/api/webhooks', auth('webhooks.manage'), (req, res) => {
-    const { event, url, template, retryEnabled, timeout, headers } = req.body;
+    const { event, url, template, retryEnabled, retryCount, timeout, headers, events } = req.body;
     const error = validateFields(req.body, {
       event: { required: true, type: 'string', minLength: 2 },
       url: { required: true, type: 'string', pattern: /^https?:\/\// },
       template: { required: false, type: 'string' },
       retryEnabled: { required: false, type: 'boolean' },
+      retryCount: { required: false, type: 'number' },
       timeout: { required: false, type: 'number' },
       headers: { required: false, type: 'object' },
     });
     if (error) return res.status(400).json({ error });
+
+    // Validate events array if provided
+    if (events !== undefined) {
+      if (!Array.isArray(events)) return res.status(400).json({ error: 'events must be an array' });
+      const validEventTypes = Object.keys(WEBHOOK_EVENTS);
+      const invalid = events.filter(e => !validEventTypes.includes(e));
+      if (invalid.length > 0) return res.status(400).json({ error: `Invalid event types: ${invalid.join(', ')}` });
+    }
+
+    // Validate retryCount range
+    let parsedRetryCount = 3;
+    if (retryCount !== undefined) {
+      parsedRetryCount = Math.min(Math.max(parseInt(retryCount, 10) || 3, 1), 10);
+    }
+
     const isDiscord = url.includes('discord.com/api/webhooks');
     let isValidJson = false;
     if (template) { try { JSON.parse(template); isValidJson = true; } catch {} }
     const wh = {
       id: uuid(), event, url, template: template || (isDiscord ? JSON.stringify({ content: '**{server.name}** — {timestamp}' }) : ''),
-      retryEnabled: retryEnabled !== false, timeout: timeout || 60000,
+      retryEnabled: retryEnabled !== false, retryCount: parsedRetryCount,
+      timeout: timeout || 60000,
       headers: headers || {}, enabled: true, isDiscord, isValidJson,
+      events: Array.isArray(events) ? events : [],
       deliveries: [], createdAt: new Date().toISOString(),
     };
     ctx.webhooks.push(wh); saveJSON(ctx.CONFIG.dataDir, 'webhooks.json', ctx.webhooks);
@@ -41,7 +87,21 @@ module.exports = function(app) {
   app.patch('/api/webhooks/:id', auth('webhooks.manage'), (req, res) => {
     const wh = ctx.webhooks.find(w => w.id === req.params.id);
     if (!wh) return res.status(404).json({ error: 'Webhook not found' });
-    const allowed = ['event','url','template','retryEnabled','timeout','headers','enabled'];
+
+    // Validate events array if provided
+    if (req.body.events !== undefined) {
+      if (!Array.isArray(req.body.events)) return res.status(400).json({ error: 'events must be an array' });
+      const validEventTypes = Object.keys(WEBHOOK_EVENTS);
+      const invalid = req.body.events.filter(e => !validEventTypes.includes(e));
+      if (invalid.length > 0) return res.status(400).json({ error: `Invalid event types: ${invalid.join(', ')}` });
+    }
+
+    // Validate retryCount range if provided
+    if (req.body.retryCount !== undefined) {
+      req.body.retryCount = Math.min(Math.max(parseInt(req.body.retryCount, 10) || 3, 1), 10);
+    }
+
+    const allowed = ['event','url','template','retryEnabled','retryCount','timeout','headers','enabled','events'];
     for (const key of allowed) { if (req.body[key] !== undefined) wh[key] = req.body[key]; }
     wh.isDiscord = wh.url.includes('discord.com/api/webhooks');
     if (wh.template) { try { JSON.parse(wh.template); wh.isValidJson = true; } catch { wh.isValidJson = false; } }
@@ -64,6 +124,7 @@ module.exports = function(app) {
   app.post('/api/webhooks/:id/test', auth('webhooks.manage'), async (req, res) => {
     const wh = ctx.webhooks.find(w => w.id === req.params.id);
     if (!wh) return res.status(404).json({ error: 'Not found' });
+    // Fire using the webhook's primary event so it matches its own filter
     try { await fireWebhooks(wh.event, { serverId: 'test', serverName: 'Test Server' }); res.json({ message: 'Test fired' }); }
     catch (err) { res.status(500).json({ error: err.message }); }
   });

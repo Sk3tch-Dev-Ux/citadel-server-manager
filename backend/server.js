@@ -169,6 +169,16 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   logger.debug({ userId: socket.user?.id }, 'WebSocket client connected');
+
+  // Fire session.begin webhook
+  fireWebhooks('session.begin', {
+    serverName: 'Citadel Agent',
+    serverId: 'agent',
+    playerId: socket.user?.id,
+    playerName: socket.user?.username || 'Unknown',
+    reason: 'User connected to dashboard',
+  }).catch(err => logger.error({ err }, 'Failed to fire session.begin webhook'));
+
   for (const srv of ctx.servers) {
     const state = ctx.serverStates[srv.id];
     if (state) {
@@ -181,6 +191,15 @@ io.on('connection', (socket) => {
   }
   socket.on('disconnect', () => {
     logger.debug({ userId: socket.user?.id }, 'WebSocket client disconnected');
+
+    // Fire session.ended webhook
+    fireWebhooks('session.ended', {
+      serverName: 'Citadel Agent',
+      serverId: 'agent',
+      playerId: socket.user?.id,
+      playerName: socket.user?.username || 'Unknown',
+      reason: 'User disconnected from dashboard',
+    }).catch(err => logger.error({ err }, 'Failed to fire session.ended webhook'));
   });
 });
 
@@ -202,6 +221,7 @@ app.use((err, req, res, next) => {
 // ─── Startup ─────────────────────────────────────────────
 const { startup } = require('./lib/server-init');
 const { startAllPolling, gracefulShutdown } = require('./lib/polling');
+const { fireWebhooks } = require('./lib/notifications');
 
 (async () => {
   await startup();
@@ -213,6 +233,13 @@ const { startAllPolling, gracefulShutdown } = require('./lib/polling');
   server.listen(CONFIG.port, () => {
     logger.info(`Citadel v2.0 (All-In-One) running on ${useHttps ? 'https' : 'http'}://localhost:${CONFIG.port}`);
     logger.info(`${ctx.servers.length} server(s) configured, ${ctx.users.length} user(s)`);
+
+    // Fire agent.ready webhook on successful startup
+    fireWebhooks('agent.ready', {
+      serverName: 'Citadel Agent',
+      serverId: 'agent',
+      reason: `Agent started on port ${CONFIG.port}`,
+    }).catch(err => logger.error({ err }, 'Failed to fire agent.ready webhook'));
   });
 })();
 

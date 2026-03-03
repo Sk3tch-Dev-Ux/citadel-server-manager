@@ -521,6 +521,37 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .wh-form-preview { margin-bottom: 16px; }
 .wh-form-preview-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
 
+/* ─── Event Filter Multi-Select ─── */
+.wh-event-filter-select { position: relative; }
+.wh-event-filter-trigger { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+.wh-event-filter-text { font-size: 13px; color: var(--text-secondary); }
+.wh-event-filter-dropdown {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 200;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-height: 300px; display: flex; flex-direction: column;
+}
+.wh-event-filter-actions { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.wh-event-filter-list { overflow-y: auto; padding: 4px 0; flex: 1; }
+.wh-event-filter-item {
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer;
+  transition: background 0.12s; font-size: 12px;
+}
+.wh-event-filter-item:hover { background: rgba(255,255,255,0.04); }
+.wh-event-filter-check {
+  width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 3px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: transparent; transition: all 0.15s; color: #fff;
+}
+.wh-event-filter-check.checked { background: var(--accent-blue); border-color: var(--accent-blue); }
+.wh-event-filter-icon { display: flex; align-items: center; color: var(--text-muted); flex-shrink: 0; }
+.wh-event-filter-label { font-family: var(--font-mono); color: var(--text-primary); white-space: nowrap; }
+.wh-event-filter-desc { font-size: 10px; color: var(--text-muted); margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.btn-xs { padding: 3px 8px; font-size: 10px; }
+
+/* Webhook card event list */
+.wh-card-events { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.wh-event-chip-sm { font-size: 9px; padding: 1px 6px; }
+
 /* Legacy badge support (kept for delivery table) */
 .webhook-event-badge { display: inline-flex; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); }
 .webhook-event-badge.started { background: rgba(92,184,92,0.12); color: var(--accent-green); }

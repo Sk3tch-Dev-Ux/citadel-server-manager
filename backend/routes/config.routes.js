@@ -4,10 +4,10 @@
 const ctx = require('../lib/context');
 const { readServerConfig, writeServerConfig } = require('../lib/dayz-config');
 const { addAudit } = require('../lib/audit');
-const auth = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 
 module.exports = function(app) {
-  app.get('/api/servers/:id/config', auth('server.config'), (req, res) => {
+  app.get('/api/servers/:id/config', authForServer('server.config'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const state = ctx.serverStates[srv.id];
@@ -15,7 +15,7 @@ module.exports = function(app) {
     res.json(state?.config || {});
   });
 
-  app.patch('/api/servers/:id/config', auth('server.config'), (req, res) => {
+  app.patch('/api/servers/:id/config', authForServer('server.config'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     if (writeServerConfig(srv.installDir, req.body)) {

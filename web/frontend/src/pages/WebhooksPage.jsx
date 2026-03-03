@@ -297,11 +297,15 @@ const TEMPLATE_CATEGORIES = [
 
 /* ─── Event Metadata ─── */
 
-const ALL_EVENTS = [
-  'server.started', 'server.stopped', 'server.crashed', 'server.restarted', 'server.health',
+/** Fallback event list used before the API responds */
+const FALLBACK_EVENTS = [
+  'agent.ready', 'session.begin', 'session.ended',
+  'server.started', 'server.stopped', 'server.crashed', 'server.restarted',
+  'title.updated', 'mod.updated',
   'server.updated_title', 'server.updated_mod',
-  'player.kick', 'player.ban',
-  'mod.installed', 'mod.removed',
+  'player.joined', 'player.left',
+  'backup.created', 'backup.restored',
+  'scheduler.executed',
 ];
 
 const EVENT_ICONS = {
@@ -310,7 +314,12 @@ const EVENT_ICONS = {
   'server.health': <Activity size={14} />, 'server.updated_title': <Edit size={14} />,
   'server.updated_mod': <Package size={14} />,
   'player.kick': <Ban size={14} />, 'player.ban': <Shield size={14} />,
+  'player.joined': <Users size={14} />, 'player.left': <Users size={14} />,
   'mod.installed': <Package size={14} />, 'mod.removed': <Trash2 size={14} />,
+  'mod.updated': <Package size={14} />, 'title.updated': <Globe size={14} />,
+  'agent.ready': <Power size={14} />, 'session.begin': <Users size={14} />,
+  'session.ended': <Users size={14} />, 'backup.created': <CheckCircle size={14} />,
+  'backup.restored': <RefreshCw size={14} />, 'scheduler.executed': <Clock size={14} />,
 };
 
 const EVENT_BADGE_CLASS = (e) => {
@@ -433,9 +442,61 @@ function TemplatePicker({ onSelect, onClose }) {
   );
 }
 
+/* ─── Event Filter Multi-Select ─── */
+
+function EventFilterSelect({ allEvents, eventDescriptions, selected, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (ev) => {
+    const next = selected.includes(ev) ? selected.filter(e => e !== ev) : [...selected, ev];
+    onChange(next);
+  };
+
+  const selectAll = () => onChange([...allEvents]);
+  const clearAll = () => onChange([]);
+
+  return (
+    <div className="wh-event-filter-select" ref={ref}>
+      <div className="wh-event-filter-trigger input" onClick={() => setOpen(!open)}>
+        <span className="wh-event-filter-text">
+          {selected.length === 0 ? 'All events (no filter)' : `${selected.length} event${selected.length !== 1 ? 's' : ''} selected`}
+        </span>
+        <ChevronDown size={14} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </div>
+      {open && (
+        <div className="wh-event-filter-dropdown">
+          <div className="wh-event-filter-actions">
+            <button className="btn btn-xs btn-secondary" onClick={selectAll}>Select All</button>
+            <button className="btn btn-xs btn-secondary" onClick={clearAll}>Clear</button>
+          </div>
+          <div className="wh-event-filter-list">
+            {allEvents.map(ev => (
+              <label key={ev} className="wh-event-filter-item" onClick={() => toggle(ev)}>
+                <span className={`wh-event-filter-check ${selected.includes(ev) ? 'checked' : ''}`}>
+                  {selected.includes(ev) && <Check size={10} />}
+                </span>
+                <span className="wh-event-filter-icon">{EVENT_ICONS[ev] || null}</span>
+                <span className="wh-event-filter-label">{ev}</span>
+                {eventDescriptions[ev] && <span className="wh-event-filter-desc">{eventDescriptions[ev]}</span>}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Create / Edit Webhook Modal ─── */
 
-function WebhookFormModal({ initial, events, onSave, onClose, title }) {
+function WebhookFormModal({ initial, events, eventDescriptions, onSave, onClose, title }) {
   const [form, setForm] = useState(initial);
   const [jsonError, setJsonError] = useState('');
 
@@ -460,10 +521,20 @@ function WebhookFormModal({ initial, events, onSave, onClose, title }) {
         <div className="modal-title">{title || 'Create Webhook'}</div>
 
         <div className="input-group">
-          <label className="input-label">Event</label>
+          <label className="input-label">Primary Event</label>
           <select className="input" value={form.event} onChange={e => setForm(f => ({ ...f, event: e.target.value }))}>
-            {events.map(ev => <option key={ev} value={ev}>{ev}</option>)}
+            {events.map(ev => <option key={ev} value={ev}>{ev}{eventDescriptions[ev] ? ` — ${eventDescriptions[ev]}` : ''}</option>)}
           </select>
+        </div>
+
+        <div className="input-group">
+          <label className="input-label">Event Filter <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 6 }}>Leave empty to fire for all events</span></label>
+          <EventFilterSelect
+            allEvents={events}
+            eventDescriptions={eventDescriptions}
+            selected={form.events || []}
+            onChange={(evts) => setForm(f => ({ ...f, events: evts }))}
+          />
         </div>
 
         <div className="input-group">
@@ -503,10 +574,25 @@ function WebhookFormModal({ initial, events, onSave, onClose, title }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <div className={`toggle ${form.retryEnabled ? 'on' : ''}`} onClick={() => setForm(f => ({ ...f, retryEnabled: !f.retryEnabled }))}><div className="toggle-knob" /></div>
           <span style={{ fontSize: 13 }}>Enable retry on failure</span>
         </div>
+
+        {form.retryEnabled && (
+          <div className="input-group" style={{ marginBottom: 16 }}>
+            <label className="input-label">Retry Count <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 6 }}>1-10 attempts</span></label>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              max={10}
+              value={form.retryCount || 3}
+              onChange={e => setForm(f => ({ ...f, retryCount: Math.min(Math.max(parseInt(e.target.value, 10) || 1, 1), 10) }))}
+              style={{ width: 80 }}
+            />
+          </div>
+        )}
 
         <div className="btn-group">
           <button className="btn btn-primary" onClick={handleSave}>{title === 'Edit Webhook' ? 'Save Changes' : 'Create Webhook'}</button>
@@ -528,11 +614,16 @@ export default function WebhooksPage() {
   const [selectedWh, setSelectedWh] = useState(null);
   const [deliveries, setDeliveries] = useState([]);
   const [openMenu, setOpenMenu] = useState(null);
-  const [createDefaults, setCreateDefaults] = useState({ event: 'server.started', url: '', template: '', retryEnabled: true });
+  const [createDefaults, setCreateDefaults] = useState({ event: 'server.started', url: '', template: '', retryEnabled: true, retryCount: 3, events: [] });
+  const [eventTypes, setEventTypes] = useState({});
   const menuRef = useRef(null);
+
+  // Derive event list from API response or fallback
+  const allEvents = Object.keys(eventTypes).length > 0 ? Object.keys(eventTypes) : FALLBACK_EVENTS;
 
   useEffect(() => {
     API.get('/api/webhooks').then(d => setWebhooks(Array.isArray(d) ? d : []));
+    API.get('/api/webhooks/events').then(d => { if (d && typeof d === 'object' && !d.error) setEventTypes(d); });
   }, []);
 
   // Close menu on outside click
@@ -592,12 +683,14 @@ export default function WebhooksPage() {
       url: '',
       template: JSON.stringify(tpl.template, null, 2),
       retryEnabled: true,
+      retryCount: 3,
+      events: tpl.events || [],
     });
     setShowCreate(true);
   };
 
   const handleOpenCreate = () => {
-    setCreateDefaults({ event: 'server.started', url: '', template: '', retryEnabled: true });
+    setCreateDefaults({ event: 'server.started', url: '', template: '', retryEnabled: true, retryCount: 3, events: [] });
     setShowCreate(true);
   };
 
@@ -654,8 +747,16 @@ export default function WebhooksPage() {
                       )}
                       {!wh.enabled && <span className="wh-badge wh-badge-disabled">Disabled</span>}
                     </div>
+                    {Array.isArray(wh.events) && wh.events.length > 0 && (
+                      <div className="wh-card-events">
+                        {wh.events.slice(0, 5).map(ev => (
+                          <span key={ev} className={`wh-event-chip wh-event-chip-sm ${EVENT_BADGE_CLASS(ev)}`}>{ev}</span>
+                        ))}
+                        {wh.events.length > 5 && <span className="wh-event-chip wh-event-chip-sm wh-badge-default">+{wh.events.length - 5} more</span>}
+                      </div>
+                    )}
                     <div className="wh-card-meta">
-                      ID: {truncateId(wh.id)} &bull; Timeout {(wh.timeout || 60000) / 1000}s &bull; <span style={{ color: wh.retryEnabled ? 'var(--accent-green)' : 'var(--text-muted)' }}>{wh.retryEnabled ? 'Retry enabled' : 'No retry'}</span>
+                      ID: {truncateId(wh.id)} &bull; Timeout {(wh.timeout || 60000) / 1000}s &bull; <span style={{ color: wh.retryEnabled ? 'var(--accent-green)' : 'var(--text-muted)' }}>{wh.retryEnabled ? `Retry ${wh.retryCount || 3}x` : 'No retry'}</span>
                     </div>
                   </div>
                   <div className="wh-card-actions" ref={openMenu === wh.id ? menuRef : null}>
@@ -689,7 +790,8 @@ export default function WebhooksPage() {
           {showCreate && (
             <WebhookFormModal
               initial={createDefaults}
-              events={ALL_EVENTS}
+              events={allEvents}
+              eventDescriptions={eventTypes}
               onSave={addWebhook}
               onClose={() => setShowCreate(false)}
               title="Create Webhook"
@@ -704,8 +806,11 @@ export default function WebhooksPage() {
                 url: editingWh.url,
                 template: editingWh.template || '',
                 retryEnabled: editingWh.retryEnabled,
+                retryCount: editingWh.retryCount || 3,
+                events: editingWh.events || [],
               }}
-              events={ALL_EVENTS}
+              events={allEvents}
+              eventDescriptions={eventTypes}
               onSave={updateWebhook}
               onClose={() => setEditingWh(null)}
               title="Edit Webhook"
@@ -732,7 +837,7 @@ export default function WebhooksPage() {
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Time</th><th>Event</th><th>Status</th><th>Error</th></tr>
+                  <tr><th>Time</th><th>Event</th><th>Status</th><th>Attempt</th><th>Idempotence</th><th>Error</th></tr>
                 </thead>
                 <tbody>
                   {deliveries.map((d, i) => (
@@ -744,6 +849,8 @@ export default function WebhooksPage() {
                           <span className="status-dot" />{d.status}
                         </span>
                       </td>
+                      <td style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>{d.attempt || '\u2014'}</td>
+                      <td style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.idempotenceToken || ''}>{d.idempotenceToken ? d.idempotenceToken.substring(0, 8) + '...' : '\u2014'}</td>
                       <td style={{ fontSize: 12, color: 'var(--accent-red)' }}>{d.error || '\u2014'}</td>
                     </tr>
                   ))}
