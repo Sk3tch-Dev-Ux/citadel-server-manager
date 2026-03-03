@@ -70,34 +70,25 @@ modded class DayZGame
                     float diff = tickTimeScaled - this.cit_lastTickTime;
                     this.cit_lastTickTime = tickTimeScaled;
 
-                    if (this.cit_tickTimeLow == 0.0)
+                    // Skip zero-diffs (GetTickTime() can return the same value
+                    // for consecutive rapid OnUpdate() calls due to precision)
+                    if (diff > 0.0)
                     {
-                        this.cit_tickTimeLow = diff;
-                    }
-                    else
-                    {
-                        if (diff < this.cit_tickTimeLow)
+                        if (this.cit_tickTimeLow == 0.0 || diff < this.cit_tickTimeLow)
                         {
                             this.cit_tickTimeLow = diff;
                         }
-                    }
 
-                    if (this.cit_tickTimeHigh == 0.0)
-                    {
-                        this.cit_tickTimeHigh = diff;
-                    }
-                    else
-                    {
                         if (diff > this.cit_tickTimeHigh)
                         {
                             this.cit_tickTimeHigh = diff;
                         }
-                    }
 
-                    this.cit_tickTimes.Insert(diff);
-                    if (this.cit_tickTimes.Count() > this.cit_tickTimeAverageWindow)
-                    {
-                        this.cit_tickTimes.Remove(0);
+                        this.cit_tickTimes.Insert(diff);
+                        if (this.cit_tickTimes.Count() > this.cit_tickTimeAverageWindow)
+                        {
+                            this.cit_tickTimes.Remove(0);
+                        }
                     }
                 }
             }

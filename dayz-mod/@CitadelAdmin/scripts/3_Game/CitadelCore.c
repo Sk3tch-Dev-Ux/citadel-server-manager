@@ -21,6 +21,7 @@ class CitadelCore
     // Player tracking
     private ref map<string, ref CitadelPlayerStats> m_PlayerStats;
     private ref map<string, int> m_PlayerSessionStart;
+    private ref map<string, PlayerBase> m_ActivePlayers;
 
     // Entity registries
     private ref array<ref CitadelTrackedAI> m_TrackedAI;
@@ -46,6 +47,7 @@ class CitadelCore
 
         m_PlayerStats = new map<string, ref CitadelPlayerStats>;
         m_PlayerSessionStart = new map<string, int>;
+        m_ActivePlayers = new map<string, PlayerBase>;
 
         m_TrackedAI = new array<ref CitadelTrackedAI>;
         m_TrackedVehicles = new array<ref CitadelTrackedVehicle>;
@@ -103,6 +105,7 @@ class CitadelCore
         m_TrackedEvents.Clear();
         m_PlayerStats.Clear();
         m_PlayerSessionStart.Clear();
+        m_ActivePlayers.Clear();
         if (m_Logger) m_Logger.Debug("(Core) All buffers cleared");
     }
 
@@ -117,15 +120,17 @@ class CitadelCore
 
     // ─── Player Statistics ────────────────────────────
 
-    void RegisterPlayer(string steamId)
+    void RegisterPlayer(string steamId, PlayerBase player)
     {
         if (!m_IsServer) return;
         if (!m_PlayerStats.Contains(steamId))
         {
             m_PlayerStats.Set(steamId, new CitadelPlayerStats());
             m_PlayerSessionStart.Set(steamId, GetGame().GetTime());
-            m_Logger.Debug("RegisterPlayer: " + steamId);
         }
+        if (player)
+            m_ActivePlayers.Set(steamId, player);
+        m_Logger.Debug("RegisterPlayer: " + steamId);
     }
 
     void UnregisterPlayer(string steamId)
@@ -133,8 +138,12 @@ class CitadelCore
         if (!m_IsServer) return;
         m_PlayerStats.Remove(steamId);
         m_PlayerSessionStart.Remove(steamId);
+        m_ActivePlayers.Remove(steamId);
         m_Logger.Debug("UnregisterPlayer: " + steamId);
     }
+
+    map<string, PlayerBase> GetActivePlayers() { return m_ActivePlayers; }
+    int GetActivePlayerCount() { return m_ActivePlayers.Count(); }
 
     CitadelPlayerStats GetPlayerStats(string steamId)
     {

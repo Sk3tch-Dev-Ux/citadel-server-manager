@@ -65,7 +65,7 @@ modded class PlayerBase extends ManBase
         m_CitLastSpeedCheckTime = GetGame().GetTickTime();
         m_CitSpeedCheckResetTime = GetGame().GetTickTime();
 
-        GetCitadel().RegisterPlayer(steamId);
+        GetCitadel().RegisterPlayer(steamId, this);
         GetCitadel().GetLogger().Debug(string.Format("Player identity set: %1 (%2)", name, steamId));
     }
 

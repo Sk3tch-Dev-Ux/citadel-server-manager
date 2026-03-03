@@ -27,8 +27,13 @@ function refreshMetrics() {
     const raw = fs.readFileSync(config.metricsFile, 'utf-8');
     const data = JSON.parse(raw);
 
-    // Mod sends FPS * 100 for integer precision; convert to real FPS
-    if (data.fps != null) {
+    // Derive actual server FPS from tick_avg (ms per simulation tick).
+    // The raw fps field is an inflated OnUpdate tick count — not real server FPS.
+    // tick_avg gives the true simulation frame time: 1000 / tick_avg = real FPS.
+    if (data.tick_avg > 0) {
+      data.fps = +(1000 / data.tick_avg).toFixed(2);
+    } else if (data.fps != null) {
+      // Fallback: mod sends fps * 100 for integer precision
       data.fps = +(data.fps / 100).toFixed(2);
     }
 
