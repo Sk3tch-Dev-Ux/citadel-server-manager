@@ -1,22 +1,97 @@
 /**
- * Application configuration from environment variables.
- * Auto-generates missing secrets for seamless first-run experience.
+ * Application configuration.
+ *
+ * Load order (later wins):
+ *   1. Schema defaults (config-schema.js)
+ *   2. citadel.config.json (optional, project root)
+ *   3. .env / environment variables (always win)
+ *
+ * The exported CONFIG object preserves its original shape so all existing
+ * modules continue to work without any changes.
  */
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const logger = require('./logger');
+const { getDefaults, validateConfig, getEnvMap, redactSensitive, getSchema, CONFIG_SCHEMA } = require('./config-schema');
 
-// Auto-generate JWT_SECRET if missing (first run without setup script)
-if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
-  logger.warn('JWT_SECRET was not set — generated a temporary secret. Run "npm run setup" or complete the Setup Wizard to persist it.');
+const ROOT = path.join(__dirname, '..', '..');
+const CONFIG_FILE = path.join(ROOT, 'citadel.config.json');
+
+// ─── 1. Start with schema defaults ──────────────────────
+const structured = getDefaults();
+
+// ─── 2. Merge citadel.config.json if it exists ──────────
+let configFileLoaded = false;
+let configFileValues = {}; // Track which keys came from the file
+try {
+  if (fs.existsSync(CONFIG_FILE)) {
+    const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
+    const fileConfig = JSON.parse(raw);
+    configFileLoaded = true;
+
+    // Deep-merge file config into structured defaults
+    for (const [section, fields] of Object.entries(fileConfig)) {
+      if (typeof fields === 'object' && fields !== null && !Array.isArray(fields) && CONFIG_SCHEMA[section]) {
+        if (!configFileValues[section]) configFileValues[section] = {};
+        for (const [key, value] of Object.entries(fields)) {
+          if (CONFIG_SCHEMA[section][key]) {
+            structured[section][key] = value;
+            configFileValues[section][key] = true;
+          }
+        }
+      }
+    }
+    logger.info('Loaded configuration from citadel.config.json');
+  }
+} catch (err) {
+  logger.warn({ err: err.message }, 'Failed to parse citadel.config.json — using defaults');
 }
 
+// ─── 3. Apply .env overrides (env vars always win) ──────
+const envMap = getEnvMap();
+const envOverrides = {}; // Track which keys came from env
+
+for (const [envKey, { section, key, def }] of Object.entries(envMap)) {
+  if (process.env[envKey] !== undefined && process.env[envKey] !== '') {
+    let value = process.env[envKey];
+
+    // Coerce env strings to the correct type
+    if (def.type === 'number') {
+      value = Number(value);
+    } else if (def.type === 'boolean') {
+      value = value === 'true' || value === '1';
+    } else if (def.type === 'array') {
+      value = value.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    structured[section][key] = value;
+    if (!envOverrides[section]) envOverrides[section] = {};
+    envOverrides[section][key] = true;
+  }
+}
+
+// ─── 4. Auto-generate JWT_SECRET if still missing ───────
+if (!structured.auth.jwtSecret) {
+  if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
+    logger.warn('JWT_SECRET was not set — generated a temporary secret. Run "npm run setup" or complete the Setup Wizard to persist it.');
+  }
+  structured.auth.jwtSecret = process.env.JWT_SECRET;
+}
+
+// ─── 5. Validate & log warnings ─────────────────────────
+const warnings = validateConfig(structured);
+for (const w of warnings) {
+  logger.warn(`Config validation: ${w}`);
+}
+
+// ─── 6. Build the backward-compatible CONFIG object ─────
+// IMPORTANT: property names must NOT change — existing code depends on them.
 const CONFIG = {
-  port: process.env.PORT || 3001,
-  jwtSecret: process.env.JWT_SECRET,
-  dataDir: path.join(__dirname, '..', '..', 'data'),
+  port: structured.server.port,
+  jwtSecret: structured.auth.jwtSecret,
+  dataDir: path.resolve(ROOT, structured.directories.data),
   dayz: {
     ip: process.env.DAYZ_SERVER_IP || '127.0.0.1',
     rconPort: parseInt(process.env.DAYZ_RCON_PORT || '2305'),
@@ -35,9 +110,9 @@ const CONFIG = {
   },
   webhookUrl: process.env.DISCORD_WEBHOOK_URL || '',
   steam: {
-    cmdPath: process.env.STEAMCMD_PATH || '',
-    username: process.env.STEAM_USERNAME || '',
-    password: process.env.STEAM_PASSWORD || '',
+    cmdPath: structured.steam.cmdPath,
+    username: structured.steam.username,
+    password: structured.steam.password,
     appId: '221100',
     serverAppId: '223350',
   },
@@ -46,12 +121,112 @@ const CONFIG = {
 // License purchase URL (Stripe Payment Link or custom checkout page)
 CONFIG.purchaseUrl = process.env.PURCHASE_URL || 'https://citadel.gg/purchase';
 
-// Parse allowed CORS origins from env (comma-separated) or default to localhost
-CONFIG.allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
-  : [`http://localhost:${CONFIG.port}`, 'http://localhost:3001', 'http://127.0.0.1:3001'];
+// Allowed CORS origins — structured config, with env override already applied
+CONFIG.allowedOrigins = structured.server.allowedOrigins;
+
+// ─── New structured config sections (accessible via CONFIG._structured) ────
+// These are additive — no existing code uses them yet.
+CONFIG._structured = structured;
+CONFIG._envOverrides = envOverrides;
+CONFIG._configFileLoaded = configFileLoaded;
+CONFIG._configFileValues = configFileValues;
+CONFIG._configFilePath = CONFIG_FILE;
 
 // Ensure data directory exists
 if (!fs.existsSync(CONFIG.dataDir)) fs.mkdirSync(CONFIG.dataDir, { recursive: true });
+
+/**
+ * Hot-reload mutable config sections from a partial update.
+ * Only non-destructive fields can be changed at runtime.
+ * Returns { updated: true } or { updated: false, reason }.
+ *
+ * @param {Object} partial - e.g. { logging: { level: 'debug' }, polling: { metricsIntervalMs: 30000 } }
+ */
+CONFIG._applyUpdate = function applyUpdate(partial) {
+  // Sections that are safe to hot-reload (no restart required)
+  const hotReloadable = ['logging', 'backups', 'polling', 'directories'];
+  // Sections that require a restart
+  const requiresRestart = ['server', 'auth'];
+
+  const updated = [];
+  const needsRestart = [];
+
+  for (const [section, fields] of Object.entries(partial)) {
+    if (!CONFIG_SCHEMA[section]) continue;
+
+    // Skip sensitive fields — they cannot be updated via API
+    for (const [key, value] of Object.entries(fields)) {
+      const def = CONFIG_SCHEMA[section]?.[key];
+      if (!def) continue;
+      if (def.sensitive) continue;
+
+      // Check if this value is locked by an env override
+      if (envOverrides[section]?.[key]) continue;
+
+      structured[section][key] = value;
+      updated.push(`${section}.${key}`);
+
+      if (requiresRestart.includes(section)) {
+        needsRestart.push(`${section}.${key}`);
+      }
+    }
+  }
+
+  // Re-validate after mutation
+  const warns = validateConfig(structured);
+  for (const w of warns) {
+    logger.warn(`Config validation after update: ${w}`);
+  }
+
+  // Persist to citadel.config.json
+  _writeConfigFile(structured);
+
+  return { updated: updated.length > 0, fields: updated, needsRestart };
+};
+
+/**
+ * Get the structured config for API responses (redacted).
+ */
+CONFIG._getRedacted = function getRedacted() {
+  return redactSensitive(structured);
+};
+
+/**
+ * Get the schema for the frontend.
+ */
+CONFIG._getSchema = function () {
+  return getSchema();
+};
+
+/**
+ * Persist the current structured config to citadel.config.json.
+ * Only writes non-sensitive fields that differ from defaults.
+ */
+function _writeConfigFile(cfg) {
+  try {
+    // Build a clean config object (exclude sensitive fields — those stay in .env)
+    const toWrite = {};
+    const defaults = getDefaults();
+
+    for (const [section, fields] of Object.entries(CONFIG_SCHEMA)) {
+      for (const [key, def] of Object.entries(fields)) {
+        if (def.sensitive) continue; // Never write sensitive values to config file
+        const value = cfg[section]?.[key];
+        const defaultVal = defaults[section]?.[key];
+
+        // Only write non-default values to keep the file clean
+        if (JSON.stringify(value) !== JSON.stringify(defaultVal)) {
+          if (!toWrite[section]) toWrite[section] = {};
+          toWrite[section][key] = value;
+        }
+      }
+    }
+
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(toWrite, null, 2) + '\n', 'utf-8');
+    logger.debug('Wrote citadel.config.json');
+  } catch (err) {
+    logger.error({ err: err.message }, 'Failed to write citadel.config.json');
+  }
+}
 
 module.exports = CONFIG;

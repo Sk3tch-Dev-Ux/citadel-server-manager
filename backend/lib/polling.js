@@ -16,6 +16,14 @@
  */
 const logger = require('./logger');
 const ctx = require('./context');
+const {
+  METRICS_POLL_INTERVAL_MS,
+  STEAM_UPDATE_POLL_INTERVAL_MS,
+  MOD_DETECT_INTERVAL_MS,
+  LEADERBOARD_INTERVAL_MS,
+  RCON_STARTUP_DELAY_MS,
+  SHUTDOWN_FORCE_TIMEOUT_MS,
+} = require('./constants');
 const { flushAll } = require('./data-store');
 const { detectRunningProcess, detectProcessByPid, spawnDayZServer, applyProcessSettings } = require('./process-manager');
 const { updateLeaderboard } = require('./cftools-leaderboard');
@@ -36,7 +44,6 @@ let lastGameBuild = null;
 
 async function getWorkshopModVersion(workshopId) {
   try {
-    const fetch = (await import('node-fetch')).default;
     const resp = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -50,7 +57,6 @@ async function getWorkshopModVersion(workshopId) {
 
 async function getDayZBuildVersion() {
   try {
-    const fetch = (await import('node-fetch')).default;
     const appId = ctx.CONFIG.steam.appId;
     const resp = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}`);
     const data = await resp.json();
@@ -93,7 +99,7 @@ function startMetricsPolling() {
       }
     }
     } finally { _metricsPollingRunning = false; }
-  }, 15000);
+  }, METRICS_POLL_INTERVAL_MS);
 }
 
 // ─── Startup detection + auto-start ──────────────────────
@@ -194,7 +200,7 @@ function startSteamUpdatePolling() {
       }
       lastGameBuild = remoteBuild;
     }
-  }, 15 * 60 * 1000);
+  }, STEAM_UPDATE_POLL_INTERVAL_MS);
 }
 
 // ─── Start all polling loops ─────────────────────────────
@@ -222,19 +228,19 @@ async function startAllPolling() {
 
   // Periodic intervals
   intervals.push(startMetricsPolling());
-  intervals.push(setInterval(() => ctx.servers.forEach(s => autoDetectMods(s.id)), 5 * 60 * 1000));
-  intervals.push(setInterval(() => ctx.servers.forEach(s => updateLeaderboard(s.id)), 5 * 60 * 1000));
+  intervals.push(setInterval(() => ctx.servers.forEach(s => autoDetectMods(s.id)), MOD_DETECT_INTERVAL_MS));
+  intervals.push(setInterval(() => ctx.servers.forEach(s => updateLeaderboard(s.id)), LEADERBOARD_INTERVAL_MS));
   intervals.push(startSteamUpdatePolling());
   intervals.push(startSchedulerEngine());
   intervals.push(startBackupEngine());
 
-  // Delayed RCON connect (5s after startup)
+  // Delayed RCON connect after startup
   setTimeout(() => {
     for (const srv of ctx.servers) {
       const state = ctx.serverStates[srv.id];
       if (state?.rcon && srv.rconPassword) state.rcon.connect().catch(() => {});
     }
-  }, 5000);
+  }, RCON_STARTUP_DELAY_MS);
 }
 
 // ─── Graceful Shutdown ───────────────────────────────────
@@ -256,11 +262,11 @@ function gracefulShutdown(httpServer, signal) {
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
   // Flush pending data writes
   flushAll();
-  // Force exit after 5s
+  // Force exit after timeout
   setTimeout(() => {
     logger.warn('Forcing shutdown after timeout');
     process.exit(0);
-  }, 5000);
+  }, SHUTDOWN_FORCE_TIMEOUT_MS);
 }
 
 module.exports = { startAllPolling, gracefulShutdown };

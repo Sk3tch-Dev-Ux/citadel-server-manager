@@ -4,6 +4,7 @@ import API from '../api';
 import Accordion from '../components/Accordion';
 import SettingsToggle from '../components/SettingsToggle';
 import DirectoryBrowserModal from '../components/DirectoryBrowserModal';
+import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { X, Info, Download, Trash2, HardDrive, RotateCcw } from '../components/Icon';
 
 export default function ServerSettingsPage({ serverId }) {
@@ -73,6 +74,9 @@ export default function ServerSettingsPage({ serverId }) {
     }
     setSaving(false);
   };
+
+  // Ctrl+S to save settings
+  useKeyboardShortcuts({ 'ctrl+s': () => save() });
 
   // ─── Backup helpers ─────────────────────────────────────
   const addBackupPath = (pathStr) => {

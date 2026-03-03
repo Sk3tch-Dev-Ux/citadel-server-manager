@@ -9,6 +9,9 @@ const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
 const { initServerState } = require('../lib/server-init');
 const { readServerConfig } = require('../lib/dayz-config');
+const { detectRunningProcess, killProcess, spawnDayZServer } = require('../lib/process-manager');
+const { startSidecar, stopSidecar } = require('../lib/sidecar-manager');
+const { restartServer } = require('../lib/server-lifecycle');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 
@@ -121,6 +124,63 @@ module.exports = function(app) {
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
     addAudit(req.user.id, req.user.username, 'server.update', `Updated server: ${srv.name}`);
     res.json(srv);
+  });
+
+  // ─── Batch Operations (start/stop/restart multiple servers) ───
+  app.post('/api/servers/batch', auth('server.start'), async (req, res) => {
+    const { action, serverIds } = req.body;
+    if (!action || !Array.isArray(serverIds) || serverIds.length === 0) {
+      return res.status(400).json({ error: 'action and serverIds[] required' });
+    }
+    if (!['start', 'stop', 'restart'].includes(action)) {
+      return res.status(400).json({ error: 'action must be start, stop, or restart' });
+    }
+
+    const results = [];
+    for (const id of serverIds) {
+      const srv = ctx.servers.find(s => s.id === id);
+      if (!srv) { results.push({ id, success: false, error: 'Server not found' }); continue; }
+      const state = ctx.serverStates[srv.id];
+      if (!state) { results.push({ id, success: false, error: 'State not initialized' }); continue; }
+
+      try {
+        if (action === 'start') {
+          if (state.status === 'running') { results.push({ id, success: true, message: 'Already running' }); continue; }
+          state.status = 'starting';
+          ctx.io.emit('serverStatus', { serverId: id, status: 'starting' });
+          const pid = await spawnDayZServer(srv);
+          if (pid) {
+            state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
+            ctx.io.emit('serverStatus', { serverId: id, status: 'running' });
+            startSidecar(srv);
+            addAudit(req.user.id, req.user.username, 'server.start', `Batch started server: ${srv.name}`);
+            results.push({ id, success: true, message: 'Started' });
+          } else {
+            state.status = 'stopped';
+            ctx.io.emit('serverStatus', { serverId: id, status: 'stopped' });
+            results.push({ id, success: false, error: 'Failed to start' });
+          }
+        } else if (action === 'stop') {
+          if (state.status === 'stopped') { results.push({ id, success: true, message: 'Already stopped' }); continue; }
+          state.status = 'stopping';
+          ctx.io.emit('serverStatus', { serverId: id, status: 'stopping' });
+          stopSidecar(srv.id);
+          if (state.pid) await killProcess(state.pid);
+          state.status = 'stopped'; state.pid = null; state.startedAt = null;
+          ctx.io.emit('serverStatus', { serverId: id, status: 'stopped' });
+          addAudit(req.user.id, req.user.username, 'server.stop', `Batch stopped server: ${srv.name}`);
+          results.push({ id, success: true, message: 'Stopped' });
+        } else if (action === 'restart') {
+          addAudit(req.user.id, req.user.username, 'server.restart', `Batch restarted server: ${srv.name}`);
+          restartServer(srv.id, 'Batch restart');
+          results.push({ id, success: true, message: 'Restarting' });
+        }
+      } catch (err) {
+        results.push({ id, success: false, error: err.message || 'Unknown error' });
+      }
+    }
+
+    res.json({ results });
   });
 
   app.delete('/api/servers/:id', auth('server.deploy'), (req, res) => {

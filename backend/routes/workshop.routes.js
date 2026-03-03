@@ -9,7 +9,7 @@ module.exports = function(app) {
     const { q, page = 1 } = req.query;
     if (!q || q.trim().length < 2) return res.status(400).json({ error: 'Query too short' });
     try {
-      const fetch = (await import('node-fetch')).default;
+
       const url = `https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?query_type=1&page=${page}&numperpage=20&appid=${DAYZ_APP_ID}&search_text=${encodeURIComponent(q.trim())}&return_short_description=true&return_metadata=true&return_previews=true&strip_description_bbcode=true&filetype=0&match_all_tags=false` + (process.env.STEAM_API_KEY ? `&key=${process.env.STEAM_API_KEY}` : '');
       const response = await fetch(url, { timeout: 10000 });
       const data = await response.json();
@@ -40,7 +40,7 @@ module.exports = function(app) {
 
   app.get('/api/workshop/details/:id', auth(), async (req, res) => {
     try {
-      const fetch = (await import('node-fetch')).default;
+
       const response = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `itemcount=1&publishedfileids[0]=${req.params.id}`, timeout: 10000,
@@ -59,7 +59,7 @@ module.exports = function(app) {
 
   app.get('/api/workshop/popular', auth(), async (req, res) => {
     try {
-      const fetch = (await import('node-fetch')).default;
+
       const { page = 1 } = req.query;
       const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&browsesort=trend&section=readytouseitems&p=${page}`;
       const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, timeout: 15000 });

@@ -1,10 +1,14 @@
 /**
  * System metrics routes — host-level CPU, RAM, Disk, Network info.
  * Powers the System Dashboard (similar to CFTools Architect dashboard).
+ * Also serves the structured configuration API (admin-only).
  */
 const os = require('os');
 const { exec } = require('child_process');
 const auth = require('../middleware/auth');
+const { getServiceStatus, SERVICE_NAME } = require('../lib/service-installer');
+const ctx = require('../lib/context');
+const logger = require('../lib/logger');
 
 module.exports = function (app) {
   /**
@@ -63,6 +67,89 @@ module.exports = function (app) {
       res.json(metrics);
     } catch (err) {
       res.status(500).json({ error: 'Failed to get system metrics' });
+    }
+  });
+
+  /**
+   * GET /api/system/service — Windows service status (admin-only).
+   * Returns whether the Citadel service is installed, its state, and run mode.
+   */
+  app.get('/api/system/service', auth('*'), async (req, res) => {
+    try {
+      const status = await getServiceStatus();
+      res.json({
+        serviceName: SERVICE_NAME,
+        ...status,
+        serviceMode: ctx.isServiceMode || false,
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to get service status' });
+    }
+  });
+
+  // ─── Configuration API ──────────────────────────────────
+
+  /**
+   * GET /api/system/config — Returns current config (admin-only, sensitive values redacted).
+   * Also includes the schema so the frontend can render type-appropriate form fields,
+   * and metadata about which values are locked by env overrides.
+   */
+  app.get('/api/system/config', auth('*'), (req, res) => {
+    try {
+      const CONFIG = ctx.CONFIG;
+      const redacted = CONFIG._getRedacted();
+      const schema = CONFIG._getSchema();
+      const envOverrides = CONFIG._envOverrides || {};
+      const configFileLoaded = CONFIG._configFileLoaded || false;
+
+      res.json({
+        config: redacted,
+        schema,
+        envOverrides,
+        configFileLoaded,
+      });
+    } catch (err) {
+      logger.error({ err: err.message }, 'Failed to get system config');
+      res.status(500).json({ error: 'Failed to retrieve configuration' });
+    }
+  });
+
+  /**
+   * PATCH /api/system/config — Update config sections (admin-only).
+   * Writes to citadel.config.json and hot-reloads non-destructive settings.
+   * Sensitive fields and env-locked fields cannot be changed via this endpoint.
+   *
+   * Body: { server: { ... }, logging: { ... }, ... }
+   */
+  app.patch('/api/system/config', auth('*'), (req, res) => {
+    try {
+      const CONFIG = ctx.CONFIG;
+      const updates = req.body;
+
+      if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
+        return res.status(400).json({ error: 'Request body must be a JSON object with config sections' });
+      }
+
+      const result = CONFIG._applyUpdate(updates);
+
+      if (!result.updated) {
+        return res.json({ success: true, message: 'No fields were updated (values unchanged or locked by env)' });
+      }
+
+      logger.info({ fields: result.fields, user: req.user?.username }, 'Configuration updated via API');
+
+      // Return the updated config (redacted)
+      const redacted = CONFIG._getRedacted();
+
+      res.json({
+        success: true,
+        updated: result.fields,
+        needsRestart: result.needsRestart.length > 0 ? result.needsRestart : undefined,
+        config: redacted,
+      });
+    } catch (err) {
+      logger.error({ err: err.message }, 'Failed to update system config');
+      res.status(500).json({ error: 'Failed to update configuration' });
     }
   });
 };

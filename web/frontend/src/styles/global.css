@@ -104,13 +104,16 @@ body { background: var(--bg-deep); color: var(--text-primary); font-family: var(
 .status-starting { background: rgba(229,192,123,0.12); color: var(--accent-yellow); }
 .status-stopping { background: rgba(229,192,123,0.12); color: var(--accent-yellow); }
 .status-crashed { background: rgba(224,108,117,0.12); color: var(--accent-red); }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-running .status-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.status-running .status-dot { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); animation: statusPulseGreen 2s ease-in-out infinite; }
 .status-stopped .status-dot { background: var(--text-muted); }
-.status-starting .status-dot { background: var(--accent-yellow); animation: pulse 1s infinite; }
-.status-stopping .status-dot { background: var(--accent-yellow); animation: pulse 1s infinite; }
+.status-starting .status-dot { background: var(--accent-orange); animation: statusSpin 1s linear infinite; box-shadow: 0 0 6px var(--accent-orange); }
+.status-stopping .status-dot { background: var(--accent-orange); animation: statusSpin 1s linear infinite; box-shadow: 0 0 6px var(--accent-orange); }
 .status-crashed .status-dot { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+.status-restarting .status-dot { background: var(--accent-orange); animation: statusSpin 1s linear infinite; box-shadow: 0 0 6px var(--accent-orange); }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes statusPulseGreen { 0%, 100% { transform: scale(1); box-shadow: 0 0 6px var(--accent-green); } 50% { transform: scale(1.25); box-shadow: 0 0 12px var(--accent-green); } }
+@keyframes statusSpin { 0% { transform: rotate(0deg) scale(1); box-shadow: 0 0 6px var(--accent-orange); } 50% { transform: rotate(180deg) scale(1.15); box-shadow: 0 0 10px var(--accent-orange); } 100% { transform: rotate(360deg) scale(1); box-shadow: 0 0 6px var(--accent-orange); } }
 
 /* Buttons */
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: var(--radius); font-family: var(--font-display); font-size: 13px; font-weight: 600; border: 1px solid transparent; cursor: pointer; transition: all 0.15s; }
@@ -1092,9 +1095,11 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 /* Server items in sidebar */
 .nav-server-item { padding-left: 16px; }
 .nav-server-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.nav-server-dot.status-running { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+.nav-server-dot.status-running { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); animation: statusPulseGreen 2s ease-in-out infinite; }
 .nav-server-dot.status-stopped { background: var(--text-muted); }
-.nav-server-dot.status-starting { background: var(--accent-yellow); animation: pulse 1s infinite; }
+.nav-server-dot.status-starting { background: var(--accent-orange); animation: statusSpin 1s linear infinite; box-shadow: 0 0 6px var(--accent-orange); }
+.nav-server-dot.status-stopping { background: var(--accent-orange); animation: statusSpin 1s linear infinite; box-shadow: 0 0 6px var(--accent-orange); }
+.nav-server-dot.status-restarting { background: var(--accent-orange); animation: statusSpin 1s linear infinite; box-shadow: 0 0 6px var(--accent-orange); }
 .nav-server-dot.status-crashed { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
 .nav-server-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nav-empty { padding: 8px 20px; font-size: 11px; color: var(--text-muted); font-style: italic; }
@@ -1286,3 +1291,110 @@ tr:hover td { background: rgba(255,255,255,0.04); }
   .license-features-grid { grid-template-columns: 1fr; }
   .license-activate-form { flex-direction: column; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   BATCH OPERATIONS (Server Hub)
+   ═══════════════════════════════════════════════════════════ */
+
+.batch-select-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.batch-select-count { font-size: 13px; color: var(--accent-blue); font-weight: 600; }
+
+.server-card--selected { border-color: var(--accent-blue) !important; box-shadow: 0 0 0 2px rgba(108,180,240,0.2), 0 8px 24px rgba(0,0,0,0.3); }
+.server-card-checkbox {
+  position: absolute; top: 12px; right: 12px; z-index: 5;
+  width: 22px; height: 22px; border-radius: 4px;
+  border: 2px solid var(--border); background: var(--bg-elevated);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; color: transparent;
+}
+.server-card-checkbox:hover { border-color: var(--accent-blue); }
+.server-card-checkbox.checked { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
+.server-card-result {
+  position: absolute; top: 40px; right: 12px; z-index: 5;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+}
+.server-card-result.success { background: rgba(92,184,92,0.15); color: var(--accent-green); }
+.server-card-result.error { background: rgba(224,108,117,0.15); color: var(--accent-red); }
+
+.batch-action-bar {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 1500; animation: batchBarSlideUp 0.25s ease-out;
+}
+.batch-action-bar-inner {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 12px 20px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(108,180,240,0.1);
+}
+.batch-action-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.batch-action-buttons { display: flex; gap: 8px; }
+@keyframes batchBarSlideUp { from { transform: translateX(-50%) translateY(20px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+
+/* ═══════════════════════════════════════════════════════════
+   ENHANCED TOAST NOTIFICATIONS
+   ═══════════════════════════════════════════════════════════ */
+
+.toast.warning { border-color: rgba(229,192,123,0.3); border-left: 3px solid var(--accent-yellow); }
+.toast-dismiss { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; margin-left: auto; display: flex; align-items: center; border-radius: 4px; transition: all 0.15s; flex-shrink: 0; }
+.toast-dismiss:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+.toast-exit { animation: toastSlideOut 0.2s ease-in forwards; }
+@keyframes toastSlideOut { to { transform: translateX(120px); opacity: 0; } }
+.toast-progress { position: absolute; bottom: 0; left: 0; height: 2px; border-radius: 0 0 var(--radius) 0; transition: width 0.1s linear; }
+.toast.success .toast-progress { background: var(--accent-green); }
+.toast.error .toast-progress { background: var(--accent-red); }
+.toast.warning .toast-progress { background: var(--accent-yellow); }
+.toast.info .toast-progress { background: var(--accent-blue); }
+
+/* ═══════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUT HINTS
+   ═══════════════════════════════════════════════════════════ */
+
+.kbd-hint {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--text-muted); margin-left: 8px;
+}
+.kbd-hint kbd {
+  background: var(--bg-deep); padding: 1px 5px; border-radius: 3px;
+  border: 1px solid var(--border); font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-muted); line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DEPLOY PROGRESS STEPPER
+   ═══════════════════════════════════════════════════════════ */
+
+.deploy-stepper { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
+.deploy-stepper-step {
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+  position: relative; transition: all 0.2s;
+}
+.deploy-stepper-step.active { color: var(--accent-blue); }
+.deploy-stepper-step.done { color: var(--accent-green); }
+.deploy-stepper-step.error { color: var(--accent-red); }
+
+.deploy-stepper-icon {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border); background: var(--bg-elevated);
+  font-size: 12px; font-weight: 700; transition: all 0.2s; flex-shrink: 0;
+}
+.deploy-stepper-step.active .deploy-stepper-icon { border-color: var(--accent-blue); background: rgba(108,180,240,0.15); color: var(--accent-blue); }
+.deploy-stepper-step.done .deploy-stepper-icon { border-color: var(--accent-green); background: rgba(92,184,92,0.15); color: var(--accent-green); }
+.deploy-stepper-step.error .deploy-stepper-icon { border-color: var(--accent-red); background: rgba(224,108,117,0.15); color: var(--accent-red); }
+
+.deploy-stepper-connector {
+  flex: 1; height: 2px; background: var(--border); min-width: 24px; transition: background 0.2s;
+}
+.deploy-stepper-connector.done { background: var(--accent-green); }
+.deploy-stepper-connector.active { background: linear-gradient(90deg, var(--accent-green), var(--accent-blue)); }
+
+/* ═══════════════════════════════════════════════════════════
+   ENHANCED EMPTY STATES
+   ═══════════════════════════════════════════════════════════ */
+
+.empty-state p { color: var(--text-muted); font-size: 13px; max-width: 360px; line-height: 1.5; }
+.empty-state .btn { margin-top: 16px; }
+.empty-state-icon-large { margin-bottom: 20px; opacity: 0.15; color: var(--text-secondary); }

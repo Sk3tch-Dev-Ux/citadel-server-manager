@@ -73,7 +73,9 @@
       "WebFetch(domain:youtu.be)",
       "WebFetch(domain:www.youtube.com)",
       "WebFetch(domain:help.cftools.com)",
-      "WebFetch(domain:app.swaggerhub.com)"
+      "WebFetch(domain:app.swaggerhub.com)",
+      "Bash(node backend/lib/service-installer.js status)",
+      "Bash(node backend/lib/service-installer.js)"
     ]
   }
 }

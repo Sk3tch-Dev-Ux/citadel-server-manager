@@ -14,7 +14,8 @@ process.env.NODE_ENV = 'production'; // Avoid pino-pretty transport worker
 
 // ─── Mock ESM-only deps that Jest can't parse ─────────────────
 jest.mock('uuid', () => ({ v4: () => 'test-uuid-' + Math.random().toString(36).slice(2) }));
-jest.mock('node-fetch', () => jest.fn(() => Promise.resolve({ json: () => Promise.resolve({}) })));
+// node-fetch replaced by built-in fetch (Node 18+) — mock global fetch for tests
+global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}), text: () => Promise.resolve('') }));
 
 const request = require('supertest');
 const jwt = require('jsonwebtoken');

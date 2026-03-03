@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Outlet, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useServers } from '../contexts/ServersContext';
+import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import API from '../api';
 import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -52,6 +53,16 @@ export default function AppLayout() {
     await API.post(`/api/servers/${selectedServerId}/restart`);
     window.addToast('Restarting server...', 'info');
   };
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts({
+    'ctrl+shift+r': () => { if (selectedServerId) handleRestart(); },
+    'escape': () => {
+      // Close any open Radix modals by dispatching Escape
+      // (Radix handles this natively, but this ensures it propagates)
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    },
+  });
 
   return (
     <div className="app">
@@ -145,7 +156,7 @@ export default function AppLayout() {
               <div className="btn-group">
                 <button className="btn btn-primary btn-sm" onClick={handleStart} disabled={currentServerStatus === 'running' || currentServerStatus === 'starting'}><Play size={14} /> Start</button>
                 <button className="btn btn-danger btn-sm" onClick={handleStop} disabled={currentServerStatus === 'stopped'}><Square size={14} /> Stop</button>
-                <button className="btn btn-secondary btn-sm" onClick={handleRestart}><RotateCcw size={14} /> Restart</button>
+                <button className="btn btn-secondary btn-sm" onClick={handleRestart} title="Restart server (Ctrl+Shift+R)"><RotateCcw size={14} /> Restart</button>
               </div>
             )}
             {(location.pathname === '/' || location.pathname === '/dashboard') && (

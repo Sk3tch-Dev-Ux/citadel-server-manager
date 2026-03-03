@@ -154,9 +154,10 @@ export default function ModsPage({ serverId }) {
         <div>
           {mods.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon"><Package size={48} /></div>
+              <div className="empty-icon empty-state-icon-large"><Package size={48} /></div>
               <div className="empty-title">No Mods Installed</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Search the Workshop tab to find and install mods</div>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, maxWidth: 360, lineHeight: 1.5 }}>Install mods from the Steam Workshop to customize your server experience.</p>
+              <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} onClick={() => setTab('workshop')}><Search size={14} /> Browse Workshop</button>
             </div>
           ) : (
             <div>

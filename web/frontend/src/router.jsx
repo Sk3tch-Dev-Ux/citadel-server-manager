@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import AppLayout from './layouts/AppLayout';
 import ServerLayout from './layouts/ServerLayout';
 import LoginScreen from './pages/LoginScreen';
@@ -107,29 +108,29 @@ export default function AppRouter() {
         <Route path="/login" element={<SmartLogin />} />
         <Route path="/setup" element={<><SetupWizardPage /><ToastContainer /></>} />
         <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
-          <Route index element={<ServerHubPage />} />
-          <Route path="dashboard" element={<SystemDashboardPage />} />
-          <Route path="deploy" element={<PermGuard permission="server.deploy"><DeployPage /></PermGuard>} />
-          <Route path="users" element={<PermGuard permission="users.manage"><UsersPage /></PermGuard>} />
-          <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><WebhooksPage /></PermGuard>} />
-          <Route path="settings" element={<PermGuard permission="license.manage"><SettingsPage /></PermGuard>} />
-          <Route path="license" element={<PermGuard permission="license.manage"><LicensePage /></PermGuard>} />
+          <Route index element={<ErrorBoundary><ServerHubPage /></ErrorBoundary>} />
+          <Route path="dashboard" element={<ErrorBoundary><SystemDashboardPage /></ErrorBoundary>} />
+          <Route path="deploy" element={<PermGuard permission="server.deploy"><ErrorBoundary><DeployPage /></ErrorBoundary></PermGuard>} />
+          <Route path="users" element={<PermGuard permission="users.manage"><ErrorBoundary><UsersPage /></ErrorBoundary></PermGuard>} />
+          <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><WebhooksPage /></ErrorBoundary></PermGuard>} />
+          <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><SettingsPage /></ErrorBoundary></PermGuard>} />
+          <Route path="license" element={<PermGuard permission="license.manage"><ErrorBoundary><LicensePage /></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
-            <Route path="overview" element={<ServerPage Component={ServerOverviewPage} />} />
-            <Route path="metrics" element={<ServerPage Component={ServerMetricsPage} />} />
-            <Route path="console" element={<PermGuard permission="chat.send"><ServerPage Component={ConsolePage} /></PermGuard>} />
-            <Route path="players" element={<ServerPage Component={PlayersPage} />} />
-            <Route path="mods" element={<ServerPage Component={ModsPage} />} />
-            <Route path="files" element={<PermGuard permission="files.manage"><ServerPage Component={FilesPage} /></PermGuard>} />
-            <Route path="config" element={<PermGuard permission="config.manage"><ServerPage Component={ConfigPage} /></PermGuard>} />
-            <Route path="logs" element={<ServerPage Component={LogsPage} />} />
-            <Route path="bans" element={<PermGuard permission="bans.manage"><ServerPage Component={BansPage} /></PermGuard>} />
-            <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ServerPage Component={SchedulerPage} /></PermGuard>} />
-            <Route path="messenger" element={<PermGuard permission="chat.send"><ServerPage Component={MessengerPage} /></PermGuard>} />
-            <Route path="map" element={<ServerPage Component={LiveMapPage} />} />
-            <Route path="settings" element={<PermGuard permission="server.settings"><ServerPage Component={ServerSettingsPage} /></PermGuard>} />
-            <Route path="dangerzone" element={<PermGuard permission="server.dangerzone"><ServerPage Component={DangerzonePage} /></PermGuard>} />
+            <Route path="overview" element={<ErrorBoundary><ServerPage Component={ServerOverviewPage} /></ErrorBoundary>} />
+            <Route path="metrics" element={<ErrorBoundary><ServerPage Component={ServerMetricsPage} /></ErrorBoundary>} />
+            <Route path="console" element={<PermGuard permission="chat.send"><ErrorBoundary><ServerPage Component={ConsolePage} /></ErrorBoundary></PermGuard>} />
+            <Route path="players" element={<ErrorBoundary><ServerPage Component={PlayersPage} /></ErrorBoundary>} />
+            <Route path="mods" element={<ErrorBoundary><ServerPage Component={ModsPage} /></ErrorBoundary>} />
+            <Route path="files" element={<PermGuard permission="files.manage"><ErrorBoundary><ServerPage Component={FilesPage} /></ErrorBoundary></PermGuard>} />
+            <Route path="config" element={<PermGuard permission="config.manage"><ErrorBoundary><ServerPage Component={ConfigPage} /></ErrorBoundary></PermGuard>} />
+            <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
+            <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />
+            <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ErrorBoundary><ServerPage Component={SchedulerPage} /></ErrorBoundary></PermGuard>} />
+            <Route path="messenger" element={<PermGuard permission="chat.send"><ErrorBoundary><ServerPage Component={MessengerPage} /></ErrorBoundary></PermGuard>} />
+            <Route path="map" element={<ErrorBoundary><ServerPage Component={LiveMapPage} /></ErrorBoundary>} />
+            <Route path="settings" element={<PermGuard permission="server.settings"><ErrorBoundary><ServerPage Component={ServerSettingsPage} /></ErrorBoundary></PermGuard>} />
+            <Route path="dangerzone" element={<PermGuard permission="server.dangerzone"><ErrorBoundary><ServerPage Component={DangerzonePage} /></ErrorBoundary></PermGuard>} />
           </Route>
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />

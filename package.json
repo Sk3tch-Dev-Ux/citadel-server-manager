@@ -21,7 +21,12 @@
     "dev:frontend": "cd web/frontend && npm run dev",
     "docs:dev": "cd docs && npx vitepress dev",
     "docs:build": "cd docs && npx vitepress build",
-    "docs:preview": "cd docs && npx vitepress preview"
+    "docs:preview": "cd docs && npx vitepress preview",
+    "service:install": "node backend/lib/service-installer.js install",
+    "service:uninstall": "node backend/lib/service-installer.js uninstall",
+    "service:status": "node backend/lib/service-installer.js status",
+    "service:start": "node backend/lib/service-installer.js start",
+    "service:stop": "node backend/lib/service-installer.js stop"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

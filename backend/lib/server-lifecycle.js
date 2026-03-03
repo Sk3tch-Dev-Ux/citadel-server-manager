@@ -16,9 +16,7 @@ const { startSidecar, stopSidecar } = require('./sidecar-manager');
 const { addLog } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { executeHooks } = require('./lifecycle-hooks');
-
-const MAX_RESTART_ATTEMPTS = 3;
-const RESTART_DELAY_MS = 3000;
+const { MAX_RESTART_ATTEMPTS, RESTART_DELAY_MS } = require('./constants');
 
 /**
  * Restart a server through the full lifecycle: kill -> wait -> hooks -> spawn -> verify.
