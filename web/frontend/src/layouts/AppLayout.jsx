@@ -27,6 +27,7 @@ export default function AppLayout() {
     : location.pathname === '/deploy' ? 'Deploy Server'
     : location.pathname === '/users' ? 'Users & Roles'
     : location.pathname === '/webhooks' ? 'Webhooks'
+    : location.pathname === '/settings' ? 'Settings'
     : location.pathname === '/license' ? 'License'
     : location.pathname === '/dashboard' ? 'Dashboard'
     : 'Server Hub';
@@ -74,6 +75,11 @@ export default function AppLayout() {
           <Link to="/webhooks" className={`nav-item ${location.pathname === '/webhooks' ? 'active' : ''}`}>
             <span className="nav-icon"><Webhook size={16} /></span>Webhooks
           </Link>
+          {user.role === 'admin' && (
+            <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
+              <span className="nav-icon"><Settings size={16} /></span>Settings
+            </Link>
+          )}
           {user.role === 'admin' && (
             <Link to="/license" className={`nav-item ${location.pathname === '/license' ? 'active' : ''}`}>
               <span className="nav-icon"><KeyRound size={16} /></span>License

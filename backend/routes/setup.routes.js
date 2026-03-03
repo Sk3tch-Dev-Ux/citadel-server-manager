@@ -186,6 +186,7 @@ module.exports = function(app) {
   /**
    * POST /api/setup/steam/validate
    * Validate Steam credentials (login test).
+   * On success, caches the auth token and persists credentials to .env.
    */
   app.post('/api/setup/steam/validate', requireSetupMode, async (req, res) => {
     const { username, password, guardCode } = req.body;
@@ -195,6 +196,31 @@ module.exports = function(app) {
 
     try {
       const result = await validateSteamLogin(username, password, guardCode);
+      if (result.success) {
+        // Store credentials in context and mark as validated
+        ctx.steamCredentials.username = username;
+        ctx.steamCredentials.password = password;
+        ctx.steamCredentials.guardCode = ''; // Clear one-time guard code
+        ctx.steamLoginValidated = true;
+
+        // Persist to .env so credentials survive restarts
+        const envPath = path.join(__dirname, '..', '..', '.env');
+        if (fs.existsSync(envPath)) {
+          let envContent = fs.readFileSync(envPath, 'utf-8');
+          if (envContent.match(/^#?\s*STEAM_USERNAME=/m)) {
+            envContent = envContent.replace(/^#?\s*STEAM_USERNAME=.*$/m, `STEAM_USERNAME=${username}`);
+          } else {
+            envContent += `\nSTEAM_USERNAME=${username}`;
+          }
+          if (envContent.match(/^#?\s*STEAM_PASSWORD=/m)) {
+            envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${password}`);
+          } else {
+            envContent += `\nSTEAM_PASSWORD=${password}`;
+          }
+          fs.writeFileSync(envPath, envContent);
+        }
+        logger.info({ username }, 'Setup: Steam login validated and cached');
+      }
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });

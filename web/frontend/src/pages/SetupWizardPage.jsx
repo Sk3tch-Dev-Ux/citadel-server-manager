@@ -6,7 +6,7 @@ import { useServers } from '../contexts/ServersContext';
 import API from '../api';
 import {
   KeyRound, Lock, Rocket, CheckCircle, XCircle, ArrowLeft, ArrowRight,
-  Monitor, Zap, FolderOpen, Loader, Sparkles, Server, Gamepad2, Eye, EyeOff,
+  Monitor, Zap, FolderOpen, Loader, Sparkles, Server, Gamepad2, Eye, EyeOff, Shield, AlertTriangle,
 } from '../components/Icon';
 
 const STEPS = [
@@ -38,8 +38,12 @@ export default function SetupWizardPage() {
   const [steamPath, setSteamPath] = useState('');
   const [steamUser, setSteamUser] = useState('');
   const [steamPass, setSteamPass] = useState('');
+  const [steamGuardCode, setSteamGuardCode] = useState('');
   const [steamStatus, setSteamStatus] = useState(null); // null | 'detecting' | 'found' | 'not_found' | 'downloaded'
   const [steamCmdPath, setSteamCmdPath] = useState('');
+  const [steamNeedsGuard, setSteamNeedsGuard] = useState(false);
+  const [steamValidated, setSteamValidated] = useState(false);
+  const [steamValidating, setSteamValidating] = useState(false);
 
   // Server step
   const [serverMode, setServerMode] = useState(null); // 'new' | 'existing' | 'skip'
@@ -125,14 +129,44 @@ export default function SetupWizardPage() {
       } else {
         setSteamCmdPath(result.steamCmdPath);
         setSteamStatus('found');
-        // Small delay before advancing so user sees the success
-        setTimeout(() => goNext(), 800);
+        // If no credentials provided, just advance
+        if (!steamUser || !steamPass) {
+          setTimeout(() => goNext(), 800);
+        }
+        // If credentials provided, we'll validate them next (user clicks Verify)
       }
     } catch (err) {
       setError(err.message || 'SteamCMD setup failed');
       setSteamStatus('not_found');
     }
     setLoading(false);
+  };
+
+  const handleSteamValidate = async () => {
+    if (!steamUser || !steamPass) {
+      setError('Steam username and password are required');
+      return;
+    }
+    setSteamValidating(true);
+    setError('');
+    try {
+      const payload = { username: steamUser, password: steamPass };
+      if (steamGuardCode) payload.guardCode = steamGuardCode;
+      const result = await API.post('/api/setup/steam/validate', payload);
+      if (result.success) {
+        setSteamValidated(true);
+        setSteamNeedsGuard(false);
+        setError('');
+      } else if (result.needsGuard) {
+        setSteamNeedsGuard(true);
+        setError('Steam Guard code required — check your email or authenticator app.');
+      } else {
+        setError(result.error || result.message || 'Login failed');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to validate Steam login');
+    }
+    setSteamValidating(false);
   };
 
   const handleDeployServer = async () => {
@@ -324,118 +358,178 @@ export default function SetupWizardPage() {
             </div>
           )}
 
-          {/* ─── SteamCMD ─── */}
+          {/* ─── SteamCMD + Steam Login ─── */}
           {step === 2 && (
             <div>
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <Gamepad2 size={32} style={{ color: 'var(--accent-purple)', marginBottom: 8 }} />
-                <h3 style={{ fontSize: 18, fontWeight: 700 }}>Configure SteamCMD</h3>
+                <h3 style={{ fontSize: 18, fontWeight: 700 }}>Steam Setup</h3>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-                  SteamCMD is needed to download and update your DayZ server.
+                  SteamCMD is needed to download and update your DayZ server. Sign in to Steam so deployments work seamlessly.
                 </p>
               </div>
 
               {error && <div className="login-error">{error}</div>}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                <div
-                  className={`game-card ${steamMode === 'auto' ? 'selected' : ''}`}
-                  onClick={() => setSteamMode('auto')}
-                  style={{ padding: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}
-                >
-                  <Sparkles size={20} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>Auto-detect / Download</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                      We&apos;ll find SteamCMD on your system or download it automatically
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className={`game-card ${steamMode === 'manual' ? 'selected' : ''}`}
-                  onClick={() => setSteamMode('manual')}
-                  style={{ padding: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}
-                >
-                  <FolderOpen size={20} style={{ color: 'var(--accent-yellow)', flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>Manual Path</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                      I know where SteamCMD is installed
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className={`game-card ${steamMode === 'skip' ? 'selected' : ''}`}
-                  onClick={() => setSteamMode('skip')}
-                  style={{ padding: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}
-                >
-                  <ArrowRight size={20} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>Skip for Now</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                      I&apos;ll configure SteamCMD later
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {steamMode === 'manual' && (
-                <div className="input-group">
-                  <label className="input-label">SteamCMD Path</label>
-                  <input
-                    className="input"
-                    value={steamPath}
-                    onChange={e => setSteamPath(e.target.value)}
-                    placeholder="C:\SteamCMD\steamcmd.exe"
-                  />
-                </div>
-              )}
-
-              {steamMode !== 'skip' && (
+              {/* Phase 1: SteamCMD location (before steamStatus === 'found') */}
+              {steamStatus !== 'found' && (
                 <>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 8 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                      Steam Credentials (optional — needed for mod downloads)
-                    </div>
-                    <div className="grid grid-2">
-                      <div className="input-group">
-                        <label className="input-label">Steam Username</label>
-                        <input className="input" value={steamUser} onChange={e => setSteamUser(e.target.value)} placeholder="Optional" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                    <div
+                      className={`game-card ${steamMode === 'auto' ? 'selected' : ''}`}
+                      onClick={() => setSteamMode('auto')}
+                      style={{ padding: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}
+                    >
+                      <Sparkles size={20} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>Auto-detect / Download</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                          We&apos;ll find SteamCMD on your system or download it automatically
+                        </div>
                       </div>
-                      <div className="input-group">
-                        <label className="input-label">Steam Password</label>
-                        <input className="input" type="password" value={steamPass} onChange={e => setSteamPass(e.target.value)} placeholder="Optional" />
+                    </div>
+                    <div
+                      className={`game-card ${steamMode === 'manual' ? 'selected' : ''}`}
+                      onClick={() => setSteamMode('manual')}
+                      style={{ padding: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}
+                    >
+                      <FolderOpen size={20} style={{ color: 'var(--accent-yellow)', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>Manual Path</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                          I know where SteamCMD is installed
+                        </div>
                       </div>
                     </div>
+                    <div
+                      className={`game-card ${steamMode === 'skip' ? 'selected' : ''}`}
+                      onClick={() => setSteamMode('skip')}
+                      style={{ padding: 14, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 }}
+                    >
+                      <ArrowRight size={20} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>Skip for Now</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                          I&apos;ll configure Steam later in Settings
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {steamMode === 'manual' && (
+                    <div className="input-group">
+                      <label className="input-label">SteamCMD Path</label>
+                      <input
+                        className="input"
+                        value={steamPath}
+                        onChange={e => setSteamPath(e.target.value)}
+                        placeholder="C:\SteamCMD\steamcmd.exe"
+                      />
+                    </div>
+                  )}
+
+                  <div className="btn-group" style={{ marginTop: 12 }}>
+                    <button className="btn btn-secondary" onClick={goBack}>
+                      <ArrowLeft size={14} /> Back
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                      onClick={handleSteamSetup}
+                      disabled={loading}
+                    >
+                      {loading ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> {steamMode === 'auto' ? 'Detecting...' : 'Configuring...'}</> :
+                        steamMode === 'skip' ? <>Skip <ArrowRight size={14} /></> : <>Find SteamCMD <ArrowRight size={14} /></>}
+                    </button>
                   </div>
                 </>
               )}
 
-              {steamStatus === 'found' && (
-                <div style={{
-                  background: 'rgba(92,184,92,0.08)', border: '1px solid rgba(92,184,92,0.2)',
-                  borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12,
-                  display: 'flex', alignItems: 'center', gap: 10, fontSize: 13,
-                }}>
-                  <CheckCircle size={16} style={{ color: 'var(--accent-green)' }} />
-                  <span>SteamCMD ready at {steamCmdPath}</span>
-                </div>
+              {/* Phase 2: SteamCMD found — now sign in to Steam */}
+              {steamStatus === 'found' && !steamValidated && (
+                <>
+                  <div style={{
+                    background: 'rgba(92,184,92,0.08)', border: '1px solid rgba(92,184,92,0.2)',
+                    borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 16,
+                    display: 'flex', alignItems: 'center', gap: 10, fontSize: 13,
+                  }}>
+                    <CheckCircle size={16} style={{ color: 'var(--accent-green)' }} />
+                    <span>SteamCMD ready at {steamCmdPath}</span>
+                  </div>
+
+                  <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> We recommend using a dedicated Steam account for server management with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator). After your first login, SteamCMD caches the session so you won&apos;t need a guard code each time.
+                  </div>
+
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>
+                      Sign in to Steam
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label">Steam Username</label>
+                      <input className="input" value={steamUser} onChange={e => setSteamUser(e.target.value)} placeholder="your_steam_username" autoComplete="off" />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label">Steam Password</label>
+                      <input className="input" type="password" value={steamPass} onChange={e => setSteamPass(e.target.value)} placeholder="your_steam_password" autoComplete="off" />
+                    </div>
+
+                    {steamNeedsGuard && (
+                      <div className="input-group">
+                        <label className="input-label">Steam Guard Code</label>
+                        <input className="input" value={steamGuardCode} onChange={e => setSteamGuardCode(e.target.value)} placeholder="XXXXX" maxLength={5} style={{ letterSpacing: '0.2em', textAlign: 'center', maxWidth: 140 }} autoComplete="off" />
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Check your email or Steam mobile app for the code</div>
+                      </div>
+                    )}
+
+                    <button className="btn btn-primary" onClick={handleSteamValidate} disabled={steamValidating || !steamUser || !steamPass} style={{ width: '100%', justifyContent: 'center' }}>
+                      {steamValidating ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Verifying...</> : (steamNeedsGuard ? 'Submit Guard Code' : 'Verify Steam Login')}
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
+                    Your credentials are stored locally and used only for SteamCMD operations.
+                  </div>
+
+                  <div className="btn-group" style={{ marginTop: 16 }}>
+                    <button className="btn btn-secondary" onClick={() => { setSteamStatus(null); setError(''); }}>
+                      <ArrowLeft size={14} /> Back
+                    </button>
+                    <button className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={goNext}>
+                      Skip Login <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </>
               )}
 
-              <div className="btn-group" style={{ marginTop: 12 }}>
-                <button className="btn btn-secondary" onClick={goBack}>
-                  <ArrowLeft size={14} /> Back
-                </button>
-                <button
-                  className="btn btn-primary"
-                  style={{ flex: 1, justifyContent: 'center' }}
-                  onClick={handleSteamSetup}
-                  disabled={loading}
-                >
-                  {loading ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> {steamMode === 'auto' ? 'Detecting...' : 'Configuring...'}</> :
-                    steamMode === 'skip' ? <>Skip <ArrowRight size={14} /></> : <>Continue <ArrowRight size={14} /></>}
-                </button>
-              </div>
+              {/* Phase 3: Steam validated — success */}
+              {steamStatus === 'found' && steamValidated && (
+                <>
+                  <div style={{
+                    background: 'rgba(92,184,92,0.08)', border: '1px solid rgba(92,184,92,0.2)',
+                    borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 16,
+                    display: 'flex', alignItems: 'center', gap: 10, fontSize: 13,
+                  }}>
+                    <CheckCircle size={16} style={{ color: 'var(--accent-green)' }} />
+                    <span>SteamCMD ready at {steamCmdPath}</span>
+                  </div>
+
+                  <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, textAlign: 'center' }}>
+                    <Shield size={36} style={{ color: 'var(--text-success, #22c55e)', marginBottom: 12 }} />
+                    <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Steam Connected</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Logged in as <strong>{steamUser}</strong></div>
+                  </div>
+
+                  <div className="btn-group" style={{ marginTop: 16 }}>
+                    <button className="btn btn-secondary" onClick={() => { setSteamValidated(false); setSteamPass(''); }}>
+                      <ArrowLeft size={14} /> Use Different Account
+                    </button>
+                    <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={goNext}>
+                      Continue <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
