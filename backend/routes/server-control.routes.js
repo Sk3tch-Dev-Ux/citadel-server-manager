@@ -22,8 +22,10 @@ module.exports = function(app) {
       gameVersion: state.config?.gameVersion || '',
       uptime: state.startedAt ? Math.floor((Date.now() - new Date(state.startedAt).getTime()) / 1000) : 0,
       ports: { game: srv.gamePort, query: srv.queryPort, rcon: srv.rconPort },
+      ip: srv.ip || '127.0.0.1',
       cpu: state.metricsHistory?.cpu?.slice(-1)[0] || 0,
       ram: state.metricsHistory?.ram?.slice(-1)[0] || 0,
+      fps: state.metricsHistory?.fps?.slice(-1)[0] || 0,
     });
   });
 

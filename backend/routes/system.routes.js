@@ -88,7 +88,7 @@ function getCpuUsage() {
 
 function getDiskInfo() {
   return new Promise((resolve, reject) => {
-    exec('powershell -NoProfile -Command "Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free | ConvertTo-Json"', { timeout: 5000 }, (err, stdout) => {
+    exec('powershell -NoProfile -Command "Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free | ConvertTo-Json"', { timeout: 5000, windowsHide: true }, (err, stdout) => {
       if (err) return reject(err);
       try {
         let drives = JSON.parse(stdout);

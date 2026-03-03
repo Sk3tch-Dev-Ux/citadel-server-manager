@@ -28,7 +28,9 @@ module.exports = function(app) {
   app.get('/api/servers/:id/map/data', auth('server.view'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
-    res.json(getMapData(req.params.id));
+    const data = getMapData(req.params.id);
+    data.serverStatus = state.status || 'stopped';
+    res.json(data);
   });
 
   // ─── Teleport Player to Coordinates ─────────────────────

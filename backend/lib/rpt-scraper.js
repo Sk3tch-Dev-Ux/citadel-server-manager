@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const ctx = require('./context');
 const { saveJSON } = require('./data-store');
+const { resolveProfileDir, findRPTFiles } = require('./profile-resolver');
 
 /**
  * Extract average FPS from the most recent RPT log file.
@@ -12,14 +13,9 @@ const { saveJSON } = require('./data-store');
  */
 function scrapeRPTForFPS(server) {
   try {
-    const profileDir = server.profileDir || server.installDir;
-    if (!profileDir || !fs.existsSync(profileDir)) return 0;
-    const files = fs.readdirSync(profileDir)
-      .filter(f => f.toLowerCase().endsWith('.rpt'))
-      .map(f => ({ name: f, mtime: fs.statSync(path.join(profileDir, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
+    const files = findRPTFiles(server);
     if (files.length === 0) return 0;
-    const rptPath = path.join(profileDir, files[0].name);
+    const rptPath = files[0].fullPath;
     const stat = fs.statSync(rptPath);
     const readSize = Math.min(stat.size, 4096);
     const fd = fs.openSync(rptPath, 'r');
@@ -44,14 +40,9 @@ function scrapeRPTForFPS(server) {
  */
 function scrapeRPTForKills(server, limit = 30) {
   try {
-    const profileDir = server.profileDir || server.installDir;
-    if (!profileDir || !fs.existsSync(profileDir)) return [];
-    const files = fs.readdirSync(profileDir)
-      .filter(f => f.toLowerCase().endsWith('.rpt'))
-      .map(f => ({ name: f, mtime: fs.statSync(path.join(profileDir, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
+    const files = findRPTFiles(server);
     if (files.length === 0) return [];
-    const rptPath = path.join(profileDir, files[0].name);
+    const rptPath = files[0].fullPath;
     const stat = fs.statSync(rptPath);
     const readSize = Math.min(stat.size, 128 * 1024);
     const fd = fs.openSync(rptPath, 'r');

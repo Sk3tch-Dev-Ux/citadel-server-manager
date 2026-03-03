@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
 const ctx = require('./context');
+const { findRPTFiles } = require('./profile-resolver');
 
 // ─── Map Configurations ─────────────────────────────────
 const MAP_CONFIGS = {
@@ -203,17 +204,10 @@ function getMapEvents(serverId) {
  */
 function scrapeRPTForEvents(server) {
   try {
-    const profileDir = server.profileDir || server.installDir;
-    if (!profileDir || !fs.existsSync(profileDir)) return;
-
-    const files = fs.readdirSync(profileDir)
-      .filter(f => f.toLowerCase().endsWith('.rpt'))
-      .map(f => ({ name: f, mtime: fs.statSync(path.join(profileDir, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
-
+    const files = findRPTFiles(server);
     if (files.length === 0) return;
 
-    const rptPath = path.join(profileDir, files[0].name);
+    const rptPath = files[0].fullPath;
     const stat = fs.statSync(rptPath);
     // Read last 64KB to catch recent events
     const readSize = Math.min(stat.size, 64 * 1024);

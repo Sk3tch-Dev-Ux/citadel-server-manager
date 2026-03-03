@@ -8,10 +8,11 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import API from '../api';
 import { useServers } from '../contexts/ServersContext';
+import { useSocket } from '../contexts/SocketContext';
 import {
   Users, Car, MapPin, Layers, Filter, Crosshair, Heart, Skull,
   Bomb, Wrench, Trash2, Navigation, Locate, RefreshCw, Eye, EyeOff,
-  Sun, CloudRain, Wind, X, Zap, AlertTriangle,
+  Sun, CloudRain, Wind, X, Zap, AlertTriangle, Info,
 } from '../components/Icon';
 
 // ─── Leaflet Icon Factory ──────────────────────────────
@@ -102,8 +103,11 @@ function ContextMenu({ position, items, onClose }) {
 
 // ─── Main Component ────────────────────────────────────
 export default function LiveMapPage({ serverId }) {
-  const { servers, socket } = useServers();
+  const { servers } = useServers();
+  const socket = useSocket();
   const server = useMemo(() => servers.find(s => s.id === serverId), [servers, serverId]);
+  const serverStatus = server?.status || 'stopped';
+  const isRunning = serverStatus === 'running';
 
   const [mapConfig, setMapConfig] = useState(null);
   const [mapData, setMapData] = useState({ players: [], vehicles: [], events: [] });
@@ -474,6 +478,18 @@ export default function LiveMapPage({ serverId }) {
             <AlertTriangle size={16} />
             <span>Map image not found at <code>{mapConfig.imagePath}</code></span>
             <span className="map-notice__hint">Place your map image in <code>web/frontend/public/maps/</code></span>
+          </div>
+        )}
+
+        {/* ─── Empty State Notice ────────────────── */}
+        {!loading && mapData.players.length === 0 && mapData.vehicles.length === 0 && mapData.events.length === 0 && (
+          <div className="map-notice map-notice--info">
+            <Info size={16} />
+            {!isRunning ? (
+              <span>Server is <strong>{serverStatus}</strong> — start the server to see live map data.</span>
+            ) : (
+              <span>No active players or events detected. Data updates automatically every 15 seconds.</span>
+            )}
           </div>
         )}
 
