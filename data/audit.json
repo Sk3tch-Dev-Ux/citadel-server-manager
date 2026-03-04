@@ -1,5 +1,29 @@
 [
   {
+    "id": "6473766a-4c2f-4277-bbb4-15b80f87e7a7",
+    "timestamp": "2026-03-04T05:43:33.724Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying Experimental Branch to C:\\Citadel\\deployments\\Experimental_Branch"
+  },
+  {
+    "id": "a88881f2-bc1e-4bde-aa4f-acc334c9d5c5",
+    "timestamp": "2026-03-04T05:40:53.914Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "file.edit",
+    "details": "Edited mpmissions/dayzOffline.chernarusplus/db/globals.xml on Test"
+  },
+  {
+    "id": "4697d6aa-ffd3-42a2-b91f-4ecbdbf462e8",
+    "timestamp": "2026-03-04T05:40:51.933Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "file.edit",
+    "details": "Edited mpmissions/dayzOffline.chernarusplus/db/globals.xml on Test"
+  },
+  {
     "id": "0a3bf196-bed7-49c8-b924-b231ae36c8af",
     "timestamp": "2026-03-04T05:00:52.580Z",
     "userId": "system",

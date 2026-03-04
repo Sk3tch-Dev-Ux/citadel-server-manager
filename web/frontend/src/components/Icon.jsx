@@ -103,4 +103,5 @@ export {
   BadgeCheck,
   Star,
   Bookmark,
+  MessageSquare,
 } from 'lucide-react';
