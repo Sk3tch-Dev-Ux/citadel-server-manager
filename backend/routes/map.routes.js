@@ -45,8 +45,8 @@ module.exports = function(app) {
 
     try {
       const provider = getProviderForAction(req.params.id, ActionType.TELEPORT_PLAYER);
-      // Map page sends x/z as horizontal, y as altitude
-      await provider.teleportPlayer(req.params.id, session, { x, y: z, z: y || 0 });
+      // x = east-west, y = altitude (0 = surface), z = north-south
+      await provider.teleportPlayer(req.params.id, session, { x, y: y || 0, z });
       addAudit(req.user.id, req.user.username, 'map.teleport',
         `Teleported ${session.playerName} to [${x}, ${y || 0}, ${z}]`);
       res.json({ message: `Teleported ${session.playerName}` });
