@@ -13,6 +13,7 @@ import {
   Users, Car, MapPin, Layers, Filter, Crosshair, Heart, Skull,
   Bomb, Wrench, Trash2, Navigation, Locate, RefreshCw, Eye, EyeOff,
   Sun, CloudRain, Wind, X, Zap, AlertTriangle, Info,
+  Power, LogOut, Send, Clock, ArrowUp, ChevronDown, ChevronUp, Globe,
 } from '../components/Icon';
 
 // ─── HTML Escaping (prevents XSS in Leaflet divIcon HTML) ─
@@ -174,6 +175,11 @@ export default function LiveMapPage({ serverId }) {
   // Action feedback
   const [actionLoading, setActionLoading] = useState(false);
 
+  // World controls panel
+  const [showWorldPanel, setShowWorldPanel] = useState(false);
+  const [worldHour, setWorldHour] = useState(12);
+  const [worldMinute, setWorldMinute] = useState(0);
+
   const mapRef = useRef(null);
 
   // ─── Fetch map config ──────────────────────────────────
@@ -224,10 +230,10 @@ export default function LiveMapPage({ serverId }) {
   }, [serverId]);
 
   // ─── Player Actions ────────────────────────────────────
-  const doPlayerAction = useCallback(async (steamId, action, label) => {
+  const doPlayerAction = useCallback(async (steamId, action, label, extra = {}) => {
     setActionLoading(true);
     try {
-      await API.post(`/api/servers/${serverId}/map/player-action`, { steamId, action });
+      await API.post(`/api/servers/${serverId}/map/player-action`, { steamId, action, ...extra });
       window.addToast?.(`${label} successful`, 'success');
     } catch (err) {
       window.addToast?.(`${label} failed: ${err.message}`, 'error');
@@ -250,6 +256,17 @@ export default function LiveMapPage({ serverId }) {
     setActionLoading(true);
     try {
       await API.post(`/api/servers/${serverId}/map/vehicle-action`, { vehicleId, action });
+      window.addToast?.(`${label} successful`, 'success');
+    } catch (err) {
+      window.addToast?.(`${label} failed: ${err.message}`, 'error');
+    }
+    setActionLoading(false);
+  }, [serverId]);
+
+  const doWorldAction = useCallback(async (action, params, label) => {
+    setActionLoading(true);
+    try {
+      await API.post(`/api/servers/${serverId}/map/world-action`, { action, params });
       window.addToast?.(`${label} successful`, 'success');
     } catch (err) {
       window.addToast?.(`${label} failed: ${err.message}`, 'error');
@@ -408,11 +425,22 @@ export default function LiveMapPage({ serverId }) {
                   <button className="map-popup__btn map-popup__btn--success" onClick={() => doPlayerAction(player.steamId, 'heal', `Heal ${player.name}`)}>
                     <Heart size={12} /> Heal
                   </button>
-                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => doPlayerAction(player.steamId, 'kill', `Kill ${player.name}`)}>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm(`Kill ${player.name}?`)) doPlayerAction(player.steamId, 'kill', `Kill ${player.name}`); }}>
                     <Skull size={12} /> Kill
                   </button>
                   <button className="map-popup__btn" onClick={() => { setSelectedPlayer(player); window.addToast?.(`Selected ${player.name} — right-click map to teleport`, 'info'); }}>
                     <Navigation size={12} /> Teleport
+                  </button>
+                </div>
+                <div className="map-popup__actions">
+                  <button className="map-popup__btn" onClick={() => { if (window.confirm(`Strip all gear from ${player.name}?`)) doPlayerAction(player.steamId, 'strip', `Strip ${player.name}`); }}>
+                    <Trash2 size={12} /> Strip
+                  </button>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm(`Explode ${player.name}?`)) doPlayerAction(player.steamId, 'explode', `Explode ${player.name}`); }}>
+                    <Bomb size={12} /> Explode
+                  </button>
+                  <button className="map-popup__btn" onClick={() => { const msg = window.prompt(`Send message to ${player.name}:`); if (msg) doPlayerAction(player.steamId, 'message', `Message ${player.name}`, { message: msg }); }}>
+                    <Send size={12} /> Message
                   </button>
                 </div>
               </Popup>
@@ -443,8 +471,22 @@ export default function LiveMapPage({ serverId }) {
                   <button className="map-popup__btn" onClick={() => doVehicleAction(vehicle.id, 'refuel', 'Refuel')}>
                     <Zap size={12} /> Refuel
                   </button>
-                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => doVehicleAction(vehicle.id, 'delete', 'Delete')}>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm('Delete this vehicle?')) doVehicleAction(vehicle.id, 'delete', 'Delete'); }}>
                     <Trash2 size={12} /> Delete
+                  </button>
+                </div>
+                <div className="map-popup__actions">
+                  <button className="map-popup__btn" onClick={() => doVehicleAction(vehicle.id, 'unstuck', 'Unstuck')}>
+                    <ArrowUp size={12} /> Unstuck
+                  </button>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm('Explode this vehicle?')) doVehicleAction(vehicle.id, 'explode', 'Explode'); }}>
+                    <Bomb size={12} /> Explode
+                  </button>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => doVehicleAction(vehicle.id, 'kill-engine', 'Kill Engine')}>
+                    <Power size={12} /> Kill Engine
+                  </button>
+                  <button className="map-popup__btn" onClick={() => doVehicleAction(vehicle.id, 'eject-driver', 'Eject Driver')}>
+                    <LogOut size={12} /> Eject
                   </button>
                 </div>
               </Popup>
@@ -513,6 +555,56 @@ export default function LiveMapPage({ serverId }) {
                 <div className="map-legend__hint">Right-click map to teleport</div>
               </div>
             </>
+          )}
+        </div>
+
+        {/* ─── World Controls Panel ────────────────── */}
+        <div className="map-world-panel">
+          <button className="map-world-panel__toggle" onClick={() => setShowWorldPanel(p => !p)}>
+            <Globe size={14} /> World Controls
+            {showWorldPanel ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </button>
+          {showWorldPanel && (
+            <div className="map-world-panel__body">
+              <div className="map-world-panel__section">
+                <div className="map-world-panel__label"><Clock size={12} /> Time</div>
+                <div className="map-world-panel__row">
+                  <input type="number" className="map-world-panel__input" min={0} max={23} value={worldHour} onChange={e => setWorldHour(parseInt(e.target.value) || 0)} placeholder="Hr" />
+                  <span className="map-world-panel__colon">:</span>
+                  <input type="number" className="map-world-panel__input" min={0} max={59} value={worldMinute} onChange={e => setWorldMinute(parseInt(e.target.value) || 0)} placeholder="Min" />
+                  <button className="map-popup__btn map-popup__btn--success" onClick={() => doWorldAction('set-time', { hour: worldHour, minute: worldMinute }, `Set time to ${worldHour}:${String(worldMinute).padStart(2, '0')}`)}>
+                    Set
+                  </button>
+                </div>
+              </div>
+
+              <div className="map-world-panel__section">
+                <div className="map-world-panel__label"><Sun size={12} /> Weather</div>
+                <div className="map-world-panel__row">
+                  <button className="map-popup__btn map-popup__btn--success" onClick={() => doWorldAction('sunny', null, 'Clear Weather')}>
+                    <Sun size={12} /> Clear
+                  </button>
+                  <button className="map-popup__btn" onClick={() => doWorldAction('set-weather', { overcast: 1 }, 'Overcast')}>
+                    <CloudRain size={12} /> Overcast
+                  </button>
+                  <button className="map-popup__btn" onClick={() => doWorldAction('set-weather', { rain: 1 }, 'Rain')}>
+                    <Wind size={12} /> Rain
+                  </button>
+                </div>
+              </div>
+
+              <div className="map-world-panel__section">
+                <div className="map-world-panel__label"><AlertTriangle size={12} /> Danger Zone</div>
+                <div className="map-world-panel__row">
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm('Wipe ALL AI from the map? This cannot be undone.')) doWorldAction('wipe-ai', null, 'Wipe AI'); }}>
+                    <Skull size={12} /> Wipe AI
+                  </button>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm('Wipe ALL vehicles from the map? This cannot be undone.')) doWorldAction('wipe-vehicles', null, 'Wipe Vehicles'); }}>
+                    <Trash2 size={12} /> Wipe Vehicles
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 

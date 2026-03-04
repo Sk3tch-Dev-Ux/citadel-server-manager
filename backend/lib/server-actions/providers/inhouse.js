@@ -164,6 +164,10 @@ class InHouseProvider extends BaseProvider {
     await this._post(serverId, '/player/explode', { steamId });
   }
 
+  async messagePlayer(serverId, steamId, message) {
+    await this._post(serverId, '/player/message', { steamId, message });
+  }
+
   async kickPlayer(serverId, playerId, reason) {
     await this._post(serverId, '/player/kick', {
       steamId: playerId,

@@ -931,8 +931,11 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .map-popup__body { padding: 8px 14px; }
 .map-popup__stat { font-size: 12px; color: var(--text-secondary); padding: 2px 0; }
 .map-popup__actions {
-  display: flex; gap: 4px; padding: 8px 14px;
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 14px;
   border-top: 1px solid var(--border);
+}
+.map-popup__actions + .map-popup__actions {
+  border-top: none; padding-top: 0;
 }
 .map-popup__btn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
@@ -945,6 +948,44 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .map-popup__btn--success:hover { background: rgba(0,255,106,0.1); }
 .map-popup__btn--danger { color: var(--accent-red); border-color: rgba(255,59,59,0.3); }
 .map-popup__btn--danger:hover { background: rgba(255,59,59,0.1); }
+
+/* ─── World Controls Panel ───────────────────────────── */
+.map-world-panel {
+  position: absolute; bottom: 12px; right: 12px; z-index: 1000;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; min-width: 220px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.map-world-panel__toggle {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 10px 14px; background: none; border: none;
+  color: var(--text-primary); font-size: 13px; font-weight: 600;
+  cursor: pointer; border-radius: 8px;
+}
+.map-world-panel__toggle:hover { background: var(--bg-hover); }
+.map-world-panel__body {
+  padding: 0 12px 12px; display: flex; flex-direction: column; gap: 10px;
+}
+.map-world-panel__section {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.map-world-panel__label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.map-world-panel__row {
+  display: flex; align-items: center; gap: 4px;
+}
+.map-world-panel__input {
+  width: 48px; padding: 4px 6px; border-radius: 4px;
+  background: var(--bg-main); border: 1px solid var(--border);
+  color: var(--text-primary); font-size: 12px; text-align: center;
+}
+.map-world-panel__input:focus { border-color: var(--accent); outline: none; }
+.map-world-panel__colon {
+  color: var(--text-muted); font-weight: 600; font-size: 14px;
+}
 
 /* ─── Legend Panel ────────────────────────────────────── */
 .map-legend {

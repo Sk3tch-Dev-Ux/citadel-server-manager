@@ -133,7 +133,7 @@ module.exports = function(app) {
 
   // ─── Player Actions from Map ────────────────────────────
   app.post('/api/servers/:id/map/player-action', authForServer('server.rcon'), async (req, res) => {
-    const { steamId, action } = req.body;
+    const { steamId, action, message } = req.body;
     if (!steamId || !action) {
       return res.status(400).json({ error: 'steamId and action required' });
     }
@@ -160,6 +160,10 @@ module.exports = function(app) {
           break;
         case ActionType.EXPLODE_PLAYER:
           await provider.explodePlayer(req.params.id, steamId);
+          break;
+        case ActionType.MESSAGE_PLAYER:
+          if (!message) return res.status(400).json({ error: 'message is required for MessagePlayer' });
+          await provider.messagePlayer(req.params.id, steamId, message);
           break;
       }
 

@@ -14,6 +14,7 @@ const ActionType = Object.freeze({
   SPAWN_ITEM:       'player.spawnItem',
   STRIP_PLAYER:     'player.strip',
   EXPLODE_PLAYER:   'player.explode',
+  MESSAGE_PLAYER:   'player.message',
   KICK_PLAYER:      'player.kick',
   BAN_PLAYER:       'player.ban',
 
@@ -49,6 +50,7 @@ const CFTOOLS_CAPABILITIES = new Set([
   ActionType.SPAWN_ITEM,
   ActionType.STRIP_PLAYER,
   ActionType.EXPLODE_PLAYER,
+  ActionType.MESSAGE_PLAYER,
   ActionType.KICK_PLAYER,
   ActionType.BAN_PLAYER,
   ActionType.DELETE_VEHICLE,
@@ -74,6 +76,7 @@ const INHOUSE_CAPABILITIES = new Set([
   ActionType.SPAWN_ITEM,
   ActionType.STRIP_PLAYER,
   ActionType.EXPLODE_PLAYER,
+  ActionType.MESSAGE_PLAYER,
   ActionType.KICK_PLAYER,
   ActionType.BAN_PLAYER,
   ActionType.DELETE_VEHICLE,
@@ -105,6 +108,7 @@ const ACTION_LABELS = Object.freeze({
   [ActionType.SPAWN_ITEM]:        'Spawn Item',
   [ActionType.STRIP_PLAYER]:      'Strip Inventory',
   [ActionType.EXPLODE_PLAYER]:    'Explode Player',
+  [ActionType.MESSAGE_PLAYER]:    'Message Player',
   [ActionType.KICK_PLAYER]:       'Kick Player',
   [ActionType.BAN_PLAYER]:        'Ban Player',
   [ActionType.DELETE_VEHICLE]:     'Delete Vehicle',
@@ -132,6 +136,7 @@ const AUDIT_CODES = Object.freeze({
   [ActionType.SPAWN_ITEM]:        'action.spawn',
   [ActionType.STRIP_PLAYER]:      'action.strip',
   [ActionType.EXPLODE_PLAYER]:    'action.explode',
+  [ActionType.MESSAGE_PLAYER]:    'action.message',
   [ActionType.KICK_PLAYER]:       'action.kick',
   [ActionType.BAN_PLAYER]:        'action.ban',
   [ActionType.DELETE_VEHICLE]:     'action.vehicle.delete',
@@ -175,6 +180,7 @@ const PLAYER_ACTION_MAP = Object.freeze({
   'kill':    ActionType.KILL_PLAYER,
   'strip':   ActionType.STRIP_PLAYER,
   'explode': ActionType.EXPLODE_PLAYER,
+  'message': ActionType.MESSAGE_PLAYER,
 });
 
 module.exports = {

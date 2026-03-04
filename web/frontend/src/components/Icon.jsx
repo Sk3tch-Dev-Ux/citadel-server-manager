@@ -99,6 +99,7 @@ export {
   Calendar,
   Mail,
   ChevronUp,
+  ArrowUp,
   ArrowUpRight,
   BadgeCheck,
   Star,

@@ -28,6 +28,7 @@ class BaseProvider {
   async spawnItem(serverId, session, itemClass, quantity) { throw new Error(`${this.name} does not support spawnItem`); }
   async stripPlayer(serverId, steamId) { throw new Error(`${this.name} does not support stripPlayer`); }
   async explodePlayer(serverId, steamId) { throw new Error(`${this.name} does not support explodePlayer`); }
+  async messagePlayer(serverId, steamId, message) { throw new Error(`${this.name} does not support messagePlayer`); }
   async kickPlayer(serverId, playerId, reason) { throw new Error(`${this.name} does not support kickPlayer`); }
   async banPlayer(serverId, playerId, reason) { throw new Error(`${this.name} does not support banPlayer`); }
 
