@@ -7,11 +7,13 @@ import API from '../api';
 import {
   KeyRound, Lock, Rocket, CheckCircle, XCircle, ArrowLeft, ArrowRight,
   Monitor, Zap, FolderOpen, Loader, Sparkles, Server, Gamepad2, Eye, EyeOff, Shield, AlertTriangle,
+  Globe, Network, RefreshCw,
 } from '../components/Icon';
 
 const STEPS = [
   { key: 'welcome', label: 'Welcome' },
   { key: 'admin', label: 'Admin Account' },
+  { key: 'network', label: 'Network' },
   { key: 'steam', label: 'SteamCMD' },
   { key: 'server', label: 'First Server' },
   { key: 'done', label: 'Complete' },
@@ -32,6 +34,12 @@ export default function SetupWizardPage() {
   const [adminPass, setAdminPass] = useState('');
   const [adminPassConfirm, setAdminPassConfirm] = useState('');
   const [showPass, setShowPass] = useState(false);
+
+  // Network step
+  const [serverIp, setServerIp] = useState('');
+  const [enableFirewall, setEnableFirewall] = useState(true);
+  const [detectedIps, setDetectedIps] = useState([]);
+  const [detecting, setDetecting] = useState(false);
 
   // Steam step
   const [steamMode, setSteamMode] = useState('auto'); // 'auto' | 'manual' | 'skip'
@@ -102,6 +110,41 @@ export default function SetupWizardPage() {
       }
     } catch (err) {
       setError(err.message || 'Failed to create admin');
+    }
+    setLoading(false);
+  };
+
+  const detectIps = async () => {
+    setDetecting(true);
+    try {
+      const result = await API.get('/api/setup/network/detect');
+      if (result.interfaces) {
+        setDetectedIps(result.interfaces);
+        if (result.recommended && !serverIp) {
+          setServerIp(result.recommended);
+        }
+      }
+    } catch { /* non-critical */ }
+    setDetecting(false);
+  };
+
+  const handleNetworkSetup = async () => {
+    if (!serverIp.trim()) return setError('IP address is required');
+
+    setLoading(true);
+    setError('');
+    try {
+      const result = await API.post('/api/setup/network', {
+        ip: serverIp.trim(),
+        enableFirewall,
+      });
+      if (result.error) {
+        setError(result.error);
+      } else {
+        goNext();
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to configure network');
     }
     setLoading(false);
   };
@@ -188,6 +231,7 @@ export default function SetupWizardPage() {
         const result = await API.post('/api/deploy', {
           name: serverName, installDir, gameTitle,
           gamePort, queryPort: gamePort + 1, rconPort, rconPassword, maxPlayers, map,
+          ...(serverIp && { ip: serverIp }),
         });
         if (result.error) {
           setError(result.error);
@@ -202,6 +246,7 @@ export default function SetupWizardPage() {
           executable: 'DayZServer_x64.exe',
           launchParams: `-config=serverDZ.cfg -port=${gamePort} -profiles=profiles -dologs -adminlog -netlog -freezecheck`,
           gameTitle, gamePort, queryPort: gamePort + 1, rconPort, rconPassword, maxPlayers, map,
+          ...(serverIp && { ip: serverIp }),
         });
         if (result.error) {
           setError(result.error);
@@ -265,6 +310,10 @@ export default function SetupWizardPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                   <KeyRound size={18} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
                   <span style={{ fontSize: 13 }}>Create admin account</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                  <Globe size={18} style={{ color: 'var(--accent-cyan, #06b6d4)', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13 }}>Configure network access</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                   <Gamepad2 size={18} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
@@ -358,8 +407,118 @@ export default function SetupWizardPage() {
             </div>
           )}
 
-          {/* ─── SteamCMD + Steam Login ─── */}
+          {/* ─── Network ─── */}
           {step === 2 && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <Globe size={32} style={{ color: 'var(--accent-blue)', marginBottom: 8 }} />
+                <h3 style={{ fontSize: 18, fontWeight: 700 }}>Network Configuration</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Configure your server&apos;s IP address for remote access. This is essential for VPS and dedicated server deployments.
+                </p>
+              </div>
+
+              {error && <div className="login-error">{error}</div>}
+
+              <div className="input-group">
+                <label className="input-label">Server IP Address</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    className="input"
+                    value={serverIp}
+                    onChange={e => setServerIp(e.target.value)}
+                    placeholder="e.g. 192.168.1.100 or 0.0.0.0"
+                    style={{ flex: 1 }}
+                    autoFocus
+                  />
+                  <button
+                    className="btn btn-secondary"
+                    onClick={detectIps}
+                    disabled={detecting}
+                    style={{ flexShrink: 0, gap: 6 }}
+                  >
+                    {detecting ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={14} />}
+                    Detect
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Your public or LAN IP. Players and admins will connect using this address.
+                </div>
+              </div>
+
+              {detectedIps.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6, fontWeight: 600 }}>
+                    Detected Interfaces
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {detectedIps.map((iface, i) => (
+                      <div
+                        key={i}
+                        onClick={() => setServerIp(iface.ip)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '8px 12px', background: serverIp === iface.ip ? 'rgba(99,102,241,0.12)' : 'var(--bg-surface)',
+                          border: `1px solid ${serverIp === iface.ip ? 'var(--accent-blue)' : 'var(--border)'}`,
+                          borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13,
+                        }}
+                      >
+                        <span style={{ color: 'var(--text-secondary)' }}>{iface.name}</span>
+                        <code style={{ fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-primary)', fontWeight: 600 }}>{iface.ip}</code>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px',
+                background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)', marginBottom: 4, cursor: 'pointer',
+              }} onClick={() => setEnableFirewall(!enableFirewall)}>
+                <input
+                  type="checkbox"
+                  checked={enableFirewall}
+                  onChange={e => setEnableFirewall(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: 'var(--accent-blue)' }}
+                />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>Automatically configure Windows Firewall</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    Opens ports for the Citadel panel and your DayZ servers so they&apos;re reachable from the internet.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginTop: 12, marginBottom: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> Use <code>0.0.0.0</code> to bind to all network interfaces, or enter your specific public IP. If you&apos;re running locally, you can skip this step.
+              </div>
+
+              <div className="btn-group" style={{ marginTop: 12 }}>
+                <button className="btn btn-secondary" onClick={goBack}>
+                  <ArrowLeft size={14} /> Back
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ justifyContent: 'center' }}
+                  onClick={goNext}
+                >
+                  Skip <ArrowRight size={14} />
+                </button>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                  onClick={handleNetworkSetup}
+                  disabled={loading}
+                >
+                  {loading ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Configuring...</> : <>Configure <ArrowRight size={14} /></>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─── SteamCMD + Steam Login ─── */}
+          {step === 3 && (
             <div>
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <Gamepad2 size={32} style={{ color: 'var(--accent-purple)', marginBottom: 8 }} />
@@ -534,7 +693,7 @@ export default function SetupWizardPage() {
           )}
 
           {/* ─── First Server ─── */}
-          {step === 3 && !deploying && (
+          {step === 4 && !deploying && (
             <div>
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <Server size={32} style={{ color: 'var(--accent-green)', marginBottom: 8 }} />
@@ -673,7 +832,7 @@ export default function SetupWizardPage() {
           )}
 
           {/* ─── Deploying ─── */}
-          {step === 3 && deploying && (
+          {step === 4 && deploying && (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ marginBottom: 16 }}>
                 {deployProgress?.status === 'complete' ?
@@ -712,7 +871,7 @@ export default function SetupWizardPage() {
           )}
 
           {/* ─── Done ─── */}
-          {step === 4 && (
+          {step === 5 && (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ marginBottom: 16 }}>
                 <div style={{

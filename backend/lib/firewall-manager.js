@@ -247,4 +247,43 @@ async function removeFirewallRules(serverName) {
   }
 }
 
-module.exports = { ensureFirewallRules, removeFirewallRules };
+/**
+ * Ensure a firewall rule exists for the Citadel panel port.
+ * Idempotent — skips if the rule already exists.
+ *
+ * @param {number} port - The panel port (default 3001)
+ * @returns {Promise<{success: boolean, created: string[], skipped: string[], errors: string[]}>}
+ */
+async function ensurePanelFirewallRule(port = 3001) {
+  const ruleName = `Citadel - Panel (${port} TCP)`;
+  const created = [];
+  const skipped = [];
+  const errors = [];
+
+  // Check if rule already exists (non-elevated)
+  const safeName = ruleName.replace(/'/g, "''");
+  const check = await runPS(
+    `Get-NetFirewallRule -DisplayName '${safeName}' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty DisplayName`
+  );
+  if (check.success && check.stdout.trim()) {
+    skipped.push(ruleName);
+    return { success: true, created, skipped, errors };
+  }
+
+  // Create the rule (elevated)
+  const command = `New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Action Allow -Protocol TCP -LocalPort ${port} -Profile Any -Enabled True -ErrorAction Stop`;
+  const result = await runElevatedPS(command);
+
+  if (result.success) {
+    created.push(ruleName);
+    logger.info({ rule: ruleName }, 'Panel firewall rule created');
+  } else {
+    const msg = `Failed to create rule "${ruleName}" (elevation may have been declined)`;
+    errors.push(msg);
+    logger.warn({ rule: ruleName }, 'Failed to create panel firewall rule');
+  }
+
+  return { success: errors.length === 0, created, skipped, errors };
+}
+
+module.exports = { ensureFirewallRules, removeFirewallRules, ensurePanelFirewallRule };

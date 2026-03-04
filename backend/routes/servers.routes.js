@@ -114,6 +114,8 @@ module.exports = function(app) {
     ctx.servers.push(srv);
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
     initServerState(srv.id);
+    // Auto-apply firewall rules for the new server's ports
+    ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort }).catch(() => {});
     addAudit(req.user.id, req.user.username, 'server.create', `Created server: ${name}`);
     const { rconPassword: _, ...safe } = srv;
     res.json(safe);

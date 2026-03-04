@@ -4,6 +4,7 @@
  * Once setup is complete, they return 403.
  */
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const { v4: uuid } = require('uuid');
@@ -12,6 +13,7 @@ const logger = require('../lib/logger');
 const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { ensureSteamCMD, validateSteamLogin } = require('../lib/steamcmd');
+const { ensurePanelFirewallRule } = require('../lib/firewall-manager');
 
 /**
  * Determine setup state:
@@ -111,8 +113,90 @@ module.exports = function(app) {
   });
 
   /**
+   * GET /api/setup/network/detect
+   * Auto-detect non-loopback IPv4 addresses on the machine.
+   */
+  app.get('/api/setup/network/detect', requireSetupMode, (req, res) => {
+    const interfaces = [];
+    const nets = os.networkInterfaces();
+    for (const [name, addrs] of Object.entries(nets)) {
+      for (const addr of addrs) {
+        if (addr.family === 'IPv4' && !addr.internal) {
+          interfaces.push({ name, ip: addr.address });
+        }
+      }
+    }
+    res.json({
+      interfaces,
+      recommended: interfaces.length > 0 ? interfaces[0].ip : '',
+    });
+  });
+
+  /**
+   * POST /api/setup/network
+   * Step 2: Configure server IP, CORS origins, and optionally open firewall for the panel.
+   */
+  app.post('/api/setup/network', requireSetupMode, async (req, res) => {
+    const { ip, enableFirewall } = req.body;
+    if (!ip || !ip.trim()) {
+      return res.status(400).json({ error: 'IP address is required' });
+    }
+
+    const serverIp = ip.trim();
+
+    try {
+      // Update DAYZ_SERVER_IP in .env
+      const envPath = path.join(__dirname, '..', '..', '.env');
+      if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, 'utf-8');
+        if (envContent.match(/^#?\s*DAYZ_SERVER_IP=/m)) {
+          envContent = envContent.replace(/^#?\s*DAYZ_SERVER_IP=.*$/m, `DAYZ_SERVER_IP=${serverIp}`);
+        } else {
+          envContent += `\nDAYZ_SERVER_IP=${serverIp}`;
+        }
+        fs.writeFileSync(envPath, envContent);
+      }
+
+      // Update in-memory config
+      ctx.CONFIG.dayz.ip = serverIp;
+
+      // Update allowedOrigins in citadel.config.json to include the new IP
+      const configFilePath = ctx.CONFIG._configFilePath;
+      const port = ctx.CONFIG.port;
+      const newOrigin = `http://${serverIp}:${port}`;
+      const currentOrigins = ctx.CONFIG.allowedOrigins || [];
+      if (!currentOrigins.includes(newOrigin)) {
+        currentOrigins.push(newOrigin);
+        ctx.CONFIG.allowedOrigins = currentOrigins;
+
+        // Persist to citadel.config.json
+        if (configFilePath && fs.existsSync(configFilePath)) {
+          try {
+            const raw = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
+            if (!raw.server) raw.server = {};
+            raw.server.allowedOrigins = currentOrigins;
+            fs.writeFileSync(configFilePath, JSON.stringify(raw, null, 2) + '\n', 'utf-8');
+          } catch { /* non-critical */ }
+        }
+      }
+
+      // Apply panel firewall rule if requested
+      let firewallResult = null;
+      if (enableFirewall) {
+        firewallResult = await ensurePanelFirewallRule(port);
+      }
+
+      logger.info({ ip: serverIp, firewall: !!enableFirewall }, 'Setup: Network configured');
+      res.json({ success: true, ip: serverIp, firewallResult });
+    } catch (err) {
+      logger.error({ err }, 'Setup: Failed to configure network');
+      res.status(500).json({ error: err.message || 'Failed to configure network' });
+    }
+  });
+
+  /**
    * POST /api/setup/steam
-   * Step 2: Configure SteamCMD path and credentials.
+   * Step 3: Configure SteamCMD path and credentials.
    */
   app.post('/api/setup/steam', requireSetupMode, async (req, res) => {
     const { steamCmdPath, username, password } = req.body;
