@@ -7,29 +7,39 @@ export default function ConsolePage({ serverId }) {
   const [logs, setLogs] = useState([]);
   const [cmd, setCmd] = useState('');
   const outputRef = useRef(null);
-  useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(d => setLogs(Array.isArray(d) ? d : [])); }, [serverId]);
+
+  // Fetch server console output (DayZ stdout)
+  useEffect(() => { API.get(`/api/servers/${serverId}/console?limit=500`).then(d => setLogs(Array.isArray(d) ? d : [])); }, [serverId]);
+
+  // Live updates: server console output + RCON responses
   useEffect(() => {
-    const handler = (data) => { if (data.serverId === serverId) setLogs(l => [data, ...l].slice(0, 500)); };
+    const consoleHandler = (data) => {
+      if (data.serverId === serverId) setLogs(l => [data, ...l].slice(0, 500));
+    };
     const rconHandler = (data) => {
       setLogs(l => [{ timestamp: data.timestamp || new Date().toISOString(), level: 'info', source: 'rcon', message: data.message }, ...l].slice(0, 500));
     };
-    socket.on('log', handler);
+    socket.on('consoleLog', consoleHandler);
     socket.on('rconMessage', rconHandler);
-    return () => { socket.off('log', handler); socket.off('rconMessage', rconHandler); };
+    return () => { socket.off('consoleLog', consoleHandler); socket.off('rconMessage', rconHandler); };
   }, [serverId, socket]);
+
   useEffect(() => { if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight; }, [logs]);
+
   const sendCmd = async () => {
     if (!cmd.trim()) return;
     await API.post(`/api/servers/${serverId}/rcon`, { command: cmd });
     setCmd('');
   };
+
   return (
     <div className="console-wrap">
       <div className="console-output" ref={outputRef}>
         {[...logs].reverse().map((log, i) => (
           <div key={i} className={`console-line ${log.level || ''}`}>
             <span className="console-time">{new Date(log.timestamp).toLocaleTimeString()}</span>
-            <span>[{log.source || 'system'}]</span> {log.message}
+            {log.source === 'rcon' && <span>[rcon] </span>}
+            {log.message}
           </div>
         ))}
       </div>
