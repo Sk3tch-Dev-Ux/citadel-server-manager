@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 
 export default function LogsPage({ serverId }) {
+  const socket = useSocket();
   const [logs, setLogs] = useState([]);
   const [filter, setFilter] = useState('all');
   useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(d => setLogs(Array.isArray(d) ? d : [])); }, [serverId]);
+  useEffect(() => {
+    const handler = (data) => { if (data.serverId === serverId) setLogs(l => [data, ...l].slice(0, 500)); };
+    socket.on('log', handler);
+    return () => socket.off('log', handler);
+  }, [serverId, socket]);
   const filtered = filter === 'all' ? logs : logs.filter(l => l.level === filter);
   return (
     <div>

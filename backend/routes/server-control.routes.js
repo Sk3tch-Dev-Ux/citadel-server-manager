@@ -13,6 +13,7 @@ const { restartServer } = require('../lib/server-lifecycle');
 const { triggerManualUpdate, getUpdateState, cancelUpdate } = require('../lib/auto-updater');
 const { authForServer } = require('../middleware/auth');
 const { ensureFirewallRules } = require('../lib/firewall-manager');
+const { stopTailing } = require('../lib/rpt-tailer');
 
 module.exports = function(app) {
   app.get('/api/servers/:id/status', authForServer(), (req, res) => {
@@ -146,6 +147,7 @@ module.exports = function(app) {
       if (state.rcon?.loggedIn) { try { await state.rcon.shutdown(); await new Promise(r => setTimeout(r, 5000)); } catch {} }
       await killProcess(state.pid, srv.executable);
       stopSidecar(srv.id); // Stop the sidecar alongside the server
+      stopTailing(srv.id); // Stop RPT log streaming
       state.status = 'stopped'; state.pid = null; state.process = null; state.players = []; state.startedAt = null;
       ctx.io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
       ctx.io.emit('players', { serverId: srv.id, players: [] });
@@ -158,6 +160,7 @@ module.exports = function(app) {
       res.json({ message: 'Stopped' });
     } catch {
       stopSidecar(srv.id);
+      stopTailing(srv.id);
       state.status = 'stopped'; state.pid = null;
       ctx.io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
       res.json({ message: 'Stopped (force)' });

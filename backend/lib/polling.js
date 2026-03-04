@@ -37,6 +37,7 @@ const { startSidecar, stopSidecar } = require('./sidecar-manager');
 const { triggerAutoUpdate } = require('./auto-updater');
 const { collectMetrics } = require('./metrics-collector');
 const { handleCrash } = require('./crash-detector');
+const { startTailing, stopTailing } = require('./rpt-tailer');
 
 // ─── Steam Update Polling ────────────────────────────────
 let lastModVersions = {};
@@ -90,10 +91,12 @@ function startMetricsPolling() {
         if (state.status !== 'running') {
           state.status = 'running'; state.startedAt = state.startedAt || new Date().toISOString();
           ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+          startTailing(srv.id);
         }
         // Delegate metrics collection + health monitoring to focused module
         await collectMetrics(srv, state, pid);
       } else if (state.status === 'running') {
+        stopTailing(srv.id);
         // Delegate crash handling to focused module
         await handleCrash(srv, state);
       }
@@ -121,6 +124,7 @@ async function runStartupDetection() {
       addLog(srv.id, 'info', 'server', `Detected running process for ${srv.name} (PID: ${pid})`);
       applyProcessSettings(pid, srv);
       startSidecar(srv); // Ensure sidecar is running for live map
+      startTailing(srv.id); // Stream RPT output to console
     } else if (pid && claimedPids.has(pid)) {
       addLog(srv.id, 'info', 'server', `PID ${pid} already claimed by another server instance — skipping`);
     }
@@ -147,6 +151,7 @@ async function runStartupDetection() {
           if (alive) {
             state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString();
             ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+            startTailing(srv.id);
             addLog(srv.id, 'info', 'server', 'Auto-start: server is now running');
           } else {
             addLog(srv.id, 'error', 'server', 'Auto-start: process disappeared after grace period');
@@ -257,6 +262,7 @@ function gracefulShutdown(httpServer, signal) {
       try { state.rcon.disconnect(); } catch (err) { logger.debug({ err }, 'RCON disconnect during shutdown'); }
     }
     stopSidecar(srv.id);
+    stopTailing(srv.id);
   }
   // Close WebSocket server
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
