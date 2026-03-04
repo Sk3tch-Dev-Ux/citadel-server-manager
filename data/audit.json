@@ -1,5 +1,93 @@
 [
   {
+    "id": "702e7678-af25-4cc1-bcf4-23ecb419221b",
+    "timestamp": "2026-03-04T21:47:19.431Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.world.set-weather",
+    "details": "World action 'set-weather' executed"
+  },
+  {
+    "id": "eaed3d15-3cf3-4a9a-b8f1-cc0395af18f3",
+    "timestamp": "2026-03-04T21:46:53.951Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.world.wipe-ai",
+    "details": "World action 'wipe-ai' executed"
+  },
+  {
+    "id": "7a3d95e4-b005-4e07-9c11-c710f530821f",
+    "timestamp": "2026-03-04T21:44:55.082Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.world.wipe-vehicles",
+    "details": "World action 'wipe-vehicles' executed"
+  },
+  {
+    "id": "1dd9ddf3-d58d-48a9-ae05-6d18328f0964",
+    "timestamp": "2026-03-04T21:44:34.262Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.teleport",
+    "details": "Teleported undefined to [6408, 0, 6202]"
+  },
+  {
+    "id": "ad4eb3ae-f4d9-443b-b420-458d09afa6dc",
+    "timestamp": "2026-03-04T21:42:57.270Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.teleport",
+    "details": "Teleported undefined to [6616, 0, 7696]"
+  },
+  {
+    "id": "1b2252ae-1460-47f3-a405-01ce2c0d804e",
+    "timestamp": "2026-03-04T21:42:12.767Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.world.set-time",
+    "details": "World action 'set-time' executed"
+  },
+  {
+    "id": "2be38a33-de0e-4630-afa0-254b7a7312cc",
+    "timestamp": "2026-03-04T21:41:23.294Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.world.set-weather",
+    "details": "World action 'set-weather' executed"
+  },
+  {
+    "id": "b7171a77-bd40-4d71-9007-f46f04c4c9d5",
+    "timestamp": "2026-03-04T21:40:57.830Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.player.heal",
+    "details": "Player action 'heal' on undefined"
+  },
+  {
+    "id": "cb2355b8-80d6-456a-a106-371ff4b6a448",
+    "timestamp": "2026-03-04T21:40:49.339Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.player.strip",
+    "details": "Player action 'strip' on undefined"
+  },
+  {
+    "id": "33fc34e4-9f8d-4a13-98b3-97d9b12bed57",
+    "timestamp": "2026-03-04T21:37:22.725Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "b84d26e6-eca7-44e1-996d-53145ee0e480",
+    "timestamp": "2026-03-04T21:37:04.442Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
     "id": "f2f88a71-a0ca-4f17-a4a8-f235747c5b3b",
     "timestamp": "2026-03-04T21:17:50.143Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

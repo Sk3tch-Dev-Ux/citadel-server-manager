@@ -44,22 +44,34 @@ class CitadelWorldActions
         float snow = CitadelJson.ExtractFloat(params, "snow");
         float wind = CitadelJson.ExtractFloat(params, "wind");
 
+        // GameLabs pattern: Set(value, value, value) — proven to work
         if (params.IndexOf("\"overcast\"") >= 0)
-            weather.GetOvercast().Set(Math.Clamp(overcast, 0, 1), 0, 300);
+        {
+            if (weather.GetOvercast())
+                weather.GetOvercast().Set(overcast, overcast, overcast);
+        }
 
         if (params.IndexOf("\"rain\"") >= 0)
-            weather.GetRain().Set(Math.Clamp(rain, 0, 1), 0, 300);
+        {
+            if (weather.GetRain())
+                weather.GetRain().Set(rain, rain, rain);
+        }
 
         if (params.IndexOf("\"fog\"") >= 0)
-            weather.GetFog().Set(Math.Clamp(fog, 0, 1), 0, 300);
+        {
+            if (weather.GetFog())
+                weather.GetFog().Set(fog, fog, fog);
+        }
 
         if (params.IndexOf("\"snow\"") >= 0)
-            weather.GetSnowfall().Set(Math.Clamp(snow, 0, 1), 0, 300);
+        {
+            if (weather.GetSnowfall())
+                weather.GetSnowfall().Set(snow, snow, snow);
+        }
 
         if (params.IndexOf("\"wind\"") >= 0)
         {
-            float windMag = Math.Clamp(wind, 0, 1) * 20.0;
-            weather.SetWindSpeed(windMag);
+            weather.SetWindSpeed(wind);
         }
 
         Print("[Citadel] Weather updated");
@@ -75,10 +87,11 @@ class CitadelWorldActions
             return false;
         }
 
-        weather.GetOvercast().Set(0, 0, 300);
-        weather.GetRain().Set(0, 0, 60);
-        weather.GetFog().Set(0, 0, 60);
-        weather.GetSnowfall().Set(0, 0, 60);
+        // GameLabs pattern: Set(0.0, 0.0, 0.0) for clear sky
+        if (weather.GetOvercast()) weather.GetOvercast().Set(0.0, 0.0, 0.0);
+        if (weather.GetRain()) weather.GetRain().Set(0.0, 0.0, 0.0);
+        if (weather.GetFog()) weather.GetFog().Set(0.0, 0.0, 0.0);
+        if (weather.GetSnowfall()) weather.GetSnowfall().Set(0.0, 0.0, 0.0);
         weather.SetWindSpeed(0);
 
         Print("[Citadel] Weather cleared (sunny)");
