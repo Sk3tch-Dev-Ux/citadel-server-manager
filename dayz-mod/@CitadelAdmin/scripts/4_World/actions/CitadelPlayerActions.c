@@ -27,12 +27,8 @@ class CitadelPlayerActions
 
     static bool HealPlayer(string cmdJson, out string error)
     {
-        string steamId = CitadelJson.ExtractString(cmdJson, "steamId");
-        if (steamId == "")
-        {
-            string params = CitadelJson.ExtractParams(cmdJson);
-            steamId = CitadelJson.ExtractString(params, "steamId");
-        }
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -103,6 +99,7 @@ class CitadelPlayerActions
         string itemClass = CitadelJson.ExtractString(params, "itemClass");
         int quantity = CitadelJson.ExtractInt(params, "quantity");
         if (quantity <= 0) quantity = 1;
+        if (quantity > 100) quantity = 100;
 
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player)
@@ -217,8 +214,9 @@ class CitadelPlayerActions
             return false;
         }
 
-        // Server-side broadcast via admin chat
-        GetGame().ChatPlayer("[Citadel] " + text);
+        // Send message to specific player via their RPC channel
+        Param1<string> msgParam = new Param1<string>("[Citadel] " + text);
+        GetGame().RPCSingleParam(player, ERPCs.RPC_USER_ACTION_MESSAGE, msgParam, true, player.GetIdentity());
 
         Print("[Citadel] Messaged player: " + steamId);
         return true;

@@ -19,6 +19,9 @@ const { executeHooks } = require('./lifecycle-hooks');
 const { MAX_RESTART_ATTEMPTS, RESTART_DELAY_MS } = require('./constants');
 const { stopTailing, startTailing } = require('./rpt-tailer');
 
+/** Guard: prevent concurrent restart operations on the same server */
+const _pendingRestarts = new Set();
+
 /**
  * Restart a server through the full lifecycle: kill -> wait -> hooks -> spawn -> verify.
  *
@@ -37,6 +40,12 @@ async function restartServer(serverId, reason) {
 
   const state = ctx.serverStates[serverId];
   if (!state) return { success: false, error: 'Server state not initialized' };
+
+  if (_pendingRestarts.has(serverId)) {
+    addLog(serverId, 'warn', 'server', `Restart already in progress, skipping: ${reason}`);
+    return { success: false, error: 'Restart already in progress' };
+  }
+  _pendingRestarts.add(serverId);
 
   addLog(serverId, 'info', 'server', `Restart initiated: ${reason}`);
   state.status = 'stopping';
@@ -121,6 +130,7 @@ async function restartServer(serverId, reason) {
     sendDiscordWebhook(`💥 **${srv.name}** failed to restart after ${MAX_RESTART_ATTEMPTS} attempts`);
   }
 
+  _pendingRestarts.delete(serverId);
   return { success: restartSuccess, error: lastError };
 }
 

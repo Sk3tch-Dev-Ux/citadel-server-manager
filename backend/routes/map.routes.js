@@ -5,7 +5,7 @@
  * CFTools SDK calls). Map data/config endpoints remain unchanged.
  */
 const ctx = require('../lib/context');
-const auth = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 const { getMapConfig, getMapData, addMapEvent, clearMapEvents } = require('../lib/map-data');
 const { addAudit } = require('../lib/audit');
 const {
@@ -18,14 +18,14 @@ const { AUDIT_CODES, VEHICLE_ACTION_MAP, WORLD_ACTION_MAP, PLAYER_ACTION_MAP } =
 module.exports = function(app) {
 
   // ─── Map Configuration ──────────────────────────────────
-  app.get('/api/servers/:id/map/config', auth('server.view'), (req, res) => {
+  app.get('/api/servers/:id/map/config', authForServer('server.view'), (req, res) => {
     const config = getMapConfig(req.params.id);
     if (!config) return res.status(404).json({ error: 'Server not found' });
     res.json(config);
   });
 
   // ─── Map Data (players + vehicles + events) ─────────────
-  app.get('/api/servers/:id/map/data', auth('server.view'), (req, res) => {
+  app.get('/api/servers/:id/map/data', authForServer('server.view'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
     const data = getMapData(req.params.id);
@@ -34,7 +34,7 @@ module.exports = function(app) {
   });
 
   // ─── Teleport Player to Coordinates ─────────────────────
-  app.post('/api/servers/:id/map/teleport', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/map/teleport', authForServer('server.rcon'), async (req, res) => {
     const { steamId, x, y, z } = req.body;
     if (!steamId || x == null || z == null) {
       return res.status(400).json({ error: 'steamId, x, and z required' });
@@ -56,7 +56,7 @@ module.exports = function(app) {
   });
 
   // ─── Vehicle Actions from Map ───────────────────────────
-  app.post('/api/servers/:id/map/vehicle-action', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/map/vehicle-action', authForServer('server.rcon'), async (req, res) => {
     const { vehicleId, action } = req.body;
     if (!vehicleId || !action) {
       return res.status(400).json({ error: 'vehicleId and action required' });
@@ -77,7 +77,7 @@ module.exports = function(app) {
   });
 
   // ─── World Actions from Map ─────────────────────────────
-  app.post('/api/servers/:id/map/world-action', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/map/world-action', authForServer('server.rcon'), async (req, res) => {
     const { action, params } = req.body;
     if (!action) return res.status(400).json({ error: 'action required' });
 
@@ -114,7 +114,7 @@ module.exports = function(app) {
   });
 
   // ─── Spawn Item at World Position ───────────────────────
-  app.post('/api/servers/:id/map/spawn-at', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/map/spawn-at', authForServer('server.rcon'), async (req, res) => {
     const { itemClass, x, y, z } = req.body;
     if (!itemClass || x == null || z == null) {
       return res.status(400).json({ error: 'itemClass, x, and z required' });
@@ -132,7 +132,7 @@ module.exports = function(app) {
   });
 
   // ─── Player Actions from Map ────────────────────────────
-  app.post('/api/servers/:id/map/player-action', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/map/player-action', authForServer('server.rcon'), async (req, res) => {
     const { steamId, action } = req.body;
     if (!steamId || !action) {
       return res.status(400).json({ error: 'steamId and action required' });
@@ -172,7 +172,7 @@ module.exports = function(app) {
   });
 
   // ─── Manual Event Management ────────────────────────────
-  app.post('/api/servers/:id/map/events', auth('server.rcon'), (req, res) => {
+  app.post('/api/servers/:id/map/events', authForServer('server.rcon'), (req, res) => {
     const { type, displayName, position, ttl } = req.body;
     if (!type || !position) return res.status(400).json({ error: 'type and position required' });
 
@@ -182,7 +182,7 @@ module.exports = function(app) {
     res.json({ message: 'Event added' });
   });
 
-  app.delete('/api/servers/:id/map/events', auth('server.rcon'), (req, res) => {
+  app.delete('/api/servers/:id/map/events', authForServer('server.rcon'), (req, res) => {
     clearMapEvents(req.params.id);
     addAudit(req.user.id, req.user.username, 'map.event.clear', 'Cleared all map events');
     res.json({ message: 'Events cleared' });

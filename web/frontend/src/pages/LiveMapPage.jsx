@@ -15,6 +15,12 @@ import {
   Sun, CloudRain, Wind, X, Zap, AlertTriangle, Info,
 } from '../components/Icon';
 
+// ─── HTML Escaping (prevents XSS in Leaflet divIcon HTML) ─
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ─── Leaflet Icon Factory ──────────────────────────────
 function createDivIcon(className, html, size = [28, 28]) {
   return L.divIcon({
@@ -30,7 +36,7 @@ function createDivIcon(className, html, size = [28, 28]) {
 function playerIcon(name) {
   return createDivIcon('map-marker--player',
     `<div class="map-marker__dot map-marker__dot--player"></div>
-     <div class="map-marker__label">${name || ''}</div>`
+     <div class="map-marker__label">${escapeHtml(name)}</div>`
   );
 }
 

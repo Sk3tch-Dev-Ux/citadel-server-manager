@@ -82,7 +82,8 @@ module.exports = function(app) {
     if (!state) return res.status(404).json({ error: 'Server not found' });
     const mod = state.modList.find(m => m.workshopId === req.params.workshopId);
     if (!mod) return res.status(404).json({ error: 'Mod not found' });
-    Object.assign(mod, req.body);
+    const allowed = ['enabled', 'order', 'type', 'name'];
+    for (const key of allowed) { if (req.body[key] !== undefined) mod[key] = req.body[key]; }
     updateLaunchParamsMods(req.params.id);
     res.json(mod);
   });
