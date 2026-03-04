@@ -68,36 +68,44 @@ function computeMinutesUntil(job, state) {
 
 /**
  * Execute the configured action for a scheduler job.
- * Lazy-loads modules to avoid circular dependencies.
+ * Uses shared lifecycle functions for start/stop/restart.
  */
 async function executeAction(actionType, job, server, state) {
   switch (actionType) {
     case 'restart':
     default: {
-      state.rcon.restart();
-      logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed restart');
+      const { restartServer } = require('./server-lifecycle');
+      const result = await restartServer(server.id, `Scheduled: ${job.title}`);
+      if (result.success) {
+        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed restart');
+      } else {
+        logger.error({ serverId: server.id, job: job.title, error: result.error }, 'Scheduler: restart failed');
+        throw new Error(result.error || 'Restart failed');
+      }
       break;
     }
 
     case 'stop': {
-      const { killProcess } = require('./process-manager');
-      if (state.pid) {
-        await killProcess(state.pid, server.executable || 'DayZServer_x64.exe');
+      const { stopServer } = require('./server-lifecycle');
+      const result = await stopServer(server.id, `Scheduled: ${job.title}`);
+      if (result.success) {
         logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed stop');
       } else {
-        logger.warn({ serverId: server.id, job: job.title }, 'Scheduler: stop requested but no PID found');
+        logger.error({ serverId: server.id, job: job.title, error: result.error }, 'Scheduler: stop failed');
+        throw new Error(result.error || 'Stop failed');
       }
       break;
     }
 
     case 'start': {
-      if (state.status === 'running' || state.status === 'starting') {
-        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: start skipped — server already running');
-        break;
+      const { startServer } = require('./server-lifecycle');
+      const result = await startServer(server.id, `Scheduled: ${job.title}`);
+      if (result.success) {
+        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed start');
+      } else {
+        logger.error({ serverId: server.id, job: job.title, error: result.error }, 'Scheduler: start failed');
+        throw new Error(result.error || 'Start failed');
       }
-      const { spawnDayZServer } = require('./process-manager');
-      spawnDayZServer(server);
-      logger.info({ serverId: server.id, job: job.title }, 'Scheduler: executed start');
       break;
     }
 
@@ -148,15 +156,9 @@ async function executeAction(actionType, job, server, state) {
  */
 async function processJob(job, server, state) {
   if (!job.enabled) return;
-  if (!state.rcon) return;
 
   const minutesUntil = computeMinutesUntil(job, state);
   if (minutesUntil === Infinity) return;
-
-  // Check day-of-week for absolute jobs
-  if (!job.useUptime && job.daysOfWeek && job.daysOfWeek.length > 0 && job.daysOfWeek.length < 7) {
-    if (!job.daysOfWeek.includes(new Date().getDay())) return;
-  }
 
   // Prevent re-firing within 2 minutes of last execution
   if (job.lastExecutedAt) {
@@ -177,47 +179,50 @@ async function processJob(job, server, state) {
   // Only start processing when within the warning window
   if (minutesUntil > maxWarning + 1) return;
 
-  // ─── Broadcast warnings ───
-  const warningMinutes = [...(job.warningMinutes || [])].sort((a, b) => b - a);
-  for (const warnMin of warningMinutes) {
-    if (minutesUntil <= warnMin && !pending.warned.has(warnMin)) {
-      const msg = (job.warningMessage || 'Server restart in {minutes} minute(s)!')
-        .replace(/\{minutes\}/g, String(warnMin));
+  // ─── Pre-action steps (warnings, lock, kick) require RCON + running server ───
+  if (state.rcon && state.status === 'running') {
+    // Broadcast warnings
+    const warningMinutes = [...(job.warningMinutes || [])].sort((a, b) => b - a);
+    for (const warnMin of warningMinutes) {
+      if (minutesUntil <= warnMin && !pending.warned.has(warnMin)) {
+        const msg = (job.warningMessage || 'Server restart in {minutes} minute(s)!')
+          .replace(/\{minutes\}/g, String(warnMin));
+        try {
+          await state.rcon.say(msg);
+          logger.info({ serverId: server.id, job: job.title, warning: warnMin }, 'Scheduler: broadcast warning');
+        } catch (err) {
+          logger.warn({ err, serverId: server.id }, 'Scheduler: failed to broadcast warning');
+        }
+        pending.warned.add(warnMin);
+      }
+    }
+
+    // Lock server
+    if (job.lockServer && minutesUntil <= (job.lockMinutesBefore || 2) && !pending.locked) {
       try {
-        await state.rcon.say(msg);
-        logger.info({ serverId: server.id, job: job.title, warning: warnMin }, 'Scheduler: broadcast warning');
+        await state.rcon.lock();
+        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: locked server');
       } catch (err) {
-        logger.warn({ err, serverId: server.id }, 'Scheduler: failed to broadcast warning');
+        logger.warn({ err }, 'Scheduler: failed to lock server');
       }
-      pending.warned.add(warnMin);
+      pending.locked = true;
     }
-  }
 
-  // ─── Lock server ───
-  if (job.lockServer && minutesUntil <= (job.lockMinutesBefore || 2) && !pending.locked) {
-    try {
-      await state.rcon.lock();
-      logger.info({ serverId: server.id, job: job.title }, 'Scheduler: locked server');
-    } catch (err) {
-      logger.warn({ err }, 'Scheduler: failed to lock server');
-    }
-    pending.locked = true;
-  }
-
-  // ─── Kick players ───
-  if (job.kickPlayers && minutesUntil <= (job.kickMinutesBefore || 1) && !pending.kicked) {
-    try {
-      for (const player of (state.players || [])) {
-        await state.rcon.kick(player.id || player.number, 'Server restarting');
+    // Kick players
+    if (job.kickPlayers && minutesUntil <= (job.kickMinutesBefore || 1) && !pending.kicked) {
+      try {
+        for (const player of (state.players || [])) {
+          await state.rcon.kick(player.id || player.number, 'Server restarting');
+        }
+        logger.info({ serverId: server.id, job: job.title, count: (state.players || []).length }, 'Scheduler: kicked players');
+      } catch (err) {
+        logger.warn({ err }, 'Scheduler: failed to kick players');
       }
-      logger.info({ serverId: server.id, job: job.title, count: (state.players || []).length }, 'Scheduler: kicked players');
-    } catch (err) {
-      logger.warn({ err }, 'Scheduler: failed to kick players');
+      pending.kicked = true;
     }
-    pending.kicked = true;
   }
 
-  // ─── Execute action ───
+  // ─── Execute action (works regardless of RCON/server status) ───
   if (minutesUntil <= 0) {
     const actionType = job.action || 'restart';
 
@@ -301,9 +306,9 @@ function processMessenger(server, state) {
 async function tick() {
   for (const server of ctx.servers) {
     const state = ctx.serverStates[server.id];
-    if (!state || state.status !== 'running') continue;
+    if (!state) continue;
 
-    // Process scheduler jobs
+    // Process scheduler jobs (always — start/restart actions need to fire even if server is stopped)
     if (state.scheduler && state.scheduler.jobs) {
       for (const job of state.scheduler.jobs) {
         try {
@@ -314,11 +319,13 @@ async function tick() {
       }
     }
 
-    // Process messenger
-    try {
-      processMessenger(server, state);
-    } catch (err) {
-      logger.error({ err, serverId: server.id }, 'Messenger tick error');
+    // Process messenger (only when running — needs RCON)
+    if (state.status === 'running') {
+      try {
+        processMessenger(server, state);
+      } catch (err) {
+        logger.error({ err, serverId: server.id }, 'Messenger tick error');
+      }
     }
   }
 }
