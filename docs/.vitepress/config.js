@@ -4,6 +4,9 @@ export default defineConfig({
   title: 'Citadel',
   description: 'Enterprise DayZ server management platform — web UI, Discord bot, and in-game admin mod.',
   base: '/DayzServerController/',
+  ignoreDeadLinks: [
+    /^https?:\/\/localhost/,
+  ],
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/DayzServerController/favicon.svg' }],
     ['meta', { name: 'theme-color', content: '#6366F1' }],
