@@ -94,7 +94,10 @@ modded class PlayerBase extends ManBase
 
         if (!GetGame().IsServer()) return;
 
-        // Resolve weapon type
+        // PERF: Early exit — skip all stat/log work if player already dead
+        if (m_DeathSyncSent || CommitedSuicide()) return;
+
+        // Resolve weapon type (only needed if we're still alive or processing death)
         m_CitLastWeaponType = "";
         if (source)
         {
@@ -105,12 +108,23 @@ modded class PlayerBase extends ManBase
                 m_CitLastWeaponType = source.GetType();
         }
 
-        // Check if player is already dead (prevent logging hits on dead bodies)
-        // Matching GameLabs: if(this.m_DeathSyncSent || this.CommitedSuicide()) return;
-        if (m_DeathSyncSent || CommitedSuicide()) return;
+        // PERF: Early exit — skip stat tracking + logging when disabled
+        if (!source || !GetCitadel().GetConfiguration().GetTrackPlayerStats())
+        {
+            // Still need to handle death processing even without stat tracking
+            if (!IsAlive() && !m_CitDeathProcessed)
+            {
+                m_CitDeathProcessed = true;
+                CitProcessKill(source);
+            }
+            else if (IsAlive())
+            {
+                m_CitDeathProcessed = false;
+            }
+            return;
+        }
 
-        // Track hit stats for the attacker
-        if (source && GetCitadel().GetConfiguration().GetTrackPlayerStats())
+        // Track hit stats for the attacker (config already checked above)
         {
             PlayerBase attacker = null;
 
@@ -298,8 +312,11 @@ modded class PlayerBase extends ManBase
         float unitsPerSecond = distance / diff;
         m_CitPosition = currentPosition;
 
+        // PERF: Cache config reference once (called every ~2s per player)
+        CitadelConfiguration cfg = GetCitadel().GetConfiguration();
+
         // Distance tracking
-        if (GetCitadel().GetConfiguration().GetTrackPlayerStats())
+        if (cfg.GetTrackPlayerStats())
         {
             if (distance > 0.1 && distance < 500.0) // Ignore teleports
             {
@@ -315,20 +332,20 @@ modded class PlayerBase extends ManBase
         }
 
         // Speed hack detection
-        if (GetCitadel().GetConfiguration().GetSpeedCheckEnabled())
+        if (cfg.GetSpeedCheckEnabled())
         {
             float warningThreshold;
             if (IsInVehicle())
-                warningThreshold = GetCitadel().GetConfiguration().GetSpeedCheckThresholdVehicle();
+                warningThreshold = cfg.GetSpeedCheckThresholdVehicle();
             else
-                warningThreshold = GetCitadel().GetConfiguration().GetSpeedCheckThresholdFoot();
+                warningThreshold = cfg.GetSpeedCheckThresholdFoot();
 
             if (unitsPerSecond >= warningThreshold)
             {
                 m_CitSpeedHackTriggers++;
                 GetCitadel().GetLogger().Warn(string.Format("[SPEED-HACK] Potential speed-hack player=%1, distance=%2u, unitsPerSecond=%3 [threshold=%4, inVehicle=%5, triggers=%6]", m_CitSteamId, distance, unitsPerSecond, warningThreshold, IsInVehicle(), m_CitSpeedHackTriggers));
 
-                int triggerThreshold = GetCitadel().GetConfiguration().GetSpeedCheckTriggerCount();
+                int triggerThreshold = cfg.GetSpeedCheckTriggerCount();
                 if (m_CitSpeedHackTriggers >= triggerThreshold)
                 {
                     CitadelEventLogger.LogSpeedFlag(m_CitSteamId, m_CitName, unitsPerSecond, GetPosition(), m_CitSpeedHackTriggers);

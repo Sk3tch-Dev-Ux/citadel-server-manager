@@ -3,6 +3,11 @@
  *
  * Placed in 3_Game so it's available to all layers (4_World actions, 5_Mission command runner).
  * Provides lightweight JSON string extraction without full parser overhead.
+ *
+ * PERFORMANCE: Optimized for compact JSON from sidecar (no spaces after colons).
+ *   - ExtractFloat: Limited whitespace scan (max 4 chars) to avoid unbounded
+ *     Substring() loop allocating strings per character.
+ *   - ExtractString: Fast path for compact format first.
  */
 class CitadelJson
 {
@@ -42,8 +47,13 @@ class CitadelJson
             return 0;
 
         int start = pos + search.Length();
+
+        // Skip whitespace — bounded to 4 chars max (sidecar writes compact JSON)
+        // Each Substring() allocates a new string, so we limit iterations.
+        int maxSkip = start + 4;
+        if (maxSkip > json.Length()) maxSkip = json.Length();
         string ch;
-        while (start < json.Length())
+        while (start < maxSkip)
         {
             ch = json.Substring(start, 1);
             if (ch != " " && ch != "\t")
@@ -54,14 +64,16 @@ class CitadelJson
         if (start >= json.Length())
             return 0;
 
-        int end = start;
-        ch = json.Substring(end, 1);
-        while (end < json.Length() && ch != "," && ch != "}" && ch != " ")
-        {
-            end++;
-            if (end < json.Length())
-                ch = json.Substring(end, 1);
-        }
+        // Find end of numeric value using IndexOfFrom (avoids per-char Substring loop)
+        int endComma = json.IndexOfFrom(start, ",");
+        int endBrace = json.IndexOfFrom(start, "}");
+        int endSpace = json.IndexOfFrom(start, " ");
+
+        // Pick the nearest delimiter
+        int end = json.Length();
+        if (endComma >= 0 && endComma < end) end = endComma;
+        if (endBrace >= 0 && endBrace < end) end = endBrace;
+        if (endSpace >= 0 && endSpace < end) end = endSpace;
 
         if (end <= start)
             return 0;

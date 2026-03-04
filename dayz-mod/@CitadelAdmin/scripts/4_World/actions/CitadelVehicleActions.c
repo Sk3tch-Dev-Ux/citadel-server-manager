@@ -1,27 +1,48 @@
 /**
  * CitadelVehicleActions — In-game vehicle action execution.
+ *
+ * PERFORMANCE: FindVehicle() uses CitadelCore vehicle registry (O(n) on tracked
+ * vehicles, typically ~20-50) instead of GetObjectsAtPosition() which does a
+ * 15km radius world scan returning tens of thousands of objects (~20-100ms).
  */
 class CitadelVehicleActions
 {
+    /**
+     * Find a vehicle by network ID using the tracked vehicle registry.
+     * Falls back to world scan only if registry lookup fails.
+     */
     static CarScript FindVehicle(string vehicleId)
     {
         if (vehicleId == "")
             return null;
 
-        CarScript car;
+        // ─── Fast path: registry lookup (O(n) on ~20-50 tracked vehicles) ───
+        if (GetCitadel())
+        {
+            CitadelTrackedVehicle tracked = GetCitadel().FindVehicleByNetId(vehicleId);
+            if (tracked && tracked.Ref())
+            {
+                CarScript car = CarScript.Cast(tracked.Ref());
+                if (car) return car;
+            }
+        }
 
+        // ─── Slow fallback: world scan (only if vehicle wasn't in registry) ───
+        // This handles edge cases where a vehicle exists but wasn't tracked
+        // (e.g., spawned externally, or registry missed it)
+        CarScript foundCar;
         ref array<Object> objects = new array<Object>();
         ref array<CargoBase> proxyCargos = new array<CargoBase>();
         GetGame().GetObjectsAtPosition(Vector(7500, 0, 7500), 15000, objects, proxyCargos);
 
         foreach (Object o : objects)
         {
-            car = CarScript.Cast(o);
-            if (car)
+            foundCar = CarScript.Cast(o);
+            if (foundCar)
             {
-                EntityAI entity = EntityAI.Cast(car);
+                EntityAI entity = EntityAI.Cast(foundCar);
                 if (entity && CitGetNetworkIDString(entity) == vehicleId)
-                    return car;
+                    return foundCar;
             }
         }
 

@@ -5,6 +5,13 @@
  * Manages: configuration, logging, player statistics, entity registries,
  * server metrics, and lifecycle state.
  *
+ * PERFORMANCE optimizations:
+ *   - GetActiveAICount/GetActiveAnimalCount: 2-second TTL cache
+ *     (avoids iterating all tracked AI on every poll)
+ *   - RemoveAI/RemoveVehicle/RemoveEvent: swap-and-pop O(1) removal
+ *     (avoids O(n) array shift from Remove(idx))
+ *   - Exit(): flushes CitadelEventLogger buffer before clearing
+ *
  * Access via global function: GetCitadel()
  */
 class CitadelCore
@@ -41,6 +48,12 @@ class CitadelCore
     private int m_VehicleCount;
     private int m_EntityCount;
 
+    // Cached active AI counts (avoids full iteration on every poll)
+    private int m_CachedActiveInfectedCount;
+    private int m_CachedActiveAnimalCount;
+    private float m_LastAICountTime;
+    private static const float AI_COUNT_CACHE_TTL = 2.0;
+
     void CitadelCore()
     {
         m_IsServer = GetGame().IsDedicatedServer();
@@ -63,6 +76,10 @@ class CitadelCore
         m_AnimalCount = 0;
         m_VehicleCount = 0;
         m_EntityCount = 0;
+
+        m_CachedActiveInfectedCount = 0;
+        m_CachedActiveAnimalCount = 0;
+        m_LastAICountTime = 0;
 
         // Load configuration
         m_Configuration = new CitadelConfiguration();
@@ -102,6 +119,10 @@ class CitadelCore
     {
         m_BlockProcessing = true;
         if (m_Logger) m_Logger.Info("(Core) Attempting graceful exit");
+
+        // Flush any buffered event log entries before shutdown
+        CitadelEventLogger.FlushBuffer();
+
         m_TrackedAI.Clear();
         m_TrackedVehicles.Clear();
         m_TrackedEvents.Clear();
@@ -212,28 +233,45 @@ class CitadelCore
     void IncrEntityCount() { m_EntityCount++; }
     void DecrEntityCount() { m_EntityCount--; }
 
+    /**
+     * Get count of active (moving) infected AI.
+     * PERFORMANCE: Cached for AI_COUNT_CACHE_TTL seconds.
+     * When called, also calculates animal count (one iteration for both).
+     */
     int GetActiveAICount()
     {
-        int count = 0;
+        float now = GetGame().GetTickTime();
+        if ((now - m_LastAICountTime) < AI_COUNT_CACHE_TTL)
+            return m_CachedActiveInfectedCount;
+
+        // Recalculate both counts in a single pass
+        m_CachedActiveInfectedCount = 0;
+        m_CachedActiveAnimalCount = 0;
         for (int i = 0; i < m_TrackedAI.Count(); i++)
         {
             CitadelTrackedAI ai = m_TrackedAI.Get(i);
-            if (ai && ai.IsInfected() && ai.IsActive())
-                count++;
+            if (ai && ai.IsActive())
+            {
+                if (ai.IsInfected())
+                    m_CachedActiveInfectedCount++;
+                else
+                    m_CachedActiveAnimalCount++;
+            }
         }
-        return count;
+        m_LastAICountTime = now;
+        return m_CachedActiveInfectedCount;
     }
 
+    /**
+     * Get count of active (moving) animals.
+     * PERFORMANCE: Piggybacks on GetActiveAICount() cache — no extra iteration.
+     */
     int GetActiveAnimalCount()
     {
-        int count = 0;
-        for (int i = 0; i < m_TrackedAI.Count(); i++)
-        {
-            CitadelTrackedAI ai = m_TrackedAI.Get(i);
-            if (ai && !ai.IsInfected() && ai.IsActive())
-                count++;
-        }
-        return count;
+        float now = GetGame().GetTickTime();
+        if ((now - m_LastAICountTime) >= AI_COUNT_CACHE_TTL)
+            GetActiveAICount(); // Recalculate both in one pass
+        return m_CachedActiveAnimalCount;
     }
 
     // ─── AI Registry ─────────────────────────────────
@@ -249,6 +287,11 @@ class CitadelCore
         m_Logger.Debug(string.Format("RegisterAI(%1) - %2", tracked.Ref().GetType(), aiType));
     }
 
+    /**
+     * PERFORMANCE: Swap-and-pop removal — O(1) instead of O(n) array shift.
+     * Order of m_TrackedAI doesn't matter, so we swap the target with the
+     * last element and remove from the end (no shifting).
+     */
     void RemoveAI(CitadelTrackedAI tracked)
     {
         if (!tracked || IsProcessingBlocked()) return;
@@ -258,7 +301,13 @@ class CitadelCore
             string typeName = "unknown";
             if (tracked.Ref())
                 typeName = tracked.Ref().GetType();
-            m_TrackedAI.Remove(idx);
+
+            // Swap with last element, then remove last (O(1))
+            int last = m_TrackedAI.Count() - 1;
+            if (idx < last)
+                m_TrackedAI.SwapItems(idx, last);
+            m_TrackedAI.Remove(last);
+
             m_Logger.Debug(string.Format("RemoveAI(%1) - success", typeName));
         }
     }
@@ -274,13 +323,19 @@ class CitadelCore
         m_Logger.Debug(string.Format("RegisterVehicle(%1<%2>) - success", tracked.GetID(), tracked.GetClassName()));
     }
 
+    /**
+     * PERFORMANCE: Swap-and-pop removal — O(1) instead of O(n) array shift.
+     */
     void RemoveVehicle(CitadelTrackedVehicle tracked)
     {
         if (!tracked || IsProcessingBlocked()) return;
         int idx = m_TrackedVehicles.Find(tracked);
         if (idx >= 0)
         {
-            m_TrackedVehicles.Remove(idx);
+            int last = m_TrackedVehicles.Count() - 1;
+            if (idx < last)
+                m_TrackedVehicles.SwapItems(idx, last);
+            m_TrackedVehicles.Remove(last);
             m_Logger.Debug(string.Format("RemoveVehicle(%1) - success", tracked.GetID()));
         }
     }
@@ -371,13 +426,19 @@ class CitadelCore
         m_Logger.Debug(string.Format("RegisterEventRadiusExclusiveSecondary(%1<%2>) - success", tracked.GetClassName(), tracked.GetDisplayName()));
     }
 
+    /**
+     * PERFORMANCE: Swap-and-pop removal — O(1) instead of O(n) array shift.
+     */
     void RemoveEvent(CitadelTrackedEvent tracked)
     {
         if (!tracked || IsProcessingBlocked()) return;
         int idx = m_TrackedEvents.Find(tracked);
         if (idx >= 0)
         {
-            m_TrackedEvents.Remove(idx);
+            int last = m_TrackedEvents.Count() - 1;
+            if (idx < last)
+                m_TrackedEvents.SwapItems(idx, last);
+            m_TrackedEvents.Remove(last);
             m_Logger.Debug(string.Format("RemoveEvent(%1) - success", tracked.GetClassName()));
         }
     }

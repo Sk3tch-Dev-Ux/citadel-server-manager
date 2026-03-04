@@ -62,14 +62,14 @@ modded class BaseBuildingBase
     {
         super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
 
+        // PERF: Early exit chain — cheapest checks first
         if (!GetGame().IsServer()) return;
+        if (!source) return;
         if (!GetCitadel().GetConfiguration().GetTrackPlayerStats()) return;
 
         // Resolve attacker via weapon hierarchy parent (GameLabs pattern)
-        PlayerBase attacker;
-        if (source)
-            attacker = PlayerBase.Cast(source.GetHierarchyParent());
-        if (!source || !attacker) return;
+        PlayerBase attacker = PlayerBase.Cast(source.GetHierarchyParent());
+        if (!attacker) return;
 
         string steamId = attacker.GetCitSteamId();
         if (steamId != "")

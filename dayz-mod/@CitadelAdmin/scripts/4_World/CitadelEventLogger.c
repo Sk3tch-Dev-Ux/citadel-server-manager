@@ -1,8 +1,17 @@
 /**
  * CitadelEventLogger — Comprehensive game event logging to JSONL.
  *
- * Logs all significant game events to $profile:Citadel/events.jsonl
- * in a format the plugin agent tails and forwards to Citadel Cloud.
+ * PERFORMANCE: Two major optimizations vs. original:
+ *   1. BATCHED I/O — Events buffer in memory and flush together
+ *      (one file open/close per batch, not per event)
+ *   2. string.Format() — Each log method builds JSON in 1-2 calls
+ *      instead of 8-15 string concatenations (Enforce strings are immutable,
+ *      each += allocates a new string on the heap)
+ *
+ * Flush triggers:
+ *   - Buffer reaches BATCH_SIZE (20 events)
+ *   - FLUSH_INTERVAL (2s) elapsed — checked from DayZGame.OnUpdate()
+ *   - CitadelCore.Exit() for graceful shutdown
  *
  * Event types:
  *   kill, suicide, death, connect, playtime, chat,
@@ -13,236 +22,203 @@ class CitadelEventLogger
 {
     static const string EVENT_FILE = "$profile:Citadel/events.jsonl";
 
+    // ─── Write Buffer ────────────────────────────────────
+    static ref array<string> s_EventBuffer = new array<string>();
+    static float s_LastFlushTime = 0;
+    static const int BATCH_SIZE = 20;
+    static const float FLUSH_INTERVAL = 2.0;
+
     // ─── Player Events ────────────────────────────────
 
     static void LogKill(string killerSteamId, string killerName, string victimSteamId, string victimName, float distance, string weapon)
     {
-        string json = "{";
-        json += "\"type\":\"kill\",";
-        json += "\"steamId\":\"" + killerSteamId + "\",";
-        json += "\"name\":\"" + EscapeJson(killerName) + "\",";
-        json += "\"victimSteamId\":\"" + victimSteamId + "\",";
-        json += "\"victimName\":\"" + EscapeJson(victimName) + "\",";
-        json += "\"distance\":" + distance.ToString() + ",";
-        json += "\"weapon\":\"" + EscapeJson(weapon) + "\",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"kill\",\"steamId\":\"%1\",\"name\":\"%2\",\"victimSteamId\":\"%3\",\"victimName\":\"%4\",\"distance\":%5,\"weapon\":\"%6\",\"timestamp\":\"%7\"}",
+            killerSteamId, EscapeJson(killerName), victimSteamId, EscapeJson(victimName),
+            distance.ToString(), EscapeJson(weapon), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     static void LogSuicide(string steamId, string name)
     {
-        string json = "{";
-        json += "\"type\":\"suicide\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"suicide\",\"steamId\":\"%1\",\"name\":\"%2\",\"timestamp\":\"%3\"}",
+            steamId, EscapeJson(name), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     static void LogDeath(string steamId, string name, string cause)
     {
-        string json = "{";
-        json += "\"type\":\"death\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"cause\":\"" + EscapeJson(cause) + "\",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"death\",\"steamId\":\"%1\",\"name\":\"%2\",\"cause\":\"%3\",\"timestamp\":\"%4\"}",
+            steamId, EscapeJson(name), EscapeJson(cause), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     static void LogConnect(string steamId, string name)
     {
-        string json = "{";
-        json += "\"type\":\"connect\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"connect\",\"steamId\":\"%1\",\"name\":\"%2\",\"timestamp\":\"%3\"}",
+            steamId, EscapeJson(name), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     static void LogDisconnect(string steamId, string name, int sessionSeconds)
     {
-        string json = "{";
-        json += "\"type\":\"playtime\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"seconds\":" + sessionSeconds.ToString() + ",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"playtime\",\"steamId\":\"%1\",\"name\":\"%2\",\"seconds\":%3,\"timestamp\":\"%4\"}",
+            steamId, EscapeJson(name), sessionSeconds.ToString(), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     static void LogChat(string steamId, string name, string message, string channel)
     {
-        string json = "{";
-        json += "\"type\":\"chat\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"message\":\"" + EscapeJson(message) + "\",";
-        json += "\"channel\":\"" + channel + "\",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"chat\",\"steamId\":\"%1\",\"name\":\"%2\",\"message\":\"%3\",\"channel\":\"%4\",\"timestamp\":\"%5\"}",
+            steamId, EscapeJson(name), EscapeJson(message), channel, CitadelLogger.GetISO8601Static()
+        ));
     }
 
     // ─── Combat Events ────────────────────────────────
 
     static void LogHit(string victimSteamId, string victimName, string attackerSteamId, string attackerName, string weapon, string ammo, string zone, float damage)
     {
-        string json = "{";
-        json += "\"type\":\"hit\",";
-        json += "\"steamId\":\"" + victimSteamId + "\",";
-        json += "\"name\":\"" + EscapeJson(victimName) + "\",";
-        json += "\"attackerSteamId\":\"" + attackerSteamId + "\",";
-        json += "\"attackerName\":\"" + EscapeJson(attackerName) + "\",";
-        json += "\"weapon\":\"" + EscapeJson(weapon) + "\",";
-        json += "\"ammo\":\"" + EscapeJson(ammo) + "\",";
-        json += "\"zone\":\"" + EscapeJson(zone) + "\",";
-        json += "\"damage\":" + damage.ToString() + ",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        // Split into two Format calls — LogHit has 10 fields, exceeds 9-param limit
+        string front = string.Format(
+            "{\"type\":\"hit\",\"steamId\":\"%1\",\"name\":\"%2\",\"attackerSteamId\":\"%3\",\"attackerName\":\"%4\",\"weapon\":\"%5\",",
+            victimSteamId, EscapeJson(victimName), attackerSteamId, EscapeJson(attackerName), EscapeJson(weapon)
+        );
+        AppendLine(front + string.Format(
+            "\"ammo\":\"%1\",\"zone\":\"%2\",\"damage\":%3,\"timestamp\":\"%4\"}",
+            EscapeJson(ammo), EscapeJson(zone), damage.ToString(), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     // ─── Base Building Events ─────────────────────────
 
     static void LogBaseBuilt(string steamId, string className, vector pos)
     {
-        string json = "{";
-        json += "\"type\":\"baseBuilt\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"className\":\"" + EscapeJson(className) + "\",";
-        json += "\"position\":{";
-        json += "\"x\":" + pos[0].ToString() + ",";
-        json += "\"y\":" + pos[1].ToString() + ",";
-        json += "\"z\":" + pos[2].ToString();
-        json += "},";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"baseBuilt\",\"steamId\":\"%1\",\"className\":\"%2\",\"position\":{\"x\":%3,\"y\":%4,\"z\":%5},\"timestamp\":\"%6\"}",
+            steamId, EscapeJson(className), pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     static void LogBaseDestroyed(string ownerSteamId, string className, vector pos)
     {
-        string json = "{";
-        json += "\"type\":\"baseDestroyed\",";
-        json += "\"steamId\":\"" + ownerSteamId + "\",";
-        json += "\"className\":\"" + EscapeJson(className) + "\",";
-        json += "\"position\":{";
-        json += "\"x\":" + pos[0].ToString() + ",";
-        json += "\"y\":" + pos[1].ToString() + ",";
-        json += "\"z\":" + pos[2].ToString();
-        json += "},";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"baseDestroyed\",\"steamId\":\"%1\",\"className\":\"%2\",\"position\":{\"x\":%3,\"y\":%4,\"z\":%5},\"timestamp\":\"%6\"}",
+            ownerSteamId, EscapeJson(className), pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     // ─── Dynamic World Events ─────────────────────────
 
     static void LogDynamicEvent(string action, string className, string displayName, vector pos)
     {
-        string json = "{";
-        json += "\"type\":\"dynamicEvent\",";
-        json += "\"action\":\"" + action + "\",";
-        json += "\"className\":\"" + EscapeJson(className) + "\",";
-        json += "\"displayName\":\"" + EscapeJson(displayName) + "\",";
-        json += "\"position\":{";
-        json += "\"x\":" + pos[0].ToString() + ",";
-        json += "\"y\":" + pos[1].ToString() + ",";
-        json += "\"z\":" + pos[2].ToString();
-        json += "},";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"dynamicEvent\",\"action\":\"%1\",\"className\":\"%2\",\"displayName\":\"%3\",\"position\":{\"x\":%4,\"y\":%5,\"z\":%6},\"timestamp\":\"%7\"}",
+            action, EscapeJson(className), EscapeJson(displayName),
+            pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     // ─── Anti-Cheat Events ────────────────────────────
 
     static void LogSpeedFlag(string steamId, string name, float speed, vector pos, int triggerCount)
     {
-        string json = "{";
-        json += "\"type\":\"speedFlag\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"speed\":" + speed.ToString() + ",";
-        json += "\"triggers\":" + triggerCount.ToString() + ",";
-        json += "\"position\":{";
-        json += "\"x\":" + pos[0].ToString() + ",";
-        json += "\"y\":" + pos[1].ToString() + ",";
-        json += "\"z\":" + pos[2].ToString();
-        json += "},";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"speedFlag\",\"steamId\":\"%1\",\"name\":\"%2\",\"speed\":%3,\"triggers\":%4,\"position\":{\"x\":%5,\"y\":%6,\"z\":%7},\"timestamp\":\"%8\"}",
+            steamId, EscapeJson(name), speed.ToString(), triggerCount.ToString(),
+            pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     // ─── Session Statistics ───────────────────────────
 
     static void LogSession(string steamId, string name, int durationSeconds, string statsJson)
     {
-        string json = "{";
-        json += "\"type\":\"session\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"duration\":" + durationSeconds.ToString() + ",";
-        json += "\"stats\":" + statsJson + ",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"session\",\"steamId\":\"%1\",\"name\":\"%2\",\"duration\":%3,\"stats\":%4,\"timestamp\":\"%5\"}",
+            steamId, EscapeJson(name), durationSeconds.ToString(), statsJson, CitadelLogger.GetISO8601Static()
+        ));
     }
 
     // ─── Vehicle Events ───────────────────────────────
 
     static void LogVehicleEnter(string steamId, string name, string vehicleType, vector pos)
     {
-        string json = "{";
-        json += "\"type\":\"vehicleEnter\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"vehicleType\":\"" + EscapeJson(vehicleType) + "\",";
-        json += "\"position\":{";
-        json += "\"x\":" + pos[0].ToString() + ",";
-        json += "\"y\":" + pos[1].ToString() + ",";
-        json += "\"z\":" + pos[2].ToString();
-        json += "},";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"vehicleEnter\",\"steamId\":\"%1\",\"name\":\"%2\",\"vehicleType\":\"%3\",\"position\":{\"x\":%4,\"y\":%5,\"z\":%6},\"timestamp\":\"%7\"}",
+            steamId, EscapeJson(name), EscapeJson(vehicleType),
+            pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), CitadelLogger.GetISO8601Static()
+        ));
     }
 
     static void LogVehicleExit(string steamId, string name, string vehicleType, vector pos)
     {
-        string json = "{";
-        json += "\"type\":\"vehicleExit\",";
-        json += "\"steamId\":\"" + steamId + "\",";
-        json += "\"name\":\"" + EscapeJson(name) + "\",";
-        json += "\"vehicleType\":\"" + EscapeJson(vehicleType) + "\",";
-        json += "\"position\":{";
-        json += "\"x\":" + pos[0].ToString() + ",";
-        json += "\"y\":" + pos[1].ToString() + ",";
-        json += "\"z\":" + pos[2].ToString();
-        json += "},";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
-        AppendLine(json);
+        AppendLine(string.Format(
+            "{\"type\":\"vehicleExit\",\"steamId\":\"%1\",\"name\":\"%2\",\"vehicleType\":\"%3\",\"position\":{\"x\":%4,\"y\":%5,\"z\":%6},\"timestamp\":\"%7\"}",
+            steamId, EscapeJson(name), EscapeJson(vehicleType),
+            pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), CitadelLogger.GetISO8601Static()
+        ));
     }
 
-    // ─── Utility ──────────────────────────────────────
+    // ─── Buffer Management ──────────────────────────────
 
+    /**
+     * Add a JSON line to the write buffer.
+     * Auto-flushes when buffer is full.
+     */
     protected static void AppendLine(string line)
     {
+        s_EventBuffer.Insert(line);
+
+        // Flush immediately if buffer is full
+        if (s_EventBuffer.Count() >= BATCH_SIZE)
+        {
+            FlushBuffer();
+        }
+    }
+
+    /**
+     * Called from DayZGame.OnUpdate() every server tick.
+     * Flushes buffered events if FLUSH_INTERVAL has elapsed.
+     * Cost: one float comparison per frame (~zero overhead).
+     */
+    static void CheckFlush()
+    {
+        if (s_EventBuffer.Count() == 0) return;
+
+        float now = GetGame().GetTickTime();
+        if ((now - s_LastFlushTime) >= FLUSH_INTERVAL)
+        {
+            FlushBuffer();
+        }
+    }
+
+    /**
+     * Write all buffered events to disk in a single file open/close.
+     * Called from CheckFlush(), AppendLine() overflow, and CitadelCore.Exit().
+     */
+    static void FlushBuffer()
+    {
+        if (s_EventBuffer.Count() == 0) return;
+
         FileHandle file = OpenFile(EVENT_FILE, FileMode.APPEND);
         if (file != 0)
         {
-            FPrintln(file, line);
+            for (int i = 0; i < s_EventBuffer.Count(); i++)
+            {
+                FPrintln(file, s_EventBuffer.Get(i));
+            }
             CloseFile(file);
         }
+        s_EventBuffer.Clear();
+        s_LastFlushTime = GetGame().GetTickTime();
     }
+
+    // ─── Utility ──────────────────────────────────────
 
     static string EscapeJson(string input)
     {

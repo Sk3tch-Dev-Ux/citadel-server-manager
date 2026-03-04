@@ -6,6 +6,13 @@
  *   - Counts ticks per second for FPS
  *   - Tracks tick time deltas for avg/low/high
  *   - Stores results in CitadelCore via SetServerFPS() / SetTickTimes()
+ *
+ * PERFORMANCE: Two optimizations vs. original:
+ *   1. RING BUFFER — Replaces Insert()+Remove(0) with circular overwrite.
+ *      Remove(0) shifts the entire array left (O(n=60) every frame).
+ *      Ring buffer just overwrites the oldest slot (O(1) every frame).
+ *   2. EVENT FLUSH — Calls CitadelEventLogger.CheckFlush() every tick
+ *      so buffered events are written to disk within ~2 seconds.
  */
 modded class DayZGame
 {
@@ -17,8 +24,11 @@ modded class DayZGame
     float cit_tickTimeHigh = 0.0;
     float cit_tickTimeLow = 0.0;
 
-    ref array<float> cit_tickTimes = {};
+    // Ring buffer for tick times (replaces dynamic array with Remove(0))
+    ref array<float> cit_tickTimes = new array<float>();
     int cit_tickTimeAverageWindow = 60;
+    int cit_ringIndex = 0;
+    bool cit_ringFull = false;
 
     bool cit_missionLoaded = false;
 
@@ -38,14 +48,20 @@ modded class DayZGame
 
     float CitGetAverageTickTime()
     {
-        if (this.cit_tickTimes.Count() < this.cit_tickTimeAverageWindow) return 0.0;
+        int count;
+        if (this.cit_ringFull)
+            count = this.cit_tickTimeAverageWindow;
+        else
+            count = this.cit_tickTimes.Count();
+
+        if (count < this.cit_tickTimeAverageWindow) return 0.0;
 
         float sum = 0.0;
-        for (int i = 0; i < this.cit_tickTimes.Count(); i++)
+        for (int i = 0; i < count; i++)
         {
             sum += this.cit_tickTimes.Get(i);
         }
-        return (sum / this.cit_tickTimes.Count());
+        return (sum / count);
     }
 
     override void OnUpdate(bool doSim, float timeslice)
@@ -55,6 +71,9 @@ modded class DayZGame
         if (g_Game && g_Game.IsServer())
         {
             this.cit_ticksTotal++;
+
+            // Flush buffered event log entries (cost: one float comparison)
+            CitadelEventLogger.CheckFlush();
 
             float tickTime = GetGame().GetTickTime();
 
@@ -85,10 +104,23 @@ modded class DayZGame
                             this.cit_tickTimeHigh = diff;
                         }
 
-                        this.cit_tickTimes.Insert(diff);
-                        if (this.cit_tickTimes.Count() > this.cit_tickTimeAverageWindow)
+                        // ─── Ring Buffer Write (O(1) vs. O(n) Remove(0)) ───
+                        if (this.cit_ringFull)
                         {
-                            this.cit_tickTimes.Remove(0);
+                            // Overwrite oldest entry in-place
+                            this.cit_tickTimes.Set(this.cit_ringIndex, diff);
+                        }
+                        else
+                        {
+                            // Still filling the buffer
+                            this.cit_tickTimes.Insert(diff);
+                        }
+
+                        this.cit_ringIndex++;
+                        if (this.cit_ringIndex >= this.cit_tickTimeAverageWindow)
+                        {
+                            this.cit_ringIndex = 0;
+                            this.cit_ringFull = true;
                         }
                     }
                 }

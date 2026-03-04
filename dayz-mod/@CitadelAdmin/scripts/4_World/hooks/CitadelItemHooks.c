@@ -93,6 +93,14 @@ modded class ItemBase extends InventoryItem
 
         if (!GetGame().IsServer()) return;
 
+        // PERF: Cache config reference once (avoids 4x GetCitadel().GetConfiguration() chain)
+        CitadelConfiguration cfg = GetCitadel().GetConfiguration();
+        bool trackItems = cfg.GetTrackItems();
+        bool trackMarkers = cfg.GetTrackMapMarkers();
+
+        // Early exit if nothing to track
+        if (!trackItems && !trackMarkers) return;
+
         PlayerBase oldPlayer = null;
         PlayerBase newPlayer = null;
 
@@ -109,10 +117,10 @@ modded class ItemBase extends InventoryItem
         if (newPlayer && newPlayer != oldPlayer)
         {
             // Unregister map marker when picked up
-            if (GetCitadel().GetConfiguration().GetTrackMapMarkers())
+            if (trackMarkers)
                 UnregisterMapMarker();
 
-            if (GetCitadel().GetConfiguration().GetTrackItems())
+            if (trackItems)
             {
                 string steamId = newPlayer.GetCitSteamId();
                 if (steamId != "")
@@ -141,10 +149,10 @@ modded class ItemBase extends InventoryItem
         if (oldPlayer && oldPlayer != newPlayer)
         {
             // Re-register map marker when dropped back to world
-            if (!newPlayer && GetCitadel().GetConfiguration().GetTrackMapMarkers())
+            if (!newPlayer && trackMarkers)
                 RegisterMapMarker();
 
-            if (GetCitadel().GetConfiguration().GetTrackItems())
+            if (trackItems)
             {
                 string dropSteamId = oldPlayer.GetCitSteamId();
                 if (dropSteamId != "")
