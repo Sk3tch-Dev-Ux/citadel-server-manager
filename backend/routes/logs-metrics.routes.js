@@ -1,16 +1,24 @@
 /**
- * Server logs and metrics routes.
+ * Server logs, console output, and metrics routes.
  */
 const ctx = require('../lib/context');
 const { authForServer } = require('../middleware/auth');
+const { getConsoleBuffer } = require('../lib/rpt-tailer');
 
 module.exports = function(app) {
+  // System logs (lifecycle events: start, stop, health, updates)
   app.get('/api/servers/:id/logs', authForServer('logs.view'), (req, res) => {
     const { level, source, limit = 200 } = req.query;
     let logs = ctx.serverStates[req.params.id]?.logs || [];
     if (level) logs = logs.filter(l => l.level === level);
     if (source) logs = logs.filter(l => l.source === source);
     res.json(logs.slice(0, parseInt(limit)));
+  });
+
+  // Server console output (DayZ stdout from server_console.log)
+  app.get('/api/servers/:id/console', authForServer('logs.view'), (req, res) => {
+    const limit = parseInt(req.query.limit) || 500;
+    res.json(getConsoleBuffer(req.params.id).slice(0, limit));
   });
 
   app.get('/api/servers/:id/metrics', authForServer('metrics.view'), (req, res) => {

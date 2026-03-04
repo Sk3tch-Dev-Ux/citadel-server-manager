@@ -139,9 +139,17 @@ function spawnDayZServer(serverConfig) {
   // Always launch the executable directly with launch params.
   const params = (serverConfig.launchParams || '').split(' ').filter(Boolean);
 
-  logger.info({ server: serverConfig.name, executable: execPath, params }, 'Spawning server process');
-  const child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: 'ignore' });
+  // Redirect stdout/stderr to server_console.log (like CFTools Architect)
+  const profileDir = serverConfig.profileDir || 'profiles';
+  const profilePath = path.isAbsolute(profileDir) ? profileDir : path.join(installDir, profileDir);
+  if (!fs.existsSync(profilePath)) fs.mkdirSync(profilePath, { recursive: true });
+  const consolePath = path.join(profilePath, 'server_console.log');
+  const logFd = fs.openSync(consolePath, 'w');
+
+  logger.info({ server: serverConfig.name, executable: execPath, params, consolePath }, 'Spawning server process');
+  const child = spawn(execPath, params, { cwd: installDir, detached: true, stdio: ['ignore', logFd, logFd] });
   child.unref();
+  fs.closeSync(logFd); // Close parent's copy — child keeps its own fd
 
   // Track early failures — if the process exits or errors within 10s, capture it
   const launchFailed = new Promise((resolve) => {
