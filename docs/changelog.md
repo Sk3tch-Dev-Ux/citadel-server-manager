@@ -1,5 +1,44 @@
 # Changelog
 
+## v2.2.0
+
+_Discord Bot Enterprise Overhaul_
+
+### Architecture
+- **Modular rewrite** — Refactored 1,518-line monolithic `bot.js` into 26 files across a clean module structure (`commands/`, `handlers/`, `ui/`, `utils/`)
+- **Auto-loading commands** — Command files auto-discovered and registered via `commands/index.js`
+- **Button dispatch map** — 35 button handlers use object lookup instead of if/else chain
+- **Shared server lifecycle** — `startServer()` and `stopServer()` extracted into `server-lifecycle.js`, used by both web panel and Discord bot (includes port checks, firewall rules, lifecycle hooks, sidecar/tailer management, notifications, webhooks)
+
+### Added
+- **5 new slash commands** — `/playerinfo`, `/heal`, `/kill`, `/teleport`, `/spawnitem` for admin actions directly from Discord
+- **Per-user cooldown system** — Three tiers: query (3s), admin (10s), control (30s) preventing spam
+- **Input validation** — Steam64 ID format checking, coordinate validation, workshop ID validation, broadcast message sanitization
+- **Markdown escaping** — Player names in embeds escaped to prevent Discord formatting exploits
+- **Audit trail attribution** — Every Discord action (start, stop, kick, RCON, mod operations, admin actions) logged with Discord username and user ID
+- **Webhook integration** — Kick, mod install/uninstall, and all lifecycle actions now fire webhooks from Discord
+- **Multi-server presence** — Bot status rotates through all servers showing aggregate player count
+- **Modal builders** — Dedicated modal constructors for broadcast, RCON, player info, kick, teleport, spawn item, mod install, mod actions
+
+### Fixed
+- **`Events.ClientReady`** — Bot was silently failing to register the ready handler (was using string `'clientReady'` instead of `Events.ClientReady` enum)
+- **Interaction deferral** — All API calls now properly `deferReply()`/`deferUpdate()` before processing, preventing 3-second timeout failures
+- **"undefined" responses** — All handlers now fallback to `'Action completed'` instead of showing `undefined`
+- **Discord lifecycle bypass** — Start/stop/restart from Discord now uses the same lifecycle as the web panel (was missing hooks, sidecar, firewall, port checks, notifications)
+
+### Security
+- **Discord input sanitization** — `sanitize.js` validates all user inputs before they reach the backend
+- **Broadcast sanitization** — Control characters stripped, message length capped at 256 characters
+- **Cooldown enforcement** — Rate limiting prevents rapid-fire abuse of admin commands
+- **Fail-closed admin check** — All admin commands verify role before processing
+
+### Changed
+- `server-control.routes.js` — Simplified start/stop routes to delegate to shared `startServer()`/`stopServer()` from `server-lifecycle.js`
+- `discord.routes.js` — Rewritten to use shared lifecycle functions, add audit logging on all mutating actions, consume Discord user attribution params
+
+### Removed
+- **Deprecated GameLabs aliases** — `gameLabsHeal`, `gameLabsKill`, `gameLabsTeleport`, `gameLabsSpawnItem` action aliases removed from `discord.routes.js`
+
 ## v2.1.0
 
 _Security Hardening, Console Overhaul, and Live Map Enhancements_

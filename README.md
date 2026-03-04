@@ -47,14 +47,19 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 - **File-based IPC** — Commands relayed through the Citadel Sidecar (no network dependency)
 
 ### Discord Bot
+- **Modular architecture** — 26-file enterprise structure (commands, handlers, UI, utils)
 - **Interactive control panel** — Persistent button panel deployable in any channel
-- **Slash commands** — `/panel`, `/status`, `/players`, `/rcon`, `/broadcast`, `/restart`, `/setup`
+- **13 slash commands** — `/panel`, `/setup`, `/status`, `/players`, `/rcon`, `/broadcast`, `/restart`, `/playerinfo`, `/heal`, `/kill`, `/teleport`, `/spawnitem`
 - **Full mod management** — Install, uninstall, enable, disable mods from Discord
-- **Live feeds** — Chat feed, killfeed, leaderboard, watchlist from Discord
+- **Admin actions** — Heal, kill, teleport players, spawn items — all with player select menus
+- **Live feeds** — Chat feed, killfeed, leaderboard, watchlist, time/weather from Discord
+- **Per-user cooldowns** — Three-tier rate limiting (query 3s, admin 10s, control 30s)
+- **Input validation** — Steam64 IDs, coordinates, workshop IDs, and broadcasts validated before API calls
+- **Audit trail** — Every Discord action logged with Discord username attribution
 - **Role-based permissions** — Admin actions restricted to a configurable Discord role (fail-closed)
 - **Confirmation dialogs** — Prevents accidental server shutdowns
-- **Modal inputs** — RCON commands and broadcasts via Discord modals
-- **Auto-updating presence** — Bot status shows player count in real-time
+- **Modal inputs** — RCON commands, broadcasts, teleport coordinates, item spawning via Discord modals
+- **Multi-server presence** — Bot status rotates through all servers showing total player count
 
 ---
 
@@ -227,7 +232,7 @@ Citadel/
 │   │   ├── polling.js         # Metrics, status, and update polling
 │   │   ├── rcon-client.js     # BattlEye RCON UDP client
 │   │   ├── firewall-manager.js# Windows Firewall rule management
-│   │   ├── server-lifecycle.js# Restart/recovery orchestration
+│   │   ├── server-lifecycle.js# Start/stop/restart orchestration
 │   │   ├── sidecar-manager.js # Sidecar process lifecycle
 │   │   ├── rpt-tailer.js      # RPT log streaming to console
 │   │   ├── service-installer.js# Windows Service installer
@@ -243,7 +248,7 @@ Citadel/
 │       └── contexts/          # Auth, Socket, Toast providers
 ├── sidecar/                   # Node.js bridge to DayZ mod
 ├── dayz-mod/@CitadelAdmin/    # EnScript server-side mod
-├── discord-bot/               # Discord bot with slash commands
+├── discord-bot/               # Modular Discord bot (commands, handlers, UI, utils)
 ├── data/                      # JSON file persistence (runtime)
 ├── docs/                      # VitePress documentation site
 └── package.json               # Root workspace with service scripts
@@ -267,6 +272,9 @@ Citadel/
 - **JWT authentication** — 24-hour token expiry, required on all API routes
 - **Fail-fast secrets** — Server refuses to start without `JWT_SECRET` and `DISCORD_BOT_API_KEY`
 - **Fail-closed Discord admin** — If `DISCORD_ADMIN_ROLE_ID` is not set, all admin actions are denied
+- **Discord input sanitization** — Steam64 IDs, coordinates, workshop IDs validated; broadcasts sanitized; markdown escaped in player names
+- **Discord cooldowns** — Per-user per-action rate limiting (query 3s, admin 10s, control 30s)
+- **Discord audit attribution** — All bot actions logged with Discord username and user ID
 - **Credential stripping** — RCON passwords never included in API responses
 - **Concurrent operation guards** — Prevents duplicate restart operations on the same server
 - **Elevated firewall ops** — Firewall rules use UAC elevation with temp script files (no persistent admin shell)
@@ -358,6 +366,11 @@ pm2 startup
 | `/rcon <command>` | Execute an RCON command | Yes |
 | `/broadcast <message>` | Send a message to all players | Yes |
 | `/restart [countdown]` | Restart with optional countdown (now/60s/5m) | Yes |
+| `/playerinfo <steamid>` | Look up a player's stats and history | Yes |
+| `/heal <steamid>` | Heal a player to full health | Yes |
+| `/kill <steamid>` | Kill a player | Yes |
+| `/teleport <steamid> <x> <y> [z]` | Teleport a player to coordinates | Yes |
+| `/spawnitem <steamid> <item> [qty]` | Spawn an item on a player (max 100) | Yes |
 
 ---
 
