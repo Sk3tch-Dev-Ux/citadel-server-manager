@@ -1,5 +1,109 @@
 [
   {
+    "id": "fa5506d7-39e2-473c-b40a-853fd0910b3c",
+    "timestamp": "2026-03-04T01:50:37.459Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarted: Test (success: true)"
+  },
+  {
+    "id": "0752074d-32bd-4a2a-ad54-4561511f5450",
+    "timestamp": "2026-03-04T01:50:24.282Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
+    "id": "ebc72f81-5a94-4a72-8456-f0a21f77e984",
+    "timestamp": "2026-03-04T01:50:16.076Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.reorder",
+    "details": "Reordered mods on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "52a90621-f604-4128-800e-96bcfb1e9a73",
+    "timestamp": "2026-03-04T01:50:14.490Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.reorder",
+    "details": "Reordered mods on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "e7cb5db6-96cf-4d34-8adf-1536067e78a9",
+    "timestamp": "2026-03-04T01:50:12.435Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.reorder",
+    "details": "Reordered mods on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "9ed9ca0f-e83d-4f9a-8b8a-17624af4d6d0",
+    "timestamp": "2026-03-04T01:50:11.473Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.reorder",
+    "details": "Reordered mods on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "5350ee84-ea9b-4d32-9fba-e331f61831c1",
+    "timestamp": "2026-03-04T01:50:09.558Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.reorder",
+    "details": "Reordered mods on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "b14e0b5b-8afe-4596-9362-ad80763b1e52",
+    "timestamp": "2026-03-04T01:50:06.022Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.reorder",
+    "details": "Reordered mods on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "00294ed1-853e-4b8a-b5b7-94337abbe7e8",
+    "timestamp": "2026-03-04T01:49:52.237Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.install",
+    "details": "Installed Community-Online-Tools on Test"
+  },
+  {
+    "id": "3c61a334-587c-44a5-bab3-3a210072530e",
+    "timestamp": "2026-03-04T01:49:37.563Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.install",
+    "details": "Installed Dabs Framework on Test"
+  },
+  {
+    "id": "8df807d7-a05f-4e9b-8cf0-4c8c3771832c",
+    "timestamp": "2026-03-04T01:49:25.613Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.install",
+    "details": "Installed CF on Test"
+  },
+  {
+    "id": "b79e5548-16d1-426d-bce4-0336cb7215e9",
+    "timestamp": "2026-03-04T01:47:41.678Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "536ae2dd-7b8f-4415-9d48-f5bf737a18dc",
+    "timestamp": "2026-03-03T23:23:26.314Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
     "id": "27e21150-0e90-48b8-b7ad-f8ded26535d8",
     "timestamp": "2026-03-03T23:19:54.414Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
