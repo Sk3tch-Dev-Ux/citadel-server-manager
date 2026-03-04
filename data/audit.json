@@ -1,5 +1,21 @@
 [
   {
+    "id": "1ddeda20-2c5a-4267-b920-06af09b8d086",
+    "timestamp": "2026-03-04T06:52:43.249Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying Testing1 to C:\\Citadel\\deployments\\Testing1"
+  },
+  {
+    "id": "95ac2b80-0549-4efb-b3b0-879e70626889",
+    "timestamp": "2026-03-04T06:52:01.268Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.delete",
+    "details": "Deleted server: Experimental Branch"
+  },
+  {
     "id": "46a23094-ff08-4bd1-8d79-9677e8dcf5a2",
     "timestamp": "2026-03-04T06:51:12.919Z",
     "userId": "1175482327305048095",

@@ -45,6 +45,9 @@ docs/.vitepress/cache/
 # TLS certificates
 /cert/
 
+# DayZ mod source scripts (proprietary — not distributed)
+/dayz-mod/
+
 # Claude worktrees
 /.claude/
 
@@ -55,6 +58,3 @@ tools/license-private.pem
 tools/license-server/.env
 tools/license-server/.vercel/
 tools/license-server/node_modules/
-/data
-/data
-/data

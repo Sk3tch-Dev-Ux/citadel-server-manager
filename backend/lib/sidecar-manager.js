@@ -17,7 +17,7 @@ const ctx = require('./context');
 // Project root — two levels up from backend/lib/
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const SIDECAR_ENTRY = path.join(PROJECT_ROOT, 'sidecar', 'server.js');
-const MOD_SOURCE = path.join(PROJECT_ROOT, 'dayz-mod', '@CitadelAdmin');
+const MOD_SOURCE = path.join(PROJECT_ROOT, '@CitadelAdmin');
 
 /**
  * Derive sidecar port from server's game port.
