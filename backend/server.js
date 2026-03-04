@@ -149,6 +149,7 @@ require('./routes/priority-queue.routes')(app);
 require('./routes/killfeed.routes')(app);
 require('./routes/leaderboard.routes')(app);
 require('./routes/actions.routes')(app);
+require('./routes/items.routes')(app);
 require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/system.routes')(app);
