@@ -14,7 +14,7 @@ const { createBackup } = require('../lib/backup-engine');
 const { addAudit, addLog } = require('../lib/audit');
 const { addNotification } = require('../lib/notifications');
 const { safePath, getDirSize, formatBytes, copyDirSync } = require('../lib/helpers');
-const auth = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 
 // ─── Map Detection ──────────────────────────────────────────
 
@@ -163,7 +163,7 @@ async function createPreOpBackup(serverId) {
 module.exports = function (app) {
 
   // ── GET Wipe Presets ────────────────────────────────────
-  app.get('/api/servers/:id/dangerzone/wipe-presets', auth('server.rebuild'), (req, res) => {
+  app.get('/api/servers/:id/dangerzone/wipe-presets', authForServer('server.rebuild'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
@@ -231,7 +231,7 @@ module.exports = function (app) {
   });
 
   // ── POST Execute Wipe ───────────────────────────────────
-  app.post('/api/servers/:id/dangerzone/wipe', auth('server.rebuild'), async (req, res) => {
+  app.post('/api/servers/:id/dangerzone/wipe', authForServer('server.rebuild'), async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
@@ -307,7 +307,7 @@ module.exports = function (app) {
   });
 
   // ── GET Log Storage Scan ────────────────────────────────
-  app.get('/api/servers/:id/dangerzone/logs-scan', auth('server.rebuild'), (req, res) => {
+  app.get('/api/servers/:id/dangerzone/logs-scan', authForServer('server.rebuild'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
@@ -379,7 +379,7 @@ module.exports = function (app) {
   });
 
   // ── POST Clear Logs ─────────────────────────────────────
-  app.post('/api/servers/:id/dangerzone/clear-logs', auth('server.rebuild'), (req, res) => {
+  app.post('/api/servers/:id/dangerzone/clear-logs', authForServer('server.rebuild'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
@@ -444,7 +444,7 @@ module.exports = function (app) {
   });
 
   // ── POST Replicate Preview ──────────────────────────────
-  app.post('/api/servers/:id/dangerzone/replicate-preview', auth('server.rebuild'), (req, res) => {
+  app.post('/api/servers/:id/dangerzone/replicate-preview', authForServer('server.rebuild'), (req, res) => {
     const targetSrv = ctx.servers.find(s => s.id === req.params.id);
     if (!targetSrv) return res.status(404).json({ error: 'Target server not found' });
 
@@ -586,7 +586,7 @@ module.exports = function (app) {
   });
 
   // ── POST Execute Replicate ──────────────────────────────
-  app.post('/api/servers/:id/dangerzone/replicate', auth('server.rebuild'), async (req, res) => {
+  app.post('/api/servers/:id/dangerzone/replicate', authForServer('server.rebuild'), async (req, res) => {
     const targetSrv = ctx.servers.find(s => s.id === req.params.id);
     if (!targetSrv) return res.status(404).json({ error: 'Target server not found' });
 

@@ -20,8 +20,9 @@ function computeCRC32(buffer) {
 }
 
 class RCONClient {
-  constructor(ip, port, password) {
+  constructor(ip, port, password, serverId) {
     this.ip = ip; this.port = port; this.password = password;
+    this.serverId = serverId || null;
     this.socket = null; this.connected = false; this.loggedIn = false;
     this.sequenceNum = 0; this.pendingCommands = new Map();
     this.keepAliveInterval = null;
@@ -74,7 +75,7 @@ class RCONClient {
               this.socket.send(ack, 0, ack.length, this.port, this.ip);
               const fpsMatch = message.match(/Server\s*FPS:\s*(\d+(?:\.\d+)?)/i);
               if (fpsMatch) this.lastFPS = parseFloat(fpsMatch[1]);
-              if (ctx.io) ctx.io.emit('rconMessage', { timestamp: new Date().toISOString(), message });
+              if (ctx.io) ctx.io.emit('rconMessage', { serverId: this.serverId, timestamp: new Date().toISOString(), message });
             }
             break;
         }

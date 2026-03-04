@@ -17,6 +17,7 @@ export default function ConsolePage({ serverId }) {
       if (data.serverId === serverId) setLogs(l => [data, ...l].slice(0, 500));
     };
     const rconHandler = (data) => {
+      if (data.serverId && data.serverId !== serverId) return;
       setLogs(l => [{ timestamp: data.timestamp || new Date().toISOString(), level: 'info', source: 'rcon', message: data.message }, ...l].slice(0, 500));
     };
     socket.on('consoleLog', consoleHandler);

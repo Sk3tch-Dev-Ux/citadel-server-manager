@@ -32,7 +32,7 @@ function initServerState(serverId) {
     status: 'stopped', pid: null, process: null, players: [],
     logs: [], metricsHistory: { cpu: [], ram: [], players: [], fps: [], timestamps: [] },
     modList: [], config: {}, scheduledRestarts: [], chatMessages: [], banList: [],
-    rcon: srv.rconPassword ? new RCONClient(srv.ip, srv.rconPort, srv.rconPassword) : null,
+    rcon: srv.rconPassword ? new RCONClient(srv.ip, srv.rconPort, srv.rconPassword, serverId) : null,
     startedAt: null,
     cftools: { lastSessionPoll: null, gameSessions: [] },
     inhouse: { sessions: [], lastPoll: null },

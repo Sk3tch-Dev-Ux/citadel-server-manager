@@ -92,7 +92,7 @@ app.post('/player/spawnItem', async (req, res) => {
     const data = await sendCommand('player.spawnItem', {
       steamId,
       itemClass,
-      quantity: parseInt(quantity) || 1,
+      quantity: Math.min(parseInt(quantity) || 1, 100),
     });
     res.json({ ok: true, data });
   } catch (err) {

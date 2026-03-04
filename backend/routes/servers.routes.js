@@ -12,6 +12,7 @@ const { readServerConfig } = require('../lib/dayz-config');
 const { detectRunningProcess, killProcess, spawnDayZServer } = require('../lib/process-manager');
 const { startSidecar, stopSidecar } = require('../lib/sidecar-manager');
 const { restartServer } = require('../lib/server-lifecycle');
+const { stopTailing } = require('../lib/rpt-tailer');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 const { ensureFirewallRules, removeFirewallRules } = require('../lib/firewall-manager');
@@ -114,7 +115,8 @@ module.exports = function(app) {
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
     initServerState(srv.id);
     addAudit(req.user.id, req.user.username, 'server.create', `Created server: ${name}`);
-    res.json(srv);
+    const { rconPassword: _, ...safe } = srv;
+    res.json(safe);
   });
 
   app.patch('/api/servers/:id', auth('server.deploy'), (req, res) => {
@@ -128,7 +130,8 @@ module.exports = function(app) {
       ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort }).catch(() => {});
     }
     addAudit(req.user.id, req.user.username, 'server.update', `Updated server: ${srv.name}`);
-    res.json(srv);
+    const { rconPassword: _, ...safeSrv } = srv;
+    res.json(safeSrv);
   });
 
   // ─── Batch Operations (start/stop/restart multiple servers) ───
@@ -153,13 +156,21 @@ module.exports = function(app) {
           if (state.status === 'running') { results.push({ id, success: true, message: 'Already running' }); continue; }
           state.status = 'starting';
           ctx.io.emit('serverStatus', { serverId: id, status: 'starting' });
-          const pid = await spawnDayZServer(srv);
-          if (pid) {
-            state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
-            ctx.io.emit('serverStatus', { serverId: id, status: 'running' });
-            startSidecar(srv);
-            addAudit(req.user.id, req.user.username, 'server.start', `Batch started server: ${srv.name}`);
-            results.push({ id, success: true, message: 'Started' });
+          const { child, launchFailed } = spawnDayZServer(srv);
+          if (child && child.pid) {
+            state.pid = child.pid; state.process = child;
+            const failReason = await launchFailed;
+            if (failReason) {
+              state.status = 'stopped'; state.pid = null; state.process = null;
+              ctx.io.emit('serverStatus', { serverId: id, status: 'stopped' });
+              results.push({ id, success: false, error: failReason });
+            } else {
+              state.status = 'running'; state.startedAt = new Date().toISOString();
+              ctx.io.emit('serverStatus', { serverId: id, status: 'running' });
+              startSidecar(srv);
+              addAudit(req.user.id, req.user.username, 'server.start', `Batch started server: ${srv.name}`);
+              results.push({ id, success: true, message: 'Started' });
+            }
           } else {
             state.status = 'stopped';
             ctx.io.emit('serverStatus', { serverId: id, status: 'stopped' });
@@ -193,6 +204,12 @@ module.exports = function(app) {
     if (idx === -1) return res.status(404).json({ error: 'Server not found' });
     const name = ctx.servers[idx].name;
     if (ctx.serverStates[req.params.id]?.status === 'running') return res.status(400).json({ error: 'Stop the server first' });
+    // Clean up all active resources for this server
+    stopSidecar(req.params.id);
+    stopTailing(req.params.id);
+    if (ctx.serverStates[req.params.id]?.rcon) {
+      try { ctx.serverStates[req.params.id].rcon.disconnect(); } catch { /* ok */ }
+    }
     delete ctx.serverStates[req.params.id];
     ctx.servers.splice(idx, 1);
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
