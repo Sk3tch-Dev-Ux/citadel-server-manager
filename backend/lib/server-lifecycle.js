@@ -17,6 +17,7 @@ const { addLog } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { executeHooks } = require('./lifecycle-hooks');
 const { MAX_RESTART_ATTEMPTS, RESTART_DELAY_MS } = require('./constants');
+const { stopTailing, startTailing } = require('./rpt-tailer');
 
 /**
  * Restart a server through the full lifecycle: kill -> wait -> hooks -> spawn -> verify.
@@ -41,6 +42,7 @@ async function restartServer(serverId, reason) {
   state.status = 'stopping';
   ctx.io.emit('serverStatus', { serverId, status: 'stopping' });
   stopSidecar(serverId);
+  stopTailing(serverId);
 
   let restartSuccess = false;
   let lastError = null;
@@ -96,6 +98,7 @@ async function restartServer(serverId, reason) {
         sendDiscordWebhook(`🔄 **${srv.name}** restarted (${reason})`);
         addLog(serverId, 'info', 'server', `Restart succeeded on attempt ${attempt}`);
         startSidecar(srv);
+        startTailing(serverId);
         // Fire started hooks (non-blocking)
         executeHooks(serverId, 'started').catch(() => {});
         restartSuccess = true;

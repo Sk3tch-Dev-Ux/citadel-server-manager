@@ -10,8 +10,12 @@ export default function ConsolePage({ serverId }) {
   useEffect(() => { API.get(`/api/servers/${serverId}/logs?limit=500`).then(d => setLogs(Array.isArray(d) ? d : [])); }, [serverId]);
   useEffect(() => {
     const handler = (data) => { if (data.serverId === serverId) setLogs(l => [data, ...l].slice(0, 500)); };
+    const rconHandler = (data) => {
+      setLogs(l => [{ timestamp: data.timestamp || new Date().toISOString(), level: 'info', source: 'rcon', message: data.message }, ...l].slice(0, 500));
+    };
     socket.on('log', handler);
-    return () => socket.off('log', handler);
+    socket.on('rconMessage', rconHandler);
+    return () => { socket.off('log', handler); socket.off('rconMessage', rconHandler); };
   }, [serverId, socket]);
   useEffect(() => { if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight; }, [logs]);
   const sendCmd = async () => {
