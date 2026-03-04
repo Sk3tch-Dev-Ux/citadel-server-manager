@@ -10,6 +10,61 @@ const { copyDirSync } = require('./helpers');
 const { saveJSON } = require('./data-store');
 
 /**
+ * Sanitize mod folder names on disk — rename any @-prefixed directory that
+ * contains spaces (DayZ's -mod= parameter uses spaces as delimiters).
+ * Returns the list of sanitized folder names.
+ */
+function sanitizeModFolders(installDir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(installDir, { withFileTypes: true });
+  } catch (err) {
+    logger.debug({ err, installDir }, 'Failed to read install dir for folder sanitization');
+    return [];
+  }
+  const modDirs = entries.filter(e => e.isDirectory() && e.name.startsWith('@'));
+  const result = [];
+  for (const entry of modDirs) {
+    if (/\s/.test(entry.name)) {
+      const safeName = entry.name.replace(/\s/g, '');
+      const oldPath = path.join(installDir, entry.name);
+      const newPath = path.join(installDir, safeName);
+      try {
+        if (fs.existsSync(newPath)) {
+          // Target already exists — remove the space-named duplicate
+          fs.rmSync(oldPath, { recursive: true, force: true });
+          logger.info({ from: entry.name, to: safeName }, 'Removed duplicate mod folder with spaces');
+        } else {
+          fs.renameSync(oldPath, newPath);
+          logger.info({ from: entry.name, to: safeName }, 'Renamed mod folder to remove spaces');
+        }
+        result.push(safeName);
+      } catch (err) {
+        logger.warn({ err, from: entry.name }, 'Failed to rename mod folder');
+        result.push(entry.name); // keep original if rename fails
+      }
+    } else {
+      result.push(entry.name);
+    }
+  }
+  return result;
+}
+
+/**
+ * Extract the full value of a -mod= or -serverMod= parameter from a launch
+ * params string.  Captures from the = sign up to the next recognized DayZ
+ * launch parameter (-<letter>) or end of string.  Handles corrupted values
+ * that may contain spaces from old folder names.
+ */
+function extractParamValue(params, paramName) {
+  // Match -paramName= then everything up to the next " -letter" or end of string
+  const re = new RegExp(`-${paramName}=(.*?)(?=\\s+-[a-zA-Z]|$)`, 'i');
+  const m = params.match(re);
+  if (!m) return '';
+  return m[1].replace(/["]/g, '').trim();
+}
+
+/**
  * Auto-detect installed mods by scanning for @-prefixed directories.
  * Parses meta.cpp for workshop IDs and checks launchParams for active mods.
  * Preserves existing `type` field if the mod was already in the list.
@@ -20,26 +75,22 @@ function autoDetectMods(serverId) {
   const state = ctx.serverStates[serverId];
   if (!state) return;
   const installDir = srv.installDir;
-  let installedMods = [];
-  try {
-    const entries = fs.readdirSync(installDir, { withFileTypes: true });
-    installedMods = entries.filter(e => e.isDirectory() && e.name.startsWith('@')).map(e => e.name);
-  } catch (err) {
-    logger.debug({ err, installDir }, 'Failed to read install dir for mod detection');
-    return;
-  }
+
+  // Sanitize folder names first (rename any with spaces)
+  const installedMods = sanitizeModFolders(installDir);
+  if (!installedMods.length) return;
 
   // Build sets of active mods from both -mod= and -serverMod= params
   const params = srv.launchParams || '';
   const activeMods = new Set();
   const serverMods = new Set();
-  const modMatch = params.match(/-mod=([^\s]+)/i);
-  if (modMatch) {
-    modMatch[1].replace(/["]/g, '').trim().split(';').forEach(m => { if (m.trim()) activeMods.add(m.trim()); });
+  const modValue = extractParamValue(params, 'mod');
+  if (modValue) {
+    modValue.split(';').forEach(m => { const t = m.trim(); if (t) activeMods.add(t); });
   }
-  const serverModMatch = params.match(/-serverMod=([^\s]+)/i);
-  if (serverModMatch) {
-    serverModMatch[1].replace(/["]/g, '').trim().split(';').forEach(m => { if (m.trim()) serverMods.add(m.trim()); });
+  const serverModValue = extractParamValue(params, 'serverMod');
+  if (serverModValue) {
+    serverModValue.split(';').forEach(m => { const t = m.trim(); if (t) serverMods.add(t); });
   }
 
   // Build a lookup of existing modList entries to preserve type
@@ -78,7 +129,8 @@ function autoDetectMods(serverId) {
  */
 function installModToServer(workshopContentPath, modName, workshopId, installDir) {
   const folderName = modName.startsWith('@') ? modName : `@${modName}`;
-  const safeName = folderName.replace(/[<>:"/\\|?*]/g, '').trim();
+  // Remove special chars AND spaces — DayZ -mod= parameter can't handle spaces
+  const safeName = folderName.replace(/[<>:"/\\|?*\s]/g, '').trim();
   const destPath = path.join(installDir, safeName);
   if (fs.existsSync(destPath)) fs.rmSync(destPath, { recursive: true, force: true });
   copyDirSync(workshopContentPath, destPath);
@@ -117,26 +169,17 @@ function updateLaunchParamsMods(serverId) {
 
     let params = srv.launchParams || '';
 
-    // --- Update -mod= (client mods) ---
-    if (clientMods) {
-      if (params.match(/-mod=[^\s]+/i)) {
-        params = params.replace(/-mod=[^\s]+/i, `-mod=${clientMods}`);
-      } else {
-        params = `${params} -mod=${clientMods}`.trim();
-      }
-    } else {
-      params = params.replace(/\s*-mod=[^\s]+/i, '').trim();
-    }
+    // Strip ALL existing -mod= and -serverMod= values (handles corrupted/duplicated entries)
+    // Pattern: -param=<everything up to next " -letter" or end of string>
+    params = params.replace(/\s*-mod=.*?(?=\s+-[a-zA-Z]|$)/gi, '').trim();
+    params = params.replace(/\s*-serverMod=.*?(?=\s+-[a-zA-Z]|$)/gi, '').trim();
 
-    // --- Update -serverMod= (server-only mods) ---
+    // Append clean values
+    if (clientMods) {
+      params = `${params} -mod=${clientMods}`.trim();
+    }
     if (serverOnlyMods) {
-      if (params.match(/-serverMod=[^\s]+/i)) {
-        params = params.replace(/-serverMod=[^\s]+/i, `-serverMod=${serverOnlyMods}`);
-      } else {
-        params = `${params} -serverMod=${serverOnlyMods}`.trim();
-      }
-    } else {
-      params = params.replace(/\s*-serverMod=[^\s]+/i, '').trim();
+      params = `${params} -serverMod=${serverOnlyMods}`.trim();
     }
 
     srv.launchParams = params;
