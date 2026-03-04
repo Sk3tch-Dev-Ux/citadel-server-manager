@@ -1,5 +1,53 @@
 [
   {
+    "id": "ec6ff2fd-c3b3-4006-9482-0f3a07382ebd",
+    "timestamp": "2026-03-04T06:17:27.566Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.player.kill",
+    "details": "Player action 'kill' on undefined"
+  },
+  {
+    "id": "2b36d3d9-ff26-449e-bdc6-939a457d1715",
+    "timestamp": "2026-03-04T06:17:01.557Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.teleport",
+    "details": "Teleported undefined to [10760, 0, 6632]"
+  },
+  {
+    "id": "8d1ed56c-f90a-47a7-b678-0674158a6748",
+    "timestamp": "2026-03-04T06:16:30.094Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.teleport",
+    "details": "Teleported undefined to [12368, 0, 6880]"
+  },
+  {
+    "id": "c084443b-1583-4912-9d2c-2f48e510281a",
+    "timestamp": "2026-03-04T06:16:18.568Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.teleport",
+    "details": "Teleported undefined to [4912, 0, 6202]"
+  },
+  {
+    "id": "f51a8a04-1065-4d21-82bd-ad3ef89c5fe9",
+    "timestamp": "2026-03-04T06:16:02.600Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "map.player.heal",
+    "details": "Player action 'heal' on undefined"
+  },
+  {
+    "id": "50188b8b-716d-4fe3-a6c7-b94ef7b4e0d3",
+    "timestamp": "2026-03-04T06:12:34.223Z",
+    "userId": "1175482327305048095",
+    "username": "sk3tch.",
+    "action": "server.start",
+    "details": "Started via Discord: Test"
+  },
+  {
     "id": "6473766a-4c2f-4277-bbb4-15b80f87e7a7",
     "timestamp": "2026-03-04T05:43:33.724Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
