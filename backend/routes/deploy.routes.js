@@ -29,6 +29,7 @@ const { scaffoldHookDirectory } = require('../lib/lifecycle-hooks');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
 const { getSidecarPort, ensureCitadelMod } = require('../lib/sidecar-manager');
+const { ensureFirewallRules } = require('../lib/firewall-manager');
 
 /**
  * Scaffold the deployment directory structure.
@@ -251,6 +252,10 @@ module.exports = function(app) {
 
       // Install @CitadelAdmin mod for live map + admin actions
       installCitadelMod(resolvedDir);
+
+      // Open firewall ports so server is reachable from the internet
+      ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort })
+        .catch(err => logger.warn({ err }, 'Firewall rule setup failed (non-fatal)'));
 
       // Configure sidecar API URL for this server
       const sidecarPort = getSidecarPort(srv);

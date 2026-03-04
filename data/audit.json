@@ -1,5 +1,45 @@
 [
   {
+    "id": "3bb621ef-f405-4af8-8fd5-aeb7ced4ca24",
+    "timestamp": "2026-03-04T02:43:33.007Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "backup.config",
+    "details": "Updated backup config for server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "1efbc072-c78e-4223-829d-c805bccf8007",
+    "timestamp": "2026-03-04T02:43:33.002Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.update",
+    "details": "Updated server: Test"
+  },
+  {
+    "id": "b04fe09f-8659-4b2e-97b4-11c99b0b764d",
+    "timestamp": "2026-03-04T02:42:31.074Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: Test"
+  },
+  {
+    "id": "f4a79a9b-2fa1-43ec-89f6-fbda90b09e3f",
+    "timestamp": "2026-03-04T02:31:59.854Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Started: Test"
+  },
+  {
+    "id": "aca10313-ca73-46de-b788-c8fb61c4ff8a",
+    "timestamp": "2026-03-04T02:31:36.175Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopped: Test"
+  },
+  {
     "id": "fa5506d7-39e2-473c-b40a-853fd0910b3c",
     "timestamp": "2026-03-04T01:50:37.459Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

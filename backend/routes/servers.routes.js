@@ -14,6 +14,7 @@ const { startSidecar, stopSidecar } = require('../lib/sidecar-manager');
 const { restartServer } = require('../lib/server-lifecycle');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
+const { ensureFirewallRules, removeFirewallRules } = require('../lib/firewall-manager');
 
 // Map template names from serverDZ.cfg to our map values
 const TEMPLATE_TO_MAP = {
@@ -122,6 +123,10 @@ module.exports = function(app) {
     const allowed = ['name','installDir','executable','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreServerModUpdates','cftoolsServerApiId','cftoolsBanlistId','inHouseApiUrl','inHouseApiKey','autoUpdateEnabled','updateCountdownSeconds','updateWarningIntervals'];
     for (const key of allowed) { if (req.body[key] !== undefined) srv[key] = req.body[key]; }
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    // Update firewall rules if ports or name changed
+    if (req.body.gamePort || req.body.queryPort || req.body.rconPort || req.body.name) {
+      ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort }).catch(() => {});
+    }
     addAudit(req.user.id, req.user.username, 'server.update', `Updated server: ${srv.name}`);
     res.json(srv);
   });
@@ -191,6 +196,8 @@ module.exports = function(app) {
     delete ctx.serverStates[req.params.id];
     ctx.servers.splice(idx, 1);
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    // Clean up firewall rules for deleted server
+    removeFirewallRules(name).catch(() => {});
     addAudit(req.user.id, req.user.username, 'server.delete', `Deleted server: ${name}`);
     res.json({ message: 'Server deleted' });
   });
