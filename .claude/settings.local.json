@@ -87,7 +87,8 @@
       "WebFetch(domain:dayz-scripts.yadz.app)",
       "WebFetch(domain:dayzexplorer.zeroy.com)",
       "WebFetch(domain:community.bistudio.com)",
-      "WebFetch(domain:gist.github.com)"
+      "WebFetch(domain:gist.github.com)",
+      "Bash(xxd \"C:\\\\Citadel\\\\deployments\\\\@CitadelAdmin\\\\addons\\\\CitadelAdmin.pbo\")"
     ]
   }
 }
