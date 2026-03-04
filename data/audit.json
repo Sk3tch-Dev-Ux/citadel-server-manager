@@ -1,5 +1,133 @@
 [
   {
+    "id": "3aefe307-1e1e-4126-b82f-62f48458596f",
+    "timestamp": "2026-03-04T19:47:01.421Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "2379990d-987a-436e-b82f-31df95f453fa",
+    "timestamp": "2026-03-04T19:33:18.610Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
+    "id": "6595b487-2faf-4da8-9f16-bb98814bb2d1",
+    "timestamp": "2026-03-04T19:29:45.475Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "10abfe99-b809-4be3-adf3-503fedc2a474",
+    "timestamp": "2026-03-04T19:26:09.272Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "ac178eee-3f8a-40e1-8dcd-e63ef9fba835",
+    "timestamp": "2026-03-04T19:23:15.059Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
+    "id": "64ae045d-65a6-4af0-aad7-a06a0c48faf8",
+    "timestamp": "2026-03-04T19:09:49.636Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "b4a173cb-cb6d-479e-93c2-e841080b9478",
+    "timestamp": "2026-03-04T19:09:47.797Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.type",
+    "details": "Changed @CitadelAdmin to server on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "764dc24d-aed4-4ba0-9924-a1d1090c2ebb",
+    "timestamp": "2026-03-04T19:06:17.753Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.uninstall",
+    "details": "Uninstalled @CitadelAdmin from Test"
+  },
+  {
+    "id": "15fd7f3d-1c3b-412c-a9a4-1514de47d1e5",
+    "timestamp": "2026-03-04T19:06:04.592Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
+    "id": "80c9a3d0-4d72-4e11-9e57-9da93930b3c6",
+    "timestamp": "2026-03-04T18:29:09.318Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "6ecfa310-b98b-4a49-9b0a-8d27726d433c",
+    "timestamp": "2026-03-04T18:29:05.816Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "f0d627f9-bca8-4d3b-9618-7a951af5e648",
+    "timestamp": "2026-03-04T07:49:22.906Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
+    "id": "6e131f9a-e203-4de6-99ba-61b6ccbc7b4e",
+    "timestamp": "2026-03-04T07:37:44.383Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "c132838f-069a-4c5d-b820-1a16c7f0b47b",
+    "timestamp": "2026-03-04T07:37:22.967Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
+    "id": "c731c7e0-1aa0-4fc2-9e0c-876bcc889fbc",
+    "timestamp": "2026-03-04T07:22:23.923Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
+    "id": "800d5683-3086-4c05-8111-472ced7d2ee1",
+    "timestamp": "2026-03-04T07:15:24.862Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
     "id": "1ddeda20-2c5a-4267-b920-06af09b8d086",
     "timestamp": "2026-03-04T06:52:43.249Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

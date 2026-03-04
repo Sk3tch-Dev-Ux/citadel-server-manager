@@ -77,7 +77,13 @@
       "Bash(node backend/lib/service-installer.js status)",
       "Bash(node backend/lib/service-installer.js)",
       "Bash(find \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\DayZ\\\\!Workshop\\\\@CW_Gamelabs\\\\addons\\\\CW_Gamelabs\\\\CW_Gamelabs\" -type f)",
-      "WebFetch(domain:discordjs.guide)"
+      "WebFetch(domain:discordjs.guide)",
+      "Bash(xargs grep -l \"class GameLabsContextAction\")",
+      "Bash(xxd -l 64 \"C:/Citadel/deployments/@CitadelAdmin/addons/CitadelAdmin.pbo\")",
+      "Bash(xxd -l 64 \"C:/Users/KurtE/OneDrive/Desktop/Citadel/addons/CitadelAdmin.pbo\")",
+      "Bash(/tmp/file_comparison_detailed.txt:*)",
+      "Bash(xxd \"C:/Program Files \\(x86\\)/Steam/steamapps/workshop/content/221100/3676936117/addons/CitadelAdmin.pbo\")",
+      "Bash(xxd -l 32 \"C:/Citadel/deployments/@CitadelAdmin/addons/CitadelAdmin.pbo\")"
     ]
   }
 }
