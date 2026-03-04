@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.2.1
+
+_Messenger Templates, Deployment Fixes & Scheduler Reliability_
+
+### Added
+- **Messenger templates** — 14 pre-built broadcast message templates across 4 categories (Welcome, Rules, Community, Gameplay) with one-click creation
+- **Template picker modal** — Category-filtered template browser with message preview, interval, and delay settings (same pattern as webhook templates)
+- **mpmissions scaffolding** — `mpmissions/` and map-specific subfolder (`mpmissions/dayzOffline.<map>/`) now created during deployment and rebuild
+
+### Fixed
+- **Experimental branch app ID** — Fixed SteamCMD downloading the DayZ client (`1024020`) instead of the experimental dedicated server (`1042420`). Affected deploy, rebuild, and auto-update
+- **Scheduler restart reliability** — Replaced unreliable RCON `#restart` with full process lifecycle (`restartServer()` from `server-lifecycle.js`) for scheduled restarts, stops, and starts
+- **Scheduler status gate** — Scheduler jobs now process regardless of server status (required for `start` actions to fire when server is stopped)
+- **Scheduler RCON gate** — Only pre-action steps (warnings, lock, kick) require RCON; action execution works regardless of RCON availability
+
 ## v2.2.0
 
 _Discord Bot Enterprise Overhaul_

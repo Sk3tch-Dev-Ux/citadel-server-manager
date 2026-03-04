@@ -189,7 +189,7 @@ async function updateServerApp(serverId, installDir) {
   if (!ctx.steamLoginValidated && !ctx.steamCredentials.password) throw new Error('Steam credentials required.');
 
   const srv = ctx.servers.find(s => s.id === serverId);
-  const appId = (srv && srv.gameTitle === 'DayZ, PC (Experimental)') ? '1024020' : '223350';
+  const appId = (srv && srv.gameTitle === 'DayZ, PC (Experimental)') ? '1042420' : '223350';
   const resolvedDir = path.resolve(installDir);
 
   const args = ['+force_install_dir', resolvedDir];

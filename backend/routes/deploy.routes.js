@@ -4,11 +4,16 @@
  * Deployment structure (modeled after CFTools Architect):
  *   deployments/<ServerName>/
  *   ├── profiles/          ← RPT files, BattlEye, mod configs
+ *   ├── mpmissions/        ← mission files per map (scaffolded + SteamCMD)
  *   ├── .backups/          ← server backups
  *   ├── ban.txt            ← ban list
  *   ├── whitelist.txt      ← whitelist
  *   ├── serverDZ.cfg       ← server config
  *   └── DayZServer_x64.exe ← installed by SteamCMD
+ *
+ * App IDs:
+ *   223350  — DayZ Dedicated Server (stable)
+ *   1042420 — DayZ Experimental Dedicated Server
  *
  * No batch files. The executable is always spawned directly.
  */
@@ -35,12 +40,17 @@ const { ensureFirewallRules } = require('../lib/firewall-manager');
  * Scaffold the deployment directory structure.
  * Creates profiles/, .backups/, ban.txt, whitelist.txt.
  */
-function scaffoldDeployment(installDir) {
+function scaffoldDeployment(installDir, map) {
   const dirs = [
     path.join(installDir, 'profiles'),
     path.join(installDir, 'profiles', 'BattlEye'),
+    path.join(installDir, 'mpmissions'),
     path.join(installDir, '.backups'),
   ];
+  // Create map-specific mission folder (e.g. mpmissions/dayzOffline.chernarusplus/)
+  if (map) {
+    dirs.push(path.join(installDir, 'mpmissions', `dayzOffline.${map}`));
+  }
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   }
@@ -151,7 +161,7 @@ module.exports = function(app) {
       });
     }
 
-    const appId = gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
+    const appId = gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
 
     // Ensure each server gets its own subdirectory — if installDir is a bare
     // deployments base (no server-specific folder), append a sanitized server name
@@ -245,7 +255,7 @@ module.exports = function(app) {
       if (lastError) throw lastError;
 
       // Scaffold deployment directory structure
-      scaffoldDeployment(resolvedDir);
+      scaffoldDeployment(resolvedDir, map || 'chernarusplus');
 
       // Scaffold lifecycle hooks directory
       scaffoldHookDirectory(resolvedDir);
@@ -309,7 +319,7 @@ module.exports = function(app) {
       }
       ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'wiping', message: 'Directory wiped. Reinstalling via SteamCMD...' });
       const cmdPath = await ensureSteamCMD();
-      const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1024020' : '223350';
+      const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
 
       // Build SteamCMD arguments — use cached session if already validated
       const args = ['+force_install_dir', resolvedDir];
@@ -350,7 +360,7 @@ module.exports = function(app) {
       if (lastError) throw lastError;
 
       // Scaffold deployment directory structure
-      scaffoldDeployment(resolvedDir);
+      scaffoldDeployment(resolvedDir, srv.map || 'chernarusplus');
 
       // Scaffold lifecycle hooks directory
       scaffoldHookDirectory(resolvedDir);
