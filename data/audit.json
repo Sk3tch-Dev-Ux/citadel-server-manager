@@ -1,5 +1,45 @@
 [
   {
+    "id": "0a3bf196-bed7-49c8-b924-b231ae36c8af",
+    "timestamp": "2026-03-04T05:00:52.580Z",
+    "userId": "system",
+    "username": "scheduler",
+    "action": "scheduler.execute",
+    "details": "AM Restart [restart] on Test"
+  },
+  {
+    "id": "d04da689-d22d-4f64-aa92-d265b85f1157",
+    "timestamp": "2026-03-04T05:00:52.565Z",
+    "userId": "system",
+    "username": "scheduler",
+    "action": "scheduler.execute",
+    "details": "AM Restart [restart] on Test"
+  },
+  {
+    "id": "04ffe9be-8785-44a3-9af3-1264c833bf38",
+    "timestamp": "2026-03-04T05:00:52.565Z",
+    "userId": "system",
+    "username": "scheduler",
+    "action": "scheduler.execute",
+    "details": "AM Restart [restart] on Test"
+  },
+  {
+    "id": "ab639a19-1f28-46f4-ada9-9da0a57ea715",
+    "timestamp": "2026-03-04T05:00:52.564Z",
+    "userId": "system",
+    "username": "scheduler",
+    "action": "scheduler.execute",
+    "details": "AM Restart [restart] on Test"
+  },
+  {
+    "id": "73112e5b-3cc6-424f-93dc-628fd4e4a844",
+    "timestamp": "2026-03-04T05:00:42.579Z",
+    "userId": "system",
+    "username": "scheduler",
+    "action": "scheduler.execute",
+    "details": "AM Restart [restart] on Test"
+  },
+  {
     "id": "f9b58b40-6c1e-47b2-8a08-91792ee4004c",
     "timestamp": "2026-03-04T03:35:52.568Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
