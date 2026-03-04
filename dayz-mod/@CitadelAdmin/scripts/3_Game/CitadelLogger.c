@@ -33,33 +33,33 @@ class CitadelLogger
     void Debug(string message)
     {
         if (!m_AllowDebug) return;
-        WriteLog("DEBUG", message);
+        WriteLog("DEBUG\t", message);
     }
 
     void Info(string message)
     {
-        WriteLog("INFO", message);
+        WriteLog("INFO\t", message);
     }
 
     void Warn(string message)
     {
-        WriteLog("WARN", message);
+        WriteLog("WARN\t", message);
     }
 
     void Error(string message)
     {
-        WriteLog("ERROR", message);
+        WriteLog("ERROR\t", message);
     }
 
     protected void WriteLog(string level, string message)
     {
-        string logged = string.Format("%1 | [%2]\t%3", GetISO8601(), level, message);
+        string logged = string.Format("%1 | [%2] %3", GetISO8601(), level, message);
 
         if (m_FileHandle != 0)
             FPrintln(m_FileHandle, logged);
 
         if (m_AllowDebug)
-            Print(string.Format("[Citadel] %1", logged));
+            Print(string.Format("[Citadel-Debug] %1", logged));
     }
 
     protected string GetISO8601()

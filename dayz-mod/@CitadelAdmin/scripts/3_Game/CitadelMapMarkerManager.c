@@ -71,6 +71,10 @@ class CitadelMapMarkerManager
 
     protected void SaveDefaults()
     {
+        // Ensure parent directory exists before writing
+        if (!FileExist("$profile:Citadel"))
+            MakeDirectory("$profile:Citadel");
+
         CitadelMapMarkerConfig cfg = new CitadelMapMarkerConfig();
 
         CitadelMapMarkerEntry e1 = new CitadelMapMarkerEntry();

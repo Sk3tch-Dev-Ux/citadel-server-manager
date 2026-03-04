@@ -83,7 +83,11 @@
       "Bash(xxd -l 64 \"C:/Users/KurtE/OneDrive/Desktop/Citadel/addons/CitadelAdmin.pbo\")",
       "Bash(/tmp/file_comparison_detailed.txt:*)",
       "Bash(xxd \"C:/Program Files \\(x86\\)/Steam/steamapps/workshop/content/221100/3676936117/addons/CitadelAdmin.pbo\")",
-      "Bash(xxd -l 32 \"C:/Citadel/deployments/@CitadelAdmin/addons/CitadelAdmin.pbo\")"
+      "Bash(xxd -l 32 \"C:/Citadel/deployments/@CitadelAdmin/addons/CitadelAdmin.pbo\")",
+      "WebFetch(domain:dayz-scripts.yadz.app)",
+      "WebFetch(domain:dayzexplorer.zeroy.com)",
+      "WebFetch(domain:community.bistudio.com)",
+      "WebFetch(domain:gist.github.com)"
     ]
   }
 }

@@ -12,6 +12,20 @@ modded class ItemBase extends InventoryItem
     private ref CitadelTrackedEvent m_CitMarkerEvent;
     float m_CitStartQty; // Used by action hooks to measure food/drink consumption
 
+    void ItemBase()
+    {
+        if (!GetCitadel()) return;
+        if (!GetCitadel().IsServer()) return;
+        GetCitadel().IncrEntityCount();
+    }
+
+    void ~ItemBase()
+    {
+        if (!GetCitadel()) return;
+        if (!GetCitadel().IsServer()) return;
+        GetCitadel().DecrEntityCount();
+    }
+
     // ─── Map Marker Registration ─────────────────────────
 
     override void EEInit()
@@ -91,8 +105,8 @@ modded class ItemBase extends InventoryItem
         if (newParent)
             newPlayer = PlayerBase.Cast(newParent.GetHierarchyRootPlayer());
 
-        // Item picked up (from world/ground to player inventory)
-        if (!oldPlayer && newPlayer)
+        // Track pickup/drop stats (matching GameLabs pattern)
+        if (newPlayer && newPlayer != oldPlayer)
         {
             // Unregister map marker when picked up
             if (GetCitadel().GetConfiguration().GetTrackMapMarkers())
@@ -108,18 +122,26 @@ modded class ItemBase extends InventoryItem
                     {
                         stats.itemsPickedUp++;
 
-                        // Track weapon looting
+                        // player -> player transfer (looting body/player)
+                        if (oldPlayer)
+                            stats.playersLooted++;
+
+                        // AI (infected/animal) -> player
+                        if (oldParent && (oldParent.IsInherited(DayZInfected) || oldParent.IsInherited(AnimalBase)))
+                            stats.aiLooted++;
+
+                        // Track weapon looting from any source
                         if (IsInherited(Weapon_Base))
                             stats.weaponsLooted++;
                     }
                 }
             }
         }
-        // Item dropped (from player inventory to world/ground)
-        else if (oldPlayer && !newPlayer)
+
+        if (oldPlayer && oldPlayer != newPlayer)
         {
             // Re-register map marker when dropped back to world
-            if (GetCitadel().GetConfiguration().GetTrackMapMarkers())
+            if (!newPlayer && GetCitadel().GetConfiguration().GetTrackMapMarkers())
                 RegisterMapMarker();
 
             if (GetCitadel().GetConfiguration().GetTrackItems())

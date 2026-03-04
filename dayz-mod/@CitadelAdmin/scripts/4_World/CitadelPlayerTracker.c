@@ -53,7 +53,7 @@ class CitadelPlayerTracker
             float shock = player.GetHealth("GlobalHealth", "Shock");
 
             // Vehicle status
-            bool inVehicle = player.IsInVehicle();
+            bool inVehicle = player.CitIsInVehicle();
             string vehicleType = "";
             if (inVehicle)
             {

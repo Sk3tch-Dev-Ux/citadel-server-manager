@@ -20,7 +20,7 @@ class CitadelVehicleActions
             if (car)
             {
                 EntityAI entity = EntityAI.Cast(car);
-                if (entity && entity.GetNetworkIDString() == vehicleId)
+                if (entity && CitGetNetworkIDString(entity) == vehicleId)
                     return car;
             }
         }
@@ -57,15 +57,58 @@ class CitadelVehicleActions
             return false;
         }
 
-        ref array<string> zones = new array<string>();
-        vehicle.GetDamageZones(zones);
+        // Comprehensive repair matching GameLabs pattern
+        // Base entity health
+        EntityAI vehicleEntityAI = EntityAI.Cast(vehicle);
+        vehicleEntityAI.SetHealthMax("", "Health");
+        vehicleEntityAI.SetHealthMax();
 
-        foreach (string zone : zones)
+        // Refill all fluids (GameLabs does this as part of repair)
+        float fuel = vehicle.GetFluidCapacity(CarFluid.FUEL) - (vehicle.GetFluidCapacity(CarFluid.FUEL) * vehicle.GetFluidFraction(CarFluid.FUEL));
+        float oil = vehicle.GetFluidCapacity(CarFluid.OIL) - (vehicle.GetFluidCapacity(CarFluid.OIL) * vehicle.GetFluidFraction(CarFluid.OIL));
+        float coolant = vehicle.GetFluidCapacity(CarFluid.COOLANT) - (vehicle.GetFluidCapacity(CarFluid.COOLANT) * vehicle.GetFluidFraction(CarFluid.COOLANT));
+        float brake = vehicle.GetFluidCapacity(CarFluid.BRAKE) - (vehicle.GetFluidCapacity(CarFluid.BRAKE) * vehicle.GetFluidFraction(CarFluid.BRAKE));
+        vehicle.Fill(CarFluid.FUEL, fuel);
+        vehicle.Fill(CarFluid.OIL, oil);
+        vehicle.Fill(CarFluid.COOLANT, coolant);
+        vehicle.Fill(CarFluid.BRAKE, brake);
+        vehicle.SetSynchDirty();
+        vehicle.Synchronize();
+
+        // Repair all damage zones (GameLabs reads from config)
+        string cfg_path = string.Format("%1 %2 DamageSystem", CFG_VEHICLESPATH, vehicle.GetType());
+        if (GetGame().ConfigIsExisting(cfg_path))
         {
-            vehicle.SetHealth(zone, "Health", vehicle.GetMaxHealth(zone, "Health"));
-        }
+            string child_zone;
+            string child_class;
+            array<string> damaged_zones = new array<string>;
 
-        vehicle.SetHealth("Engine", "Health", vehicle.GetMaxHealth("Engine", "Health"));
+            int zone_count = GetGame().ConfigGetChildrenCount(cfg_path);
+            if (zone_count > 0)
+            {
+                for (int x = 0; x < zone_count; ++x)
+                {
+                    GetGame().ConfigGetChildName(cfg_path, x, child_class);
+                    child_class.ToLower();
+                    if (child_class == "damagezones")
+                    {
+                        for (int y = 0; y < GetGame().ConfigGetChildrenCount(string.Format("%1 DamageZones", cfg_path)); ++y)
+                        {
+                            GetGame().ConfigGetChildName(string.Format("%1 DamageZones", cfg_path), y, child_zone);
+                            damaged_zones.Insert(child_zone);
+                        }
+                    }
+                }
+            }
+
+            if (damaged_zones.Count() > 0)
+            {
+                foreach (string zone : damaged_zones)
+                {
+                    vehicleEntityAI.SetHealthMax(zone, "Health");
+                }
+            }
+        }
 
         Print("[Citadel] Repaired vehicle: " + vehicleId);
         return true;
@@ -83,10 +126,15 @@ class CitadelVehicleActions
             return false;
         }
 
-        vehicle.Fill(CarFluid.FUEL, vehicle.GetFluidCapacity(CarFluid.FUEL));
-        vehicle.Fill(CarFluid.OIL, vehicle.GetFluidCapacity(CarFluid.OIL));
-        vehicle.Fill(CarFluid.BRAKE, vehicle.GetFluidCapacity(CarFluid.BRAKE));
-        vehicle.Fill(CarFluid.COOLANT, vehicle.GetFluidCapacity(CarFluid.COOLANT));
+        // Fill calculates delta to avoid overfilling (GameLabs pattern: capacity - (capacity * fraction))
+        float fuel = vehicle.GetFluidCapacity(CarFluid.FUEL) - (vehicle.GetFluidCapacity(CarFluid.FUEL) * vehicle.GetFluidFraction(CarFluid.FUEL));
+        float oil = vehicle.GetFluidCapacity(CarFluid.OIL) - (vehicle.GetFluidCapacity(CarFluid.OIL) * vehicle.GetFluidFraction(CarFluid.OIL));
+        float brake = vehicle.GetFluidCapacity(CarFluid.BRAKE) - (vehicle.GetFluidCapacity(CarFluid.BRAKE) * vehicle.GetFluidFraction(CarFluid.BRAKE));
+        float coolant = vehicle.GetFluidCapacity(CarFluid.COOLANT) - (vehicle.GetFluidCapacity(CarFluid.COOLANT) * vehicle.GetFluidFraction(CarFluid.COOLANT));
+        vehicle.Fill(CarFluid.FUEL, fuel);
+        vehicle.Fill(CarFluid.OIL, oil);
+        vehicle.Fill(CarFluid.BRAKE, brake);
+        vehicle.Fill(CarFluid.COOLANT, coolant);
 
         Print("[Citadel] Refueled vehicle: " + vehicleId);
         return true;
@@ -168,6 +216,7 @@ class CitadelVehicleActions
         int c;
         Human crew;
         PlayerBase player;
+        HumanCommandVehicle vehCommand;
         for (c = 0; c < vehicle.CrewSize(); c++)
         {
             crew = vehicle.CrewMember(c);
@@ -177,15 +226,17 @@ class CitadelVehicleActions
             {
                 if (vehicle.CrewMemberIndex(player) == DayZPlayerConstants.VEHICLESEAT_DRIVER)
                 {
-                    HumanCommandVehicle vehCommand = player.GetCommand_Vehicle();
+                    // Use GetOutVehicle() via HumanCommandVehicle (GameLabs pattern)
+                    vehCommand = player.GetCommand_Vehicle();
                     if (vehCommand)
                         vehCommand.GetOutVehicle();
-                    break;
+                    Print("[Citadel] Ejected driver from vehicle: " + vehicleId);
+                    return true;
                 }
             }
         }
 
-        Print("[Citadel] Ejected driver from vehicle: " + vehicleId);
+        Print("[Citadel] No driver found in vehicle: " + vehicleId);
         return true;
     }
 };

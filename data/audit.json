@@ -1,5 +1,53 @@
 [
   {
+    "id": "0e94fdce-2552-43bb-8f3b-e63802e5bdcb",
+    "timestamp": "2026-03-04T20:13:58.489Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
+    "id": "9eafec7f-f93f-4667-98ce-7f17e766d1b9",
+    "timestamp": "2026-03-04T19:54:26.621Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "0fec2c65-d13b-4504-a054-303375ceebd4",
+    "timestamp": "2026-03-04T19:53:22.351Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
+    "id": "a84066ca-146d-489a-965c-f1bdcf18ad44",
+    "timestamp": "2026-03-04T19:48:50.882Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "bc0f205a-2213-4e18-bf27-c2f6aa4b16ad",
+    "timestamp": "2026-03-04T19:48:11.302Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
+    "id": "b5ff83c2-aa87-4b67-abe5-f53c99d9c4ac",
+    "timestamp": "2026-03-04T19:47:30.218Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
     "id": "3aefe307-1e1e-4126-b82f-62f48458596f",
     "timestamp": "2026-03-04T19:47:01.421Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",

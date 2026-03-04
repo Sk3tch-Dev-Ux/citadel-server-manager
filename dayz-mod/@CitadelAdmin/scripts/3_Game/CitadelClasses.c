@@ -4,6 +4,15 @@
  * Loaded first in 3_Game so they are available to 4_World hooks and 5_Mission logic.
  */
 
+// Helper: Build a string network ID from EntityAI (vanilla has no GetNetworkIDString)
+static string CitGetNetworkIDString(EntityAI entity)
+{
+    if (!entity) return "";
+    int lo, hi;
+    entity.GetNetworkID(lo, hi);
+    return hi.ToString() + ":" + lo.ToString();
+}
+
 class CitadelPlayerStats
 {
     int shotsFired          = 0;
@@ -24,6 +33,8 @@ class CitadelPlayerStats
 
     int itemsDropped        = 0;
     int itemsPickedUp       = 0;
+    int playersLooted       = 0;
+    int aiLooted            = 0;
     int weaponsLooted       = 0;
     int grenadesUsed        = 0;
 
@@ -40,30 +51,7 @@ class CitadelPlayerStats
 
     string ToJson()
     {
-        string json = "{";
-        json += "\"shotsFired\":" + shotsFired.ToString() + ",";
-        json += "\"shotsHit\":" + shotsHit.ToString() + ",";
-        json += "\"shotsHitPlayers\":" + shotsHitPlayers.ToString() + ",";
-        json += "\"shotsHitInfected\":" + shotsHitInfected.ToString() + ",";
-        json += "\"shotsHitAnimals\":" + shotsHitAnimals.ToString() + ",";
-        json += "\"shotsHitVehicles\":" + shotsHitVehicles.ToString() + ",";
-        json += "\"shotsHitBaseObjects\":" + shotsHitBaseObjects.ToString() + ",";
-        json += "\"killsPlayers\":" + killsPlayers.ToString() + ",";
-        json += "\"killsInfected\":" + killsInfected.ToString() + ",";
-        json += "\"killsAnimals\":" + killsAnimals.ToString() + ",";
-        json += "\"distance\":" + distance.ToString() + ",";
-        json += "\"vehicleDistance\":" + vehicleDistance.ToString() + ",";
-        json += "\"itemsPickedUp\":" + itemsPickedUp.ToString() + ",";
-        json += "\"itemsDropped\":" + itemsDropped.ToString() + ",";
-        json += "\"weaponsLooted\":" + weaponsLooted.ToString() + ",";
-        json += "\"grenadesUsed\":" + grenadesUsed.ToString() + ",";
-        json += "\"bleedsFixed\":" + bleedsFixed.ToString() + ",";
-        json += "\"healthItemsUsed\":" + healthItemsUsed.ToString() + ",";
-        json += "\"foodItemsConsumed\":" + foodItemsConsumed.ToString() + ",";
-        json += "\"drinkItemsConsumed\":" + drinkItemsConsumed.ToString() + ",";
-        json += "\"playerRespawns\":" + playerRespawns.ToString();
-        json += "}";
-        return json;
+        return JsonFileLoader<CitadelPlayerStats>.JsonMakeData(this);
     }
 };
 
@@ -117,7 +105,7 @@ class CitadelTrackedVehicle
             m_LastPos = m_Reference.GetPosition();
             EntityAI entity = EntityAI.Cast(m_Reference);
             if (entity)
-                m_Id = entity.GetNetworkIDString();
+                m_Id = CitGetNetworkIDString(entity);
         }
     }
 
@@ -158,7 +146,7 @@ class CitadelTrackedEvent
             m_DisplayName = className;
         EntityAI entity = EntityAI.Cast(m_Reference);
         if (entity)
-            m_Id = entity.GetNetworkIDString();
+            m_Id = CitGetNetworkIDString(entity);
     }
 
     string GetID() { return m_Id; }

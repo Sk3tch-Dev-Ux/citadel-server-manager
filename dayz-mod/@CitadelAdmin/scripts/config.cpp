@@ -7,6 +7,14 @@ class CfgPatches
         requiredVersion = 0.1;
         requiredAddons[] = {"DZ_Data", "DZ_Scripts"};
     };
+
+    class CitadelDefine
+    {
+        units[] = {};
+        weapons[] = {};
+        requiredVersion = 0.1;
+        requiredAddons[] = {};
+    };
 };
 
 class CfgMods
@@ -28,9 +36,11 @@ class CfgMods
 
         dependencies[] = {"Core", "Game", "World", "Mission"};
 
-        defines[] = {
-            "CITADEL",
-            "CITADEL_V2"
+        defines[] =
+        {
+            "CitadelAdmin",
+            "CitadelDefine",
+            "CITADEL"
         };
 
         class defs

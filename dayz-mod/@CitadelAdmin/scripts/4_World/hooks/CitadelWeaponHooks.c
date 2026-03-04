@@ -23,12 +23,15 @@ modded class Weapon_Base
         string steamId = player.GetCitSteamId();
         if (steamId == "") return;
 
-        // Increment shots fired
+        // Increment shots fired (account for multi-projectile ammo like shotgun pellets)
         if (GetCitadel().GetConfiguration().GetTrackPlayerStats())
         {
             CitadelPlayerStats stats = GetCitadel().GetPlayerStats(steamId);
             if (stats)
-                stats.shotsFired++;
+            {
+                int projectilesCount = Math.Max(1, GetGame().ConfigGetInt("CfgAmmo " + ammoType + " projectilesCount"));
+                stats.shotsFired += projectilesCount;
+            }
         }
 
         GetCitadel().GetLogger().Debug(string.Format("EEFired: %1 fired %2 (ammo=%3, mode=%4)", player.GetCitName(), GetType(), ammoType, mode.ToString()));

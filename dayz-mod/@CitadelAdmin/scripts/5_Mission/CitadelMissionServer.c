@@ -15,6 +15,9 @@ modded class MissionServer
     protected ref CitadelMetricsTracker m_CitMetricsTracker;
     protected ref CitadelReporter m_CitReporter;
 
+    // Mission loaded tracking (for ProgressEvent detection)
+    protected bool m_CitMissionLoaded = false;
+
     // Grid scan state for static object marker registration
     protected int m_ScanGridX;
     protected int m_ScanGridY;
@@ -47,11 +50,12 @@ modded class MissionServer
         m_StaticObjectsScanned = false;
         m_ScanStartTime = 0;
 
-        // Signal FPS tracker that mission is loaded — enables tick time measurement
-        GetDayZGame().CitSetMissionLoaded();
+        // NOTE: Do NOT call CitSetMissionLoaded() here — it fires too early.
+        // Mission load detection happens via ProgressEventTypeID in OnEvent(),
+        // which calls GetCitadel().HandleMissionLoaded() at the correct time
+        // (matching GameLabs pattern).
 
-        float bootTime = GetGame().GetTickTime();
-        GetCitadel().GetLogger().Info(string.Format("CitadelAdmin v%1 fully initialized in %2s", GetCitadel().GetVersion(), bootTime.ToString()));
+        GetCitadel().GetLogger().Info(string.Format("CitadelAdmin v%1 OnInit complete — awaiting ProgressEvent FINISH", GetCitadel().GetVersion()));
     }
 
     override void OnMissionFinish()
@@ -99,9 +103,8 @@ modded class MissionServer
 
     protected void ProcessNextScanGrid()
     {
-        // Calculate world size — use a safe large default
-        float worldSize = GetGame().GetWorld().GetWorldSize();
-        if (worldSize <= 0) worldSize = 15360;
+        // DayZ has no script API for world size — use 15360 (covers Chernarus, Livonia, etc.)
+        float worldSize = 15360;
 
         float sectorSize = worldSize / GRID_SIZE;
 
@@ -168,33 +171,35 @@ modded class MissionServer
     }
 
     // ─── Player Connect ───────────────────────────────
+    // GameLabs pattern: do our work BEFORE calling super.InvokeOnConnect
+    // This ensures the player entity has identity set before other hooks fire.
 
     override void InvokeOnConnect(PlayerBase player, PlayerIdentity identity)
     {
+        if (GetCitadel().IsServer() && player && identity)
+        {
+            string steamId = identity.GetPlainId();
+            string name = identity.GetName();
+
+            // Set identity on the player hooks
+            player.CitSetIdentity(steamId, name);
+
+            // Log the connection event
+            CitadelEventLogger.LogConnect(steamId, name);
+
+            GetCitadel().GetLogger().Info(string.Format("Player connected: %1 (%2)", name, steamId));
+        }
+
         super.InvokeOnConnect(player, identity);
-
-        if (!identity) return;
-
-        string steamId = identity.GetPlainId();
-        string name = identity.GetName();
-
-        // Register in core (tracks entity ref, stats, session start)
-        GetCitadel().RegisterPlayer(steamId, player);
-
-        // Set identity on the player hooks
-        player.CitSetIdentity(steamId, name);
-
-        // Log the connection event
-        CitadelEventLogger.LogConnect(steamId, name);
-
-        GetCitadel().GetLogger().Info(string.Format("Player connected: %1 (%2)", name, steamId));
     }
 
     // ─── Player Disconnect ────────────────────────────
+    // GameLabs uses PlayerDisconnected(PlayerBase player, PlayerIdentity identity, string uid)
+    // which is the correct engine callback. InvokeOnDisconnect is a different method.
 
-    override void InvokeOnDisconnect(PlayerBase player)
+    override void PlayerDisconnected(PlayerBase player, PlayerIdentity identity, string uid)
     {
-        if (player)
+        if (GetCitadel().IsServer() && player)
         {
             string steamId = player.GetCitSteamId();
             string name = player.GetCitName();
@@ -224,69 +229,104 @@ modded class MissionServer
             }
         }
 
-        super.InvokeOnDisconnect(player);
+        super.PlayerDisconnected(player, identity, uid);
     }
 
-    // ─── Chat Events ──────────────────────────────────
+    // ─── Event Handling ──────────────────────────────
 
     override void OnEvent(EventType eventTypeId, Param params)
     {
         super.OnEvent(eventTypeId, params);
+        if (!GetCitadel()) return;
 
-        if (eventTypeId == ChatMessageEventTypeID)
+        switch (eventTypeId)
         {
-            ChatMessageEventParams chatParams = ChatMessageEventParams.Cast(params);
-            if (chatParams)
+            case ClientNewEventTypeID:
             {
-                int channel = chatParams.param1;
-                string senderName = chatParams.param2;
-                string messageText = chatParams.param3;
-
-                // BattlEye join/leave sanitization
-                if (GetCitadel().GetConfiguration().GetChatSanitizeBattlEyeJoinLeave())
+                // New player spawn — set identity early (matching GameLabs pattern)
+                if (m_player && m_player.GetIdentity())
                 {
-                    if (messageText.Contains("connected") || messageText.Contains("disconnected"))
-                        return;
+                    string spawnSteamId = m_player.GetIdentity().GetPlainId();
+                    string spawnName = m_player.GetIdentity().GetName();
+                    m_player.CitSetIdentity(spawnSteamId, spawnName);
                 }
-
-                // BattlEye admin prefix sanitization
-                if (GetCitadel().GetConfiguration().GetChatSanitizeBattlEyePrefix())
+                break;
+            }
+            case ProgressEventTypeID:
+            {
+                // Detect mission fully loaded (matching GameLabs ProgressEventTypeID handler)
+                ProgressEventParams progressParams;
+                if (Class.CastTo(progressParams, params))
                 {
-                    if (senderName.Contains("Admin"))
+                    if (progressParams.param1 == PROGRESS_FINISH)
                     {
-                        senderName.Replace("(Admin) ", "");
-                        senderName.Replace("Admin: ", "");
-                    }
-                }
-
-                // Find the player who sent the message using our own registry
-                string senderSteamId = "";
-                map<string, Man> chatPlayers = GetCitadel().GetActivePlayers();
-                for (int ci = 0; ci < chatPlayers.Count(); ci++)
-                {
-                    PlayerBase chatPlayer = PlayerBase.Cast(chatPlayers.GetElement(ci));
-                    if (chatPlayer && chatPlayer.GetIdentity())
-                    {
-                        if (chatPlayer.GetIdentity().GetName() == senderName)
+                        if (!m_CitMissionLoaded)
                         {
-                            senderSteamId = chatPlayer.GetIdentity().GetPlainId();
-                            break;
+                            m_CitMissionLoaded = true;
+                            GetCitadel().HandleMissionLoaded();
                         }
                     }
                 }
-
-                string channelName = "global";
-                if (channel == 1)
-                    channelName = "direct";
-                else if (channel == 2)
-                    channelName = "vehicle";
-                else if (channel == 3)
-                    channelName = "faction";
-                else if (channel == 4)
-                    channelName = "admin";
-
-                CitadelEventLogger.LogChat(senderSteamId, senderName, messageText, channelName);
+                break;
             }
+            case ChatMessageEventTypeID:
+            {
+                ChatMessageEventParams chatParams = ChatMessageEventParams.Cast(params);
+                if (chatParams)
+                {
+                    int channel = chatParams.param1;
+                    string senderName = chatParams.param2;
+                    string messageText = chatParams.param3;
+
+                    // BattlEye join/leave sanitization
+                    if (GetCitadel().GetConfiguration().GetChatSanitizeBattlEyeJoinLeave())
+                    {
+                        if (messageText.Contains("connected") || messageText.Contains("disconnected"))
+                            return;
+                    }
+
+                    // BattlEye admin prefix sanitization
+                    if (GetCitadel().GetConfiguration().GetChatSanitizeBattlEyePrefix())
+                    {
+                        if (senderName.Contains("Admin"))
+                        {
+                            senderName.Replace("(Admin) ", "");
+                            senderName.Replace("Admin: ", "");
+                        }
+                    }
+
+                    // Find the player who sent the message using our own registry
+                    string senderSteamId = "";
+                    map<string, Man> chatPlayers = GetCitadel().GetActivePlayers();
+                    for (int ci = 0; ci < chatPlayers.Count(); ci++)
+                    {
+                        PlayerBase chatPlayer = PlayerBase.Cast(chatPlayers.GetElement(ci));
+                        if (chatPlayer && chatPlayer.GetIdentity())
+                        {
+                            if (chatPlayer.GetIdentity().GetName() == senderName)
+                            {
+                                senderSteamId = chatPlayer.GetIdentity().GetPlainId();
+                                break;
+                            }
+                        }
+                    }
+
+                    string channelName = "global";
+                    if (channel == 1)
+                        channelName = "direct";
+                    else if (channel == 2)
+                        channelName = "vehicle";
+                    else if (channel == 3)
+                        channelName = "faction";
+                    else if (channel == 4)
+                        channelName = "admin";
+
+                    CitadelEventLogger.LogChat(senderSteamId, senderName, messageText, channelName);
+                }
+                break;
+            }
+            default:
+                break;
         }
     }
 };

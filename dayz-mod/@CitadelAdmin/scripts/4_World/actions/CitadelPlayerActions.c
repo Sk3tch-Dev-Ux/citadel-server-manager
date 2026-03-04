@@ -8,19 +8,12 @@ class CitadelPlayerActions
 {
     static PlayerBase FindPlayerBySteamId(string steamId)
     {
-        ref array<Man> players = new array<Man>();
-        GetGame().GetPlayers(players);
-
-        foreach (Man man : players)
+        // Use CitadelCore registry — GetGame().GetPlayers() can return empty
+        // on some DayZ dedicated server versions.
+        map<string, Man> activePlayers = GetCitadel().GetActivePlayers();
+        if (activePlayers.Contains(steamId))
         {
-            PlayerBase player = PlayerBase.Cast(man);
-            if (!player) continue;
-
-            PlayerIdentity identity = player.GetIdentity();
-            if (!identity) continue;
-
-            if (identity.GetPlainId() == steamId)
-                return player;
+            return PlayerBase.Cast(activePlayers.Get(steamId));
         }
         return null;
     }
@@ -37,14 +30,9 @@ class CitadelPlayerActions
             return false;
         }
 
-        player.SetHealth("GlobalHealth", "Health", player.GetMaxHealth("GlobalHealth", "Health"));
-        player.SetHealth("GlobalHealth", "Blood", player.GetMaxHealth("GlobalHealth", "Blood"));
-        player.SetHealth("GlobalHealth", "Shock", player.GetMaxHealth("GlobalHealth", "Shock"));
-
-        player.GetStatHeatComfort().Set(0);
-        player.GetStatTremor().Set(0);
-        player.GetStatWater().Set(player.GetStatWater().GetMax());
-        player.GetStatEnergy().Set(player.GetStatEnergy().GetMax());
+        // Use comprehensive heal matching GameLabs GLHealEx pattern
+        // (handles bleeding, diseases, modifiers, leg damage, agents, etc.)
+        player.CitHealEx();
 
         Print("[Citadel] Healed player: " + steamId);
         return true;
@@ -62,7 +50,8 @@ class CitadelPlayerActions
             return false;
         }
 
-        player.SetHealth("GlobalHealth", "Health", 0);
+        // GameLabs uses SetHealth(0) on the root entity (not "GlobalHealth" zone)
+        player.SetHealth(0);
         Print("[Citadel] Killed player: " + steamId);
         return true;
     }
@@ -86,7 +75,9 @@ class CitadelPlayerActions
             y = GetGame().SurfaceY(x, z);
 
         vector pos = Vector(x, y, z);
-        player.SetPosition(pos);
+        // Use CitSetPositionEx to update both world position and internal
+        // tracker position (prevents false speed hack flags after teleport)
+        player.CitSetPositionEx(pos);
 
         Print("[Citadel] Teleported " + steamId + " to " + pos.ToString());
         return true;
@@ -140,14 +131,8 @@ class CitadelPlayerActions
             return false;
         }
 
-        ref array<EntityAI> items = new array<EntityAI>();
-        player.GetInventory().EnumerateInventory(InventoryTraversalType.PREORDER, items);
-
-        foreach (EntityAI item : items)
-        {
-            if (item != player)
-                GetGame().ObjectDelete(item);
-        }
+        // Use built-in RemoveAllItems (matching GameLabs pattern)
+        player.RemoveAllItems();
 
         Print("[Citadel] Stripped inventory of: " + steamId);
         return true;
@@ -187,7 +172,16 @@ class CitadelPlayerActions
 
         Print("[Citadel] Kicking player: " + steamId + " reason: " + reason);
 
-        GetGame().DisconnectPlayer(player.GetIdentity(), reason);
+        // Send kick reason to the player before disconnecting
+        PlayerIdentity identity = player.GetIdentity();
+        if (reason != "")
+        {
+            Param1<string> msgParam = new Param1<string>("[Kicked] " + reason);
+            GetGame().RPCSingleParam(player, ERPCs.RPC_USER_ACTION_MESSAGE, msgParam, true, identity);
+        }
+
+        // DisconnectPlayer expects (identity, uid) — pass the player's plain ID
+        GetGame().DisconnectPlayer(identity, identity.GetPlainId());
 
         return true;
     }

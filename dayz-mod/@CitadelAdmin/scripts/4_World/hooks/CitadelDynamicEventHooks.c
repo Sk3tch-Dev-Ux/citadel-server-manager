@@ -254,14 +254,13 @@ modded class ScientificBriefcase
         super.EEInit();
         if (!GetGame().IsServer()) return;
         if (!GetCitadel().GetConfiguration().GetTrackDynamicEvents()) return;
-        if (IsOpen()) return;
 
         vector pos = GetPosition();
         if (pos[0] <= 0 && pos[1] <= 0 && pos[2] <= 0) return;
 
-        m_CitEvent = new CitadelTrackedEvent(GetType(), "briefcase", this, "Locked Scientific Briefcase");
+        m_CitEvent = new CitadelTrackedEvent(GetType(), "briefcase", this, "Scientific Briefcase");
         GetCitadel().RegisterEvent(m_CitEvent);
-        CitadelEventLogger.LogDynamicEvent("spawn", GetType(), "Locked Scientific Briefcase", pos);
+        CitadelEventLogger.LogDynamicEvent("spawn", GetType(), "Scientific Briefcase", pos);
     }
 
     override void EEDelete(EntityAI parent)
@@ -269,21 +268,10 @@ modded class ScientificBriefcase
         if (GetGame().IsServer() && m_CitEvent)
         {
             GetCitadel().RemoveEvent(m_CitEvent);
-            CitadelEventLogger.LogDynamicEvent("despawn", GetType(), "Locked Scientific Briefcase", GetPosition());
-        }
-        super.EEDelete(parent);
-    }
-
-    override void Open()
-    {
-        super.Open();
-        if (!GetGame().IsServer()) return;
-        if (m_CitEvent)
-        {
-            GetCitadel().RemoveEvent(m_CitEvent);
-            CitadelEventLogger.LogDynamicEvent("opened", GetType(), "Locked Scientific Briefcase", GetPosition());
+            CitadelEventLogger.LogDynamicEvent("despawn", GetType(), "Scientific Briefcase", GetPosition());
             m_CitEvent = null;
         }
+        super.EEDelete(parent);
     }
 };
 

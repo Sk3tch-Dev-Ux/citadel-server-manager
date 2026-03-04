@@ -181,8 +181,21 @@ class CitadelWorldActions
             return false;
         }
 
-        // Broadcast via server admin chat (visible to all)
-        GetGame().ChatPlayer("[Citadel] " + text);
+        // Broadcast via RPC to all connected players (use Citadel registry for reliability)
+        string fullMsg = "[Citadel] " + text;
+        map<string, Man> activePlayers = GetCitadel().GetActivePlayers();
+
+        for (int i = 0; i < activePlayers.Count(); i++)
+        {
+            Man man = activePlayers.GetElement(i);
+            if (!man) continue;
+
+            PlayerIdentity identity = man.GetIdentity();
+            if (!identity) continue;
+
+            Param1<string> msgParam = new Param1<string>(fullMsg);
+            GetGame().RPCSingleParam(man, ERPCs.RPC_USER_ACTION_MESSAGE, msgParam, true, identity);
+        }
 
         Print("[Citadel] Broadcast: " + text);
         return true;

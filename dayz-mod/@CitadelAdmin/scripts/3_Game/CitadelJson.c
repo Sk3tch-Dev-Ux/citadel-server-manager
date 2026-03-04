@@ -43,12 +43,16 @@ class CitadelJson
 
         int start = pos + search.Length();
         string ch;
-        ch = json.Substring(start, 1);
-        while (start < json.Length() && (ch == " " || ch == "\t"))
+        while (start < json.Length())
         {
-            start++;
             ch = json.Substring(start, 1);
+            if (ch != " " && ch != "\t")
+                break;
+            start++;
         }
+
+        if (start >= json.Length())
+            return 0;
 
         int end = start;
         ch = json.Substring(end, 1);

@@ -247,6 +247,7 @@ class CitadelEventLogger
     static string EscapeJson(string input)
     {
         string output = input;
+        output.Replace("\\", "\\\\"); // Escape backslashes first
         output.Replace("\"", "'");
         output.Replace("\n", " ");
         output.Replace("\r", " ");

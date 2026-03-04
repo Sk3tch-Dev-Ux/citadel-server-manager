@@ -5,7 +5,7 @@
  * - Per-player identity tracking (steamId, name, session)
  * - Damage source tracking (weapon, ammo, attacker)
  * - Death event processing with full context
- * - Speed hack detection
+ * - Speed hack detection via OnScheduledTick (matching GameLabs pattern)
  * - Distance traveled accumulation
  * - Session statistics
  */
@@ -23,16 +23,12 @@ modded class PlayerBase extends ManBase
 
     // Speed hack detection
     private int m_CitSpeedHackTriggers = 0;
-    private float m_CitLastSpeedCheckTime = 0.0;
-    private vector m_CitLastPosition;
-    private float m_CitSpeedCheckResetTime = 0.0;
-
-    // Distance tracking
-    private vector m_CitDistanceLastPos;
     private float m_CitTickTime = 0.0;
+    private vector m_CitPosition;
 
     // State
     private bool m_CitDeathProcessed = false;
+    private bool m_CitHitTracked = false;
     private bool m_CitIdentitySet = false;
 
     // ─── Identity ─────────────────────────────────────
@@ -60,13 +56,24 @@ modded class PlayerBase extends ManBase
         m_CitSteamId = steamId;
         m_CitName = name;
         m_CitIdentitySet = true;
-        m_CitLastPosition = GetPosition();
-        m_CitDistanceLastPos = GetPosition();
-        m_CitLastSpeedCheckTime = GetGame().GetTickTime();
-        m_CitSpeedCheckResetTime = GetGame().GetTickTime();
+        m_CitPosition = GetPosition();
+        m_CitPosition[1] = 0; // Work with 2D only, matching GameLabs
 
         GetCitadel().RegisterPlayer(steamId, this);
         GetCitadel().GetLogger().Debug(string.Format("Player identity set: %1 (%2)", name, steamId));
+    }
+
+    // ─── Position Override (for teleport) ────────────
+
+    void CitOverridePosition(vector position)
+    {
+        m_CitPosition = position;
+    }
+
+    void CitSetPositionEx(vector position)
+    {
+        CitOverridePosition(position);
+        SetPosition(position);
     }
 
     // ─── Damage Source Tracking ───────────────────────
@@ -77,14 +84,15 @@ modded class PlayerBase extends ManBase
 
     override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
     {
+        // Store damage context BEFORE super call — super may trigger EEKilled
+        // which needs this context to determine cause of death (GameLabs pattern)
+        m_CitLastDamageAmmo = ammo;
+        m_CitLastDamageType = damageType;
+        m_CitLastDamagingEntity = source;
+
         super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
 
         if (!GetGame().IsServer()) return;
-
-        // Store damage context for death processing
-        m_CitLastDamageType = damageType;
-        m_CitLastDamageAmmo = ammo;
-        m_CitLastDamagingEntity = source;
 
         // Resolve weapon type
         m_CitLastWeaponType = "";
@@ -97,15 +105,22 @@ modded class PlayerBase extends ManBase
                 m_CitLastWeaponType = source.GetType();
         }
 
+        // Check if player is already dead (prevent logging hits on dead bodies)
+        // Matching GameLabs: if(this.m_DeathSyncSent || this.CommitedSuicide()) return;
+        if (m_DeathSyncSent || CommitedSuicide()) return;
+
         // Track hit stats for the attacker
         if (source && GetCitadel().GetConfiguration().GetTrackPlayerStats())
         {
             PlayerBase attacker = null;
 
-            // Source could be a weapon held by a player
+            // Source could be a weapon held by a player — resolve via hierarchy
             Man sourceOwner = source.GetHierarchyRootPlayer();
             if (sourceOwner)
                 attacker = PlayerBase.Cast(sourceOwner);
+
+            // Only track player-vs-player hits (matching GameLabs: if(!source || !murderer) return;)
+            if (!source || !attacker) return;
 
             if (attacker && attacker != this)
             {
@@ -115,8 +130,21 @@ modded class PlayerBase extends ManBase
                     CitadelPlayerStats attackerStats = GetCitadel().GetPlayerStats(attackerSteamId);
                     if (attackerStats)
                     {
-                        attackerStats.shotsHit++;
-                        attackerStats.shotsHitPlayers++;
+                        if (!IsAlive())
+                        {
+                            // Last shot that killed — only count once
+                            if (!m_CitHitTracked)
+                            {
+                                m_CitHitTracked = true;
+                                attackerStats.shotsHit++;
+                                attackerStats.shotsHitPlayers++;
+                            }
+                        }
+                        else
+                        {
+                            attackerStats.shotsHit++;
+                            attackerStats.shotsHitPlayers++;
+                        }
                     }
                 }
             }
@@ -140,9 +168,92 @@ modded class PlayerBase extends ManBase
                 CitadelEventLogger.LogHit(victimSteamId, GetCitName(), attackerId, attackerName, m_CitLastWeaponType, ammo, dmgZone, damage);
             }
         }
+
+        // Handle death from hit (GameLabs pattern: process death in EEHitBy too)
+        if (IsAlive())
+        {
+            m_CitDeathProcessed = false;
+        }
+        else if (!m_CitDeathProcessed)
+        {
+            m_CitDeathProcessed = true;
+            CitProcessKill(source);
+        }
     }
 
     // ─── Death Processing ─────────────────────────────
+
+    void CitProcessKill(Object killer)
+    {
+        string victimSteamId = GetCitSteamId();
+        string victimName = GetCitName();
+        if (victimSteamId == "") return;
+
+        // Resolve killer through weapon hierarchy (GameLabs pattern)
+        // When killer is a weapon/melee, resolve to the player holding it
+        PlayerBase killerPlayer;
+        EntityAI weapon;
+
+        if (killer.IsWeapon() || killer.IsMeleeWeapon())
+        {
+            weapon = EntityAI.Cast(killer);
+            killerPlayer = PlayerBase.Cast(weapon.GetHierarchyParent());
+        }
+
+        if (killerPlayer && killerPlayer != this)
+        {
+            string killerSteamId = killerPlayer.GetCitSteamId();
+            string killerName = killerPlayer.GetCitName();
+            float distance = vector.Distance(GetPosition(), killerPlayer.GetPosition());
+
+            string weaponType = "";
+            if (killer)
+                weaponType = killer.GetType();
+
+            CitadelEventLogger.LogKill(killerSteamId, killerName, victimSteamId, victimName, distance, weaponType);
+
+            // Update killer stats
+            CitadelPlayerStats killerStats = GetCitadel().GetPlayerStats(killerSteamId);
+            if (killerStats)
+                killerStats.killsPlayers++;
+        }
+        else if (killer == this)
+        {
+            // Suicide / self-inflicted — check for environmental causes
+            if (weapon)
+            {
+                CitadelEventLogger.LogSuicide(victimSteamId, victimName);
+            }
+            else if (CommitedSuicide())
+            {
+                CitadelEventLogger.LogSuicide(victimSteamId, victimName);
+            }
+            else
+            {
+                // Environmental death (fall, explosion, etc.)
+                string refType = "";
+                if (m_CitLastDamagingEntity)
+                    refType = m_CitLastDamagingEntity.GetType();
+
+                if (m_CitLastDamageType == DT_EXPLOSION)
+                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Explosion:" + refType);
+                else if (m_CitLastDamageAmmo == "FallDamage")
+                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "__FallDamage:" + refType);
+                else
+                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Environment:" + refType);
+            }
+        }
+        else
+        {
+            // Non-player AI kill
+            if (killer.IsInherited(ZombieBase))
+                CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Infected:" + killer.GetType());
+            else if (killer.IsInherited(AnimalBase))
+                CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Animal:" + killer.GetType());
+            else
+                CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Object:" + killer.GetType());
+        }
+    }
 
     override void EEKilled(Object killer)
     {
@@ -152,120 +263,150 @@ modded class PlayerBase extends ManBase
         if (m_CitDeathProcessed) return;
         m_CitDeathProcessed = true;
 
-        string victimSteamId = GetCitSteamId();
-        string victimName = GetCitName();
-        if (victimSteamId == "") return;
-
-        // Determine killer context
-        PlayerBase killerPlayer = PlayerBase.Cast(killer);
-        if (killerPlayer && killerPlayer != this)
-        {
-            string killerSteamId = killerPlayer.GetCitSteamId();
-            string killerName = killerPlayer.GetCitName();
-            float distance = vector.Distance(GetPosition(), killerPlayer.GetPosition());
-
-            string weapon = m_CitLastWeaponType;
-            if (weapon == "")
-            {
-                EntityAI weaponInHands = killerPlayer.GetHumanInventory().GetEntityInHands();
-                if (weaponInHands)
-                    weapon = weaponInHands.GetType();
-            }
-
-            CitadelEventLogger.LogKill(killerSteamId, killerName, victimSteamId, victimName, distance, weapon);
-
-            // Update killer stats
-            CitadelPlayerStats killerStats = GetCitadel().GetPlayerStats(killerSteamId);
-            if (killerStats)
-                killerStats.killsPlayers++;
-        }
-        else if (killer == this || !killer)
-        {
-            CitadelEventLogger.LogSuicide(victimSteamId, victimName);
-        }
-        else
-        {
-            // Killed by non-player entity (zombie, animal, environment)
-            string causeType = "unknown";
-            if (killer)
-                causeType = killer.GetType();
-
-            CitadelEventLogger.LogDeath(victimSteamId, victimName, causeType);
-        }
+        CitProcessKill(killer);
     }
 
     // ─── Speed Check & Distance Tracking ──────────────
+    // Uses OnScheduledTick matching the GameLabs pattern — NOT CommandHandler
+    // which fires every frame and is too expensive.
 
-    override void CommandHandler(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
+    override void OnScheduledTick(float deltaTime)
     {
-        super.CommandHandler(pDt, pCurrentCommandID, pCurrentCommandFinished);
-
-        if (!GetGame().IsServer()) return;
+        super.OnScheduledTick(deltaTime);
+        if (!GetCitadel().IsServer()) return;
         if (!m_CitIdentitySet) return;
 
-        float currentTime = GetGame().GetTickTime();
-        vector currentPos = GetPosition();
+        float tickTime = GetGame().GetTickTime();
+        float diff = (tickTime - m_CitTickTime);
 
-        // Distance tracking (every tick)
+        // Tick at a configurable interval (default ~2s), not every frame
+        float tickInterval = 2.0;
+        if (diff >= tickInterval)
+        {
+            m_CitTickTime = tickTime;
+            CitPlayerTick(diff, tickTime);
+        }
+    }
+
+    void CitPlayerTick(float diff, float tickTime)
+    {
+        vector currentPosition = GetPosition();
+        currentPosition[1] = 0; // Work with 2D only
+        float distance = vector.Distance(m_CitPosition, currentPosition);
+        if (diff == 0)
+            diff = 1;
+        float unitsPerSecond = distance / diff;
+        m_CitPosition = currentPosition;
+
+        // Distance tracking
         if (GetCitadel().GetConfiguration().GetTrackPlayerStats())
         {
-            float moveDist = vector.Distance(currentPos, m_CitDistanceLastPos);
-            if (moveDist > 0.1 && moveDist < 100.0) // Ignore teleports
+            if (distance > 0.1 && distance < 500.0) // Ignore teleports
             {
                 CitadelPlayerStats stats = GetCitadel().GetPlayerStats(m_CitSteamId);
                 if (stats)
                 {
                     if (IsInVehicle())
-                        stats.vehicleDistance += moveDist;
+                        stats.vehicleDistance += distance;
                     else
-                        stats.distance += moveDist;
+                        stats.distance += distance;
                 }
             }
-            m_CitDistanceLastPos = currentPos;
         }
 
-        // Speed hack detection (every 1 second)
+        // Speed hack detection
         if (GetCitadel().GetConfiguration().GetSpeedCheckEnabled())
         {
-            float deltaTime = currentTime - m_CitLastSpeedCheckTime;
-            if (deltaTime >= 1.0)
+            float warningThreshold;
+            if (IsInVehicle())
+                warningThreshold = GetCitadel().GetConfiguration().GetSpeedCheckThresholdVehicle();
+            else
+                warningThreshold = GetCitadel().GetConfiguration().GetSpeedCheckThresholdFoot();
+
+            if (unitsPerSecond >= warningThreshold)
             {
-                float distance = vector.Distance(currentPos, m_CitLastPosition);
-                float speed = distance / deltaTime;
+                m_CitSpeedHackTriggers++;
+                GetCitadel().GetLogger().Warn(string.Format("[SPEED-HACK] Potential speed-hack player=%1, distance=%2u, unitsPerSecond=%3 [threshold=%4, inVehicle=%5, triggers=%6]", m_CitSteamId, distance, unitsPerSecond, warningThreshold, IsInVehicle(), m_CitSpeedHackTriggers));
 
-                float threshold;
-                if (IsInVehicle())
-                    threshold = GetCitadel().GetConfiguration().GetSpeedCheckThresholdVehicle();
-                else
-                    threshold = GetCitadel().GetConfiguration().GetSpeedCheckThresholdFoot();
-
-                if (speed > threshold && distance > 5.0) // Ignore small movements
+                int triggerThreshold = GetCitadel().GetConfiguration().GetSpeedCheckTriggerCount();
+                if (m_CitSpeedHackTriggers >= triggerThreshold)
                 {
-                    m_CitSpeedHackTriggers++;
-
-                    // Reset trigger counter after 10 seconds of no flags
-                    if ((currentTime - m_CitSpeedCheckResetTime) > 10.0)
-                    {
-                        m_CitSpeedHackTriggers = 1;
-                        m_CitSpeedCheckResetTime = currentTime;
-                    }
-
-                    int triggerThreshold = GetCitadel().GetConfiguration().GetSpeedCheckTriggerCount();
-                    if (m_CitSpeedHackTriggers >= triggerThreshold)
-                    {
-                        GetCitadel().GetLogger().Warn(string.Format("Speed flag: %1 (%2) speed=%3 m/s triggers=%4 pos=%5", m_CitName, m_CitSteamId, speed.ToString(), m_CitSpeedHackTriggers.ToString(), currentPos.ToString()));
-
-                        CitadelEventLogger.LogSpeedFlag(m_CitSteamId, m_CitName, speed, currentPos, m_CitSpeedHackTriggers);
-                    }
+                    CitadelEventLogger.LogSpeedFlag(m_CitSteamId, m_CitName, unitsPerSecond, GetPosition(), m_CitSpeedHackTriggers);
                 }
-
-                m_CitLastPosition = currentPos;
-                m_CitLastSpeedCheckTime = currentTime;
             }
         }
     }
 
-    bool IsInVehicle()
+    // ─── Heal (Comprehensive, matching GameLabs GLHealEx) ──
+
+    void CitHealEx()
+    {
+        SetHealth(GetMaxHealth("", ""));
+        SetHealth("", "Blood", GetMaxHealth("", "Blood"));
+        SetHealth("", "Shock", GetMaxHealth("", "Shock"));
+        SetWet(GetWetInit());
+        SetTemperatureDirect(GameConstants.ITEM_TEMPERATURE_NEUTRAL_ZONE_MIDDLE);
+        GetStatHeatBuffer().Set(GetStatHeatBuffer().GetMax());
+        GetStatHeatComfort().Set(GetStatHeatComfort().GetMax());
+        GetStatTremor().Set(GetStatTremor().GetMin());
+        GetStatWet().Set(GetStatWet().GetMin());
+        GetStatEnergy().Set(GetStatEnergy().GetMax());
+        GetStatWater().Set(GetStatWater().GetMax());
+        GetStatDiet().Set(GetStatDiet().GetMax());
+        GetStatSpecialty().Set(GetStatSpecialty().GetMax());
+        SetBleedingBits(0);
+
+        SetHealth("LeftLeg", "Health", GetMaxHealth("LeftLeg", "Health"));
+        SetHealth("RightLeg", "Health", GetMaxHealth("RightLeg", "Health"));
+
+        if (GetBleedingManagerServer())
+            GetBleedingManagerServer().RemoveAllSources();
+
+        RemoveAllAgents();
+        ModifiersManager modifiers_manager = GetModifiersManager();
+
+        // Consumption based
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_CHOLERA))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_CHOLERA);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_INFLUENZA))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_INFLUENZA);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_SALMONELLA))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_SALMONELLA);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_POISONING))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_POISONING);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_HEMOLYTIC_REACTION))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_HEMOLYTIC_REACTION);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_VOMITSTUFFED))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_VOMITSTUFFED);
+
+        // Brain disease
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_BRAIN))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_BRAIN);
+
+        // Infections
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_WOUND_INFECTION1))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_WOUND_INFECTION1);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_WOUND_INFECTION2))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_WOUND_INFECTION2);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_FEVER))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_FEVER);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_COMMON_COLD))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_COMMON_COLD);
+
+        // Gas/contamination
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_TOXICITY))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_TOXICITY);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_CONTAMINATION1))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_CONTAMINATION1);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_CONTAMINATION2))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_CONTAMINATION2);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_CONTAMINATION3))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_CONTAMINATION3);
+        if (modifiers_manager.IsModifierActive(eModifiers.MDF_AREAEXPOSURE))
+            modifiers_manager.DeactivateModifier(eModifiers.MDF_AREAEXPOSURE);
+    }
+
+    bool CitIsInVehicle()
     {
         HumanCommandVehicle vehCmd = GetCommand_Vehicle();
         return (vehCmd != null);

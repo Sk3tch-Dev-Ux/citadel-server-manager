@@ -32,6 +32,7 @@ modded class DayZGame
         if (GetCitadel())
         {
             GetCitadel().SetTickTimes(this.CitGetAverageTickTime(), this.cit_tickTimeLow, this.cit_tickTimeHigh);
+            GetCitadel().SetTickCount(this.cit_ticksTotal);
         }
     }
 

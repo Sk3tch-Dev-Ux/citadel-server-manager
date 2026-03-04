@@ -6,7 +6,7 @@
  * - Placement and destruction events
  * - Persistent identification
  */
-modded class BaseBuildingBase extends ItemBase
+modded class BaseBuildingBase
 {
     private string m_CitOwnerSteamId = "";
     private string m_CitPersistentId = "";
@@ -54,6 +54,46 @@ modded class BaseBuildingBase extends ItemBase
     string CitGetOwner() { return m_CitOwnerSteamId; }
     string CitGetPersistentId() { return m_CitPersistentId; }
 
+    // ─── Base Hit Tracking (matching GameLabs EEHitBy) ──
+
+    private bool m_CitHitTracked = false;
+
+    override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
+    {
+        super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
+
+        if (!GetGame().IsServer()) return;
+        if (!GetCitadel().GetConfiguration().GetTrackPlayerStats()) return;
+
+        // Resolve attacker via weapon hierarchy parent (GameLabs pattern)
+        PlayerBase attacker;
+        if (source)
+            attacker = PlayerBase.Cast(source.GetHierarchyParent());
+        if (!source || !attacker) return;
+
+        string steamId = attacker.GetCitSteamId();
+        if (steamId != "")
+        {
+            CitadelPlayerStats stats = GetCitadel().GetPlayerStats(steamId);
+            if (stats)
+            {
+                // GameLabs: base object hits do NOT increase shotsHit, only shotsHitBaseObjects
+                if (!IsAlive())
+                {
+                    if (!m_CitHitTracked)
+                    {
+                        m_CitHitTracked = true;
+                        stats.shotsHitBaseObjects++;
+                    }
+                }
+                else
+                {
+                    stats.shotsHitBaseObjects++;
+                }
+            }
+        }
+    }
+
     // ─── Utility ──────────────────────────────────────
 
     protected string CitGeneratePersistentId()
@@ -86,7 +126,8 @@ modded class TerritoryFlagKit
         // Find the TerritoryFlag that was just created nearby
         vector playerPos = player.GetPosition();
         ref array<Object> nearestObjects = new array<Object>();
-        GetGame().GetObjectsAtPosition(playerPos, 15.0, nearestObjects, null);
+        ref array<CargoBase> proxyCargos = new array<CargoBase>();
+        GetGame().GetObjectsAtPosition(playerPos, 15.0, nearestObjects, proxyCargos);
 
         TerritoryFlag relatedFlag;
         foreach (Object nearestObject : nearestObjects)
@@ -117,62 +158,72 @@ modded class TerritoryFlagKit
 
 // ─── Territory Flag (Map Marker + Lifetime Display) ─────
 
-modded class TerritoryFlag
+modded class TerritoryFlag extends BaseBuildingBase
 {
     private ref CitadelTrackedEvent m_CitEvent;
+    private ref Timer m_CitUpdateTimer;
 
-    override void EEInit()
+    void TerritoryFlag()
     {
-        super.EEInit();
+        if (!GetCitadel()) return;
+        if (!GetCitadel().IsServer()) return;
 
-        if (!GetGame().IsServer()) return;
+        // Deferred init to avoid issues with hard refs during construction
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Call(this._CitInitFlag);
+        m_CitUpdateTimer = new Timer(CALL_CATEGORY_SYSTEM);
+        // 3601s to avoid accidentally catching the same hour due to rounding
+        m_CitUpdateTimer.Run(3601, this, "_CitUpdateEvent", null, true);
+    }
+
+    void ~TerritoryFlag()
+    {
+        if (!GetCitadel()) return;
+        if (!GetCitadel().IsServer()) return;
+
+        if (m_CitEvent) GetCitadel().RemoveEvent(m_CitEvent);
+        if (m_CitUpdateTimer) m_CitUpdateTimer.Stop();
+    }
+
+    private void _CitInitFlag()
+    {
+        if (!GetCitadel()) return;
+        if (!GetCitadel().IsServer()) return;
         if (!GetCitadel().GetConfiguration().GetTrackBaseBuilding()) return;
-
-        vector pos = GetPosition();
-        if (pos[0] <= 0 && pos[1] <= 0 && pos[2] <= 0) return;
 
         string displayName = CitBuildFlagDisplayName();
         m_CitEvent = new CitadelTrackedEvent(GetType(), "flag", this, displayName);
         GetCitadel().RegisterEvent(m_CitEvent);
+
+        vector pos = GetPosition();
         CitadelEventLogger.LogDynamicEvent("spawn", GetType(), displayName, pos);
-
-        // Refresh display name every hour (3600000ms)
-        GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLater(CitRefreshDisplayName, 3600000, true);
     }
 
-    override void EEDelete(EntityAI parent)
-    {
-        if (GetGame().IsServer())
-        {
-            GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).Remove(CitRefreshDisplayName);
-
-            if (m_CitEvent)
-            {
-                GetCitadel().RemoveEvent(m_CitEvent);
-                CitadelEventLogger.LogDynamicEvent("despawn", GetType(), "Territory Flag", GetPosition());
-            }
-        }
-
-        super.EEDelete(parent);
-    }
-
-    void CitRefreshDisplayName()
+    private void _CitUpdateEvent()
     {
         if (!m_CitEvent) return;
-        m_CitEvent.SetDisplayName(CitBuildFlagDisplayName());
+        string displayName = CitBuildFlagDisplayName();
+        if (m_CitEvent.GetDisplayName() != displayName)
+        {
+            GetCitadel().RemoveEvent(m_CitEvent);
+            _CitInitFlag();
+        }
     }
 
     protected string CitBuildFlagDisplayName()
     {
-        string name = "Territory Flag";
+        float remainingLifetime = GetLifetime() / 3600;
         string owner = CitGetOwner();
+
+        string displayName;
         if (owner != "")
-            name = name + " | Owner: " + owner;
+        {
+            displayName = string.Format("Territory Flag | Flag Level: %1%% | Lifetime: ~%2h | Owner: %3", Math.Round(GetRefresherTime01() * 100), Math.Round(remainingLifetime), owner);
+        }
+        else
+        {
+            displayName = string.Format("Territory Flag | Flag Level: %1%% | Lifetime: ~%2h", Math.Round(GetRefresherTime01() * 100), Math.Round(remainingLifetime));
+        }
 
-        float lifetime01 = GetRefresherTime01();
-        int lifetimePct = Math.Round(lifetime01 * 100);
-        name = name + " | Lifetime: " + lifetimePct.ToString() + "%";
-
-        return name;
+        return displayName;
     }
 };

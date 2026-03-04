@@ -174,7 +174,7 @@ class CitadelCommandRunner
         foreach (Object obj : objects)
         {
             EntityAI entity = EntityAI.Cast(obj);
-            if (entity && entity.GetNetworkIDString() == objectId)
+            if (entity && CitGetNetworkIDString(entity) == objectId)
             {
                 string type = entity.GetType();
                 GetGame().ObjectDelete(entity);
@@ -190,16 +190,19 @@ class CitadelCommandRunner
 
     protected bool LockServer(out string error)
     {
-        GetGame().ChatPlayer("#lock");
-        GetCitadel().GetLogger().Info("Server locked");
-        return true;
+        // Server lock/unlock requires BattlEye RCON — cannot be done from script directly.
+        // The plugin agent should handle this via RCON instead.
+        error = "Server lock requires RCON — use the plugin agent";
+        GetCitadel().GetLogger().Warn("server.lock requested but requires RCON");
+        return false;
     }
 
     protected bool UnlockServer(out string error)
     {
-        GetGame().ChatPlayer("#unlock");
-        GetCitadel().GetLogger().Info("Server unlocked");
-        return true;
+        // Server lock/unlock requires BattlEye RCON — cannot be done from script directly.
+        error = "Server unlock requires RCON — use the plugin agent";
+        GetCitadel().GetLogger().Warn("server.unlock requested but requires RCON");
+        return false;
     }
 
     // ─── Response Writer ────────────────────────────

@@ -30,6 +30,7 @@ class CitadelCore
 
     // Server metrics
     private int m_ServerFPS;
+    private int m_TickCount;
     private float m_TickTimeAvg;
     private float m_TickTimeLow;
     private float m_TickTimeHigh;
@@ -54,6 +55,7 @@ class CitadelCore
         m_TrackedEvents = new array<ref CitadelTrackedEvent>;
 
         m_ServerFPS = 0;
+        m_TickCount = 0;
         m_TickTimeAvg = 0;
         m_TickTimeLow = 0;
         m_TickTimeHigh = 0;
@@ -174,21 +176,41 @@ class CitadelCore
         m_TickTimeHigh = high;
     }
 
+    int GetTickCount() { return m_TickCount; }
+    void SetTickCount(int count) { m_TickCount = count; }
+
+    void DebugTickTimes()
+    {
+        string tickTimes = string.Format("TickTimesSnapshot[average=%1; low=%2; high=%3; totalTicks=%4; serverFps=%5;]", m_TickTimeAvg, m_TickTimeLow, m_TickTimeHigh, m_TickCount, m_ServerFPS);
+        m_Logger.Debug(tickTimes);
+    }
+
+    void HandleMissionLoaded()
+    {
+        DayZGame dzg = DayZGame.Cast(GetGame());
+        if (dzg)
+            dzg.CitSetMissionLoaded();
+        float tickTime = GetGame().GetTickTime();
+        m_Logger.Info(string.Format("Mission fully loaded in %1s. Server ready for connections.", tickTime));
+    }
+
     // ─── Entity Counts ───────────────────────────────
 
     int GetAICount() { return m_AICount; }
-    void IncrAICount() { m_AICount++; m_EntityCount++; }
-    void DecrAICount() { m_AICount--; m_EntityCount--; }
+    void IncrAICount() { m_AICount++; }
+    void DecrAICount() { m_AICount--; }
 
     int GetAnimalCount() { return m_AnimalCount; }
-    void IncrAnimalCount() { m_AnimalCount++; m_EntityCount++; }
-    void DecrAnimalCount() { m_AnimalCount--; m_EntityCount--; }
+    void IncrAnimalCount() { m_AnimalCount++; }
+    void DecrAnimalCount() { m_AnimalCount--; }
 
     int GetVehicleCount() { return m_VehicleCount; }
-    void IncrVehicleCount() { m_VehicleCount++; m_EntityCount++; }
-    void DecrVehicleCount() { m_VehicleCount--; m_EntityCount--; }
+    void IncrVehicleCount() { m_VehicleCount++; }
+    void DecrVehicleCount() { m_VehicleCount--; }
 
     int GetEntityCount() { return m_EntityCount; }
+    void IncrEntityCount() { m_EntityCount++; }
+    void DecrEntityCount() { m_EntityCount--; }
 
     int GetActiveAICount()
     {
@@ -196,7 +218,7 @@ class CitadelCore
         for (int i = 0; i < m_TrackedAI.Count(); i++)
         {
             CitadelTrackedAI ai = m_TrackedAI.Get(i);
-            if (ai.IsInfected() && ai.IsActive())
+            if (ai && ai.IsInfected() && ai.IsActive())
                 count++;
         }
         return count;
@@ -208,7 +230,7 @@ class CitadelCore
         for (int i = 0; i < m_TrackedAI.Count(); i++)
         {
             CitadelTrackedAI ai = m_TrackedAI.Get(i);
-            if (!ai.IsInfected() && ai.IsActive())
+            if (ai && !ai.IsInfected() && ai.IsActive())
                 count++;
         }
         return count;
@@ -233,8 +255,11 @@ class CitadelCore
         int idx = m_TrackedAI.Find(tracked);
         if (idx >= 0)
         {
+            string typeName = "unknown";
+            if (tracked.Ref())
+                typeName = tracked.Ref().GetType();
             m_TrackedAI.Remove(idx);
-            m_Logger.Debug(string.Format("RemoveAI(%1) - success", tracked.Ref().GetType()));
+            m_Logger.Debug(string.Format("RemoveAI(%1) - success", typeName));
         }
     }
 
