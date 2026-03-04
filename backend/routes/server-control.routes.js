@@ -12,6 +12,7 @@ const { checkPortAvailability } = require('../lib/port-checker');
 const { restartServer } = require('../lib/server-lifecycle');
 const { triggerManualUpdate, getUpdateState, cancelUpdate } = require('../lib/auto-updater');
 const { authForServer } = require('../middleware/auth');
+const { ensureFirewallRules } = require('../lib/firewall-manager');
 
 module.exports = function(app) {
   app.get('/api/servers/:id/status', authForServer(), (req, res) => {
@@ -63,6 +64,10 @@ module.exports = function(app) {
     } catch (err) {
       addLog(srv.id, 'warn', 'server', `Port check failed (proceeding anyway): ${err.message}`);
     }
+
+    // Ensure firewall rules exist (non-blocking)
+    ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort })
+      .catch(err => addLog(srv.id, 'warn', 'server', `Firewall rule setup failed: ${err.message}`));
 
     state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
     try {
