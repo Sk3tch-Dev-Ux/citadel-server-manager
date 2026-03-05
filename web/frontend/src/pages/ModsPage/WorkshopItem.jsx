@@ -17,9 +17,12 @@ export default function WorkshopItem({ item, isInstalled, isInstalling, installP
   let updatedStr = '';
   try { if (item.updated) updatedStr = new Date(item.updated).toLocaleDateString(); } catch(e) { /* ignore */ }
 
+  const pct = progress?.progress || 0;
+  const indeterminate = installing && pct <= 0;
+
   const btnLabel = () => {
     if (installed || complete) return <><Check size={14} /> Installed</>;
-    if (installing) return <><Loader size={14} /> {progress.progress ? Math.round(progress.progress) + '%' : '...'}</>;
+    if (installing) return <><Loader size={14} className="spin" /> {pct > 0 ? Math.round(pct) + '%' : 'Installing'}</>;
     if (failed) return <><AlertTriangle size={14} /> Retry</>;
     return <><Download size={14} /> Install</>;
   };
@@ -44,10 +47,16 @@ export default function WorkshopItem({ item, isInstalled, isInstalling, installP
           <div className="workshop-info-tags">{tags.slice(0, 5).map((t, i) => <span key={i}>{String(t)}</span>)}</div>
         )}
         {installing && (
-          <div style={{ marginTop: 6 }}>
-            <div style={{ fontSize: 11, color: 'var(--accent-blue)', marginBottom: 3 }}>{progress.message || 'Preparing...'}</div>
-            <div style={{ background: 'var(--bg-deep)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-              <div style={{ width: `${progress.progress || 5}%`, height: '100%', background: 'var(--accent-blue)', borderRadius: 4, transition: 'width 0.3s ease' }} />
+          <div className="workshop-progress">
+            <div className="workshop-progress-msg">
+              <Loader size={11} className="spin" />
+              {progress.message || 'Preparing...'}
+            </div>
+            <div className="workshop-progress-track">
+              <div
+                className={`workshop-progress-fill${indeterminate ? ' indeterminate' : ''}`}
+                style={indeterminate ? undefined : { width: `${Math.max(pct, 2)}%` }}
+              />
             </div>
           </div>
         )}
