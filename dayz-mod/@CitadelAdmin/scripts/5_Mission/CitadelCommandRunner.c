@@ -238,10 +238,7 @@ class CitadelCommandRunner
         string errStr = "null";
         if (error != "") errStr = "\"" + error + "\"";
 
-        string json = string.Format(
-            "{\"id\":\"%1\",\"ok\":%2,\"data\":%3,\"error\":%4,\"timestamp\":\"%5\"}",
-            id, okStr, data, errStr, CitadelLogger.GetISO8601Static()
-        );
+        string json = "{\"id\":\"" + id + "\",\"ok\":" + okStr + ",\"data\":" + data + ",\"error\":" + errStr + ",\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"}";
 
         FPrintln(file, json);
         CloseFile(file);
