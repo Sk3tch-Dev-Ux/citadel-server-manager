@@ -83,21 +83,42 @@ async function downloadWorkshopMod(workshopId, modName, serverId) {
   return new Promise((resolve, reject) => {
     const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
     let output = ''; let needsSteamGuard = false;
+    const emit = (status, progress, message) => {
+      if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status, progress, message });
+    };
     const handleData = (data) => {
       const text = data.toString(); output += text;
       for (const line of text.split('\n')) {
         const trimmed = line.trim(); if (!trimmed) continue;
         if (trimmed.includes('Steam Guard') || trimmed.includes('Two-factor') || trimmed.includes('Enter the current code')) {
           needsSteamGuard = true;
-          if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status: 'steam_guard', progress: 0, message: 'Steam Guard code required.' });
+          emit('steam_guard', 0, 'Steam Guard code required.');
           try { proc.kill(); } catch (err) { logger.debug({ err }, 'Kill steamcmd during guard'); }
         } else if (trimmed.includes('Invalid Password') || trimmed.includes('Login Failure')) {
-          if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status: 'error', progress: 0, message: 'Invalid Steam credentials.' });
+          emit('error', 0, 'Invalid Steam credentials.');
+        } else if (trimmed.includes('Logged in OK') || trimmed.includes('Waiting for user info...OK')) {
+          emit('downloading', 0, 'Logged in — starting download...');
+        } else if (trimmed.includes('Downloading item')) {
+          emit('downloading', 0, 'Downloading mod from Workshop...');
+        } else if (/Update state.*preallocating/i.test(trimmed)) {
+          emit('downloading', 2, 'Allocating disk space...');
+        } else if (/Update state.*verifying/i.test(trimmed)) {
+          emit('downloading', 95, 'Verifying download...');
+        } else if (/Update state.*downloading.*progress:\s*[\d.]+\s*\((\d+)\s*\/\s*(\d+)\)/.test(trimmed)) {
+          // Workshop download: "Update state (0x61) downloading, progress: 45.21 (12345678 / 27345678)"
+          const m = trimmed.match(/progress:\s*[\d.]+\s*\((\d+)\s*\/\s*(\d+)\)/);
+          if (m) {
+            const current = parseInt(m[1]);
+            const total = parseInt(m[2]);
+            const pct = total > 0 ? Math.min(99, (current / total) * 100) : 0;
+            emit('downloading', pct, `Downloading... ${pct.toFixed(0)}%`);
+          }
         } else if (trimmed.match(/(\d+\.?\d*)\s*%/)) {
+          // Fallback: app_update style "XX%" progress
           const pct = parseFloat(trimmed.match(/(\d+\.?\d*)\s*%/)[1]);
-          if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
+          emit('downloading', pct, `Downloading... ${pct.toFixed(0)}%`);
         } else if (trimmed.includes('Success. Downloaded item')) {
-          if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status: 'downloaded', progress: 100, message: 'Download complete!' });
+          emit('downloaded', 100, 'Download complete!');
         }
       }
     };

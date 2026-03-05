@@ -293,6 +293,25 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .workshop-btn:hover { opacity: 0.85; }
 .workshop-btn:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
 .workshop-loading { text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px; }
+.workshop-progress { margin-top: 6px; }
+.workshop-progress-msg { font-size: 11px; color: var(--accent-blue); margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+.workshop-progress-msg .spin { animation: workshop-spin 1s linear infinite; }
+.workshop-progress-track { background: var(--bg-deep); border-radius: 4px; height: 6px; overflow: hidden; position: relative; }
+.workshop-progress-fill { height: 100%; border-radius: 4px; background: var(--accent-blue); transition: width 0.4s ease; }
+.workshop-progress-fill.indeterminate {
+  width: 100% !important;
+  background: linear-gradient(90deg, var(--bg-deep) 0%, var(--accent-blue) 40%, var(--accent-blue) 60%, var(--bg-deep) 100%);
+  background-size: 200% 100%;
+  animation: workshop-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes workshop-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes workshop-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .mod-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; transition: all 0.15s; }
 .mod-item:hover { border-color: var(--border-active); }
 .mod-order { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); min-width: 28px; }
