@@ -17,6 +17,10 @@
  *   - FLUSH_INTERVAL (2s) elapsed — checked from DayZGame.OnUpdate()
  *   - CitadelCore.Exit() for graceful shutdown
  *
+ * NOTE: Utility methods (EscapeJson, GetTimestamp, AppendLine, FlushBuffer,
+ * CheckFlush) are declared BEFORE Log* methods because the Enforce Script
+ * compiler resolves method calls top-to-bottom within a class.
+ *
  * Event types:
  *   kill, suicide, death, connect, playtime, chat,
  *   hit, baseBuilt, baseDestroyed, dynamicEvent,
@@ -32,6 +36,18 @@ class CitadelEventLogger
     static const int BATCH_SIZE = 20;
     static const float FLUSH_INTERVAL = 2.0;
 
+    // ─── Utility (must be above Log* methods for compile order) ───
+
+    static string EscapeJson(string input)
+    {
+        string output = input;
+        output.Replace("\"", "'");
+        output.Replace("\n", " ");
+        output.Replace("\r", " ");
+        output.Replace("\t", " ");
+        return output;
+    }
+
     // ─── Timestamp (self-contained, no dependency on CitadelLogger) ───
 
     private static string GetTimestamp()
@@ -40,6 +56,60 @@ class CitadelEventLogger
         GetHourMinuteSecondUTC(h, mi, s);
         GetYearMonthDayUTC(y, mo, d);
         return string.Format("%1-%2-%3T%4:%5:%6Z", y.ToStringLen(4), mo.ToStringLen(2), d.ToStringLen(2), h.ToStringLen(2), mi.ToStringLen(2), s.ToStringLen(2));
+    }
+
+    // ─── Buffer Management ──────────────────────────────
+
+    /**
+     * Write all buffered events to disk in a single file open/close.
+     * Called from CheckFlush(), AppendLine() overflow, and CitadelCore.Exit().
+     */
+    static void FlushBuffer()
+    {
+        if (s_EventBuffer.Count() == 0) return;
+
+        FileHandle file = OpenFile(EVENT_FILE, FileMode.APPEND);
+        if (file != 0)
+        {
+            for (int i = 0; i < s_EventBuffer.Count(); i++)
+            {
+                FPrintln(file, s_EventBuffer.Get(i));
+            }
+            CloseFile(file);
+        }
+        s_EventBuffer.Clear();
+        s_LastFlushTime = GetGame().GetTickTime();
+    }
+
+    /**
+     * Called from DayZGame.OnUpdate() every server tick.
+     * Flushes buffered events if FLUSH_INTERVAL has elapsed.
+     * Cost: one float comparison per frame (~zero overhead).
+     */
+    static void CheckFlush()
+    {
+        if (s_EventBuffer.Count() == 0) return;
+
+        float now = GetGame().GetTickTime();
+        if ((now - s_LastFlushTime) >= FLUSH_INTERVAL)
+        {
+            FlushBuffer();
+        }
+    }
+
+    /**
+     * Add a JSON line to the write buffer.
+     * Auto-flushes when buffer is full.
+     */
+    protected static void AppendLine(string line)
+    {
+        s_EventBuffer.Insert(line);
+
+        // Flush immediately if buffer is full
+        if (s_EventBuffer.Count() >= BATCH_SIZE)
+        {
+            FlushBuffer();
+        }
     }
 
     // ─── Player Events ────────────────────────────────
@@ -206,71 +276,5 @@ class CitadelEventLogger
             "{\"type\":\"disconnect\",\"steamId\":\"%1\",\"name\":\"%2\",\"timestamp\":\"%3\"}",
             steamId, EscapeJson(name), GetTimestamp()
         ));
-    }
-
-    // ─── Buffer Management ──────────────────────────────
-
-    /**
-     * Add a JSON line to the write buffer.
-     * Auto-flushes when buffer is full.
-     */
-    protected static void AppendLine(string line)
-    {
-        s_EventBuffer.Insert(line);
-
-        // Flush immediately if buffer is full
-        if (s_EventBuffer.Count() >= BATCH_SIZE)
-        {
-            FlushBuffer();
-        }
-    }
-
-    /**
-     * Called from DayZGame.OnUpdate() every server tick.
-     * Flushes buffered events if FLUSH_INTERVAL has elapsed.
-     * Cost: one float comparison per frame (~zero overhead).
-     */
-    static void CheckFlush()
-    {
-        if (s_EventBuffer.Count() == 0) return;
-
-        float now = GetGame().GetTickTime();
-        if ((now - s_LastFlushTime) >= FLUSH_INTERVAL)
-        {
-            FlushBuffer();
-        }
-    }
-
-    /**
-     * Write all buffered events to disk in a single file open/close.
-     * Called from CheckFlush(), AppendLine() overflow, and CitadelCore.Exit().
-     */
-    static void FlushBuffer()
-    {
-        if (s_EventBuffer.Count() == 0) return;
-
-        FileHandle file = OpenFile(EVENT_FILE, FileMode.APPEND);
-        if (file != 0)
-        {
-            for (int i = 0; i < s_EventBuffer.Count(); i++)
-            {
-                FPrintln(file, s_EventBuffer.Get(i));
-            }
-            CloseFile(file);
-        }
-        s_EventBuffer.Clear();
-        s_LastFlushTime = GetGame().GetTickTime();
-    }
-
-    // ─── Utility ──────────────────────────────────────
-
-    static string EscapeJson(string input)
-    {
-        string output = input;
-        output.Replace("\"", "'");
-        output.Replace("\n", " ");
-        output.Replace("\r", " ");
-        output.Replace("\t", " ");
-        return output;
     }
 };
