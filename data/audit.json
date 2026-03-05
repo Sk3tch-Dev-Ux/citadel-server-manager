@@ -1,5 +1,37 @@
 [
   {
+    "id": "ab25bff6-2015-45af-9680-097a4611ab86",
+    "timestamp": "2026-03-05T04:42:35.743Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "3b720a9a-b4bc-498d-a8d3-bf1f44848e49",
+    "timestamp": "2026-03-05T04:42:21.536Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.type",
+    "details": "Changed @CitadelAdmin to server on server 7ddd5b36-d721-45c4-aba8-898809f286f5"
+  },
+  {
+    "id": "8dcb502a-078c-4d8f-a86a-ca10c0839121",
+    "timestamp": "2026-03-05T04:41:41.401Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "b1455739-2c5f-489f-a4d0-112d03ebea95",
+    "timestamp": "2026-03-05T04:39:20.670Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
     "id": "b8bb3b03-318e-4d69-b523-ee0618e741d4",
     "timestamp": "2026-03-05T04:35:22.173Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
