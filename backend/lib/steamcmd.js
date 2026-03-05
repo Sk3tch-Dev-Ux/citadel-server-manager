@@ -183,12 +183,19 @@ async function validateSteamLogin(username, password, guardCode) {
 
     const handleData = (data) => {
       const text = data.toString(); output += text;
-      if (isGuardRequired(text))
-        done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
-      else if (isLoginFailed(text))
+      logger.debug({ chunk: text.trim().substring(0, 300) }, 'SteamCMD output chunk');
+
+      if (isLoginSuccess(text)) {
+        // Clear stall timer immediately on success
+        if (loginStallTimer) { clearTimeout(loginStallTimer); loginStallTimer = null; }
+        // Don't resolve yet — let exit handler do it so SteamCMD can cache token
+      } else if (isGuardRequired(text)) {
+        done({ success: false, needsGuard: true, error: 'Steam Guard code required — check your email' });
+      } else if (isLoginFailed(text)) {
         done({ success: false, error: 'Invalid username or password' });
-      else if (isRateLimited(text))
+      } else if (isRateLimited(text)) {
         done({ success: false, error: 'Too many attempts — wait and retry' });
+      }
 
       // Stall detection: SteamCMD often hangs silently when waiting for a
       // Steam Guard code (no "Steam Guard" text, just blocks on stdin).
@@ -204,18 +211,21 @@ async function validateSteamLogin(username, password, guardCode) {
     };
     proc.stdout?.on('data', handleData); proc.stderr?.on('data', handleData);
     const timeout = setTimeout(() => {
+      logger.warn({ steamcmdOutput: output.substring(0, 500) }, 'SteamCMD login timed out');
       if (isLoginSuccess(output)) done({ success: true });
-      else if (isGuardRequired(output)) done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
-      else done({ success: false, error: 'Login timed out — SteamCMD did not respond within 60 seconds' });
+      else if (isGuardRequired(output)) done({ success: false, needsGuard: true, error: 'Steam Guard code required — check your email' });
+      else done({ success: false, needsGuard: true, error: 'Login timed out — this usually means Steam Guard is required. Check your email for a code.' });
     }, STEAMCMD_LOGIN_TIMEOUT_MS);
-    proc.on('exit', () => {
+    proc.on('exit', (code) => {
       if (resolved) return;
+      logger.info({ exitCode: code, steamcmdOutput: output.substring(0, 800) }, 'SteamCMD login process exited');
       if (isLoginSuccess(output)) done({ success: true });
-      else if (isGuardRequired(output)) done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
+      else if (isGuardRequired(output)) done({ success: false, needsGuard: true, error: 'Steam Guard code required — check your email' });
       else if (isLoginFailed(output)) done({ success: false, error: 'Invalid username or password' });
       else if (isRateLimited(output)) done({ success: false, error: 'Too many attempts — wait and retry' });
-      else if (output.includes('FAILED')) done({ success: false, error: 'Steam login failed — check your credentials' });
-      else done({ success: false, error: 'Steam login failed — unexpected SteamCMD response' });
+      // FAILED without specific match = most likely guard/auth issue
+      else if (output.includes('FAILED')) done({ success: false, needsGuard: true, error: 'Steam login failed — a Steam Guard code may be required. Check your email.' });
+      else done({ success: false, needsGuard: true, error: 'Steam login did not succeed — a Steam Guard code may be required. Check your email.' });
     });
     proc.on('error', (err) => done({ success: false, error: err.message }));
   });

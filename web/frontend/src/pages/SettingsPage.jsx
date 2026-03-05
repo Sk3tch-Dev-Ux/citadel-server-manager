@@ -335,17 +335,32 @@ export default function SettingsPage() {
       if (result.success) {
         setSteamStatus(prev => ({ ...prev, username: steamUsername, hasPassword: true, loginValidated: true }));
         setSteamNeedsGuard(false);
+        setSteamGuardCode('');
         setSteamError('');
         setEditing(false);
         window.addToast(`Steam logged in as ${steamUsername}`, 'success');
       } else if (result.needsGuard) {
         setSteamNeedsGuard(true);
-        setSteamError('Steam Guard code required — check your email or authenticator app.');
+        setSteamError('Steam Guard code required — check your email and enter the code above.');
       } else {
-        setSteamError(result.message || 'Login failed');
+        const msg = (result.message || 'Login failed').toLowerCase();
+        // Catch any guard-related error the backend might return, even without needsGuard flag
+        if (msg.includes('guard') || msg.includes('denied') || msg.includes('two-factor') || msg.includes('code required')) {
+          setSteamNeedsGuard(true);
+          setSteamError('Steam Guard code required — check your email and enter the code above.');
+        } else {
+          setSteamError(result.message || 'Login failed');
+        }
       }
     } catch (err) {
-      setSteamError(err.message || 'Failed to validate credentials');
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('timed out')) {
+        // Timeout likely means SteamCMD hung waiting for guard code
+        setSteamNeedsGuard(true);
+        setSteamError('Login timed out — this usually means Steam Guard is required. Check your email for a code and enter it above.');
+      } else {
+        setSteamError(err.message || 'Failed to validate credentials');
+      }
     }
     setSteamValidating(false);
   };
@@ -405,13 +420,19 @@ export default function SettingsPage() {
               <input className="input" type="password" value={steamPassword} onChange={e => setSteamPassword(e.target.value)} placeholder="your_steam_password" autoComplete="off" />
             </div>
 
-            {steamNeedsGuard && (
-              <div className="input-group">
-                <label className="input-label">Steam Guard Code</label>
-                <input className="input" value={steamGuardCode} onChange={e => setSteamGuardCode(e.target.value)} placeholder="XXXXX" maxLength={5} style={{ letterSpacing: '0.2em', textAlign: 'center', maxWidth: 140 }} autoComplete="off" />
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Check your email or Steam mobile app for the code</div>
+            <div className="input-group">
+              <label className="input-label">
+                Steam Guard Code
+                {!steamNeedsGuard && <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>(leave blank on first attempt)</span>}
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input className="input" value={steamGuardCode} onChange={e => setSteamGuardCode(e.target.value)} placeholder="XXXXX" maxLength={5} style={{ letterSpacing: '0.2em', textAlign: 'center', maxWidth: 140, ...(steamNeedsGuard ? { borderColor: '#f59e0b', boxShadow: '0 0 0 1px rgba(245,158,11,0.3)' } : {}) }} autoComplete="off" />
+                {steamNeedsGuard && <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 500 }}>← Check your email</span>}
               </div>
-            )}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                Click Verify first without a code. If Steam Guard is enabled, a code will be emailed to you — enter it here and click Verify again.
+              </div>
+            </div>
 
             {steamError && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, marginBottom: 12, fontSize: 13, color: '#ef4444' }}>
@@ -426,7 +447,7 @@ export default function SettingsPage() {
                 </button>
               )}
               <button className="btn btn-primary" onClick={validateSteamCredentials} disabled={steamValidating || !steamUsername || !steamPassword} style={{ flex: 1, justifyContent: 'center' }}>
-                {steamValidating ? 'Verifying...' : (steamNeedsGuard ? 'Submit Guard Code' : 'Verify Steam Login')}
+                {steamValidating ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Verifying... (up to 15s)</> : (steamGuardCode ? 'Verify with Guard Code' : 'Verify Steam Login')}
               </button>
             </div>
 
