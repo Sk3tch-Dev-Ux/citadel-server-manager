@@ -222,6 +222,28 @@ export default function SetupWizardPage() {
     setSteamValidating(false);
   };
 
+  const [steamSaving, setSteamSaving] = useState(false);
+  const handleSteamSave = async () => {
+    if (!steamUser || !steamPass) {
+      setError('Steam username and password are required');
+      return;
+    }
+    setSteamSaving(true);
+    setError('');
+    try {
+      const result = await API.post('/api/setup/steam/save', { username: steamUser, password: steamPass });
+      if (result.success) {
+        setError('');
+        goNext();
+      } else {
+        setError(result.error || 'Failed to save credentials');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to save credentials');
+    }
+    setSteamSaving(false);
+  };
+
   const handleDeployServer = async () => {
     if (serverMode === 'skip') {
       await completeSetup();
@@ -660,25 +682,31 @@ export default function SetupWizardPage() {
                       </div>
                     </div>
 
-                    <button className="btn btn-primary" onClick={handleSteamValidate} disabled={steamValidating || !steamUser || !steamPass} style={{ width: '100%', justifyContent: 'center' }}>
+                    <button className="btn btn-primary" onClick={handleSteamValidate} disabled={steamValidating || steamSaving || !steamUser || !steamPass} style={{ width: '100%', justifyContent: 'center' }}>
                       {steamValidating ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Verifying... (up to 15s)</> : (steamGuardCode ? 'Verify with Guard Code' : 'Verify Steam Login')}
                     </button>
 
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
-                      Credentials are stored locally and used only for SteamCMD operations.
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0' }}>
+                      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>or</span>
+                      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                    </div>
+
+                    <button className="btn btn-secondary" onClick={handleSteamSave} disabled={steamValidating || steamSaving || !steamUser || !steamPass} style={{ width: '100%', justifyContent: 'center' }}>
+                      {steamSaving ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : 'Save & Continue Without Verifying'}
+                    </button>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
+                      Saves credentials and moves on. You can complete Steam Guard authentication manually via SteamCMD on this server.
                     </div>
                   </div>
 
-                  <div className="btn-group">
+                  <div className="btn-group" style={{ marginTop: 4 }}>
                     <button className="btn btn-secondary" onClick={() => { setSteamStatus(null); setError(''); }}>
                       <ArrowLeft size={14} /> Back
                     </button>
                     <button className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center', fontSize: 12 }} onClick={goNext}>
-                      Skip for Now <ArrowRight size={14} />
+                      Skip Entirely <ArrowRight size={14} />
                     </button>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
-                    You can configure Steam credentials later in Settings, but deployment requires them.
                   </div>
                 </>
               )}

@@ -312,6 +312,42 @@ module.exports = function(app) {
   });
 
   /**
+   * POST /api/setup/steam/save
+   * Save Steam credentials WITHOUT running SteamCMD validation.
+   * Same as /api/steam/credentials/save but for setup wizard context.
+   */
+  app.post('/api/setup/steam/save', requireSetupMode, (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+    ctx.steamCredentials.username = username;
+    ctx.steamCredentials.password = password;
+    ctx.steamCredentials.guardCode = '';
+    ctx.steamLoginValidated = false;
+
+    // Persist to .env
+    const envPath = path.join(__dirname, '..', '..', '.env');
+    if (fs.existsSync(envPath)) {
+      let envContent = fs.readFileSync(envPath, 'utf-8');
+      if (envContent.match(/^#?\s*STEAM_USERNAME=/m)) {
+        envContent = envContent.replace(/^#?\s*STEAM_USERNAME=.*$/m, `STEAM_USERNAME=${username}`);
+      } else {
+        envContent += `\nSTEAM_USERNAME=${username}`;
+      }
+      if (envContent.match(/^#?\s*STEAM_PASSWORD=/m)) {
+        envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${password}`);
+      } else {
+        envContent += `\nSTEAM_PASSWORD=${password}`;
+      }
+      fs.writeFileSync(envPath, envContent);
+    }
+
+    logger.info({ username }, 'Setup: Steam credentials saved without validation');
+    res.json({ success: true, saved: true });
+  });
+
+  /**
    * POST /api/setup/complete
    * Mark setup as finished. After this, setup routes return 403.
    */
