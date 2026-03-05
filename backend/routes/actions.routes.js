@@ -158,6 +158,64 @@ module.exports = function(app) {
     }
   });
 
+  // ─── Kick Player ──────────────────────────────────
+  app.post('/api/servers/:id/actions/kick', auth('players.kick'), async (req, res) => {
+    const { steamId, reason } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.KICK_PLAYER);
+      await provider.kickPlayer(req.params.id, steamId, reason || 'Kicked by admin');
+      // Remove from cached player list
+      const state = require('../lib/context').serverStates[req.params.id];
+      if (state) {
+        state.players = state.players.filter(p => p.steamId !== steamId && p.id !== steamId);
+        require('../lib/context').io.emit('players', { serverId: req.params.id, players: state.players });
+      }
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.KICK_PLAYER],
+        `Kicked ${session.playerName || session.name}: ${reason || 'Kicked by admin'}`);
+      const { addNotification, fireWebhooks } = require('../lib/notifications');
+      addNotification(req.params.id, 'player.kick', 'Player Kicked', `${session.playerName || session.name} was kicked`, 'warning');
+      const kickSrv = require('../lib/context').servers.find(s => s.id === req.params.id);
+      fireWebhooks('player.kick', { serverId: req.params.id, serverName: kickSrv?.name || 'Unknown', playerId: steamId, playerName: session.playerName || session.name, reason: reason || 'Kicked by admin' });
+      res.json({ message: `Kicked ${session.playerName || session.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Ban Player ───────────────────────────────────
+  app.post('/api/servers/:id/actions/ban', auth('players.ban'), async (req, res) => {
+    const { steamId, reason } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.BAN_PLAYER);
+      await provider.banPlayer(req.params.id, steamId, reason || 'Banned by admin');
+      // Remove from cached player list
+      const state = require('../lib/context').serverStates[req.params.id];
+      if (state) {
+        state.players = state.players.filter(p => p.steamId !== steamId && p.id !== steamId);
+        require('../lib/context').io.emit('players', { serverId: req.params.id, players: state.players });
+      }
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.BAN_PLAYER],
+        `Banned ${session.playerName || session.name}: ${reason || 'Banned by admin'}`);
+      const { addNotification, fireWebhooks } = require('../lib/notifications');
+      addNotification(req.params.id, 'player.ban', 'Player Banned', `${session.playerName || session.name} was banned`, 'error');
+      const banSrv = require('../lib/context').servers.find(s => s.id === req.params.id);
+      fireWebhooks('player.ban', { serverId: req.params.id, serverName: banSrv?.name || 'Unknown', playerId: steamId, playerName: session.playerName || session.name, reason: reason || 'Banned by admin' });
+      res.json({ message: `Banned ${session.playerName || session.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ─── Teleport To Player ────────────────────────────
   app.post('/api/servers/:id/actions/teleport-to-player', auth('server.rcon'), async (req, res) => {
     const { steamId, targetSteamId } = req.body;
