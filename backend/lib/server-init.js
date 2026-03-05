@@ -111,19 +111,6 @@ function migrateInHouseApiUrl() {
       logger.info({ server: srv.name, inHouseApiUrl: srv.inHouseApiUrl }, 'Migrated server: set inHouseApiUrl');
       changed = true;
     }
-    // Ensure @CitadelAdmin is in -serverMod= (server-side only mod)
-    if (srv.launchParams && !srv.launchParams.includes('@CitadelAdmin')) {
-      // Replace old @CitadelServerSide with @CitadelAdmin, or add -serverMod=
-      if (srv.launchParams.includes('@CitadelServerSide')) {
-        srv.launchParams = srv.launchParams.replace('@CitadelServerSide', '@CitadelAdmin');
-      } else if (srv.launchParams.includes('-serverMod=')) {
-        srv.launchParams = srv.launchParams.replace(/(-serverMod=)([^\s]+)/, '$1$2;@CitadelAdmin');
-      } else {
-        srv.launchParams += ' -serverMod=@CitadelAdmin';
-      }
-      logger.info({ server: srv.name, launchParams: srv.launchParams }, 'Migrated server: added @CitadelAdmin to launch params');
-      changed = true;
-    }
   }
   if (changed) {
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
