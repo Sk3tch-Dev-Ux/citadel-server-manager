@@ -331,7 +331,7 @@ export default function SettingsPage() {
     try {
       const payload = { username: steamUsername, password: steamPassword };
       if (steamGuardCode) payload.guardCode = steamGuardCode;
-      const result = await API.post('/api/steam/credentials', payload);
+      const result = await API.post('/api/steam/credentials', payload, { timeout: 90000 });
       if (result.success) {
         setSteamStatus(prev => ({ ...prev, username: steamUsername, hasPassword: true, loginValidated: true }));
         setSteamNeedsGuard(false);

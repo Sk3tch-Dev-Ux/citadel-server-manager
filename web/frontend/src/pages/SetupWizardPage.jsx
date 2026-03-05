@@ -164,7 +164,7 @@ export default function SetupWizardPage() {
         steamCmdPath: steamMode === 'manual' ? steamPath : '',
         username: steamUser || '',
         password: steamPass || '',
-      });
+      }, { timeout: 90000 });
 
       if (result.error) {
         setError(result.error);
@@ -172,11 +172,8 @@ export default function SetupWizardPage() {
       } else {
         setSteamCmdPath(result.steamCmdPath);
         setSteamStatus('found');
-        // If no credentials provided, just advance
-        if (!steamUser || !steamPass) {
-          setTimeout(() => goNext(), 800);
-        }
-        // If credentials provided, we'll validate them next (user clicks Verify)
+        // Always show Phase 2 (credential input) so the user can sign in.
+        // They can click "Skip Login" if they want to configure later.
       }
     } catch (err) {
       setError(err.message || 'SteamCMD setup failed');
@@ -195,7 +192,7 @@ export default function SetupWizardPage() {
     try {
       const payload = { username: steamUser, password: steamPass };
       if (steamGuardCode) payload.guardCode = steamGuardCode;
-      const result = await API.post('/api/setup/steam/validate', payload);
+      const result = await API.post('/api/setup/steam/validate', payload, { timeout: 90000 });
       if (result.success) {
         setSteamValidated(true);
         setSteamNeedsGuard(false);
