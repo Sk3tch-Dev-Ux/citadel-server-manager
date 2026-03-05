@@ -236,9 +236,17 @@ async function updateServerApp(serverId, installDir) {
   const appId = (srv && srv.gameTitle === 'DayZ, PC (Experimental)') ? '1042420' : '223350';
   const resolvedDir = path.resolve(installDir);
 
-  // DayZ Dedicated Server (223350) supports anonymous download — no Steam
-  // credentials required. Workshop mods still need authenticated login.
-  const args = ['+force_install_dir', resolvedDir, '+login', 'anonymous'];
+  // Use authenticated login if credentials are available, anonymous as fallback
+  const loginArgs = [];
+  if (ctx.steamLoginValidated && ctx.steamCredentials.username) {
+    loginArgs.push('+login', ctx.steamCredentials.username);
+  } else if (ctx.steamCredentials.username && ctx.steamCredentials.password) {
+    if (ctx.steamCredentials.guardCode) loginArgs.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+    loginArgs.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
+  } else {
+    loginArgs.push('+login', 'anonymous');
+  }
+  const args = ['+force_install_dir', resolvedDir, ...loginArgs];
   args.push('+app_update', appId, 'validate', '+quit');
 
   if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: 'Updating game files via SteamCMD...' });

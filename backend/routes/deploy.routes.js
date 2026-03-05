@@ -77,9 +77,31 @@ const STEAMCMD_ERRORS = {
   5: 'Invalid Steam credentials. Update your username and password in Settings → Steam.',
   6: 'Steam account is not authorized for this app. Ensure you own DayZ on this account.',
   7: 'Network timeout — SteamCMD could not reach Steam servers. Check your internet connection.',
-  8: 'SteamCMD failed to install the app. Common causes: invalid Steam credentials, disk full, or SteamCMD needs to self-update. Check your credentials in Settings → Steam and try again.',
+  8: 'SteamCMD failed to install the app. This app may require an authenticated Steam account. Configure your credentials in Settings → Steam, or check disk space and try again.',
   10: 'SteamCMD is already updating. Wait for the current operation to finish.',
 };
+
+/**
+ * Build SteamCMD login arguments.
+ * Uses authenticated login if credentials are available, falls back to anonymous.
+ */
+function buildLoginArgs() {
+  if (ctx.steamLoginValidated && ctx.steamCredentials.username) {
+    // Cached session: username-only leverages saved auth token
+    return ['+login', ctx.steamCredentials.username];
+  }
+  if (ctx.steamCredentials.username && ctx.steamCredentials.password) {
+    // Fresh login with full credentials
+    const args = [];
+    if (ctx.steamCredentials.guardCode) {
+      args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
+    }
+    args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
+    return args;
+  }
+  // No credentials — anonymous fallback
+  return ['+login', 'anonymous'];
+}
 
 /**
  * Run a single SteamCMD download attempt.
@@ -189,10 +211,8 @@ module.exports = function(app) {
       } catch { /* SteamCMD self-update is best-effort */ }
 
       // Step 2: Build SteamCMD arguments
-      // DayZ Dedicated Server (223350) supports anonymous download — no Steam
-      // credentials required. This lets first-time users deploy immediately
-      // without configuring Steam login. Workshop mods still need auth.
-      const args = ['+force_install_dir', resolvedDir, '+login', 'anonymous'];
+      // Uses authenticated login if credentials are configured, anonymous otherwise.
+      const args = ['+force_install_dir', resolvedDir, ...buildLoginArgs()];
       args.push('+app_update', appId, 'validate', '+quit');
 
       // Step 3: Download with retry (SteamCMD often needs 2 attempts for large downloads)
@@ -279,8 +299,8 @@ module.exports = function(app) {
       const cmdPath = await ensureSteamCMD();
       const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
 
-      // DayZ DS supports anonymous download — no credentials needed
-      const args = ['+force_install_dir', resolvedDir, '+login', 'anonymous'];
+      // Uses authenticated login if credentials are configured, anonymous otherwise
+      const args = ['+force_install_dir', resolvedDir, ...buildLoginArgs()];
       args.push('+app_update', appId, 'validate', '+quit');
 
       // Download with retry
