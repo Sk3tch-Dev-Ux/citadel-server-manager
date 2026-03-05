@@ -521,7 +521,7 @@ export default function SetupWizardPage() {
                 <Gamepad2 size={32} style={{ color: 'var(--accent-purple)', marginBottom: 8 }} />
                 <h3 style={{ fontSize: 18, fontWeight: 700 }}>Steam Setup</h3>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-                  SteamCMD is needed to download and update your DayZ server. Sign in to Steam so deployments work seamlessly.
+                  SteamCMD is needed to download and update your DayZ server. Server files download anonymously — Steam login is only needed for Workshop mods.
                 </p>
               </div>
 
@@ -601,7 +601,7 @@ export default function SetupWizardPage() {
                 </>
               )}
 
-              {/* Phase 2: SteamCMD found — now sign in to Steam */}
+              {/* Phase 2: SteamCMD found — optionally sign in to Steam */}
               {steamStatus === 'found' && !steamValidated && (
                 <>
                   <div style={{
@@ -614,12 +614,24 @@ export default function SetupWizardPage() {
                   </div>
 
                   <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> We recommend using a dedicated Steam account for server management with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator). After your first login, SteamCMD caches the session so you won&apos;t need a guard code each time.
+                    <strong style={{ color: 'var(--text-primary)' }}>Note:</strong> Server files are downloaded anonymously — no login needed. Steam login is <strong>only required for installing Workshop mods</strong>. You can configure this later in Settings.
+                  </div>
+
+                  <div className="btn-group" style={{ marginBottom: 16 }}>
+                    <button className="btn btn-secondary" onClick={() => { setSteamStatus(null); setError(''); }}>
+                      <ArrowLeft size={14} /> Back
+                    </button>
+                    <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={goNext}>
+                      Continue <ArrowRight size={14} />
+                    </button>
                   </div>
 
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>
-                      Sign in to Steam
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                      Optional: Sign in to Steam for Workshop Mods
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+                      We recommend a dedicated Steam account with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator).
                     </div>
                     <div className="input-group">
                       <label className="input-label">Steam Username</label>
@@ -638,22 +650,13 @@ export default function SetupWizardPage() {
                       </div>
                     )}
 
-                    <button className="btn btn-primary" onClick={handleSteamValidate} disabled={steamValidating || !steamUser || !steamPass} style={{ width: '100%', justifyContent: 'center' }}>
+                    <button className="btn btn-secondary" onClick={handleSteamValidate} disabled={steamValidating || !steamUser || !steamPass} style={{ width: '100%', justifyContent: 'center' }}>
                       {steamValidating ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Verifying...</> : (steamNeedsGuard ? 'Submit Guard Code' : 'Verify Steam Login')}
                     </button>
-                  </div>
 
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
-                    Your credentials are stored locally and used only for SteamCMD operations.
-                  </div>
-
-                  <div className="btn-group" style={{ marginTop: 16 }}>
-                    <button className="btn btn-secondary" onClick={() => { setSteamStatus(null); setError(''); }}>
-                      <ArrowLeft size={14} /> Back
-                    </button>
-                    <button className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={goNext}>
-                      Skip Login <ArrowRight size={14} />
-                    </button>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
+                      Credentials are stored locally and used only for SteamCMD Workshop operations.
+                    </div>
                   </div>
                 </>
               )}

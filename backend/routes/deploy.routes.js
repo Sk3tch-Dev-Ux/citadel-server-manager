@@ -143,15 +143,6 @@ module.exports = function(app) {
     const { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map } = req.body;
     if (!name || !installDir) return res.status(400).json({ error: 'Name and install directory required' });
 
-    // Pre-flight: DayZ DS requires authenticated Steam login
-    if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) {
-      return res.status(400).json({
-        error: 'Steam credentials required',
-        message: 'DayZ Dedicated Server requires an authenticated Steam login. Configure your Steam credentials in Settings → Steam.',
-        fix: 'settings',
-      });
-    }
-
     const appId = gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
 
     // Ensure each server gets its own subdirectory — if installDir is a bare
@@ -198,22 +189,10 @@ module.exports = function(app) {
       } catch { /* SteamCMD self-update is best-effort */ }
 
       // Step 2: Build SteamCMD arguments
-      // After a successful login (especially with Steam Guard), SteamCMD caches
-      // an auth token in config/config.vdf. To reuse the cached session, we
-      // login with USERNAME ONLY (no password). Sending the password forces a
-      // full re-authentication which may trigger Steam Guard again.
-      // This mirrors how CFTools Architect handles seamless SteamCMD sessions.
-      const args = ['+force_install_dir', resolvedDir];
-      if (ctx.steamLoginValidated) {
-        // Cached session: username-only login leverages the saved auth token
-        args.push('+login', ctx.steamCredentials.username);
-      } else {
-        // Fresh login: include password (and guard code if provided)
-        if (ctx.steamCredentials.guardCode) {
-          args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
-        }
-        args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
-      }
+      // DayZ Dedicated Server (223350) supports anonymous download — no Steam
+      // credentials required. This lets first-time users deploy immediately
+      // without configuring Steam login. Workshop mods still need auth.
+      const args = ['+force_install_dir', resolvedDir, '+login', 'anonymous'];
       args.push('+app_update', appId, 'validate', '+quit');
 
       // Step 3: Download with retry (SteamCMD often needs 2 attempts for large downloads)
@@ -279,15 +258,6 @@ module.exports = function(app) {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
-    // Pre-flight: require Steam credentials
-    if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) {
-      return res.status(400).json({
-        error: 'Steam credentials required',
-        message: 'DayZ Dedicated Server requires an authenticated Steam login. Configure your Steam credentials in Settings → Steam.',
-        fix: 'settings',
-      });
-    }
-
     const resolvedDir = path.resolve(srv.installDir);
     addAudit(req.user.id, req.user.username, 'server.rebuild', `Rebuilding ${srv.name} at ${resolvedDir}`);
     ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'starting', message: 'Preparing to wipe and reinstall server...' });
@@ -309,16 +279,8 @@ module.exports = function(app) {
       const cmdPath = await ensureSteamCMD();
       const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
 
-      // Build SteamCMD arguments — use cached session if already validated
-      const args = ['+force_install_dir', resolvedDir];
-      if (ctx.steamLoginValidated) {
-        args.push('+login', ctx.steamCredentials.username);
-      } else {
-        if (ctx.steamCredentials.guardCode) {
-          args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
-        }
-        args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
-      }
+      // DayZ DS supports anonymous download — no credentials needed
+      const args = ['+force_install_dir', resolvedDir, '+login', 'anonymous'];
       args.push('+app_update', appId, 'validate', '+quit');
 
       // Download with retry
