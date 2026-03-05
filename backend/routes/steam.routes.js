@@ -7,6 +7,7 @@ const ctx = require('../lib/context');
 const { ensureSteamCMD, validateSteamLogin } = require('../lib/steamcmd');
 const auth = require('../middleware/auth');
 const logger = require('../lib/logger');
+const { encryptForEnv } = require('../lib/credential-encryption');
 
 /**
  * Persist Steam credentials to .env so they survive server restarts.
@@ -24,11 +25,12 @@ function persistSteamCredentials(username, password) {
       envContent += `\nSTEAM_USERNAME=${username}`;
     }
 
-    // Update or add STEAM_PASSWORD
+    // Update or add STEAM_PASSWORD (encrypted at rest)
+    const encryptedPassword = encryptForEnv(password);
     if (envContent.match(/^#?\s*STEAM_PASSWORD=/m)) {
-      envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${password}`);
+      envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${encryptedPassword}`);
     } else {
-      envContent += `\nSTEAM_PASSWORD=${password}`;
+      envContent += `\nSTEAM_PASSWORD=${encryptedPassword}`;
     }
 
     fs.writeFileSync(envPath, envContent);
@@ -59,7 +61,7 @@ module.exports = function(app) {
 
     if (!ctx.steamCredentials.username || !ctx.steamCredentials.password) {
       ctx.steamLoginValidated = false;
-      return res.json({ success: false, message: 'Username and password required' });
+      return res.status(400).json({ error: 'Username and password required' });
     }
 
     try {
@@ -81,15 +83,15 @@ module.exports = function(app) {
         ctx.steamLoginValidated = false;
         // Still persist credentials so they're available for manual SteamCMD auth
         persistSteamCredentials(ctx.steamCredentials.username, ctx.steamCredentials.password);
-        res.json({ success: false, needsGuard: true, message: 'Steam Guard code required.' });
+        res.status(403).json({ error: 'Steam Guard code required.', needsGuard: true });
       } else {
         ctx.steamLoginValidated = false;
-        res.json({ success: false, message: result.error });
+        res.status(422).json({ error: result.error });
       }
     } catch (err) {
       logger.error({ err }, 'Steam credential validation failed');
       ctx.steamLoginValidated = false;
-      res.json({ success: false, message: err.message || 'Steam login failed — is SteamCMD installed?' });
+      res.status(500).json({ error: err.message || 'Steam login failed — is SteamCMD installed?' });
     }
   });
 
@@ -105,7 +107,7 @@ module.exports = function(app) {
   app.post('/api/steam/credentials/save', auth('mods.install'), (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.json({ success: false, message: 'Username and password required' });
+      return res.status(400).json({ error: 'Username and password required' });
     }
     ctx.steamCredentials.username = username;
     ctx.steamCredentials.password = password;

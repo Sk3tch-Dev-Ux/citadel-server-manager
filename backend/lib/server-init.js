@@ -88,7 +88,12 @@ function migrateDefaultServer() {
 async function createDefaultAdmin() {
   if (!isSetupComplete()) return;
   if (ctx.users.length > 0) return;
-  const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin', 10);
+  const adminPass = process.env.ADMIN_PASSWORD;
+  if (!adminPass || adminPass === 'admin') {
+    logger.warn('Default admin password detected — skipping auto-creation. Complete the Setup Wizard to configure your admin account.');
+    return;
+  }
+  const hash = await bcrypt.hash(adminPass, 10);
   ctx.users.push({
     id: uuid(), username: process.env.ADMIN_USERNAME || 'admin',
     passwordHash: hash, role: 'admin', isRoot: true, createdAt: new Date().toISOString(),
@@ -119,12 +124,20 @@ function migrateInHouseApiUrl() {
 
 /**
  * Run the full startup sequence:
- * 1. Migrate default server if needed
- * 2. Migrate inHouseApiUrl for existing servers
- * 3. Initialize all server states
- * 4. Create default admin
+ * 1. Validate critical configuration
+ * 2. Migrate default server if needed
+ * 3. Migrate inHouseApiUrl for existing servers
+ * 4. Initialize all server states
+ * 5. Create default admin
  */
 async function startup() {
+  // Fatal guard: JWT secret must be configured for auth to work
+  if (!ctx.CONFIG.jwtSecret) {
+    const msg = 'JWT_SECRET is not configured. Run the Setup Wizard or check your .env file.';
+    logger.fatal(msg);
+    throw new Error(msg);
+  }
+
   migrateDefaultServer();
   migrateInHouseApiUrl();
   ctx.servers.forEach(s => initServerState(s.id));

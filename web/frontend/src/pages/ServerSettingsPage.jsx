@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
+import { formatBytes } from '../utils';
 import Accordion from '../components/Accordion';
 import SettingsToggle from '../components/SettingsToggle';
 import DirectoryBrowserModal from '../components/DirectoryBrowserModal';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { X, Info, Download, Trash2, HardDrive, RotateCcw } from '../components/Icon';
 
 export default function ServerSettingsPage({ serverId }) {
   const socket = useSocket();
+  const { confirm, DialogComponent } = useConfirmDialog();
   const [srv, setSrv] = useState(null);
   const [saving, setSaving] = useState(false);
   const [newParam, setNewParam] = useState('');
@@ -114,7 +117,7 @@ export default function ServerSettingsPage({ serverId }) {
   };
 
   const handleDeleteBackup = async (filename, type) => {
-    if (!window.confirm(`Delete backup ${filename}?`)) return;
+    if (!await confirm({ title: 'Delete Backup', message: `Delete backup ${filename}?`, confirmLabel: 'Delete', variant: 'danger' })) return;
     try {
       await API.del(`/api/servers/${serverId}/backups/${encodeURIComponent(filename)}?type=${type}`);
       setBackups(prev => prev.filter(b => !(b.filename === filename && b.type === type)));
@@ -129,7 +132,7 @@ export default function ServerSettingsPage({ serverId }) {
   };
 
   const handleRestoreBackup = async (filename, type) => {
-    if (!window.confirm(`Restore backup "${filename}"?\n\nThis will overwrite current server files. A safety backup will be created first.\n\nThe server must be stopped before restoring.`)) return;
+    if (!await confirm({ title: 'Restore Backup', message: `Restore backup "${filename}"?\n\nThis will overwrite current server files. A safety backup will be created first.\n\nThe server must be stopped before restoring.`, confirmLabel: 'Restore', variant: 'danger' })) return;
     setRestoring(filename);
     try {
       const result = await API.post(`/api/servers/${serverId}/backups/${encodeURIComponent(filename)}/restore?type=${type}`);
@@ -144,11 +147,7 @@ export default function ServerSettingsPage({ serverId }) {
     setRestoring(null);
   };
 
-  const formatSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-  };
+  const formatSize = formatBytes;
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -408,6 +407,8 @@ export default function ServerSettingsPage({ serverId }) {
           Open Dangerzone
         </a>
       </Accordion>
+
+      {DialogComponent}
     </div>
   );
 }

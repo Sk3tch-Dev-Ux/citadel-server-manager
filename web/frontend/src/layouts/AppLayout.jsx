@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useServers } from '../contexts/ServersContext';
@@ -7,13 +7,17 @@ import API from '../api';
 import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound, Monitor, Gauge, Settings } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound, Monitor, Gauge, Settings, Menu, X } from '../components/Icon';
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const { servers, loadServers } = useServers();
   const location = useLocation();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on navigation (mobile)
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   // Determine if we're on a server page
   const serverMatch = location.pathname.match(/^\/servers\/([^/]+)/);
@@ -66,7 +70,8 @@ export default function AppLayout() {
 
   return (
     <div className="app">
-      <div className="sidebar">
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+      <div className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-header">
           <Link to="/" className="sidebar-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
             <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 38, height: 38 }} />
@@ -74,8 +79,8 @@ export default function AppLayout() {
           </Link>
         </div>
 
-        <div className="sidebar-nav">
-          {/* System Section — Like CFTools "RADIANT-QUASAR" system section */}
+        <nav className="sidebar-nav" role="navigation" aria-label="Main navigation">
+          {/* System Section */}
           <div className="nav-section">System</div>
           <Link to="/dashboard" className={`nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`}>
             <span className="nav-icon"><Gauge size={16} /></span>Dashboard
@@ -121,7 +126,7 @@ export default function AppLayout() {
 
           {/* Server sub-navigation when on a server page */}
           {isServerPage && <ServerNav serverId={selectedServerId} serverName={currentServer?.name} activeTab={serverTab} />}
-        </div>
+        </nav>
 
         <div className="sidebar-footer">
           <div className="avatar">{user.username?.[0]?.toUpperCase()}</div>
@@ -130,10 +135,10 @@ export default function AppLayout() {
         </div>
       </div>
 
-      <div className="main">
-        {/* Server status bar — shown on server pages, like CFTools top bar */}
+      <div className="main" role="main">
+        {/* Server status bar — shown on server pages */}
         {isServerPage && currentServer && (
-          <div className="server-status-bar">
+          <div className="server-status-bar" aria-label="Server status">
             <div className="status-bar-metrics">
               <span className={`status-bar-chip ${(currentServer.cpu || 0) > 70 ? 'warning' : ''}`}>CPU: {(currentServer.cpu || 0).toFixed(1)}%</span>
               <span className={`status-bar-chip ${(currentServer.ram || 0) > 70 ? 'warning' : ''}`}>RAM: {(currentServer.ram || 0).toFixed(1)}%</span>
@@ -143,7 +148,8 @@ export default function AppLayout() {
         )}
 
         <div className="main-header">
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle navigation"><Menu size={20} /></button>
             <div className="main-title">{pageTitle}</div>
             {isServerPage && <div className="main-subtitle">
               <span className={`status-badge status-${currentServerStatus}`} style={{ marginRight: 8 }}><span className="status-dot" />{currentServerStatus}</span>
@@ -198,13 +204,13 @@ function ServerNav({ serverId, serverName, activeTab }) {
   ];
 
   return (
-    <>
+    <div role="navigation" aria-label={`${serverName || 'Server'} navigation`}>
       <div className="nav-divider" />
       {navItems.map(item => (
         <Link key={item.id} to={`/servers/${serverId}/${item.id}`} className={`nav-item ${activeTab === item.id ? 'active' : ''}`}>
           <span className="nav-icon">{item.icon}</span>{item.label}
         </Link>
       ))}
-    </>
+    </div>
   );
 }

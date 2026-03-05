@@ -40,6 +40,7 @@ function ConfigField({ section, fieldKey, def, value, envLocked, onChange }) {
             checked={!!value}
             onChange={e => onChange(e.target.checked)}
             disabled={envLocked || isRedacted}
+            aria-label={`${fieldKey}: ${value ? 'Enabled' : 'Disabled'}`}
             style={{ width: 16, height: 16 }}
           />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{value ? 'Enabled' : 'Disabled'}</span>
@@ -50,6 +51,7 @@ function ConfigField({ section, fieldKey, def, value, envLocked, onChange }) {
     if (def.enum) {
       return (
         <select
+          id={fieldId}
           className="input"
           value={value || ''}
           onChange={e => onChange(e.target.value)}
@@ -66,6 +68,7 @@ function ConfigField({ section, fieldKey, def, value, envLocked, onChange }) {
     if (def.type === 'array') {
       return (
         <input
+          id={fieldId}
           className="input"
           value={Array.isArray(value) ? value.join(', ') : (value || '')}
           onChange={e => onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
@@ -90,6 +93,7 @@ function ConfigField({ section, fieldKey, def, value, envLocked, onChange }) {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
             >
               {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -257,11 +261,13 @@ function SystemConfigSection() {
         </button>
       </div>
 
-      {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, marginBottom: 16, fontSize: 13, color: '#ef4444' }}>
-          <AlertTriangle size={14} /> {error}
-        </div>
-      )}
+      <div aria-live="polite">
+        {error && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, marginBottom: 16, fontSize: 13, color: '#ef4444' }}>
+            <AlertTriangle size={14} /> {error}
+          </div>
+        )}
+      </div>
 
       {/* Config sections */}
       {schema && Object.entries(schema).map(([section, fields]) => {
@@ -345,12 +351,12 @@ export default function SettingsPage() {
         setSteamNeedsGuard(true);
         setSteamError('Steam Guard code required — check your email and enter the code above.');
       } else {
-        const msg = (result.message || 'Login failed').toLowerCase();
+        const msg = (result.error || result.message || 'Login failed').toLowerCase();
         if (msg.includes('guard') || msg.includes('denied') || msg.includes('two-factor') || msg.includes('code required')) {
           setSteamNeedsGuard(true);
           setSteamError('Steam Guard code required — check your email and enter the code above.');
         } else {
-          setSteamError(result.message || 'Login failed');
+          setSteamError(result.error || result.message || 'Login failed');
         }
       }
     } catch (err) {
@@ -380,7 +386,7 @@ export default function SettingsPage() {
         setEditing(false);
         window.addToast(`Steam credentials saved for ${steamUsername}`, 'success');
       } else {
-        setSteamError(result.message || 'Failed to save');
+        setSteamError(result.error || result.message || 'Failed to save');
       }
     } catch (err) {
       setSteamError(err.message || 'Failed to save credentials');
@@ -462,21 +468,21 @@ export default function SettingsPage() {
             )}
 
             <div className="input-group">
-              <label className="input-label">Steam Username</label>
-              <input className="input" value={steamUsername} onChange={e => setSteamUsername(e.target.value)} placeholder="your_steam_username" autoComplete="off" />
+              <label className="input-label" htmlFor="settings-steam-user">Steam Username</label>
+              <input id="settings-steam-user" className="input" value={steamUsername} onChange={e => setSteamUsername(e.target.value)} placeholder="your_steam_username" autoComplete="off" />
             </div>
             <div className="input-group">
-              <label className="input-label">Steam Password</label>
-              <input className="input" type="password" value={steamPassword} onChange={e => setSteamPassword(e.target.value)} placeholder="your_steam_password" autoComplete="off" />
+              <label className="input-label" htmlFor="settings-steam-pass">Steam Password</label>
+              <input id="settings-steam-pass" className="input" type="password" value={steamPassword} onChange={e => setSteamPassword(e.target.value)} placeholder="your_steam_password" autoComplete="off" />
             </div>
 
             <div className="input-group">
-              <label className="input-label">
+              <label className="input-label" htmlFor="settings-steam-guard">
                 Steam Guard Code
                 {!steamNeedsGuard && <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>(leave blank on first attempt)</span>}
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input className="input" value={steamGuardCode} onChange={e => setSteamGuardCode(e.target.value)} placeholder="XXXXX" maxLength={5} style={{ letterSpacing: '0.2em', textAlign: 'center', maxWidth: 140, ...(steamNeedsGuard ? { borderColor: '#f59e0b', boxShadow: '0 0 0 1px rgba(245,158,11,0.3)' } : {}) }} autoComplete="off" />
+                <input id="settings-steam-guard" className="input" value={steamGuardCode} onChange={e => setSteamGuardCode(e.target.value)} placeholder="XXXXX" maxLength={5} style={{ letterSpacing: '0.2em', textAlign: 'center', maxWidth: 140, ...(steamNeedsGuard ? { borderColor: '#f59e0b', boxShadow: '0 0 0 1px rgba(245,158,11,0.3)' } : {}) }} autoComplete="off" />
                 {steamNeedsGuard && <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 500 }}>← Check your email</span>}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -484,11 +490,13 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {steamError && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, marginBottom: 12, fontSize: 13, color: '#ef4444' }}>
-                <AlertTriangle size={14} /> {steamError}
-              </div>
-            )}
+            <div aria-live="polite">
+              {steamError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, marginBottom: 12, fontSize: 13, color: '#ef4444' }}>
+                  <AlertTriangle size={14} /> {steamError}
+                </div>
+              )}
+            </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
               {editing && (

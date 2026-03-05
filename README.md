@@ -4,7 +4,7 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 
 ![Status](https://img.shields.io/badge/status-production-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![License](https://img.shields.io/badge/license-Proprietary-red)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 
 ---
@@ -441,4 +441,4 @@ Covers architecture, environment variables, provider system, DayZ mod setup, and
 
 ## License
 
-MIT
+Proprietary. Copyright (c) 2024-2026 Sk3tch Dev. All rights reserved. See [LICENSE](LICENSE) for details.

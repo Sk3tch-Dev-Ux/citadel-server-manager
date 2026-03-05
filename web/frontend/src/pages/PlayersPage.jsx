@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import Modal from '../components/ui/Modal';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
@@ -14,6 +15,7 @@ import {
 
 export default function PlayersPage({ serverId }) {
   const socket = useSocket();
+  const { confirm, prompt, DialogComponent } = useConfirmDialog();
   const [players, setPlayers] = useState([]);
 
   // ─── Spawn Item Modal State ──────────────────────────────
@@ -203,29 +205,29 @@ export default function PlayersPage({ serverId }) {
                       player={p}
                       onHeal={() => doAction(p.steamId || p.id, 'heal', `Heal ${p.name}`)}
                       onSpawnItem={() => openSpawnModal(p)}
-                      onMessage={() => {
-                        const msg = window.prompt(`Send message to ${p.name}:`);
+                      onMessage={async () => {
+                        const msg = await prompt({ title: 'Send Message', message: `Send message to ${p.name}:`, placeholder: 'Type your message...' });
                         if (msg) doAction(p.steamId || p.id, 'message', `Message ${p.name}`, { message: msg });
                       }}
                       onUnstuck={() => doAction(p.steamId || p.id, 'unstuck', `Unstuck ${p.name}`)}
-                      onFreeze={() => {
-                        if (window.confirm(`Freeze ${p.name}? They will be unable to move.`))
+                      onFreeze={async () => {
+                        if (await confirm({ title: 'Freeze Player', message: `Freeze ${p.name}? They will be unable to move.`, confirmLabel: 'Freeze', variant: 'danger' }))
                           doAction(p.steamId || p.id, 'freeze', `Freeze ${p.name}`, { frozen: 1 });
                       }}
                       onUnfreeze={() => doAction(p.steamId || p.id, 'freeze', `Unfreeze ${p.name}`, { frozen: 0 })}
                       onTeleportTo={() => openTeleportToPlayer(p)}
                       onLoadout={() => openLoadout(p)}
                       onKick={() => kick(p.steamId || p.id, p.name)}
-                      onStrip={() => {
-                        if (window.confirm(`Strip all gear from ${p.name}?`))
+                      onStrip={async () => {
+                        if (await confirm({ title: 'Strip Gear', message: `Strip all gear from ${p.name}?`, confirmLabel: 'Strip', variant: 'danger' }))
                           doAction(p.steamId || p.id, 'strip', `Strip ${p.name}`);
                       }}
-                      onExplode={() => {
-                        if (window.confirm(`Explode ${p.name}?`))
+                      onExplode={async () => {
+                        if (await confirm({ title: 'Explode Player', message: `Explode ${p.name}?`, confirmLabel: 'Explode', variant: 'danger' }))
                           doAction(p.steamId || p.id, 'explode', `Explode ${p.name}`);
                       }}
-                      onKill={() => {
-                        if (window.confirm(`Kill ${p.name}?`))
+                      onKill={async () => {
+                        if (await confirm({ title: 'Kill Player', message: `Kill ${p.name}?`, confirmLabel: 'Kill', variant: 'danger' }))
                           doAction(p.steamId || p.id, 'kill', `Kill ${p.name}`);
                       }}
                       onBan={() => ban(p.steamId || p.id, p.name)}
@@ -409,6 +411,8 @@ export default function PlayersPage({ serverId }) {
           </div>
         </div>
       </Modal>
+
+      {DialogComponent}
     </div>
   );
 }

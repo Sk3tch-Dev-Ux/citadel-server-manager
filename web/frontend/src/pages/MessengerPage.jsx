@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import API from '../api';
 import { useServers } from '../contexts/ServersContext';
 import { Modal, Toggle, EmptyState, Button, Input, FormField } from '../components/ui';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
+import PageLoader from '../components/PageLoader';
 import { Send, Plus, Trash2, Edit, Check, X, Clock, Server, ChevronDown, FileText, MessageSquare } from '../components/Icon';
 
 function formatInterval(seconds) {
@@ -403,6 +405,7 @@ function MessageModal({ open, onClose, onSave, editingMsg, templateDefaults, ser
 // ─── Main Page ────────────────────────────────────────────
 export default function MessengerPage({ serverId }) {
   const { servers } = useServers();
+  const { confirm: confirmDialog, DialogComponent } = useConfirmDialog();
   const [messenger, setMessenger] = useState({ enabled: true, messages: [] });
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -444,7 +447,7 @@ export default function MessengerPage({ serverId }) {
   };
 
   const handleDelete = async (msg) => {
-    if (!confirm('Delete this message?')) return;
+    if (!await confirmDialog({ title: 'Delete Message', message: 'Delete this broadcast message?', confirmLabel: 'Delete', variant: 'danger' })) return;
     try {
       await API.del(`/api/servers/${serverId}/messenger/${msg.id}`);
       setMessenger(prev => ({
@@ -511,7 +514,7 @@ export default function MessengerPage({ serverId }) {
     } catch { window.addToast?.('Failed to save message', 'error'); }
   };
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading messenger...</div>;
+  if (loading) return <PageLoader message="Loading messenger..." />;
 
   return (
     <div className="scheduler-page">
@@ -556,6 +559,8 @@ export default function MessengerPage({ serverId }) {
       )}
 
       <MessageModal open={modalOpen} onClose={() => { setModalOpen(false); setEditingMsg(null); setTemplateDefaults(null); }} onSave={handleSave} editingMsg={editingMsg} templateDefaults={templateDefaults} servers={servers} currentServerId={serverId} />
+
+      {DialogComponent}
     </div>
   );
 }

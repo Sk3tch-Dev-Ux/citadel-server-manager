@@ -250,6 +250,12 @@ async function startAllPolling() {
 
 // ─── Graceful Shutdown ───────────────────────────────────
 function gracefulShutdown(httpServer, signal) {
+  // Hard deadline: force exit if cleanup hangs, before any async work
+  setTimeout(() => {
+    logger.warn('Forcing shutdown after 10s hard deadline');
+    process.exit(1);
+  }, 10000).unref();
+
   logger.info({ signal }, 'Shutting down gracefully');
   // Stop all intervals
   intervals.forEach(id => clearInterval(id));
@@ -268,7 +274,7 @@ function gracefulShutdown(httpServer, signal) {
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
   // Flush pending data writes
   flushAll();
-  // Force exit after timeout
+  // Soft exit after normal timeout
   setTimeout(() => {
     logger.warn('Forcing shutdown after timeout');
     process.exit(0);

@@ -139,7 +139,7 @@ function spawnDayZServer(serverConfig) {
   // Always launch the executable directly with launch params.
   const params = (serverConfig.launchParams || '').split(' ').filter(Boolean);
 
-  // Redirect stdout/stderr to server_console.log (like CFTools Architect)
+  // Redirect stdout/stderr to server_console.log
   const profileDir = serverConfig.profileDir || 'profiles';
   const profilePath = path.isAbsolute(profileDir) ? profileDir : path.join(installDir, profileDir);
   if (!fs.existsSync(profilePath)) fs.mkdirSync(profilePath, { recursive: true });

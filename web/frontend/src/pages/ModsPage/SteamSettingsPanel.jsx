@@ -16,7 +16,7 @@ export default function SteamSettingsPanel() {
     const r = await API.post('/api/steam/credentials', body);
     if (r.needsGuard) window.addToast('Steam Guard code required', 'info');
     else if (r.success) { window.addToast('Steam login validated!', 'success'); setGuardCode(''); }
-    else window.addToast(r.message || 'Failed', 'error');
+    else window.addToast(r.error || r.message || 'Failed', 'error');
     setSaving(false);
     API.get('/api/steam/status').then(setStatus);
   };

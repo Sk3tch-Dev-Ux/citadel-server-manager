@@ -1,0 +1,41 @@
+Citadel - Proprietary Software License
+
+Copyright (c) 2024-2026 Sk3tch Dev. All rights reserved.
+
+This software and its associated documentation ("Software") are the proprietary
+property of Sk3tch Dev and are protected by copyright law and international
+treaties.
+
+GRANT OF LICENSE
+A valid license key, purchased from the official distribution channel, grants the
+licensee a non-exclusive, non-transferable right to install and use one (1) copy
+of the Software on a single server for its intended purpose of DayZ dedicated
+server management.
+
+RESTRICTIONS
+You may NOT, without prior written consent from the copyright holder:
+  - Redistribute, sublicense, sell, resell, or transfer the Software
+  - Modify, decompile, reverse engineer, or disassemble the Software
+  - Remove or alter any proprietary notices, labels, or marks
+  - Use the Software to provide hosted services to third parties (SaaS)
+  - Share your license key with any third party
+
+THIRD-PARTY COMPONENTS
+This Software includes open-source components licensed under MIT, BSD-2-Clause,
+Apache-2.0, ISC, and Hippocratic-2.1 licenses. These components retain their
+original licenses. See node_modules/*/LICENSE for individual terms.
+
+DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+LIMITATION OF LIABILITY
+IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+TERMINATION
+This license terminates automatically if you violate any of its terms. Upon
+termination, you must destroy all copies of the Software in your possession.
+
+For licensing inquiries, contact: support@sk3tchdev.com

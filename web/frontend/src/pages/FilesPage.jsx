@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
+import { formatBytes } from '../utils';
 import { Folder, FolderOpen, FileCode, FileCog, FileJson, FileText, Zap, Globe, File, Save, RefreshCw, ChevronDown, ChevronRight, Loader } from '../components/Icon';
 
 export default function FilesPage({ serverId }) {
@@ -50,12 +51,7 @@ export default function FilesPage({ serverId }) {
     return iconMap[ext] || <File size={14} />;
   };
 
-  const formatSize = (bytes) => {
-    if (!bytes || bytes <= 0) return '';
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
+  const formatSize = (bytes) => (!bytes || bytes <= 0) ? '' : formatBytes(bytes);
 
   // -- Directory loading with cache --
   const loadDir = useCallback(async (dirPath) => {

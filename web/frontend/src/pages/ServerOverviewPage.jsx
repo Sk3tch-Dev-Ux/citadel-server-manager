@@ -3,6 +3,7 @@ import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import { formatUptime } from '../utils';
 import MiniChart from '../components/MiniChart';
+import PageLoader from '../components/PageLoader';
 import { Cpu, MemoryStick, Users, Clock, Activity, Server, Globe } from '../components/Icon';
 
 export default function ServerOverviewPage({ serverId }) {
@@ -27,7 +28,7 @@ export default function ServerOverviewPage({ serverId }) {
     return () => socket.off('serverStatus', handler);
   }, [serverId, socket]);
 
-  if (loading || !status) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>;
+  if (loading || !status) return <PageLoader />;
 
   return (
     <div>
@@ -38,7 +39,7 @@ export default function ServerOverviewPage({ serverId }) {
         </div>
       )}
 
-      {/* Port Display — like CFTools prominent port cards */}
+      {/* Port Display */}
       <div className="overview-ports">
         <div className="port-card">
           <div className="port-value">{status.ports?.game || 2302}</div>

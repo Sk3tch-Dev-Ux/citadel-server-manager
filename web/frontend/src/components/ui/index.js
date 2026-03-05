@@ -1,5 +1,6 @@
 // Core Radix-wrapped components
 export { default as Modal } from './Modal';
+export { default as ConfirmDialog, useConfirmDialog } from './ConfirmDialog';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
 export { default as Toggle, SettingsToggle } from './Toggle';
 export { default as Tooltip, TooltipProvider } from './Tooltip';

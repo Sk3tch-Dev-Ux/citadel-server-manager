@@ -2,7 +2,7 @@
  * RCON Provider — fallback for basic player management via BattlEye RCON.
  *
  * Only supports kick and ban. All other actions require a richer provider
- * (CFTools or a future custom API).
+ * (InHouse sidecar API or CFTools SDK).
  */
 const BaseProvider = require('./base');
 const ctx = require('../../context');

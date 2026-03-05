@@ -1,6 +1,6 @@
 /**
  * System metrics routes — host-level CPU, RAM, Disk, Network info.
- * Powers the System Dashboard (similar to CFTools Architect dashboard).
+ * Powers the System Dashboard.
  * Also serves the structured configuration API (admin-only).
  */
 const os = require('os');
