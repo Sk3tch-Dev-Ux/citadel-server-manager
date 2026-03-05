@@ -160,6 +160,7 @@ async function validateSteamLogin(username, password, guardCode) {
       if (resolved) return;
       resolved = true;
       clearTimeout(timeout);
+      logger.debug({ result: { ...result, error: result.error }, steamcmdOutput: output.substring(0, 500) }, 'Steam login validation result');
       // DON'T kill proc immediately on success — let SteamCMD finish its
       // login cycle and write the auth token to config/config.vdf.
       // Only kill on errors to avoid hanging.
@@ -168,13 +169,24 @@ async function validateSteamLogin(username, password, guardCode) {
       }
       resolve(result);
     };
+    const isGuardRequired = (text) =>
+      text.includes('Steam Guard') || text.includes('Two-factor') || text.includes('Two Factor') ||
+      text.includes('authenticator') || text.includes('Enter the current code') ||
+      text.includes('Account Logon Denied') || text.includes('Logon Denied');
+    const isLoginSuccess = (text) =>
+      text.includes('Logged in OK') || text.includes('Waiting for user info...OK');
+    const isLoginFailed = (text) =>
+      text.includes('Invalid Password') || text.includes('Login Failure') || text.includes('FAILED login');
+    const isRateLimited = (text) =>
+      text.includes('rate limit') || text.includes('too many') || text.includes('Rate Limit');
+
     const handleData = (data) => {
       const text = data.toString(); output += text;
-      if (text.includes('Steam Guard') || text.includes('Two-factor') || text.includes('authenticator') || text.includes('Enter the current code'))
+      if (isGuardRequired(text))
         done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
-      else if (text.includes('Invalid Password') || text.includes('Login Failure'))
+      else if (isLoginFailed(text))
         done({ success: false, error: 'Invalid username or password' });
-      else if (text.includes('rate limit') || text.includes('too many'))
+      else if (isRateLimited(text))
         done({ success: false, error: 'Too many attempts — wait and retry' });
       // Note: we no longer call done() on success from data events.
       // Instead, we wait for the process to exit cleanly so the auth
@@ -182,15 +194,19 @@ async function validateSteamLogin(username, password, guardCode) {
     };
     proc.stdout?.on('data', handleData); proc.stderr?.on('data', handleData);
     const timeout = setTimeout(() => {
-      if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) done({ success: true });
+      if (isLoginSuccess(output)) done({ success: true });
+      else if (isGuardRequired(output)) done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
       else done({ success: false, error: 'Login timed out — SteamCMD did not respond within 60 seconds' });
     }, STEAMCMD_LOGIN_TIMEOUT_MS);  // Longer timeout to let SteamCMD fully complete
     proc.on('exit', () => {
       if (resolved) return;
-      if (output.includes('Logged in OK') || output.includes('Waiting for user info...OK')) done({ success: true });
-      else if (output.includes('Steam Guard') || output.includes('Enter the current code')) done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
-      else if (output.includes('Invalid Password')) done({ success: false, error: 'Invalid username or password' });
-      else done({ success: true });
+      if (isLoginSuccess(output)) done({ success: true });
+      else if (isGuardRequired(output)) done({ success: false, needsGuard: true, error: 'Steam Guard code required' });
+      else if (isLoginFailed(output)) done({ success: false, error: 'Invalid username or password' });
+      else if (isRateLimited(output)) done({ success: false, error: 'Too many attempts — wait and retry' });
+      // If nothing matched, check for any FAILED indicator
+      else if (output.includes('FAILED')) done({ success: false, error: 'Steam login failed — check your credentials' });
+      else done({ success: false, error: 'Steam login failed — unexpected SteamCMD response' });
     });
     proc.on('error', (err) => done({ success: false, error: err.message }));
   });
