@@ -7,8 +7,9 @@
  *
  * ENFORCE SCRIPT CONSTRAINTS:
  *   - string.Format() cannot contain escaped quotes in the format string.
- *     JSON is built via string concatenation instead (matches GameLabs pattern).
  *   - string.Format() max 6 params (%1-%6).
+ *   - Multi-line expressions only work inside parentheses (e.g. function calls).
+ *     String concatenation across lines requires separate += statements.
  *   - Utility methods declared before callers for compile-order safety.
  *
  * Flush triggers:
@@ -92,7 +93,7 @@ class CitadelEventLogger
         }
     }
 
-    // ─── JSON helpers (avoid \" inside string.Format) ────
+    // ─── JSON helpers ───────────────────────────────────
 
     private static string JStr(string key, string val)
     {
@@ -113,236 +114,202 @@ class CitadelEventLogger
 
     static void LogKill(string killerSteamId, string killerName, string victimSteamId, string victimName, float distance, string weapon)
     {
-        string line = "{"
-            + JStr("type", "kill") + ","
-            + JStr("steamId", killerSteamId) + ","
-            + JStr("name", EscapeJson(killerName)) + ","
-            + JStr("victimSteamId", victimSteamId) + ","
-            + JStr("victimName", EscapeJson(victimName)) + ","
-            + JNum("distance", distance.ToString()) + ","
-            + JStr("weapon", EscapeJson(weapon)) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "kill");
+        l += "," + JStr("steamId", killerSteamId);
+        l += "," + JStr("name", EscapeJson(killerName));
+        l += "," + JStr("victimSteamId", victimSteamId);
+        l += "," + JStr("victimName", EscapeJson(victimName));
+        l += "," + JNum("distance", distance.ToString());
+        l += "," + JStr("weapon", EscapeJson(weapon));
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     static void LogSuicide(string steamId, string name)
     {
-        string line = "{"
-            + JStr("type", "suicide") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "suicide");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     static void LogDeath(string steamId, string name, string cause)
     {
-        string line = "{"
-            + JStr("type", "death") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JStr("cause", EscapeJson(cause)) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "death");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("cause", EscapeJson(cause));
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     static void LogConnect(string steamId, string name)
     {
-        string line = "{"
-            + JStr("type", "connect") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "connect");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     static void LogDisconnect(string steamId, string name, int sessionSeconds)
     {
-        string line = "{"
-            + JStr("type", "playtime") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JNum("seconds", sessionSeconds.ToString()) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "playtime");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JNum("seconds", sessionSeconds.ToString());
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     static void LogChat(string steamId, string name, string message, string channel)
     {
-        string line = "{"
-            + JStr("type", "chat") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JStr("message", EscapeJson(message)) + ","
-            + JStr("channel", channel) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "chat");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("message", EscapeJson(message));
+        l += "," + JStr("channel", channel);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Combat Events ──────────────────────────────────
 
     static void LogHit(string victimSteamId, string victimName, string attackerSteamId, string attackerName, string weapon, string ammo, string zone, float damage)
     {
-        string line = "{"
-            + JStr("type", "hit") + ","
-            + JStr("steamId", victimSteamId) + ","
-            + JStr("name", EscapeJson(victimName)) + ","
-            + JStr("attackerSteamId", attackerSteamId) + ","
-            + JStr("attackerName", EscapeJson(attackerName)) + ","
-            + JStr("weapon", EscapeJson(weapon)) + ","
-            + JStr("ammo", EscapeJson(ammo)) + ","
-            + JStr("zone", EscapeJson(zone)) + ","
-            + JNum("damage", damage.ToString()) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "hit");
+        l += "," + JStr("steamId", victimSteamId);
+        l += "," + JStr("name", EscapeJson(victimName));
+        l += "," + JStr("attackerSteamId", attackerSteamId);
+        l += "," + JStr("attackerName", EscapeJson(attackerName));
+        l += "," + JStr("weapon", EscapeJson(weapon));
+        l += "," + JStr("ammo", EscapeJson(ammo));
+        l += "," + JStr("zone", EscapeJson(zone));
+        l += "," + JNum("damage", damage.ToString());
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Base Building Events ───────────────────────────
 
     static void LogBaseBuilt(string steamId, string className, vector pos)
     {
-        string line = "{"
-            + JStr("type", "baseBuilt") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("className", EscapeJson(className)) + ","
-            + JPos(pos) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "baseBuilt");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("className", EscapeJson(className));
+        l += "," + JPos(pos);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     static void LogBaseDestroyed(string ownerSteamId, string className, vector pos)
     {
-        string line = "{"
-            + JStr("type", "baseDestroyed") + ","
-            + JStr("steamId", ownerSteamId) + ","
-            + JStr("className", EscapeJson(className)) + ","
-            + JPos(pos) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "baseDestroyed");
+        l += "," + JStr("steamId", ownerSteamId);
+        l += "," + JStr("className", EscapeJson(className));
+        l += "," + JPos(pos);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Dynamic World Events ───────────────────────────
 
     static void LogDynamicEvent(string action, string className, string displayName, vector pos)
     {
-        string line = "{"
-            + JStr("type", "dynamicEvent") + ","
-            + JStr("action", action) + ","
-            + JStr("className", EscapeJson(className)) + ","
-            + JStr("displayName", EscapeJson(displayName)) + ","
-            + JPos(pos) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "dynamicEvent");
+        l += "," + JStr("action", action);
+        l += "," + JStr("className", EscapeJson(className));
+        l += "," + JStr("displayName", EscapeJson(displayName));
+        l += "," + JPos(pos);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Anti-Cheat Events ──────────────────────────────
 
     static void LogSpeedFlag(string steamId, string name, float speed, vector pos, int triggerCount)
     {
-        string line = "{"
-            + JStr("type", "speedFlag") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JNum("speed", speed.ToString()) + ","
-            + JNum("triggers", triggerCount.ToString()) + ","
-            + JPos(pos) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "speedFlag");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JNum("speed", speed.ToString());
+        l += "," + JNum("triggers", triggerCount.ToString());
+        l += "," + JPos(pos);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Session Statistics ─────────────────────────────
 
     static void LogSession(string steamId, string name, int durationSeconds, string statsJson)
     {
-        string line = "{"
-            + JStr("type", "session") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JNum("duration", durationSeconds.ToString()) + ","
-            + "\"stats\":" + statsJson + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "session");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JNum("duration", durationSeconds.ToString());
+        l += ",\"stats\":" + statsJson;
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Vehicle Events ─────────────────────────────────
 
     static void LogVehicleEnter(string steamId, string name, string vehicleType, vector pos)
     {
-        string line = "{"
-            + JStr("type", "vehicleEnter") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JStr("vehicleType", EscapeJson(vehicleType)) + ","
-            + JPos(pos) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "vehicleEnter");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("vehicleType", EscapeJson(vehicleType));
+        l += "," + JPos(pos);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     static void LogVehicleExit(string steamId, string name, string vehicleType, vector pos)
     {
-        string line = "{"
-            + JStr("type", "vehicleExit") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JStr("vehicleType", EscapeJson(vehicleType)) + ","
-            + JPos(pos) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "vehicleExit");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("vehicleType", EscapeJson(vehicleType));
+        l += "," + JPos(pos);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Admin Action Audit ─────────────────────────────
 
     static void LogAdminAction(string adminName, string action, string target, string details)
     {
-        string line = "{"
-            + JStr("type", "adminAction") + ","
-            + JStr("admin", EscapeJson(adminName)) + ","
-            + JStr("action", EscapeJson(action)) + ","
-            + JStr("target", EscapeJson(target)) + ","
-            + JStr("details", EscapeJson(details)) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "adminAction");
+        l += "," + JStr("admin", EscapeJson(adminName));
+        l += "," + JStr("action", EscapeJson(action));
+        l += "," + JStr("target", EscapeJson(target));
+        l += "," + JStr("details", EscapeJson(details));
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Respawn Event ──────────────────────────────────
 
     static void LogRespawn(string steamId, string name, vector pos)
     {
-        string line = "{"
-            + JStr("type", "respawn") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JPos(pos) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "respawn");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JPos(pos);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 
     // ─── Disconnect Event ───────────────────────────────
 
     static void LogPlayerDisconnect(string steamId, string name)
     {
-        string line = "{"
-            + JStr("type", "disconnect") + ","
-            + JStr("steamId", steamId) + ","
-            + JStr("name", EscapeJson(name)) + ","
-            + JStr("timestamp", GetTimestamp())
-            + "}";
-        AppendLine(line);
+        string l = "{" + JStr("type", "disconnect");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
     }
 };
