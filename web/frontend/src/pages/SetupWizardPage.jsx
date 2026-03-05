@@ -521,7 +521,7 @@ export default function SetupWizardPage() {
                 <Gamepad2 size={32} style={{ color: 'var(--accent-purple)', marginBottom: 8 }} />
                 <h3 style={{ fontSize: 18, fontWeight: 700 }}>Steam Setup</h3>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
-                  SteamCMD is needed to download and update your DayZ server. Server files download anonymously — Steam login is only needed for Workshop mods.
+                  SteamCMD is needed to download and update your DayZ server. DayZ requires a Steam account that owns the game — sign in below to enable server deployment and Workshop mod downloads.
                 </p>
               </div>
 
@@ -614,24 +614,15 @@ export default function SetupWizardPage() {
                   </div>
 
                   <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>Note:</strong> Server files are downloaded anonymously — no login needed. Steam login is <strong>only required for installing Workshop mods</strong>. You can configure this later in Settings.
+                    <strong style={{ color: 'var(--text-primary)' }}>Important:</strong> DayZ dedicated server requires a <strong>Steam account that owns DayZ</strong> to download server files. Sign in now, or configure this later in Settings before deploying.
                   </div>
 
-                  <div className="btn-group" style={{ marginBottom: 16 }}>
-                    <button className="btn btn-secondary" onClick={() => { setSteamStatus(null); setError(''); }}>
-                      <ArrowLeft size={14} /> Back
-                    </button>
-                    <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={goNext}>
-                      Continue <ArrowRight size={14} />
-                    </button>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                      Optional: Sign in to Steam for Workshop Mods
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                      Sign in to Steam
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-                      We recommend a dedicated Steam account with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator).
+                      Use a dedicated Steam account that owns DayZ. We recommend Steam Guard set to <strong>Email</strong> (not Mobile Authenticator).
                     </div>
                     <div className="input-group">
                       <label className="input-label">Steam Username</label>
@@ -650,13 +641,25 @@ export default function SetupWizardPage() {
                       </div>
                     )}
 
-                    <button className="btn btn-secondary" onClick={handleSteamValidate} disabled={steamValidating || !steamUser || !steamPass} style={{ width: '100%', justifyContent: 'center' }}>
+                    <button className="btn btn-primary" onClick={handleSteamValidate} disabled={steamValidating || !steamUser || !steamPass} style={{ width: '100%', justifyContent: 'center' }}>
                       {steamValidating ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Verifying...</> : (steamNeedsGuard ? 'Submit Guard Code' : 'Verify Steam Login')}
                     </button>
 
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
-                      Credentials are stored locally and used only for SteamCMD Workshop operations.
+                      Credentials are stored locally and used only for SteamCMD operations.
                     </div>
+                  </div>
+
+                  <div className="btn-group">
+                    <button className="btn btn-secondary" onClick={() => { setSteamStatus(null); setError(''); }}>
+                      <ArrowLeft size={14} /> Back
+                    </button>
+                    <button className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center', fontSize: 12 }} onClick={goNext}>
+                      Skip for Now <ArrowRight size={14} />
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
+                    You can configure Steam credentials later in Settings, but deployment requires them.
                   </div>
                 </>
               )}
