@@ -92,7 +92,14 @@
       "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Mikero\\\\DePboTools\\\\bin\\\\MakePbo.exe\")",
       "Bash(unzip -o \"C:\\\\Users\\\\KurtE\\\\OneDrive\\\\Pictures\\\\New DayZ Tools\\\\000_Scripts.zip\" \"000_Scripts/5_mission/dynamicactions/world/world_weather*.c\" \"000_Scripts/5_mission/dynamicactions/world/world_time*.c\" -d /tmp/gl_ref)",
       "WebFetch(domain:mirasaki.dev)",
-      "Bash(node docs/scripts/generate-changelog.cjs)"
+      "Bash(node docs/scripts/generate-changelog.cjs)",
+      "Bash(git status -u)",
+      "Bash(git fetch origin)",
+      "Bash(gh run list --limit 5)",
+      "Bash(where gh)",
+      "Bash(git check-ignore -v \"dayz-mod/@CitadelAdmin/scripts/3_Game/CitadelEventLogger.c\")",
+      "Bash(git add -f \"dayz-mod/@CitadelAdmin/scripts/3_Game/CitadelEventLogger.c\")",
+      "Bash(git commit:*)"
     ]
   }
 }
