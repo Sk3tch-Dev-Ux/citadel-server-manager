@@ -62,26 +62,32 @@ module.exports = function(app) {
       return res.json({ success: false, message: 'Username and password required' });
     }
 
-    const result = await validateSteamLogin(
-      ctx.steamCredentials.username,
-      ctx.steamCredentials.password,
-      ctx.steamCredentials.guardCode
-    );
+    try {
+      const result = await validateSteamLogin(
+        ctx.steamCredentials.username,
+        ctx.steamCredentials.password,
+        ctx.steamCredentials.guardCode
+      );
 
-    if (result.success) {
-      ctx.steamLoginValidated = true;
-      // Clear the one-time guard code so it's never re-sent to SteamCMD.
-      // The auth token is now cached in SteamCMD's config/config.vdf.
-      ctx.steamCredentials.guardCode = '';
-      // Persist to .env so credentials survive restarts
-      persistSteamCredentials(ctx.steamCredentials.username, ctx.steamCredentials.password);
-      res.json({ success: true, message: `Logged in as ${ctx.steamCredentials.username}` });
-    } else if (result.needsGuard) {
+      if (result.success) {
+        ctx.steamLoginValidated = true;
+        // Clear the one-time guard code so it's never re-sent to SteamCMD.
+        // The auth token is now cached in SteamCMD's config/config.vdf.
+        ctx.steamCredentials.guardCode = '';
+        // Persist to .env so credentials survive restarts
+        persistSteamCredentials(ctx.steamCredentials.username, ctx.steamCredentials.password);
+        res.json({ success: true, message: `Logged in as ${ctx.steamCredentials.username}` });
+      } else if (result.needsGuard) {
+        ctx.steamLoginValidated = false;
+        res.json({ success: false, needsGuard: true, message: 'Steam Guard code required.' });
+      } else {
+        ctx.steamLoginValidated = false;
+        res.json({ success: false, message: result.error });
+      }
+    } catch (err) {
+      logger.error({ err }, 'Steam credential validation failed');
       ctx.steamLoginValidated = false;
-      res.json({ success: false, needsGuard: true, message: 'Steam Guard code required.' });
-    } else {
-      ctx.steamLoginValidated = false;
-      res.json({ success: false, message: result.error });
+      res.json({ success: false, message: err.message || 'Steam login failed — is SteamCMD installed?' });
     }
   });
 };

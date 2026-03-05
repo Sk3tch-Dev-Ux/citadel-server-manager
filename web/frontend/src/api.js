@@ -30,10 +30,14 @@ class API {
 
   /**
    * Fetch with timeout via AbortController.
+   * @param {string} url
+   * @param {object} options - fetch options plus optional `timeout` in ms
    */
   static async _fetch(url, options = {}) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutMs = options.timeout || REQUEST_TIMEOUT_MS;
+    delete options.timeout;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const r = await fetch(url, { ...options, signal: controller.signal });
       return r;
@@ -50,8 +54,8 @@ class API {
     return this._parseResponse(r);
   }
 
-  static async post(url, data) {
-    const r = await this._fetch(url, { method: 'POST', headers: this.headers(), body: JSON.stringify(data) });
+  static async post(url, data, { timeout } = {}) {
+    const r = await this._fetch(url, { method: 'POST', headers: this.headers(), body: JSON.stringify(data), ...(timeout && { timeout }) });
     return this._parseResponse(r);
   }
 
