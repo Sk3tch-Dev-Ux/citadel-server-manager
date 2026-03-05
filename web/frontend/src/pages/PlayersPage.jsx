@@ -74,14 +74,22 @@ export default function PlayersPage({ serverId }) {
     }
   };
 
-  const kick = async (id) => {
-    await API.post(`/api/servers/${serverId}/players/${id}/kick`, { reason: 'Kicked by admin' });
-    window.addToast('Player kicked', 'success');
+  const kick = async (steamId, name) => {
+    try {
+      await API.post(`/api/servers/${serverId}/actions/kick`, { steamId, reason: 'Kicked by admin' });
+      window.addToast?.(`${name} kicked`, 'success');
+    } catch (err) {
+      window.addToast?.(`Kick failed: ${err.message}`, 'error');
+    }
   };
 
-  const ban = async (id) => {
-    await API.post(`/api/servers/${serverId}/players/${id}/ban`, { reason: 'Banned by admin' });
-    window.addToast('Player banned', 'success');
+  const ban = async (steamId, name) => {
+    try {
+      await API.post(`/api/servers/${serverId}/actions/ban`, { steamId, reason: 'Banned by admin' });
+      window.addToast?.(`${name} banned`, 'success');
+    } catch (err) {
+      window.addToast?.(`Ban failed: ${err.message}`, 'error');
+    }
   };
 
   // ─── Spawn Item Submit ───────────────────────────────────
@@ -207,7 +215,7 @@ export default function PlayersPage({ serverId }) {
                       onUnfreeze={() => doAction(p.steamId || p.id, 'freeze', `Unfreeze ${p.name}`, { frozen: 0 })}
                       onTeleportTo={() => openTeleportToPlayer(p)}
                       onLoadout={() => openLoadout(p)}
-                      onKick={() => kick(p.id)}
+                      onKick={() => kick(p.steamId || p.id, p.name)}
                       onStrip={() => {
                         if (window.confirm(`Strip all gear from ${p.name}?`))
                           doAction(p.steamId || p.id, 'strip', `Strip ${p.name}`);
@@ -220,7 +228,7 @@ export default function PlayersPage({ serverId }) {
                         if (window.confirm(`Kill ${p.name}?`))
                           doAction(p.steamId || p.id, 'kill', `Kill ${p.name}`);
                       }}
-                      onBan={() => ban(p.id)}
+                      onBan={() => ban(p.steamId || p.id, p.name)}
                     />
                   </td>
                 </tr>

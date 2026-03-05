@@ -284,9 +284,23 @@ modded class PlayerBase extends ManBase
         CitProcessKill(killer);
     }
 
+    // ─── Freeze Enforcement (per-frame) ────────────────
+    // CommandHandler fires every frame on the server. By setting position
+    // back each frame the player is held completely solid — no rubberbanding.
+
+    override void CommandHandler(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
+    {
+        super.CommandHandler(pDt, pCurrentCommandID, pCurrentCommandFinished);
+
+        if (m_CitFrozen && GetGame().IsServer())
+        {
+            SetPosition(m_CitFreezePosition);
+        }
+    }
+
     // ─── Speed Check & Distance Tracking ──────────────
     // Uses OnScheduledTick matching the GameLabs pattern — NOT CommandHandler
-    // which fires every frame and is too expensive.
+    // which fires every frame and is too expensive for stats/detection.
 
     override void OnScheduledTick(float deltaTime)
     {
@@ -316,12 +330,9 @@ modded class PlayerBase extends ManBase
         float unitsPerSecond = distance / diff;
         m_CitPosition = currentPosition;
 
-        // Freeze enforcement — teleport player back to frozen position
+        // Skip distance tracking and speed checks while frozen
         if (m_CitFrozen)
-        {
-            SetPosition(m_CitFreezePosition);
-            return; // Skip distance tracking and speed checks while frozen
-        }
+            return;
 
         // PERF: Cache config reference once (called every ~2s per player)
         CitadelConfiguration cfg = GetCitadel().GetConfiguration();
