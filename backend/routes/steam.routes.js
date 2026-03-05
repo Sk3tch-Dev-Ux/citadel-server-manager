@@ -79,6 +79,8 @@ module.exports = function(app) {
         res.json({ success: true, message: `Logged in as ${ctx.steamCredentials.username}` });
       } else if (result.needsGuard) {
         ctx.steamLoginValidated = false;
+        // Still persist credentials so they're available for manual SteamCMD auth
+        persistSteamCredentials(ctx.steamCredentials.username, ctx.steamCredentials.password);
         res.json({ success: false, needsGuard: true, message: 'Steam Guard code required.' });
       } else {
         ctx.steamLoginValidated = false;
@@ -89,5 +91,28 @@ module.exports = function(app) {
       ctx.steamLoginValidated = false;
       res.json({ success: false, message: err.message || 'Steam login failed — is SteamCMD installed?' });
     }
+  });
+
+  /**
+   * POST /api/steam/credentials/save
+   * Save Steam credentials WITHOUT running SteamCMD validation.
+   * Useful when Steam Guard blocks automated login — the user can:
+   *   1. Save credentials here
+   *   2. Run SteamCMD manually on the server to complete the initial auth + guard code
+   *   3. SteamCMD caches the auth token in config/config.vdf
+   *   4. All future automated logins reuse the cached token
+   */
+  app.post('/api/steam/credentials/save', auth('mods.install'), (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.json({ success: false, message: 'Username and password required' });
+    }
+    ctx.steamCredentials.username = username;
+    ctx.steamCredentials.password = password;
+    ctx.steamCredentials.guardCode = '';
+    ctx.steamLoginValidated = false;
+    persistSteamCredentials(username, password);
+    logger.info({ username }, 'Steam credentials saved without validation');
+    res.json({ success: true, saved: true, message: `Credentials saved for ${username}` });
   });
 };

@@ -321,6 +321,8 @@ export default function SettingsPage() {
 
   useEffect(() => { fetchSteamStatus(); }, [fetchSteamStatus]);
 
+  const [steamSaving, setSteamSaving] = useState(false);
+
   const validateSteamCredentials = async () => {
     if (!steamUsername || !steamPassword) {
       setSteamError('Username and password are required');
@@ -344,7 +346,6 @@ export default function SettingsPage() {
         setSteamError('Steam Guard code required — check your email and enter the code above.');
       } else {
         const msg = (result.message || 'Login failed').toLowerCase();
-        // Catch any guard-related error the backend might return, even without needsGuard flag
         if (msg.includes('guard') || msg.includes('denied') || msg.includes('two-factor') || msg.includes('code required')) {
           setSteamNeedsGuard(true);
           setSteamError('Steam Guard code required — check your email and enter the code above.');
@@ -355,7 +356,6 @@ export default function SettingsPage() {
     } catch (err) {
       const msg = (err.message || '').toLowerCase();
       if (msg.includes('timed out')) {
-        // Timeout likely means SteamCMD hung waiting for guard code
         setSteamNeedsGuard(true);
         setSteamError('Login timed out — this usually means Steam Guard is required. Check your email for a code and enter it above.');
       } else {
@@ -365,7 +365,31 @@ export default function SettingsPage() {
     setSteamValidating(false);
   };
 
+  const saveSteamCredentials = async () => {
+    if (!steamUsername || !steamPassword) {
+      setSteamError('Username and password are required');
+      return;
+    }
+    setSteamSaving(true);
+    setSteamError('');
+    try {
+      const result = await API.post('/api/steam/credentials/save', { username: steamUsername, password: steamPassword });
+      if (result.success) {
+        setSteamStatus(prev => ({ ...prev, username: steamUsername, hasPassword: true, loginValidated: false }));
+        setSteamError('');
+        setEditing(false);
+        window.addToast(`Steam credentials saved for ${steamUsername}`, 'success');
+      } else {
+        setSteamError(result.message || 'Failed to save');
+      }
+    } catch (err) {
+      setSteamError(err.message || 'Failed to save credentials');
+    }
+    setSteamSaving(false);
+  };
+
   const steamVerified = steamStatus?.loginValidated === true;
+  const steamSaved = !steamVerified && steamStatus?.hasPassword && steamStatus?.username;
 
   return (
     <div style={{ maxWidth: 640 }}>
@@ -401,6 +425,32 @@ export default function SettingsPage() {
             <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(true); setSteamPassword(''); setSteamGuardCode(''); setSteamNeedsGuard(false); setSteamError(''); }}>
               Change Account
             </button>
+          </div>
+        ) : steamSaved && !editing ? (
+          /* Saved but not verified — show yellow status */
+          <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <Shield size={28} style={{ color: '#f59e0b' }} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>Steam Credentials Saved</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Account: <strong>{steamStatus?.username}</strong> — not yet verified</div>
+              </div>
+            </div>
+            <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
+              <strong style={{ color: '#f59e0b' }}>Next step:</strong> Run SteamCMD manually on this server to complete the initial Steam Guard authentication. Once authenticated, SteamCMD caches the session and all future operations will work automatically.
+              <div style={{ marginTop: 8, fontFamily: 'monospace', fontSize: 11, background: 'var(--bg-primary)', borderRadius: 4, padding: '8px 10px', color: 'var(--text-primary)' }}>
+                cd C:\SteamCMD<br />
+                steamcmd +login {steamStatus?.username} +quit
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(true); setSteamPassword(''); setSteamGuardCode(''); setSteamNeedsGuard(false); setSteamError(''); }}>
+                Change Account
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => { setEditing(true); setSteamNeedsGuard(true); setSteamError(''); }}>
+                Try Verify Again
+              </button>
+            </div>
           </div>
         ) : (
           /* Credential form */
@@ -446,13 +496,22 @@ export default function SettingsPage() {
                   Cancel
                 </button>
               )}
-              <button className="btn btn-primary" onClick={validateSteamCredentials} disabled={steamValidating || !steamUsername || !steamPassword} style={{ flex: 1, justifyContent: 'center' }}>
+              <button className="btn btn-primary" onClick={validateSteamCredentials} disabled={steamValidating || steamSaving || !steamUsername || !steamPassword} style={{ flex: 1, justifyContent: 'center' }}>
                 {steamValidating ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Verifying... (up to 15s)</> : (steamGuardCode ? 'Verify with Guard Code' : 'Verify Steam Login')}
               </button>
             </div>
 
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
-              Your credentials are stored locally and used only for SteamCMD operations. They are never sent to any third party.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>or</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            </div>
+
+            <button className="btn btn-secondary" onClick={saveSteamCredentials} disabled={steamValidating || steamSaving || !steamUsername || !steamPassword} style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}>
+              {steamSaving ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><Save size={14} /> Save Without Verifying</>}
+            </button>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
+              Saves your credentials so you can complete Steam Guard authentication manually via SteamCMD on this server.
             </div>
           </div>
         )}
