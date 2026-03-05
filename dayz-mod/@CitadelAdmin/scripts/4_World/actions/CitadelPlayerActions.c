@@ -215,4 +215,117 @@ class CitadelPlayerActions
         Print("[Citadel] Messaged player: " + steamId);
         return true;
     }
+
+    static bool UnstuckPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player)
+        {
+            error = "Player not found: " + steamId;
+            return false;
+        }
+
+        vector pos = player.GetPosition();
+        pos[1] = GetGame().SurfaceY(pos[0], pos[2]) + 0.5;
+        player.CitSetPositionEx(pos);
+
+        Print("[Citadel] Unstuck player: " + steamId);
+        return true;
+    }
+
+    static bool FreezePlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        int frozen = CitadelJson.ExtractInt(params, "frozen");
+
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player)
+        {
+            error = "Player not found: " + steamId;
+            return false;
+        }
+
+        bool shouldFreeze = (frozen == 1);
+        player.CitSetFrozen(shouldFreeze);
+
+        Print("[Citadel] " + steamId + " frozen=" + shouldFreeze.ToString());
+        return true;
+    }
+
+    static bool TeleportToPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string targetSteamId = CitadelJson.ExtractString(params, "targetSteamId");
+
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player)
+        {
+            error = "Source player not found: " + steamId;
+            return false;
+        }
+
+        PlayerBase target = FindPlayerBySteamId(targetSteamId);
+        if (!target)
+        {
+            error = "Target player not found: " + targetSteamId;
+            return false;
+        }
+
+        vector targetPos = target.GetPosition();
+        targetPos[0] = targetPos[0] + 1.0;
+        player.CitSetPositionEx(targetPos);
+
+        Print("[Citadel] Teleported " + steamId + " to " + targetSteamId);
+        return true;
+    }
+
+    static bool GetLoadout(string cmdJson, out string error, out string responseData)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player)
+        {
+            error = "Player not found: " + steamId;
+            return false;
+        }
+
+        // Enumerate all items in player's inventory
+        array<EntityAI> items = new array<EntityAI>();
+        player.GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
+
+        string json = "{\"items\":[";
+        bool first = true;
+        for (int i = 0; i < items.Count(); i++)
+        {
+            EntityAI item = items.Get(i);
+            if (!item) continue;
+            if (item == player) continue;
+
+            if (!first) json += ",";
+            first = false;
+
+            float health = item.GetHealth("", "Health");
+            float maxHealth = item.GetMaxHealth("", "Health");
+            int quantity = 1;
+
+            ItemBase itemBase = ItemBase.Cast(item);
+            if (itemBase && itemBase.HasQuantity())
+                quantity = itemBase.GetQuantity();
+
+            json += string.Format("{\"className\":\"%1\",\"health\":%2,\"maxHealth\":%3,\"quantity\":%4}",
+                item.GetType(), health.ToString(), maxHealth.ToString(), quantity.ToString());
+        }
+        json += "]}";
+
+        responseData = json;
+        Print("[Citadel] Got loadout for: " + steamId + " (" + items.Count().ToString() + " items)");
+        return true;
+    }
 };

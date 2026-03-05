@@ -211,6 +211,7 @@ modded class MissionServer
 
                 // Log disconnect with session time
                 CitadelEventLogger.LogDisconnect(steamId, name, sessionDuration);
+                CitadelEventLogger.LogPlayerDisconnect(steamId, name);
 
                 // Dump full session statistics
                 if (GetCitadel().GetConfiguration().GetTrackPlayerStats())

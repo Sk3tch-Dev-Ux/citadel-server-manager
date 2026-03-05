@@ -39,13 +39,14 @@ const { INHOUSE_CAPABILITIES, ActionType } = require('../types');
 
 // ─── Vehicle URL slug mapping ───────────────────────────
 const VEHICLE_SLUGS = Object.freeze({
-  [ActionType.DELETE_VEHICLE]:  'delete',
-  [ActionType.REPAIR_VEHICLE]:  'repair',
-  [ActionType.REFUEL_VEHICLE]:  'refuel',
-  [ActionType.UNSTUCK_VEHICLE]: 'unstuck',
-  [ActionType.EXPLODE_VEHICLE]: 'explode',
-  [ActionType.KILL_ENGINE]:     'kill-engine',
-  [ActionType.EJECT_DRIVER]:    'eject-driver',
+  [ActionType.DELETE_VEHICLE]:    'delete',
+  [ActionType.REPAIR_VEHICLE]:    'repair',
+  [ActionType.REFUEL_VEHICLE]:    'refuel',
+  [ActionType.UNSTUCK_VEHICLE]:   'unstuck',
+  [ActionType.EXPLODE_VEHICLE]:   'explode',
+  [ActionType.KILL_ENGINE]:       'kill-engine',
+  [ActionType.EJECT_DRIVER]:      'eject-driver',
+  [ActionType.TELEPORT_VEHICLE]:  'teleport',
 });
 
 class InHouseProvider extends BaseProvider {
@@ -182,6 +183,30 @@ class InHouseProvider extends BaseProvider {
     });
   }
 
+  async unstuckPlayer(serverId, session) {
+    await this._post(serverId, '/player/unstuck', {
+      steamId: this._steamIdFrom(session),
+    });
+  }
+
+  async freezePlayer(serverId, session, frozen) {
+    await this._post(serverId, '/player/freeze', {
+      steamId: this._steamIdFrom(session),
+      frozen: frozen ? 1 : 0,
+    });
+  }
+
+  async teleportToPlayer(serverId, session, targetSteamId) {
+    await this._post(serverId, '/player/teleportToPlayer', {
+      steamId: this._steamIdFrom(session),
+      targetSteamId,
+    });
+  }
+
+  async getLoadout(serverId, steamId) {
+    return this._get(serverId, `/player/loadout?steamId=${encodeURIComponent(steamId)}`);
+  }
+
   // ─── Vehicle Actions ────────────────────────────────────
 
   async vehicleAction(serverId, vehicleId, actionType) {
@@ -189,6 +214,15 @@ class InHouseProvider extends BaseProvider {
     if (!slug) throw new Error(`Unknown vehicle action type: ${actionType}`);
 
     await this._post(serverId, `/vehicle/${slug}`, { vehicleId });
+  }
+
+  async teleportVehicle(serverId, vehicleId, coordinates) {
+    await this._post(serverId, '/vehicle/teleport', {
+      vehicleId,
+      x: parseFloat(coordinates.x),
+      y: parseFloat(coordinates.y || 0),
+      z: parseFloat(coordinates.z || 0),
+    });
   }
 
   // ─── World Actions ──────────────────────────────────────
@@ -230,6 +264,12 @@ class InHouseProvider extends BaseProvider {
       y: parseFloat(position?.y || 0),
       z: parseFloat(position?.z || 0),
     });
+  }
+
+  // ─── Config Actions ─────────────────────────────────────
+
+  async reloadConfig(serverId) {
+    await this._post(serverId, '/config/reload', {});
   }
 
   // ─── Data / Query Actions ──────────────────────────────

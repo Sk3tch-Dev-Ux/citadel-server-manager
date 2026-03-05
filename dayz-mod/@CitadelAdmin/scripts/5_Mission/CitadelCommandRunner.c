@@ -100,6 +100,14 @@ class CitadelCommandRunner
             success = CitadelPlayerActions.KickPlayer(content, error);
         else if (action == "player.message")
             success = CitadelPlayerActions.MessagePlayer(content, error);
+        else if (action == "player.unstuck")
+            success = CitadelPlayerActions.UnstuckPlayer(content, error);
+        else if (action == "player.freeze")
+            success = CitadelPlayerActions.FreezePlayer(content, error);
+        else if (action == "player.teleportToPlayer")
+            success = CitadelPlayerActions.TeleportToPlayer(content, error);
+        else if (action == "player.getLoadout")
+            success = CitadelPlayerActions.GetLoadout(content, error, responseData);
 
         // ─── Vehicle Actions ────────────────────────
 
@@ -117,6 +125,8 @@ class CitadelCommandRunner
             success = CitadelVehicleActions.KillEngine(content, error);
         else if (action == "vehicle.eject-driver")
             success = CitadelVehicleActions.EjectDriver(content, error);
+        else if (action == "vehicle.teleport")
+            success = CitadelVehicleActions.TeleportVehicle(content, error);
 
         // ─── World Actions ──────────────────────────
 
@@ -134,6 +144,12 @@ class CitadelCommandRunner
             success = CitadelWorldActions.SpawnItemWorld(content, error);
         else if (action == "world.broadcast")
             success = CitadelWorldActions.BroadcastMessage(content, error);
+        else if (action == "config.reload")
+        {
+            GetCitadel().GetConfiguration().LoadFromDisk();
+            success = true;
+            GetCitadel().GetLogger().Info("Configuration reloaded from disk");
+        }
 
         // ─── Server Actions ─────────────────────────
 
@@ -222,13 +238,10 @@ class CitadelCommandRunner
         string errStr = "null";
         if (error != "") errStr = "\"" + error + "\"";
 
-        string json = "{";
-        json += "\"id\":\"" + id + "\",";
-        json += "\"ok\":" + okStr + ",";
-        json += "\"data\":" + data + ",";
-        json += "\"error\":" + errStr + ",";
-        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"";
-        json += "}";
+        string json = string.Format(
+            "{\"id\":\"%1\",\"ok\":%2,\"data\":%3,\"error\":%4,\"timestamp\":\"%5\"}",
+            id, okStr, data, errStr, CitadelLogger.GetISO8601Static()
+        );
 
         FPrintln(file, json);
         CloseFile(file);

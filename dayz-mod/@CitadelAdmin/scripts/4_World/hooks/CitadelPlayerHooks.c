@@ -31,6 +31,10 @@ modded class PlayerBase extends ManBase
     private bool m_CitHitTracked = false;
     private bool m_CitIdentitySet = false;
 
+    // Freeze state
+    private bool m_CitFrozen = false;
+    private vector m_CitFreezePosition;
+
     // ─── Identity ─────────────────────────────────────
 
     string GetCitSteamId()
@@ -312,6 +316,13 @@ modded class PlayerBase extends ManBase
         float unitsPerSecond = distance / diff;
         m_CitPosition = currentPosition;
 
+        // Freeze enforcement — teleport player back to frozen position
+        if (m_CitFrozen)
+        {
+            SetPosition(m_CitFreezePosition);
+            return; // Skip distance tracking and speed checks while frozen
+        }
+
         // PERF: Cache config reference once (called every ~2s per player)
         CitadelConfiguration cfg = GetCitadel().GetConfiguration();
 
@@ -353,6 +364,24 @@ modded class PlayerBase extends ManBase
             }
         }
     }
+
+    // ─── Freeze Control ─────────────────────────────────
+
+    void CitSetFrozen(bool frozen)
+    {
+        m_CitFrozen = frozen;
+        if (frozen)
+        {
+            m_CitFreezePosition = GetPosition();
+            GetCitadel().GetLogger().Info(string.Format("Player frozen: %1", m_CitSteamId));
+        }
+        else
+        {
+            GetCitadel().GetLogger().Info(string.Format("Player unfrozen: %1", m_CitSteamId));
+        }
+    }
+
+    bool CitIsFrozen() { return m_CitFrozen; }
 
     // ─── Heal (Comprehensive, matching GameLabs GLHealEx) ──
 

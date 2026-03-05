@@ -164,6 +164,36 @@ class CitadelEventLogger
         ));
     }
 
+    // ─── Admin Action Audit ──────────────────────────
+
+    static void LogAdminAction(string adminName, string action, string target, string details)
+    {
+        AppendLine(string.Format(
+            "{\"type\":\"adminAction\",\"admin\":\"%1\",\"action\":\"%2\",\"target\":\"%3\",\"details\":\"%4\",\"timestamp\":\"%5\"}",
+            EscapeJson(adminName), EscapeJson(action), EscapeJson(target), EscapeJson(details), CitadelLogger.GetISO8601Static()
+        ));
+    }
+
+    // ─── Respawn Event ──────────────────────────────
+
+    static void LogRespawn(string steamId, string name, vector pos)
+    {
+        AppendLine(string.Format(
+            "{\"type\":\"respawn\",\"steamId\":\"%1\",\"name\":\"%2\",\"position\":{\"x\":%3,\"y\":%4,\"z\":%5},\"timestamp\":\"%6\"}",
+            steamId, EscapeJson(name), pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), CitadelLogger.GetISO8601Static()
+        ));
+    }
+
+    // ─── Disconnect Event ───────────────────────────
+
+    static void LogPlayerDisconnect(string steamId, string name)
+    {
+        AppendLine(string.Format(
+            "{\"type\":\"disconnect\",\"steamId\":\"%1\",\"name\":\"%2\",\"timestamp\":\"%3\"}",
+            steamId, EscapeJson(name), CitadelLogger.GetISO8601Static()
+        ));
+    }
+
     // ─── Buffer Management ──────────────────────────────
 
     /**

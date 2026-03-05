@@ -8,7 +8,8 @@ import {
 } from '../components/ui/DropdownMenu';
 import {
   Users, MoreVertical, Heart, Package, Send, LogOut,
-  Trash2, Bomb, Skull, ShieldBan, Search,
+  Trash2, Bomb, Skull, ShieldBan, Search, Locate, Lock,
+  Navigation, Eye, Loader,
 } from '../components/Icon';
 
 export default function PlayersPage({ serverId }) {
@@ -24,6 +25,14 @@ export default function PlayersPage({ serverId }) {
   const [spawning, setSpawning] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
+
+  // ─── Teleport To Player Modal State ────────────────────
+  const [teleportSource, setTeleportSource] = useState(null);
+
+  // ─── Loadout Viewer Modal State ────────────────────────
+  const [loadoutTarget, setLoadoutTarget] = useState(null);
+  const [loadoutData, setLoadoutData] = useState(null);
+  const [loadoutLoading, setLoadoutLoading] = useState(false);
 
   // ─── Player List ─────────────────────────────────────────
   useEffect(() => {
@@ -113,6 +122,41 @@ export default function PlayersPage({ serverId }) {
     setShowSuggestions(false);
   };
 
+  // ─── Teleport To Player ───────────────────────────────
+  const openTeleportToPlayer = (player) => {
+    setTeleportSource({ id: player.id, steamId: player.steamId || player.id, name: player.name });
+  };
+
+  const doTeleportToPlayer = async (targetPlayer) => {
+    if (!teleportSource) return;
+    try {
+      await API.post(`/api/servers/${serverId}/actions/teleport-to-player`, {
+        steamId: teleportSource.steamId,
+        targetSteamId: targetPlayer.steamId || targetPlayer.id,
+      });
+      window.addToast?.(`Teleported ${teleportSource.name} to ${targetPlayer.name}`, 'success');
+    } catch (err) {
+      window.addToast?.(`Teleport failed: ${err.message}`, 'error');
+    }
+    setTeleportSource(null);
+  };
+
+  // ─── Get Loadout ──────────────────────────────────────
+  const openLoadout = async (player) => {
+    const steamId = player.steamId || player.id;
+    setLoadoutTarget({ name: player.name, steamId });
+    setLoadoutLoading(true);
+    setLoadoutData(null);
+    try {
+      const result = await API.get(`/api/servers/${serverId}/actions/loadout/${encodeURIComponent(steamId)}`);
+      setLoadoutData(result?.data?.items || result?.items || []);
+    } catch (err) {
+      window.addToast?.(`Failed to get loadout: ${err.message}`, 'error');
+      setLoadoutTarget(null);
+    }
+    setLoadoutLoading(false);
+  };
+
   // ─── Render ──────────────────────────────────────────────
   return (
     <div>
@@ -155,6 +199,14 @@ export default function PlayersPage({ serverId }) {
                         const msg = window.prompt(`Send message to ${p.name}:`);
                         if (msg) doAction(p.steamId || p.id, 'message', `Message ${p.name}`, { message: msg });
                       }}
+                      onUnstuck={() => doAction(p.steamId || p.id, 'unstuck', `Unstuck ${p.name}`)}
+                      onFreeze={() => {
+                        if (window.confirm(`Freeze ${p.name}? They will be unable to move.`))
+                          doAction(p.steamId || p.id, 'freeze', `Freeze ${p.name}`, { frozen: 1 });
+                      }}
+                      onUnfreeze={() => doAction(p.steamId || p.id, 'freeze', `Unfreeze ${p.name}`, { frozen: 0 })}
+                      onTeleportTo={() => openTeleportToPlayer(p)}
+                      onLoadout={() => openLoadout(p)}
                       onKick={() => kick(p.id)}
                       onStrip={() => {
                         if (window.confirm(`Strip all gear from ${p.name}?`))
@@ -263,6 +315,92 @@ export default function PlayersPage({ serverId }) {
           </div>
         </form>
       </Modal>
+
+      {/* ─── Teleport To Player Modal ──────────────────────── */}
+      <Modal
+        open={!!teleportSource}
+        onClose={() => setTeleportSource(null)}
+        title={`Teleport ${teleportSource?.name || 'Player'} To...`}
+      >
+        <div style={{ padding: '0 4px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 12 }}>
+            Select a target player to teleport {teleportSource?.name} to their position.
+          </p>
+          <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+            {players
+              .filter(p => (p.steamId || p.id) !== teleportSource?.steamId)
+              .map(p => (
+                <button
+                  key={p.id}
+                  className="item-suggestion"
+                  style={{ width: '100%' }}
+                  onClick={() => doTeleportToPlayer(p)}
+                >
+                  <span className="item-suggestion__name">{p.name}</span>
+                  <span className="item-suggestion__cat">{p.steamId || p.id}</span>
+                </button>
+              ))}
+            {players.filter(p => (p.steamId || p.id) !== teleportSource?.steamId).length === 0 && (
+              <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
+                No other players online
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <button className="btn btn-secondary" onClick={() => setTeleportSource(null)}>Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ─── Loadout Viewer Modal ──────────────────────────── */}
+      <Modal
+        open={!!loadoutTarget}
+        onClose={() => { setLoadoutTarget(null); setLoadoutData(null); }}
+        title={`Loadout — ${loadoutTarget?.name || 'Player'}`}
+      >
+        <div style={{ padding: '0 4px' }}>
+          {loadoutLoading ? (
+            <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+              <Loader size={24} style={{ animation: 'spin 1s linear infinite' }} />
+              <div style={{ marginTop: 8 }}>Loading inventory...</div>
+            </div>
+          ) : loadoutData && loadoutData.length > 0 ? (
+            <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+              <table style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left' }}>Item</th>
+                    <th style={{ width: 60, textAlign: 'right' }}>Qty</th>
+                    <th style={{ width: 80, textAlign: 'right' }}>Health</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadoutData.map((item, i) => (
+                    <tr key={i}>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{item.className}</td>
+                      <td style={{ textAlign: 'right' }}>{item.quantity || 1}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {item.maxHealth > 0
+                          ? `${Math.round((item.health / item.maxHealth) * 100)}%`
+                          : '\u2014'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : loadoutData ? (
+            <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 32 }}>
+              Player has no items
+            </div>
+          ) : null}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <button className="btn btn-secondary" onClick={() => { setLoadoutTarget(null); setLoadoutData(null); }}>
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -270,8 +408,8 @@ export default function PlayersPage({ serverId }) {
 // ─── Player Actions Dropdown ─────────────────────────────────
 
 function PlayerActionsMenu({
-  player, onHeal, onSpawnItem, onMessage, onKick,
-  onStrip, onExplode, onKill, onBan,
+  player, onHeal, onSpawnItem, onMessage, onUnstuck, onFreeze, onUnfreeze,
+  onTeleportTo, onLoadout, onKick, onStrip, onExplode, onKill, onBan,
 }) {
   return (
     <DropdownMenu>
@@ -284,26 +422,42 @@ function PlayerActionsMenu({
         <DropdownMenuItem onSelect={onHeal}>
           <Heart size={14} /> Heal
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onUnstuck}>
+          <Locate size={14} /> Unstuck
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onSpawnItem}>
           <Package size={14} /> Spawn Item
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onMessage}>
           <Send size={14} /> Message
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onLoadout}>
+          <Eye size={14} /> View Loadout
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onTeleportTo}>
+          <Navigation size={14} /> Teleport To Player
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onFreeze}>
+          <Lock size={14} /> Freeze
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onUnfreeze}>
+          <Locate size={14} /> Unfreeze
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onStrip}>
+          <Trash2 size={14} /> Strip Gear
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onKick}>
           <LogOut size={14} /> Kick
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onStrip}>
-          <Trash2 size={14} /> Strip Gear
-        </DropdownMenuItem>
         <DropdownMenuItem danger onSelect={onExplode}>
           <Bomb size={14} /> Explode
         </DropdownMenuItem>
         <DropdownMenuItem danger onSelect={onKill}>
           <Skull size={14} /> Kill
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem danger onSelect={onBan}>
           <ShieldBan size={14} /> Ban
         </DropdownMenuItem>

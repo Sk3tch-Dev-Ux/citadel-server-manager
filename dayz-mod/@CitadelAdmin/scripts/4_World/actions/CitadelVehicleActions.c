@@ -260,4 +260,29 @@ class CitadelVehicleActions
         Print("[Citadel] No driver found in vehicle: " + vehicleId);
         return true;
     }
+
+    static bool TeleportVehicle(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string vehicleId = CitadelJson.ExtractString(params, "vehicleId");
+        float x = CitadelJson.ExtractFloat(params, "x");
+        float y = CitadelJson.ExtractFloat(params, "y");
+        float z = CitadelJson.ExtractFloat(params, "z");
+
+        CarScript vehicle = FindVehicle(vehicleId);
+        if (!vehicle)
+        {
+            error = "Vehicle not found: " + vehicleId;
+            return false;
+        }
+
+        if (y <= 0)
+            y = GetGame().SurfaceY(x, z) + 1.0;
+
+        vector pos = Vector(x, y, z);
+        vehicle.SetPosition(pos);
+
+        Print("[Citadel] Teleported vehicle " + vehicleId + " to " + pos.ToString());
+        return true;
+    }
 };

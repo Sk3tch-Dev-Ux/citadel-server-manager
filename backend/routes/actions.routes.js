@@ -98,6 +98,102 @@ module.exports = function(app) {
     }
   });
 
+  // ─── Message Player ─────────────────────────────────
+  app.post('/api/servers/:id/actions/message', auth('server.rcon'), async (req, res) => {
+    const { steamId, message } = req.body;
+    if (!steamId || !message) return res.status(400).json({ error: 'steamId and message required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.MESSAGE_PLAYER);
+      await provider.messagePlayer(req.params.id, steamId, message);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.MESSAGE_PLAYER],
+        `Messaged ${session.playerName || session.name}: ${message.substring(0, 50)}`);
+      res.json({ message: `Message sent to ${session.playerName || session.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Unstuck Player ─────────────────────────────────
+  app.post('/api/servers/:id/actions/unstuck', auth('server.rcon'), async (req, res) => {
+    const { steamId } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.UNSTUCK_PLAYER);
+      await provider.unstuckPlayer(req.params.id, session);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.UNSTUCK_PLAYER],
+        `Unstuck ${session.playerName || session.name}`);
+      res.json({ message: `Unstuck ${session.playerName || session.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Freeze Player ─────────────────────────────────
+  app.post('/api/servers/:id/actions/freeze', auth('server.rcon'), async (req, res) => {
+    const { steamId, frozen } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    const isFrozen = frozen !== false && frozen !== 0 && frozen !== '0';
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.FREEZE_PLAYER);
+      await provider.freezePlayer(req.params.id, session, isFrozen);
+      const label = isFrozen ? 'Froze' : 'Unfroze';
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.FREEZE_PLAYER],
+        `${label} ${session.playerName || session.name}`);
+      res.json({ message: `${label} ${session.playerName || session.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Teleport To Player ────────────────────────────
+  app.post('/api/servers/:id/actions/teleport-to-player', auth('server.rcon'), async (req, res) => {
+    const { steamId, targetSteamId } = req.body;
+    if (!steamId || !targetSteamId) return res.status(400).json({ error: 'steamId and targetSteamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Source player not found in active sessions' });
+
+    const targetSession = findSession(req.params.id, targetSteamId);
+    if (!targetSession) return res.status(404).json({ error: 'Target player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.TELEPORT_TO_PLAYER);
+      await provider.teleportToPlayer(req.params.id, session, targetSteamId);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.TELEPORT_TO_PLAYER],
+        `Teleported ${session.playerName || session.name} to ${targetSession.playerName || targetSession.name}`);
+      res.json({ message: `Teleported to ${targetSession.playerName || targetSession.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Get Player Loadout ────────────────────────────
+  app.get('/api/servers/:id/actions/loadout/:steamId', auth('server.view'), async (req, res) => {
+    const { steamId } = req.params;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_LOADOUT);
+      const result = await provider.getLoadout(req.params.id, steamId);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ─── Strip Player Inventory ───────────────────────────
   app.post('/api/servers/:id/actions/strip', auth('server.rcon'), async (req, res) => {
     const { steamId } = req.body;
@@ -131,6 +227,24 @@ module.exports = function(app) {
       addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.EXPLODE_PLAYER],
         `Exploded ${session.playerName}`);
       res.json({ message: `Exploded ${session.playerName}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Vehicle Teleport (special — needs coordinates) ──
+  app.post('/api/servers/:id/actions/vehicle/teleport', auth('server.rcon'), async (req, res) => {
+    const { vehicleId, x, y, z } = req.body;
+    if (!vehicleId || x == null || z == null) {
+      return res.status(400).json({ error: 'vehicleId, x, and z required' });
+    }
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.TELEPORT_VEHICLE);
+      await provider.teleportVehicle(req.params.id, vehicleId, { x, y, z });
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.TELEPORT_VEHICLE],
+        `Teleported vehicle ${vehicleId} to [${x}, ${y || 0}, ${z}]`);
+      res.json({ message: 'Vehicle teleported' });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -232,6 +346,19 @@ module.exports = function(app) {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_DETAILS);
       const details = await provider.getPlayerDetails(req.params.id, req.params.steamId);
       res.json(details);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Config: Reload ──────────────────────────────────
+  app.post('/api/servers/:id/actions/config/reload', auth('server.rcon'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.RELOAD_CONFIG);
+      await provider.reloadConfig(req.params.id);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.RELOAD_CONFIG],
+        'Reloaded server config');
+      res.json({ message: 'Config reloaded' });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

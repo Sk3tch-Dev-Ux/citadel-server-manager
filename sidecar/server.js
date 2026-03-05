@@ -124,6 +124,73 @@ app.post('/player/explode', async (req, res) => {
   }
 });
 
+app.post('/player/unstuck', async (req, res) => {
+  const { steamId } = req.body;
+  if (!steamId) return res.status(400).json({ ok: false, error: 'steamId required' });
+
+  try {
+    const data = await sendCommand('player.unstuck', { steamId });
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/player/freeze', async (req, res) => {
+  const { steamId, frozen } = req.body;
+  if (!steamId) return res.status(400).json({ ok: false, error: 'steamId required' });
+
+  try {
+    const data = await sendCommand('player.freeze', {
+      steamId,
+      frozen: frozen != null ? parseInt(frozen) : 1,
+    });
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/player/teleportToPlayer', async (req, res) => {
+  const { steamId, targetSteamId } = req.body;
+  if (!steamId || !targetSteamId) {
+    return res.status(400).json({ ok: false, error: 'steamId and targetSteamId required' });
+  }
+
+  try {
+    const data = await sendCommand('player.teleportToPlayer', { steamId, targetSteamId });
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/player/loadout', async (req, res) => {
+  const { steamId } = req.query;
+  if (!steamId) return res.status(400).json({ ok: false, error: 'steamId required' });
+
+  try {
+    const data = await sendCommand('player.getLoadout', { steamId });
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/player/message', async (req, res) => {
+  const { steamId, message } = req.body;
+  if (!steamId || !message) {
+    return res.status(400).json({ ok: false, error: 'steamId and message required' });
+  }
+
+  try {
+    const data = await sendCommand('player.message', { steamId, message });
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/player/kick', async (req, res) => {
   const { steamId, reason } = req.body;
   if (!steamId) return res.status(400).json({ ok: false, error: 'steamId required' });
@@ -190,6 +257,24 @@ app.get('/player/details', async (req, res) => {
 // ─── Vehicle Actions ─────────────────────────────────────
 
 const VEHICLE_ACTIONS = ['delete', 'repair', 'refuel', 'unstuck', 'explode', 'kill-engine', 'eject-driver'];
+
+// Vehicle teleport has special params (coordinates), handle before parameterized route
+app.post('/vehicle/teleport', async (req, res) => {
+  const { vehicleId, x, y, z } = req.body;
+  if (!vehicleId) return res.status(400).json({ ok: false, error: 'vehicleId required' });
+
+  try {
+    const data = await sendCommand('vehicle.teleport', {
+      vehicleId,
+      x: parseFloat(x || 0),
+      y: parseFloat(y || 0),
+      z: parseFloat(z || 0),
+    });
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 app.post('/vehicle/:action', async (req, res) => {
   const { action } = req.params;
@@ -282,6 +367,17 @@ app.post('/world/spawn-item', async (req, res) => {
       y: parseFloat(y || 0),
       z: parseFloat(z || 0),
     });
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ─── Config Actions ─────────────────────────────────────
+
+app.post('/config/reload', async (req, res) => {
+  try {
+    const data = await sendCommand('config.reload', {});
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
