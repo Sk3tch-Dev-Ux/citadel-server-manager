@@ -33,7 +33,7 @@ const { addNotification } = require('../lib/notifications');
 const { scaffoldHookDirectory } = require('../lib/lifecycle-hooks');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
-const { getSidecarPort, ensureCitadelMod } = require('../lib/sidecar-manager');
+const { getSidecarPort } = require('../lib/sidecar-manager');
 const { ensureFirewallRules } = require('../lib/firewall-manager');
 
 /**
@@ -67,14 +67,6 @@ function scaffoldDeployment(installDir, map) {
  */
 function buildLaunchParams(gamePort) {
   return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck -serverMod=@CitadelAdmin`;
-}
-
-/**
- * Install @CitadelAdmin mod into a server's install directory.
- * Delegates to the shared ensureCitadelMod in sidecar-manager.
- */
-function installCitadelMod(installDir) {
-  ensureCitadelMod(installDir);
 }
 
 /**
@@ -260,9 +252,6 @@ module.exports = function(app) {
       // Scaffold lifecycle hooks directory
       scaffoldHookDirectory(resolvedDir);
 
-      // Install @CitadelAdmin mod for live map + admin actions
-      installCitadelMod(resolvedDir);
-
       // Open firewall ports so server is reachable from the internet
       ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort })
         .catch(err => logger.warn({ err }, 'Firewall rule setup failed (non-fatal)'));
@@ -364,9 +353,6 @@ module.exports = function(app) {
 
       // Scaffold lifecycle hooks directory
       scaffoldHookDirectory(resolvedDir);
-
-      // Re-install @CitadelAdmin mod
-      installCitadelMod(resolvedDir);
 
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
       if (!fs.existsSync(cfgPath)) {
