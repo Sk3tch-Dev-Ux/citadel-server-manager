@@ -12,14 +12,16 @@
  *      instead of 8-15 string concatenations (Enforce strings are immutable,
  *      each += allocates a new string on the heap)
  *
+ * ENFORCE SCRIPT CONSTRAINTS:
+ *   - string.Format() supports max 6 parameters (%1-%6).
+ *     Methods with >6 fields split into two Format() calls.
+ *   - Utility methods (EscapeJson, GetTimestamp, AppendLine, etc.)
+ *     are declared BEFORE Log* methods for compile-order safety.
+ *
  * Flush triggers:
  *   - Buffer reaches BATCH_SIZE (20 events)
  *   - FLUSH_INTERVAL (2s) elapsed — checked from DayZGame.OnUpdate()
  *   - CitadelCore.Exit() for graceful shutdown
- *
- * NOTE: Utility methods (EscapeJson, GetTimestamp, AppendLine, FlushBuffer,
- * CheckFlush) are declared BEFORE Log* methods because the Enforce Script
- * compiler resolves method calls top-to-bottom within a class.
  *
  * Event types:
  *   kill, suicide, death, connect, playtime, chat,
@@ -105,7 +107,6 @@ class CitadelEventLogger
     {
         s_EventBuffer.Insert(line);
 
-        // Flush immediately if buffer is full
         if (s_EventBuffer.Count() >= BATCH_SIZE)
         {
             FlushBuffer();
@@ -114,11 +115,15 @@ class CitadelEventLogger
 
     // ─── Player Events ────────────────────────────────
 
+    // 7 fields — split into two Format() calls (max 6 params each)
     static void LogKill(string killerSteamId, string killerName, string victimSteamId, string victimName, float distance, string weapon)
     {
-        AppendLine(string.Format(
-            "{\"type\":\"kill\",\"steamId\":\"%1\",\"name\":\"%2\",\"victimSteamId\":\"%3\",\"victimName\":\"%4\",\"distance\":%5,\"weapon\":\"%6\",\"timestamp\":\"%7\"}",
-            killerSteamId, EscapeJson(killerName), victimSteamId, EscapeJson(victimName),
+        string front = string.Format(
+            "{\"type\":\"kill\",\"steamId\":\"%1\",\"name\":\"%2\",\"victimSteamId\":\"%3\",\"victimName\":\"%4\",",
+            killerSteamId, EscapeJson(killerName), victimSteamId, EscapeJson(victimName)
+        );
+        AppendLine(front + string.Format(
+            "\"distance\":%1,\"weapon\":\"%2\",\"timestamp\":\"%3\"}",
             distance.ToString(), EscapeJson(weapon), GetTimestamp()
         ));
     }
@@ -165,9 +170,9 @@ class CitadelEventLogger
 
     // ─── Combat Events ────────────────────────────────
 
+    // 8 fields — split into two Format() calls
     static void LogHit(string victimSteamId, string victimName, string attackerSteamId, string attackerName, string weapon, string ammo, string zone, float damage)
     {
-        // Split into two Format calls — LogHit has 10 fields, exceeds 9-param limit
         string front = string.Format(
             "{\"type\":\"hit\",\"steamId\":\"%1\",\"name\":\"%2\",\"attackerSteamId\":\"%3\",\"attackerName\":\"%4\",\"weapon\":\"%5\",",
             victimSteamId, EscapeJson(victimName), attackerSteamId, EscapeJson(attackerName), EscapeJson(weapon)
@@ -198,22 +203,30 @@ class CitadelEventLogger
 
     // ─── Dynamic World Events ─────────────────────────
 
+    // 7 fields — split into two Format() calls
     static void LogDynamicEvent(string action, string className, string displayName, vector pos)
     {
-        AppendLine(string.Format(
-            "{\"type\":\"dynamicEvent\",\"action\":\"%1\",\"className\":\"%2\",\"displayName\":\"%3\",\"position\":{\"x\":%4,\"y\":%5,\"z\":%6},\"timestamp\":\"%7\"}",
-            action, EscapeJson(className), EscapeJson(displayName),
+        string front = string.Format(
+            "{\"type\":\"dynamicEvent\",\"action\":\"%1\",\"className\":\"%2\",\"displayName\":\"%3\",",
+            action, EscapeJson(className), EscapeJson(displayName)
+        );
+        AppendLine(front + string.Format(
+            "\"position\":{\"x\":%1,\"y\":%2,\"z\":%3},\"timestamp\":\"%4\"}",
             pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), GetTimestamp()
         ));
     }
 
     // ─── Anti-Cheat Events ────────────────────────────
 
+    // 8 fields — split into two Format() calls
     static void LogSpeedFlag(string steamId, string name, float speed, vector pos, int triggerCount)
     {
-        AppendLine(string.Format(
-            "{\"type\":\"speedFlag\",\"steamId\":\"%1\",\"name\":\"%2\",\"speed\":%3,\"triggers\":%4,\"position\":{\"x\":%5,\"y\":%6,\"z\":%7},\"timestamp\":\"%8\"}",
-            steamId, EscapeJson(name), speed.ToString(), triggerCount.ToString(),
+        string front = string.Format(
+            "{\"type\":\"speedFlag\",\"steamId\":\"%1\",\"name\":\"%2\",\"speed\":%3,\"triggers\":%4,",
+            steamId, EscapeJson(name), speed.ToString(), triggerCount.ToString()
+        );
+        AppendLine(front + string.Format(
+            "\"position\":{\"x\":%1,\"y\":%2,\"z\":%3},\"timestamp\":\"%4\"}",
             pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), GetTimestamp()
         ));
     }
@@ -230,20 +243,28 @@ class CitadelEventLogger
 
     // ─── Vehicle Events ───────────────────────────────
 
+    // 7 fields — split into two Format() calls
     static void LogVehicleEnter(string steamId, string name, string vehicleType, vector pos)
     {
-        AppendLine(string.Format(
-            "{\"type\":\"vehicleEnter\",\"steamId\":\"%1\",\"name\":\"%2\",\"vehicleType\":\"%3\",\"position\":{\"x\":%4,\"y\":%5,\"z\":%6},\"timestamp\":\"%7\"}",
-            steamId, EscapeJson(name), EscapeJson(vehicleType),
+        string front = string.Format(
+            "{\"type\":\"vehicleEnter\",\"steamId\":\"%1\",\"name\":\"%2\",\"vehicleType\":\"%3\",",
+            steamId, EscapeJson(name), EscapeJson(vehicleType)
+        );
+        AppendLine(front + string.Format(
+            "\"position\":{\"x\":%1,\"y\":%2,\"z\":%3},\"timestamp\":\"%4\"}",
             pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), GetTimestamp()
         ));
     }
 
+    // 7 fields — split into two Format() calls
     static void LogVehicleExit(string steamId, string name, string vehicleType, vector pos)
     {
-        AppendLine(string.Format(
-            "{\"type\":\"vehicleExit\",\"steamId\":\"%1\",\"name\":\"%2\",\"vehicleType\":\"%3\",\"position\":{\"x\":%4,\"y\":%5,\"z\":%6},\"timestamp\":\"%7\"}",
-            steamId, EscapeJson(name), EscapeJson(vehicleType),
+        string front = string.Format(
+            "{\"type\":\"vehicleExit\",\"steamId\":\"%1\",\"name\":\"%2\",\"vehicleType\":\"%3\",",
+            steamId, EscapeJson(name), EscapeJson(vehicleType)
+        );
+        AppendLine(front + string.Format(
+            "\"position\":{\"x\":%1,\"y\":%2,\"z\":%3},\"timestamp\":\"%4\"}",
             pos[0].ToString(), pos[1].ToString(), pos[2].ToString(), GetTimestamp()
         ));
     }

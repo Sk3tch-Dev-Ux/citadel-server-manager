@@ -1,5 +1,13 @@
 [
   {
+    "id": "94bff10c-eec7-491a-b176-a6be93ee4a52",
+    "timestamp": "2026-03-05T04:06:19.775Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: Test"
+  },
+  {
     "id": "4c903a4f-c3ba-4c81-9313-59832bb87ce0",
     "timestamp": "2026-03-05T04:02:07.042Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
