@@ -1,5 +1,29 @@
 [
   {
+    "id": "bf69885b-4be3-4791-a95c-1620fc623a4a",
+    "timestamp": "2026-03-05T03:43:23.026Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Test"
+  },
+  {
+    "id": "e02aaf2c-fe4c-4128-ad2a-a646e53e33f1",
+    "timestamp": "2026-03-05T03:43:15.310Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "mod.uninstall",
+    "details": "Uninstalled @CitadelAdmin from Test"
+  },
+  {
+    "id": "1313fd60-dd42-4aea-9b3b-8800419e361c",
+    "timestamp": "2026-03-05T03:42:59.798Z",
+    "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Test"
+  },
+  {
     "id": "bd7f8a00-8af4-4300-986c-b76964382399",
     "timestamp": "2026-03-05T03:16:07.145Z",
     "userId": "1f8d97ba-1e46-4b8d-807e-17d06d78f917",
