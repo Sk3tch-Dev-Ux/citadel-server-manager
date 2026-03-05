@@ -10,6 +10,7 @@ const {
   buildControlPanel, buildServerButtons, buildPlayersButtons,
   buildModsButtons, buildIntelButtons, buildAdminActionButtons,
   buildKickModal, buildTeleportModal, buildSpawnItemModal,
+  buildMessagePlayerModal,
 } = require('../ui/components');
 
 async function handleSelectMenu(interaction) {
@@ -117,6 +118,73 @@ async function handleSelectMenu(interaction) {
   if (customId === 'select_gl_spawn') {
     const steamId = interaction.values[0];
     await interaction.showModal(buildSpawnItemModal(steamId));
+    return;
+  }
+
+  // ── Unstuck ──
+  if (customId === 'select_gl_unstuck') {
+    const steamId = interaction.values[0];
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const result = await panelAction('actionUnstuck', { steamId }, guildId, interaction);
+    setCooldown(interaction.user.id, 'panel_gl_unstuck');
+    const embed = new EmbedBuilder()
+      .setTitle('Admin: Unstuck')
+      .setColor(result.error ? COLORS.error : COLORS.success)
+      .setDescription(result.error ? `Error: ${result.error}` : (result.message || 'Action completed'))
+      .setFooter({ text: `By ${interaction.user.tag}` }).setTimestamp();
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // ── Freeze ──
+  if (customId === 'select_gl_freeze') {
+    const steamId = interaction.values[0];
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const result = await panelAction('actionFreeze', { steamId, frozen: 1 }, guildId, interaction);
+    setCooldown(interaction.user.id, 'panel_gl_freeze');
+    const embed = new EmbedBuilder()
+      .setTitle('Admin: Freeze')
+      .setColor(result.error ? COLORS.error : COLORS.warning)
+      .setDescription(result.error ? `Error: ${result.error}` : (result.message || 'Action completed'))
+      .setFooter({ text: `By ${interaction.user.tag}` }).setTimestamp();
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // ── Strip Gear ──
+  if (customId === 'select_gl_strip') {
+    const steamId = interaction.values[0];
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const result = await panelAction('actionStrip', { steamId }, guildId, interaction);
+    setCooldown(interaction.user.id, 'panel_gl_strip');
+    const embed = new EmbedBuilder()
+      .setTitle('Admin: Strip Gear')
+      .setColor(result.error ? COLORS.error : COLORS.warning)
+      .setDescription(result.error ? `Error: ${result.error}` : (result.message || 'Action completed'))
+      .setFooter({ text: `By ${interaction.user.tag}` }).setTimestamp();
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // ── Explode ──
+  if (customId === 'select_gl_explode') {
+    const steamId = interaction.values[0];
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const result = await panelAction('actionExplode', { steamId }, guildId, interaction);
+    setCooldown(interaction.user.id, 'panel_gl_explode');
+    const embed = new EmbedBuilder()
+      .setTitle('Admin: Explode')
+      .setColor(result.error ? COLORS.error : COLORS.warning)
+      .setDescription(result.error ? `Error: ${result.error}` : (result.message || 'Action completed'))
+      .setFooter({ text: `By ${interaction.user.tag}` }).setTimestamp();
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  // ── Message Player (opens modal) ──
+  if (customId === 'select_gl_message') {
+    const steamId = interaction.values[0];
+    await interaction.showModal(buildMessagePlayerModal(steamId));
     return;
   }
 }

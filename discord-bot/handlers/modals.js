@@ -119,6 +119,24 @@ async function handleModal(interaction) {
     return;
   }
 
+  // ── Message Player ──
+  if (modalId.startsWith('modal_gl_message_')) {
+    const steamId = modalId.replace('modal_gl_message_', '');
+    const raw = interaction.fields.getTextInputValue('msg_text');
+    const message = sanitizeBroadcast(raw);
+    if (!message) return await interaction.editReply({ embeds: [buildErrorEmbed('Message Failed', 'Message is empty.')] });
+
+    const result = await panelAction('actionMessage', { steamId, message }, guildId, interaction);
+    setCooldown(interaction.user.id, 'panel_gl_message');
+    const embed = new EmbedBuilder()
+      .setTitle('Admin: Message Player')
+      .setColor(result.error ? COLORS.error : COLORS.success)
+      .setDescription(result.error ? `Error: ${result.error}` : (result.message || 'Message sent'))
+      .setFooter({ text: `By ${interaction.user.tag}` }).setTimestamp();
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
   // ── Mod Install ──
   if (modalId === 'modal_mod_install') {
     const workshopId = interaction.fields.getTextInputValue('mod_workshopid').trim();

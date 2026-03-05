@@ -13,7 +13,7 @@ const {
   buildControlPanel, buildServerButtons, buildPlayersButtons, buildModsButtons,
   buildIntelButtons, buildAdminActionButtons, buildRestartOptions, buildConfirmRow,
   buildPlayerSelectMenu, buildBroadcastModal, buildRconModal, buildPlayerInfoModal,
-  buildModInstallModal, buildModActionModal,
+  buildMessagePlayerModal, buildModInstallModal, buildModActionModal,
 } = require('../ui/components');
 
 // ── Helper: admin gate + cooldown check ──
@@ -271,6 +271,46 @@ async function handleAdminSpawn(interaction) {
   await interaction.editReply({ content: 'Select a player to spawn items on:', components: [new ActionRowBuilder().addComponents(select)] });
 }
 
+async function handleAdminUnstuck(interaction) {
+  if (!await adminGate(interaction, 'panel_gl_unstuck')) return;
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const select = await buildPlayerSelectMenu('select_gl_unstuck', 'Select a player to unstuck', interaction.guildId);
+  if (!select) return await interaction.editReply({ content: 'No players online.' });
+  await interaction.editReply({ content: 'Select a player to unstuck:', components: [new ActionRowBuilder().addComponents(select)] });
+}
+
+async function handleAdminFreeze(interaction) {
+  if (!await adminGate(interaction, 'panel_gl_freeze')) return;
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const select = await buildPlayerSelectMenu('select_gl_freeze', 'Select a player to freeze', interaction.guildId);
+  if (!select) return await interaction.editReply({ content: 'No players online.' });
+  await interaction.editReply({ content: 'Select a player to freeze:', components: [new ActionRowBuilder().addComponents(select)] });
+}
+
+async function handleAdminStrip(interaction) {
+  if (!await adminGate(interaction, 'panel_gl_strip')) return;
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const select = await buildPlayerSelectMenu('select_gl_strip', 'Select a player to strip gear from', interaction.guildId);
+  if (!select) return await interaction.editReply({ content: 'No players online.' });
+  await interaction.editReply({ content: 'Select a player to strip gear from:', components: [new ActionRowBuilder().addComponents(select)] });
+}
+
+async function handleAdminExplode(interaction) {
+  if (!await adminGate(interaction, 'panel_gl_explode')) return;
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const select = await buildPlayerSelectMenu('select_gl_explode', 'Select a player to explode', interaction.guildId);
+  if (!select) return await interaction.editReply({ content: 'No players online.' });
+  await interaction.editReply({ content: 'Select a player to explode:', components: [new ActionRowBuilder().addComponents(select)] });
+}
+
+async function handleAdminMessage(interaction) {
+  if (!await adminGate(interaction, 'panel_gl_message')) return;
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const select = await buildPlayerSelectMenu('select_gl_message', 'Select a player to message', interaction.guildId);
+  if (!select) return await interaction.editReply({ content: 'No players online.' });
+  await interaction.editReply({ content: 'Select a player to send a message to:', components: [new ActionRowBuilder().addComponents(select)] });
+}
+
 // ── Confirm / Restart Buttons ──
 async function handleConfirmStart(interaction) {
   await interaction.deferUpdate();
@@ -368,6 +408,11 @@ const BUTTON_HANDLERS = {
   panel_gl_kill: handleAdminKill,
   panel_gl_teleport: handleAdminTeleport,
   panel_gl_spawn: handleAdminSpawn,
+  panel_gl_unstuck: handleAdminUnstuck,
+  panel_gl_freeze: handleAdminFreeze,
+  panel_gl_strip: handleAdminStrip,
+  panel_gl_explode: handleAdminExplode,
+  panel_gl_message: handleAdminMessage,
   confirm_start: handleConfirmStart,
   confirm_stop: handleConfirmStop,
   confirm_cancel: handleConfirmCancel,

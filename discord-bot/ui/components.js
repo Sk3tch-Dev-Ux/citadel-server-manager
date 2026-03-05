@@ -24,7 +24,7 @@ function buildControlPanel(servers = null) {
         { label: 'Players', value: 'cat_players', description: 'Player list, Kick, Ban list' },
         { label: 'Mods', value: 'cat_mods', description: 'Install, Uninstall, Enable, Disable' },
         { label: 'Intel', value: 'cat_intel', description: 'Chat, Killfeed, Watchlist, Leaderboard' },
-        { label: 'Admin Actions', value: 'cat_actions', description: 'Heal, Kill, Teleport, Spawn Items' },
+        { label: 'Admin Actions', value: 'cat_actions', description: 'Heal, Kill, Freeze, Teleport, Spawn & more' },
       )
   );
 
@@ -100,10 +100,17 @@ function buildIntelButtons() {
 function buildAdminActionButtons() {
   return [
     new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('panel_gl_heal').setLabel('Heal Player').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('panel_gl_kill').setLabel('Kill Player').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId('panel_gl_teleport').setLabel('Teleport').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('panel_gl_heal').setLabel('Heal').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('panel_gl_unstuck').setLabel('Unstuck').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId('panel_gl_spawn').setLabel('Spawn Item').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('panel_gl_teleport').setLabel('Teleport').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('panel_gl_message').setLabel('Message').setStyle(ButtonStyle.Secondary),
+    ),
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('panel_gl_freeze').setLabel('Freeze').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('panel_gl_strip').setLabel('Strip Gear').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('panel_gl_kill').setLabel('Kill').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('panel_gl_explode').setLabel('Explode').setStyle(ButtonStyle.Danger),
     ),
   ];
 }
@@ -209,6 +216,14 @@ function buildSpawnItemModal(steamId) {
   return modal;
 }
 
+function buildMessagePlayerModal(steamId) {
+  const modal = new ModalBuilder().setCustomId(`modal_gl_message_${steamId}`).setTitle('Message Player');
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('msg_text').setLabel('Message').setStyle(TextInputStyle.Paragraph).setPlaceholder('Enter a message to send to this player').setMaxLength(256).setRequired(true)),
+  );
+  return modal;
+}
+
 function buildModInstallModal() {
   const modal = new ModalBuilder().setCustomId('modal_mod_install').setTitle('Install Mod');
   modal.addComponents(
@@ -231,5 +246,5 @@ module.exports = {
   buildRestartOptions, buildConfirmRow, buildPlayerSelectMenu,
   buildBroadcastModal, buildRconModal, buildPlayerInfoModal,
   buildKickModal, buildTeleportModal, buildSpawnItemModal,
-  buildModInstallModal, buildModActionModal,
+  buildMessagePlayerModal, buildModInstallModal, buildModActionModal,
 };
