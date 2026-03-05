@@ -231,22 +231,14 @@ async function validateSteamLogin(username, password, guardCode) {
  */
 async function updateServerApp(serverId, installDir) {
   const cmdPath = await ensureSteamCMD();
-  if (!ctx.steamCredentials.username) throw new Error('Steam credentials required.');
-  if (!ctx.steamLoginValidated && !ctx.steamCredentials.password) throw new Error('Steam credentials required.');
 
   const srv = ctx.servers.find(s => s.id === serverId);
   const appId = (srv && srv.gameTitle === 'DayZ, PC (Experimental)') ? '1042420' : '223350';
   const resolvedDir = path.resolve(installDir);
 
-  const args = ['+force_install_dir', resolvedDir];
-  if (ctx.steamLoginValidated) {
-    args.push('+login', ctx.steamCredentials.username);
-  } else {
-    if (ctx.steamCredentials.guardCode) {
-      args.push('+set_steam_guard_code', ctx.steamCredentials.guardCode);
-    }
-    args.push('+login', ctx.steamCredentials.username, ctx.steamCredentials.password);
-  }
+  // DayZ Dedicated Server (223350) supports anonymous download — no Steam
+  // credentials required. Workshop mods still need authenticated login.
+  const args = ['+force_install_dir', resolvedDir, '+login', 'anonymous'];
   args.push('+app_update', appId, 'validate', '+quit');
 
   if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: 'Updating game files via SteamCMD...' });
@@ -261,9 +253,6 @@ async function updateServerApp(serverId, installDir) {
       for (const line of text.split('\n')) {
         const trimmed = line.trim();
         if (!trimmed) continue;
-        if (trimmed.includes('Steam Guard') || trimmed.includes('Two-factor') || trimmed.includes('Enter the current code')) {
-          try { proc.kill(); } catch { /* ok */ }
-        }
         const pctMatch = trimmed.match(/(\d+\.?\d*)\s*%/);
         if (pctMatch) {
           const pct = parseFloat(pctMatch[1]);
@@ -282,23 +271,13 @@ async function updateServerApp(serverId, installDir) {
 
     proc.on('exit', (code) => {
       clearTimeout(timeout);
-      if (output.includes('Invalid Password') || output.includes('Login Failure')) {
-        ctx.steamLoginValidated = false;
-        return reject(new Error('Invalid Steam credentials.'));
-      }
-      if (output.includes('Steam Guard') || output.includes('Enter the current code')) {
-        ctx.steamLoginValidated = false;
-        return reject(new Error('Steam Guard code required.'));
-      }
       // SteamCMD may exit with non-zero but still succeed if the files are present
       if (code === 0 || output.includes('Success! App') || output.includes('already up to date')) {
-        ctx.steamLoginValidated = true;
         return resolve();
       }
       // Check if the executable exists post-update (success despite non-zero exit)
       const exePath = path.join(resolvedDir, 'DayZServer_x64.exe');
       if (fs.existsSync(exePath)) {
-        ctx.steamLoginValidated = true;
         return resolve();
       }
       reject(new Error(`SteamCMD app_update failed (exit code ${code})`));
