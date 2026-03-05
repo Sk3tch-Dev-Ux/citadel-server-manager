@@ -362,7 +362,7 @@ export default function SettingsPage() {
         </div>
 
         <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
-          <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> For the smoothest experience, we recommend using a dedicated Steam account for server management with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator). After your first login, SteamCMD caches the session so you won&apos;t need to re-enter a guard code each time.
+          <strong style={{ color: 'var(--text-primary)' }}>Note:</strong> Steam login is only needed for <strong>Workshop mod downloads</strong>. Server deployment and updates use anonymous download. We recommend a dedicated Steam account with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator).
         </div>
 
         {steamLoading ? (

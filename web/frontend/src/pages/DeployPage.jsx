@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import { useServers } from '../contexts/ServersContext';
 import API from '../api';
-import { Rocket, CheckCircle, XCircle, ArrowLeft, ArrowRight, Monitor, Zap, FolderOpen, Search, Shield, AlertTriangle, Loader } from '../components/Icon';
+import { Rocket, CheckCircle, XCircle, ArrowLeft, ArrowRight, Monitor, Zap, FolderOpen, Search, Loader } from '../components/Icon';
 
 const DEPLOY_BASE = 'C:\\Citadel\\deployments';
 
@@ -33,16 +33,6 @@ export default function DeployPage() {
   const [detecting, setDetecting] = useState(false);
   const [detected, setDetected] = useState(null);
 
-  // Steam credential state
-  const [steamStatus, setSteamStatus] = useState(null); // null = loading, object = loaded
-  const [steamLoading, setSteamLoading] = useState(false);
-  const [steamUsername, setSteamUsername] = useState('');
-  const [steamPassword, setSteamPassword] = useState('');
-  const [steamGuardCode, setSteamGuardCode] = useState('');
-  const [steamError, setSteamError] = useState('');
-  const [steamNeedsGuard, setSteamNeedsGuard] = useState(false);
-  const [steamValidating, setSteamValidating] = useState(false);
-
   useEffect(() => {
     const handler = (data) => {
       setProgress(data);
@@ -52,49 +42,6 @@ export default function DeployPage() {
     socket.on('deployProgress', handler);
     return () => socket.off('deployProgress', handler);
   }, [loadServers, socket]);
-
-  // Fetch Steam status when entering the Steam step
-  const fetchSteamStatus = useCallback(async () => {
-    setSteamLoading(true);
-    setSteamError('');
-    try {
-      const result = await API.get('/api/steam/status');
-      setSteamStatus(result);
-      if (result.username) setSteamUsername(result.username);
-    } catch (err) {
-      setSteamStatus({ steamCmdReady: false, username: '', hasPassword: false, loginValidated: false });
-    }
-    setSteamLoading(false);
-  }, []);
-
-  // Validate Steam credentials
-  const validateSteamCredentials = async () => {
-    if (!steamUsername || !steamPassword) {
-      setSteamError('Username and password are required');
-      return;
-    }
-    setSteamValidating(true);
-    setSteamError('');
-    try {
-      const payload = { username: steamUsername, password: steamPassword };
-      if (steamGuardCode) payload.guardCode = steamGuardCode;
-      const result = await API.post('/api/steam/credentials', payload);
-      if (result.success) {
-        setSteamStatus(prev => ({ ...prev, username: steamUsername, hasPassword: true, loginValidated: true }));
-        setSteamNeedsGuard(false);
-        setSteamError('');
-        window.addToast(`Steam logged in as ${steamUsername}`, 'success');
-      } else if (result.needsGuard) {
-        setSteamNeedsGuard(true);
-        setSteamError('Steam Guard code required — check your email or authenticator app.');
-      } else {
-        setSteamError(result.message || 'Login failed');
-      }
-    } catch (err) {
-      setSteamError(err.message || 'Failed to validate credentials');
-    }
-    setSteamValidating(false);
-  };
 
   const detectServer = async () => {
     if (!installDir) { window.addToast('Enter an install directory first', 'error'); return; }
@@ -130,7 +77,7 @@ export default function DeployPage() {
 
   const deploy = async () => {
     if (!name || !installDir) { window.addToast('Name and install directory required', 'error'); return; }
-    setDeploying(true); setStep(6);
+    setDeploying(true); setStep(5);
     try {
       const result = await API.post('/api/deploy', { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map });
       if (result && result.error) { setProgress({ status: 'error', message: result.message || result.error }); setDeploying(false); }
@@ -162,13 +109,11 @@ export default function DeployPage() {
 
   const cancelDeploy = () => { setStep(1); setMode(null); setDeploying(false); setDetected(null); setProgress({ status: '', message: '', progress: 0 }); };
 
-  // Deploy New flow: 1. Mode → 2. Branch → 3. Server Details → 4. Steam Login → 5. Configuration → 6. Deploy
+  // Deploy New flow: 1. Mode → 2. Branch → 3. Server Details → 4. Configuration → 5. Deploy
   // Existing flow:   1. Mode → 2. Detect → 3. Configuration → 4. Confirm
   const stepLabels = mode === 'existing'
     ? ['1. Mode', '2. Detect', '3. Configuration']
-    : ['1. Mode', '2. Branch', '3. Server Details', '4. Steam Login', '5. Configuration'];
-
-  const steamVerified = steamStatus?.loginValidated === true;
+    : ['1. Mode', '2. Branch', '3. Server Details', '4. Configuration'];
 
   return (
     <div>
@@ -176,7 +121,7 @@ export default function DeployPage() {
         {stepLabels.map((label, i) => (
           <div key={i} className={`deploy-step ${step >= i + 1 ? (step > i + 1 ? 'done' : 'active') : ''}`}>{label}</div>
         ))}
-        <div className={`deploy-step ${(mode === 'existing' ? step >= 4 : step >= 6) ? (mode === 'existing' ? (step > 4 ? 'done' : 'active') : (step > 6 ? 'done' : 'active')) : ''}`}>{mode === 'existing' ? '4. Confirm' : '6. Deploy'}</div>
+        <div className={`deploy-step ${(mode === 'existing' ? step >= 4 : step >= 5) ? (mode === 'existing' ? (step > 4 ? 'done' : 'active') : (step > 5 ? 'done' : 'active')) : ''}`}>{mode === 'existing' ? '4. Confirm' : '5. Deploy'}</div>
       </div>
 
       {/* ─── Step 1: Mode Selection ─── */}
@@ -320,84 +265,13 @@ export default function DeployPage() {
           </div>
           <div className="btn-group" style={{ marginTop: 16 }}>
             <button className="btn btn-secondary" onClick={() => setStep(2)}><ArrowLeft size={14} /> Back</button>
-            <button className="btn btn-blue" onClick={() => { setStep(4); fetchSteamStatus(); }}>Next <ArrowRight size={14} /></button>
+            <button className="btn btn-blue" onClick={() => setStep(4)}>Next <ArrowRight size={14} /></button>
           </div>
         </div>
       )}
 
-      {/* ─── Step 4 (New): Steam Login Check ─── */}
-      {step === 4 && mode === 'new' && (
-        <div style={{ maxWidth: 500 }}>
-          <h3 style={{ marginBottom: 8 }}>Steam Login</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
-            DayZ Dedicated Server requires an authenticated Steam account to download.
-          </p>
-
-          {steamLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-              <Loader size={24} /> Checking Steam status...
-            </div>
-          ) : steamVerified ? (
-            /* Already verified — show green status, no form needed */
-            <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, textAlign: 'center' }}>
-              <Shield size={36} style={{ color: 'var(--text-success, #22c55e)', marginBottom: 12 }} />
-              <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Steam Connected</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Logged in as <strong>{steamStatus?.username}</strong></div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-                You can change your Steam account in <a href="/settings" style={{ color: 'var(--accent-blue)' }}>Settings</a>.
-              </div>
-            </div>
-          ) : (
-            /* Not verified — show inline form as fallback */
-            <div>
-              <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> For the smoothest experience, use a dedicated Steam account with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator).
-              </div>
-
-              <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
-                <div className="input-group">
-                  <label className="input-label">Steam Username</label>
-                  <input className="input" value={steamUsername} onChange={e => setSteamUsername(e.target.value)} placeholder="your_steam_username" autoComplete="off" />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Steam Password</label>
-                  <input className="input" type="password" value={steamPassword} onChange={e => setSteamPassword(e.target.value)} placeholder="your_steam_password" autoComplete="off" />
-                </div>
-
-                {steamNeedsGuard && (
-                  <div className="input-group">
-                    <label className="input-label">Steam Guard Code</label>
-                    <input className="input" value={steamGuardCode} onChange={e => setSteamGuardCode(e.target.value)} placeholder="XXXXX" maxLength={5} style={{ letterSpacing: '0.2em', textAlign: 'center', maxWidth: 140 }} autoComplete="off" />
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Check your email or Steam mobile app for the code</div>
-                  </div>
-                )}
-
-                {steamError && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, marginBottom: 12, fontSize: 13, color: '#ef4444' }}>
-                    <AlertTriangle size={14} /> {steamError}
-                  </div>
-                )}
-
-                <button className="btn btn-primary" onClick={validateSteamCredentials} disabled={steamValidating || !steamUsername || !steamPassword} style={{ width: '100%' }}>
-                  {steamValidating ? 'Verifying...' : (steamNeedsGuard ? 'Submit Guard Code' : 'Verify Steam Login')}
-                </button>
-
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
-                  Your credentials are stored locally and used only for SteamCMD operations.
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="btn-group" style={{ marginTop: 20 }}>
-            <button className="btn btn-secondary" onClick={() => setStep(3)}><ArrowLeft size={14} /> Back</button>
-            <button className="btn btn-blue" onClick={() => setStep(5)} disabled={!steamVerified}>Next <ArrowRight size={14} /></button>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Configuration Step (Step 3 existing / Step 5 new) ─── */}
-      {((step === 3 && mode === 'existing') || (step === 5 && mode === 'new')) && (
+      {/* ─── Configuration Step (Step 3 existing / Step 4 new) ─── */}
+      {((step === 3 && mode === 'existing') || (step === 4 && mode === 'new')) && (
         <div style={{ maxWidth: 500 }}>
           <h3 style={{ marginBottom: 20 }}>Configuration</h3>
           <div className="grid grid-2">
@@ -408,7 +282,7 @@ export default function DeployPage() {
           </div>
           <div className="input-group"><label className="input-label">RCON Password</label><input className="input" type="password" value={rconPassword} onChange={e => setRconPassword(e.target.value)} /></div>
           <div className="btn-group" style={{ marginTop: 16 }}>
-            <button className="btn btn-secondary" onClick={() => setStep(mode === 'existing' ? 2 : 4)}><ArrowLeft size={14} /> Back</button>
+            <button className="btn btn-secondary" onClick={() => setStep(mode === 'existing' ? 2 : 3)}><ArrowLeft size={14} /> Back</button>
             {mode === 'new' ? (
               <button className="btn btn-primary" onClick={deploy}><Rocket size={14} /> Deploy Server</button>
             ) : (
@@ -419,7 +293,7 @@ export default function DeployPage() {
       )}
 
       {/* ─── Deploy/Confirm Progress Step ─── */}
-      {((step === 4 && mode === 'existing') || (step === 6 && mode === 'new')) && (
+      {((step === 4 && mode === 'existing') || (step === 5 && mode === 'new')) && (
         <div style={{ maxWidth: 500, textAlign: 'center', padding: '40px 0' }}>
           <div style={{ marginBottom: 16 }}>{progress.status === 'complete' ? <CheckCircle size={48} /> : progress.status === 'error' ? <XCircle size={48} /> : <Rocket size={48} />}</div>
           <h3 style={{ marginBottom: 12 }}>{progress.status === 'complete' ? (mode === 'existing' ? 'Server Added!' : 'Deployment Complete!') : progress.status === 'error' ? (mode === 'existing' ? 'Failed to Add Server' : 'Deployment Failed') : 'Deploying...'}</h3>
@@ -430,7 +304,7 @@ export default function DeployPage() {
             </div>
           )}
           {progress.status === 'complete' && <button className="btn btn-primary" onClick={cancelDeploy}>Done</button>}
-          {progress.status === 'error' && <button className="btn btn-secondary" onClick={() => { setStep(mode === 'existing' ? 3 : 5); setDeploying(false); }}><ArrowLeft size={14} /> Go Back</button>}
+          {progress.status === 'error' && <button className="btn btn-secondary" onClick={() => { setStep(mode === 'existing' ? 3 : 4); setDeploying(false); }}><ArrowLeft size={14} /> Go Back</button>}
           {progress.status !== 'complete' && progress.status !== 'error' && (
             <button className="btn btn-secondary" style={{ marginTop: 16 }} onClick={cancelDeploy}>Cancel</button>
           )}
