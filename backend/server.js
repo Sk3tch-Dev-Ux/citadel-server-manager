@@ -54,10 +54,12 @@ ctx.priorityQueue = loadJSON(CONFIG.dataDir, 'priority_queue.json', []);
 ctx.leaderboard = loadJSON(CONFIG.dataDir, 'leaderboard.json', []);
 
 // ─── Runtime state from env ──────────────────────────────
+const { resolveCredential } = require('./lib/credential-encryption');
+
 ctx.steamCmdPath = CONFIG.steam.cmdPath;
 ctx.steamCredentials = {
   username: CONFIG.steam.username || '',
-  password: CONFIG.steam.password || '',
+  password: resolveCredential(CONFIG.steam.password || ''),
   guardCode: '',
 };
 
@@ -249,7 +251,12 @@ const { fireWebhooks } = require('./lib/notifications');
       reason: `Agent started on port ${CONFIG.port}`,
     }).catch(err => logger.error({ err }, 'Failed to fire agent.ready webhook'));
   });
-})();
+})().catch(err => {
+  // eslint-disable-next-line no-console
+  console.error('FATAL: Startup failed —', err.message || err);
+  try { require('./lib/logger').fatal({ err }, 'Startup failed'); } catch {}
+  process.exit(1);
+});
 
 // ─── Graceful Shutdown ───────────────────────────────────
 process.on('SIGTERM', () => gracefulShutdown(server, 'SIGTERM'));

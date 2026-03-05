@@ -13,6 +13,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo });
+    // Always log full details to console for debugging
     console.error('React ErrorBoundary caught:', error, errorInfo);
   }
 
@@ -24,9 +25,9 @@ export default class ErrorBoundary extends React.Component {
             <AlertTriangle size={20} />
             <h3 style={{ margin: 0 }}>Something went wrong</h3>
           </div>
-          <pre style={{ color: 'var(--text-secondary)', fontSize: 12, whiteSpace: 'pre-wrap', marginBottom: 12, maxHeight: 200, overflow: 'auto' }}>
-            {String(this.state.error)}{this.state.errorInfo ? '\n' + this.state.errorInfo.componentStack : ''}
-          </pre>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 12 }}>
+            An unexpected error occurred. Please try again or reload the page. If the problem persists, check the browser console for details.
+          </p>
           <button
             onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
             className="btn btn-primary btn-sm"

@@ -14,6 +14,7 @@ const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { ensureSteamCMD, validateSteamLogin } = require('../lib/steamcmd');
 const { ensurePanelFirewallRule } = require('../lib/firewall-manager');
+const { encryptForEnv } = require('../lib/credential-encryption');
 
 /**
  * Determine setup state:
@@ -246,10 +247,11 @@ module.exports = function(app) {
           } else {
             envContent += `\nSTEAM_USERNAME=${username}`;
           }
+          const encSetupPwd = encryptForEnv(password || '');
           if (envContent.includes('STEAM_PASSWORD=') || envContent.includes('# STEAM_PASSWORD=')) {
-            envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${password || ''}`);
+            envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${encSetupPwd}`);
           } else {
-            envContent += `\nSTEAM_PASSWORD=${password || ''}`;
+            envContent += `\nSTEAM_PASSWORD=${encSetupPwd}`;
           }
         }
 
@@ -296,16 +298,21 @@ module.exports = function(app) {
           } else {
             envContent += `\nSTEAM_USERNAME=${username}`;
           }
+          const encValidatedPwd = encryptForEnv(password);
           if (envContent.match(/^#?\s*STEAM_PASSWORD=/m)) {
-            envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${password}`);
+            envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${encValidatedPwd}`);
           } else {
-            envContent += `\nSTEAM_PASSWORD=${password}`;
+            envContent += `\nSTEAM_PASSWORD=${encValidatedPwd}`;
           }
           fs.writeFileSync(envPath, envContent);
         }
         logger.info({ username }, 'Setup: Steam login validated and cached');
+        res.json({ success: true });
+      } else if (result.needsGuard) {
+        res.status(403).json({ error: 'Steam Guard code required.', needsGuard: true });
+      } else {
+        res.status(422).json({ error: result.error || 'Steam login failed' });
       }
-      res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -335,10 +342,11 @@ module.exports = function(app) {
       } else {
         envContent += `\nSTEAM_USERNAME=${username}`;
       }
+      const encSavedPwd = encryptForEnv(password);
       if (envContent.match(/^#?\s*STEAM_PASSWORD=/m)) {
-        envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${password}`);
+        envContent = envContent.replace(/^#?\s*STEAM_PASSWORD=.*$/m, `STEAM_PASSWORD=${encSavedPwd}`);
       } else {
-        envContent += `\nSTEAM_PASSWORD=${password}`;
+        envContent += `\nSTEAM_PASSWORD=${encSavedPwd}`;
       }
       fs.writeFileSync(envPath, envContent);
     }

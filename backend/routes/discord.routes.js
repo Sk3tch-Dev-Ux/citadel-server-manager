@@ -95,7 +95,7 @@ module.exports = function(app) {
         addAudit(discordUserId, discordUser, 'server.start', `Started via Discord: ${targetSrv.name}`);
         const result = await startServer(targetSrv.id, `Started via Discord by ${discordUser}`);
         if (result.success) return res.json({ message: result.message });
-        return res.json({ error: result.error });
+        return res.status(500).json({ error: result.error });
       }
 
       case 'stop': {
@@ -103,54 +103,54 @@ module.exports = function(app) {
         addAudit(discordUserId, discordUser, 'server.stop', `Stopped via Discord: ${targetSrv.name}`);
         const result = await stopServer(targetSrv.id, `Stopped via Discord by ${discordUser}`);
         if (result.success) return res.json({ message: result.message });
-        return res.json({ error: result.error });
+        return res.status(500).json({ error: result.error });
       }
 
       case 'restart': {
-        if (!targetSrv) return res.json({ error: 'No server' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server' });
         addAudit(discordUserId, discordUser, 'server.restart', `Restarting via Discord: ${targetSrv.name}`);
         const result = await restartServer(targetSrv.id, `Restarted via Discord by ${discordUser}`);
         if (result.success) return res.json({ message: 'Restarting...' });
-        return res.json({ error: result.error });
+        return res.status(500).json({ error: result.error });
       }
 
       case 'players':
         return res.json({ players: state?.players || [] });
 
       case 'lock':
-        if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+        if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
         try {
           await state.rcon.lock();
           addAudit(discordUserId, discordUser, 'server.lock', `Server locked via Discord`);
           return res.json({ message: 'Server locked' });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
 
       case 'unlock':
-        if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+        if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
         try {
           await state.rcon.unlock();
           addAudit(discordUserId, discordUser, 'server.unlock', `Server unlocked via Discord`);
           return res.json({ message: 'Server unlocked' });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
 
       case 'rcon':
-        if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+        if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
         try {
           const result = await state.rcon.send(params?.command || '');
           addAudit(discordUserId, discordUser, 'rcon.command', `RCON: ${sanitizeString(params?.command || '')}`);
           return res.json({ result });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
 
       case 'message':
-        if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+        if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
         try {
           await state.rcon.say(params?.message || '');
           addAudit(discordUserId, discordUser, 'server.broadcast', `Broadcast via Discord`);
           return res.json({ message: 'Sent' });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
 
       case 'kick':
-        if (!state?.rcon) return res.json({ error: 'RCON not configured' });
+        if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
         try {
           await state.rcon.kick(params?.playerId, params?.reason || 'Kicked via Discord');
           state.players = state.players.filter(p => p.id !== params?.playerId);
@@ -158,7 +158,7 @@ module.exports = function(app) {
           addAudit(discordUserId, discordUser, 'player.kick', `Kicked ${params?.playerId}: ${params?.reason || 'Kicked via Discord'}`);
           fireWebhooks('player.kick', { serverId: targetSrv.id, playerId: params?.playerId, reason: params?.reason });
           return res.json({ message: 'Kicked' });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
 
       case 'mods':
         return res.json({ mods: state?.modList || [] });
@@ -168,8 +168,8 @@ module.exports = function(app) {
 
       case 'modInstall': {
         const { workshopId, name } = params || {};
-        if (!workshopId || !name) return res.json({ error: 'workshopId and name required' });
-        if (ctx.activeInstalls[workshopId]?.status === 'downloading') return res.json({ error: 'Already downloading' });
+        if (!workshopId || !name) return res.status(400).json({ error: 'workshopId and name required' });
+        if (ctx.activeInstalls[workshopId]?.status === 'downloading') return res.status(409).json({ error: 'Already downloading' });
         ctx.activeInstalls[workshopId] = { status: 'starting', progress: 0, name };
         addAudit(discordUserId, discordUser, 'mod.install', `Installing mod ${name} (${workshopId}) via Discord`);
         res.json({ message: 'Download started', workshopId });
@@ -193,9 +193,9 @@ module.exports = function(app) {
 
       case 'modUninstall': {
         const { workshopId: unWid } = params || {};
-        if (!unWid) return res.json({ error: 'workshopId required' });
+        if (!unWid) return res.status(400).json({ error: 'workshopId required' });
         const mod = state?.modList?.find(m => m.workshopId === String(unWid));
-        if (!mod) return res.json({ error: 'Mod not found' });
+        if (!mod) return res.status(404).json({ error: 'Mod not found' });
         const modPath = path.join(targetSrv.installDir, mod.name);
         try { if (fs.existsSync(modPath)) fs.rmSync(modPath, { recursive: true, force: true }); } catch {}
         state.modList = state.modList.filter(m => m.workshopId !== String(unWid));
@@ -207,7 +207,7 @@ module.exports = function(app) {
 
       case 'modEnable': {
         const mod = state?.modList?.find(m => m.workshopId === String(params?.workshopId));
-        if (!mod) return res.json({ error: 'Mod not found' });
+        if (!mod) return res.status(404).json({ error: 'Mod not found' });
         mod.enabled = true;
         updateLaunchParamsMods(targetSrv.id);
         addAudit(discordUserId, discordUser, 'mod.enable', `Enabled mod ${params?.workshopId} via Discord`);
@@ -216,7 +216,7 @@ module.exports = function(app) {
 
       case 'modDisable': {
         const mod = state?.modList?.find(m => m.workshopId === String(params?.workshopId));
-        if (!mod) return res.json({ error: 'Mod not found' });
+        if (!mod) return res.status(404).json({ error: 'Mod not found' });
         mod.enabled = false;
         updateLaunchParamsMods(targetSrv.id);
         addAudit(discordUserId, discordUser, 'mod.disable', `Disabled mod ${params?.workshopId} via Discord`);
@@ -256,8 +256,8 @@ module.exports = function(app) {
 
       case 'playerInfo': {
         const { steamId } = params || {};
-        if (!steamId) return res.json({ error: 'steamId required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId) return res.status(400).json({ error: 'steamId required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.GET_PLAYER_DETAILS);
           const details = await provider.getPlayerDetails(targetSrv.id, steamId);
@@ -275,85 +275,85 @@ module.exports = function(app) {
             longestShot: stats?.longestShot || 0,
             hits: stats?.hits || 0,
           });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionHeal': {
         const { steamId } = params || {};
-        if (!steamId) return res.json({ error: 'steamId required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId) return res.status(400).json({ error: 'steamId required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.HEAL_PLAYER);
           await provider.healPlayer(targetSrv.id, session);
           addAudit(discordUserId, discordUser, 'player.heal', `Healed ${session.playerName} via Discord`);
           return res.json({ message: `Healed ${session.playerName}` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionKill': {
         const { steamId } = params || {};
-        if (!steamId) return res.json({ error: 'steamId required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId) return res.status(400).json({ error: 'steamId required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.KILL_PLAYER);
           await provider.killPlayer(targetSrv.id, session);
           addAudit(discordUserId, discordUser, 'player.kill', `Killed ${session.playerName} via Discord`);
           return res.json({ message: `Killed ${session.playerName}` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionTeleport': {
         const { steamId, x, y, z } = params || {};
-        if (!steamId || x == null || y == null) return res.json({ error: 'steamId, x, and y required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId || x == null || y == null) return res.status(400).json({ error: 'steamId, x, and y required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.TELEPORT_PLAYER);
           await provider.teleportPlayer(targetSrv.id, session, { x, y, z: z || 0 });
           addAudit(discordUserId, discordUser, 'player.teleport', `Teleported ${session.playerName} to [${x}, ${y}, ${z || 0}] via Discord`);
           return res.json({ message: `Teleported ${session.playerName} to [${x}, ${y}, ${z || 0}]` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionSpawnItem': {
         const { steamId, itemClass, quantity } = params || {};
-        if (!steamId || !itemClass) return res.json({ error: 'steamId and itemClass required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId || !itemClass) return res.status(400).json({ error: 'steamId and itemClass required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.SPAWN_ITEM);
           await provider.spawnItem(targetSrv.id, session, itemClass, quantity || 1);
           addAudit(discordUserId, discordUser, 'player.spawnItem', `Spawned ${itemClass} x${quantity || 1} on ${session.playerName} via Discord`);
           return res.json({ message: `Spawned ${itemClass} x${quantity || 1} on ${session.playerName}` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionUnstuck': {
         const { steamId } = params || {};
-        if (!steamId) return res.json({ error: 'steamId required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId) return res.status(400).json({ error: 'steamId required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.UNSTUCK_PLAYER);
           await provider.unstuckPlayer(targetSrv.id, session);
           addAudit(discordUserId, discordUser, 'action.unstuck', `Unstuck ${session.playerName || session.name} via Discord`);
           return res.json({ message: `Unstuck ${session.playerName || session.name}` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionFreeze': {
         const { steamId, frozen } = params || {};
-        if (!steamId) return res.json({ error: 'steamId required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId) return res.status(400).json({ error: 'steamId required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         const isFrozen = frozen !== 0 && frozen !== '0' && frozen !== false;
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.FREEZE_PLAYER);
@@ -361,49 +361,49 @@ module.exports = function(app) {
           const label = isFrozen ? 'Froze' : 'Unfroze';
           addAudit(discordUserId, discordUser, 'action.freeze', `${label} ${session.playerName || session.name} via Discord`);
           return res.json({ message: `${label} ${session.playerName || session.name}` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionStrip': {
         const { steamId } = params || {};
-        if (!steamId) return res.json({ error: 'steamId required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId) return res.status(400).json({ error: 'steamId required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.STRIP_PLAYER);
           await provider.stripPlayer(targetSrv.id, steamId);
           addAudit(discordUserId, discordUser, 'action.strip', `Stripped ${session.playerName || session.name} via Discord`);
           return res.json({ message: `Stripped ${session.playerName || session.name}` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionExplode': {
         const { steamId } = params || {};
-        if (!steamId) return res.json({ error: 'steamId required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId) return res.status(400).json({ error: 'steamId required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.EXPLODE_PLAYER);
           await provider.explodePlayer(targetSrv.id, steamId);
           addAudit(discordUserId, discordUser, 'action.explode', `Exploded ${session.playerName || session.name} via Discord`);
           return res.json({ message: `Exploded ${session.playerName || session.name}` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       case 'actionMessage': {
         const { steamId, message: msg } = params || {};
-        if (!steamId || !msg) return res.json({ error: 'steamId and message required' });
-        if (!targetSrv) return res.json({ error: 'No server configured' });
+        if (!steamId || !msg) return res.status(400).json({ error: 'steamId and message required' });
+        if (!targetSrv) return res.status(400).json({ error: 'No server configured' });
         const session = findSession(targetSrv.id, steamId);
-        if (!session) return res.json({ error: 'Player not in active session' });
+        if (!session) return res.status(404).json({ error: 'Player not in active session' });
         try {
           const provider = getProviderForAction(targetSrv.id, ActionType.MESSAGE_PLAYER);
           await provider.messagePlayer(targetSrv.id, steamId, msg);
           addAudit(discordUserId, discordUser, 'action.message', `Messaged ${session.playerName || session.name} via Discord`);
           return res.json({ message: `Message sent to ${session.playerName || session.name}` });
-        } catch (err) { return res.json({ error: err.message }); }
+        } catch (err) { return res.status(500).json({ error: err.message }); }
       }
 
       default:

@@ -13,6 +13,19 @@ const loginAttempts = {};
 const MAX_ATTEMPTS = 5;
 const LOCK_TIME = 10 * 60 * 1000; // 10 minutes
 
+// Periodic cleanup of stale loginAttempts entries to prevent memory leaks.
+// Removes entries older than LOCK_TIME * 2 (20 minutes of inactivity).
+const _loginAttemptsCleanup = setInterval(() => {
+  const cutoff = Date.now() - (LOCK_TIME * 2);
+  for (const key of Object.keys(loginAttempts)) {
+    const entry = loginAttempts[key];
+    if (entry.last < cutoff && entry.lockedUntil < Date.now()) {
+      delete loginAttempts[key];
+    }
+  }
+}, 10 * 60 * 1000); // Every 10 minutes
+_loginAttemptsCleanup.unref(); // Don't prevent process exit
+
 module.exports = function(app) {
   // Fail2Ban middleware applied before the login handler
   app.post('/api/auth/login', fail2ban, async (req, res) => {

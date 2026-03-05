@@ -314,12 +314,13 @@ export default function SetupWizardPage() {
     <div className="login-screen">
       <div style={{ width: '100%', maxWidth: 560, padding: '0 20px' }}>
         {/* Step indicator */}
-        <div className="deploy-steps" style={{ marginBottom: 24 }}>
+        <div className="deploy-steps" style={{ marginBottom: 24 }} aria-label="Setup progress">
           {STEPS.map((s, i) => (
             <div
               key={s.key}
               className={`deploy-step ${i === step ? 'active' : i < step ? 'done' : ''}`}
               style={{ fontSize: 11, padding: '8px 4px' }}
+              aria-current={i === step ? 'step' : undefined}
             >
               {s.label}
             </div>
@@ -377,11 +378,14 @@ export default function SetupWizardPage() {
                 </p>
               </div>
 
-              {error && <div className="login-error">{error}</div>}
+              <div aria-live="polite">
+                {error && <div className="login-error">{error}</div>}
+              </div>
 
               <div className="input-group">
-                <label className="input-label">Username</label>
+                <label className="input-label" htmlFor="setup-admin-user">Username</label>
                 <input
+                  id="setup-admin-user"
                   className="input"
                   value={adminUser}
                   onChange={e => setAdminUser(e.target.value)}
@@ -390,9 +394,10 @@ export default function SetupWizardPage() {
                 />
               </div>
               <div className="input-group">
-                <label className="input-label">Password</label>
+                <label className="input-label" htmlFor="setup-admin-pass">Password</label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="setup-admin-pass"
                     className="input"
                     type={showPass ? 'text' : 'password'}
                     value={adminPass}
@@ -402,6 +407,7 @@ export default function SetupWizardPage() {
                   <button
                     type="button"
                     onClick={() => setShowPass(!showPass)}
+                    aria-label={showPass ? 'Hide password' : 'Show password'}
                     style={{
                       position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
                       background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4,
@@ -412,8 +418,9 @@ export default function SetupWizardPage() {
                 </div>
               </div>
               <div className="input-group">
-                <label className="input-label">Confirm Password</label>
+                <label className="input-label" htmlFor="setup-admin-pass-confirm">Confirm Password</label>
                 <input
+                  id="setup-admin-pass-confirm"
                   className="input"
                   type={showPass ? 'text' : 'password'}
                   value={adminPassConfirm}
@@ -450,12 +457,15 @@ export default function SetupWizardPage() {
                 </p>
               </div>
 
-              {error && <div className="login-error">{error}</div>}
+              <div aria-live="polite">
+                {error && <div className="login-error">{error}</div>}
+              </div>
 
               <div className="input-group">
-                <label className="input-label">Server IP Address</label>
+                <label className="input-label" htmlFor="setup-server-ip">Server IP Address</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
+                    id="setup-server-ip"
                     className="input"
                     value={serverIp}
                     onChange={e => setServerIp(e.target.value)}
@@ -512,6 +522,7 @@ export default function SetupWizardPage() {
                   type="checkbox"
                   checked={enableFirewall}
                   onChange={e => setEnableFirewall(e.target.checked)}
+                  aria-label="Automatically configure Windows Firewall"
                   style={{ marginTop: 2, accentColor: 'var(--accent-blue)' }}
                 />
                 <div>
@@ -560,7 +571,9 @@ export default function SetupWizardPage() {
                 </p>
               </div>
 
-              {error && <div className="login-error">{error}</div>}
+              <div aria-live="polite">
+                {error && <div className="login-error">{error}</div>}
+              </div>
 
               {/* Phase 1: SteamCMD location (before steamStatus === 'found') */}
               {steamStatus !== 'found' && (
@@ -753,7 +766,9 @@ export default function SetupWizardPage() {
                 </p>
               </div>
 
-              {error && <div className="login-error">{error}</div>}
+              <div aria-live="polite">
+                {error && <div className="login-error">{error}</div>}
+              </div>
 
               {!serverMode && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -883,7 +898,7 @@ export default function SetupWizardPage() {
 
           {/* ─── Deploying ─── */}
           {step === 4 && deploying && (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ textAlign: 'center', padding: '20px 0' }} aria-live="polite">
               <div style={{ marginBottom: 16 }}>
                 {deployProgress?.status === 'complete' ?
                   <CheckCircle size={48} style={{ color: 'var(--accent-green)' }} /> :

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import { useServers } from '../contexts/ServersContext';
 import API from '../api';
+import { formatBytes } from '../utils';
 import Accordion from '../components/Accordion';
 import { Modal } from '../components/ui';
 import {
@@ -373,7 +374,7 @@ export default function DangerzonePage({ serverId }) {
             </div>
             <div className="dz-log-footer">
               <span className="dz-log-total">
-                Selected: {formatSize(selectedLogsSize)}
+                Selected: {formatBytes(selectedLogsSize)}
               </span>
               <button
                 className="btn btn-danger btn-sm"
@@ -635,9 +636,3 @@ function ReplicateConfirmModal({ open, onClose, preview, serverName, onConfirm }
 }
 
 // ─── Helpers ────────────────────────────────────────────────
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-  return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
-}

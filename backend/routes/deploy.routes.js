@@ -1,7 +1,7 @@
 /**
  * Server deployment and rebuild (dangerzone) routes.
  *
- * Deployment structure (modeled after CFTools Architect):
+ * Deployment structure:
  *   deployments/<ServerName>/
  *   ├── profiles/          ← RPT files, BattlEye, mod configs
  *   ├── mpmissions/        ← mission files per map (scaffolded + SteamCMD)
@@ -160,6 +160,10 @@ function runSteamCMD(cmdPath, args, resolvedDir, srv, emitEvent = 'deployProgres
   });
 }
 
+/** Per-server deploy rate limiter — prevents duplicate deploys within cooldown window */
+const deployLocks = new Map(); // serverId -> timestamp
+const DEPLOY_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+
 module.exports = function(app) {
   app.post('/api/deploy', auth('server.deploy'), requireLicense(), async (req, res) => {
     const { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map } = req.body;
@@ -176,6 +180,15 @@ module.exports = function(app) {
       if (sanitized) finalDir = path.join(installDir, sanitized);
     }
     const resolvedDir = path.resolve(finalDir);
+
+    // Rate limit: prevent duplicate deploys to the same directory within cooldown window
+    const deployKey = `deploy:${resolvedDir}`;
+    const lastDeploy = deployLocks.get(deployKey);
+    if (lastDeploy && (Date.now() - lastDeploy) < DEPLOY_COOLDOWN) {
+      const remainSec = Math.ceil((DEPLOY_COOLDOWN - (Date.now() - lastDeploy)) / 1000);
+      return res.status(429).json({ error: `A deploy was recently started for this directory. Please wait ${remainSec}s before retrying.` });
+    }
+    deployLocks.set(deployKey, Date.now());
 
     addAudit(req.user.id, req.user.username, 'server.deploy', `Deploying ${name} to ${resolvedDir}`);
     ctx.io.emit('deployProgress', { status: 'starting', message: 'Preparing deployment...' });
@@ -277,6 +290,15 @@ module.exports = function(app) {
   app.post('/api/servers/:id/rebuild', auth('server.rebuild'), async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
+
+    // Rate limit: prevent duplicate rebuilds for the same server within cooldown window
+    const rebuildKey = `rebuild:${srv.id}`;
+    const lastRebuild = deployLocks.get(rebuildKey);
+    if (lastRebuild && (Date.now() - lastRebuild) < DEPLOY_COOLDOWN) {
+      const remainSec = Math.ceil((DEPLOY_COOLDOWN - (Date.now() - lastRebuild)) / 1000);
+      return res.status(429).json({ error: `A rebuild was recently started for this server. Please wait ${remainSec}s before retrying.` });
+    }
+    deployLocks.set(rebuildKey, Date.now());
 
     const resolvedDir = path.resolve(srv.installDir);
     addAudit(req.user.id, req.user.username, 'server.rebuild', `Rebuilding ${srv.name} at ${resolvedDir}`);

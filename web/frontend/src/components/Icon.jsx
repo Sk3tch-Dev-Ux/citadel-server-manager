@@ -105,4 +105,5 @@ export {
   Star,
   Bookmark,
   MessageSquare,
+  Menu,
 } from 'lucide-react';

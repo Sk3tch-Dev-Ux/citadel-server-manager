@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../api';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import {
   Shield, Crown, Check, Server, FolderOpen, Clock, Terminal, Package,
   Map, Send, Globe, ShieldBan, Users, BarChart3, Skull, Zap,
@@ -7,6 +8,7 @@ import {
 } from '../components/Icon';
 
 export default function LicensePage() {
+  const { confirm: confirmDialog, DialogComponent } = useConfirmDialog();
   const [license, setLicense] = useState(null);
   const [activateKey, setActivateKey] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function LicensePage() {
   }
 
   async function handleDeactivate() {
-    if (!confirm('Are you sure you want to deactivate your license?')) return;
+    if (!await confirmDialog({ title: 'Deactivate License', message: 'Are you sure you want to deactivate your license?', confirmLabel: 'Deactivate', variant: 'danger' })) return;
     try {
       await API.del('/api/license');
       window.addToast?.('License deactivated', 'info');
@@ -206,6 +208,8 @@ export default function LicensePage() {
           </div>
         )}
       </div>
+
+      {DialogComponent}
     </div>
   );
 }

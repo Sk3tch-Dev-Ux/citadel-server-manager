@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import MiniChart from '../components/MiniChart';
+import PageLoader from '../components/PageLoader';
 import { RefreshCw } from '../components/Icon';
 
 export default function ServerMetricsPage({ serverId }) {
@@ -40,7 +41,7 @@ export default function ServerMetricsPage({ serverId }) {
     return { current, min, max, avg };
   };
 
-  if (loading) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading metrics...</div>;
+  if (loading) return <PageLoader message="Loading metrics..." />;
   if (!metrics) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>No metrics data available.</div>;
 
   const cpuStats = calcStats(metrics.cpu);

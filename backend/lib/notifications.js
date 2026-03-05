@@ -2,12 +2,55 @@
  * Notifications, Discord webhooks, and custom webhook delivery.
  */
 const crypto = require('crypto');
+const dns = require('dns');
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');
 const { saveJSON } = require('./data-store');
 const { sanitizeString } = require('./helpers');
 const { MAX_NOTIFICATION_COUNT, MAX_WEBHOOK_DELIVERIES } = require('./constants');
+
+/**
+ * Check if an IP address belongs to a private/internal range.
+ * Covers: 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16,
+ *         169.254.0.0/16, ::1, fc00::/7
+ */
+function isPrivateIP(ip) {
+  // IPv6 loopback
+  if (ip === '::1') return true;
+  // IPv6 unique-local (fc00::/7 covers fc00:: through fdff::)
+  if (/^f[cd]/i.test(ip)) return true;
+  // IPv4 private ranges
+  const parts = ip.split('.').map(Number);
+  if (parts.length === 4) {
+    if (parts[0] === 127) return true;                                      // 127.0.0.0/8
+    if (parts[0] === 10) return true;                                       // 10.0.0.0/8
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;  // 172.16.0.0/12
+    if (parts[0] === 192 && parts[1] === 168) return true;                  // 192.168.0.0/16
+    if (parts[0] === 169 && parts[1] === 254) return true;                  // 169.254.0.0/16
+    if (parts[0] === 0) return true;                                        // 0.0.0.0/8
+  }
+  return false;
+}
+
+/**
+ * SSRF protection: validate that a webhook URL does not resolve to a
+ * private/internal IP address. Returns true if safe, false if blocked.
+ */
+async function isPrivateUrl(urlString) {
+  try {
+    const parsed = new URL(urlString);
+    const { address } = await dns.promises.lookup(parsed.hostname);
+    if (isPrivateIP(address)) {
+      logger.warn({ url: urlString, resolvedIP: address }, 'Webhook URL resolves to private IP — blocked (SSRF protection)');
+      return true;
+    }
+    return false;
+  } catch (err) {
+    logger.warn({ url: urlString, err: err.message }, 'DNS lookup failed for webhook URL — skipping');
+    return true; // Fail closed: treat DNS failures as unsafe
+  }
+}
 
 /**
  * Supported webhook event types with human-readable descriptions.
@@ -68,6 +111,11 @@ function addNotification(serverId, type, title, message, severity) {
 async function sendDiscordWebhook(content, embeds) {
   if (!ctx.CONFIG.webhookUrl) return;
   try {
+    // SSRF protection: block webhooks targeting private/internal IPs
+    if (await isPrivateUrl(ctx.CONFIG.webhookUrl)) {
+      logger.warn({ url: ctx.CONFIG.webhookUrl }, 'Discord webhook URL resolves to private IP — blocked');
+      return;
+    }
     await fetch(ctx.CONFIG.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -167,6 +215,12 @@ function webhookMatchesServer(wh, data) {
  * does not mutate the webhook object or re-filter.
  */
 async function deliverWebhook(wh, eventType, data, attemptNum, maxRetries) {
+  // SSRF protection: block webhooks targeting private/internal IPs
+  if (await isPrivateUrl(wh.url)) {
+    logger.warn({ webhookId: wh.id, url: wh.url, event: eventType }, 'Skipping webhook — URL resolves to private IP');
+    return;
+  }
+
   const idempotenceToken = crypto.randomUUID();
   const standardHeaders = {
     'Content-Type': 'application/json',

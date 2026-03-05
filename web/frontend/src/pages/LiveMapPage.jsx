@@ -9,6 +9,7 @@ import 'leaflet/dist/leaflet.css';
 import API from '../api';
 import { useServers } from '../contexts/ServersContext';
 import { useSocket } from '../contexts/SocketContext';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import {
   Users, Car, MapPin, Layers, Filter, Crosshair, Heart, Skull,
   Bomb, Wrench, Trash2, Navigation, Locate, RefreshCw, Eye, EyeOff,
@@ -150,6 +151,7 @@ function ContextMenu({ position, items, onClose }) {
 export default function LiveMapPage({ serverId }) {
   const { servers } = useServers();
   const socket = useSocket();
+  const { confirm, prompt, DialogComponent } = useConfirmDialog();
   const server = useMemo(() => servers.find(s => s.id === serverId), [servers, serverId]);
   const serverStatus = server?.status || 'stopped';
   const isRunning = serverStatus === 'running';
@@ -425,7 +427,7 @@ export default function LiveMapPage({ serverId }) {
                   <button className="map-popup__btn map-popup__btn--success" onClick={() => doPlayerAction(player.steamId, 'heal', `Heal ${player.name}`)}>
                     <Heart size={12} /> Heal
                   </button>
-                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm(`Kill ${player.name}?`)) doPlayerAction(player.steamId, 'kill', `Kill ${player.name}`); }}>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => { if (await confirm({ title: 'Kill Player', message: `Kill ${player.name}?`, confirmLabel: 'Kill', variant: 'danger' })) doPlayerAction(player.steamId, 'kill', `Kill ${player.name}`); }}>
                     <Skull size={12} /> Kill
                   </button>
                   <button className="map-popup__btn" onClick={() => { setSelectedPlayer(player); window.addToast?.(`Selected ${player.name} — right-click map to teleport`, 'info'); }}>
@@ -433,13 +435,13 @@ export default function LiveMapPage({ serverId }) {
                   </button>
                 </div>
                 <div className="map-popup__actions">
-                  <button className="map-popup__btn" onClick={() => { if (window.confirm(`Strip all gear from ${player.name}?`)) doPlayerAction(player.steamId, 'strip', `Strip ${player.name}`); }}>
+                  <button className="map-popup__btn" onClick={async () => { if (await confirm({ title: 'Strip Gear', message: `Strip all gear from ${player.name}?`, confirmLabel: 'Strip', variant: 'danger' })) doPlayerAction(player.steamId, 'strip', `Strip ${player.name}`); }}>
                     <Trash2 size={12} /> Strip
                   </button>
-                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm(`Explode ${player.name}?`)) doPlayerAction(player.steamId, 'explode', `Explode ${player.name}`); }}>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => { if (await confirm({ title: 'Explode Player', message: `Explode ${player.name}?`, confirmLabel: 'Explode', variant: 'danger' })) doPlayerAction(player.steamId, 'explode', `Explode ${player.name}`); }}>
                     <Bomb size={12} /> Explode
                   </button>
-                  <button className="map-popup__btn" onClick={() => { const msg = window.prompt(`Send message to ${player.name}:`); if (msg) doPlayerAction(player.steamId, 'message', `Message ${player.name}`, { message: msg }); }}>
+                  <button className="map-popup__btn" onClick={async () => { const msg = await prompt({ title: 'Send Message', message: `Send message to ${player.name}:`, placeholder: 'Type your message...' }); if (msg) doPlayerAction(player.steamId, 'message', `Message ${player.name}`, { message: msg }); }}>
                     <Send size={12} /> Message
                   </button>
                 </div>
@@ -471,7 +473,7 @@ export default function LiveMapPage({ serverId }) {
                   <button className="map-popup__btn" onClick={() => doVehicleAction(vehicle.id, 'refuel', 'Refuel')}>
                     <Zap size={12} /> Refuel
                   </button>
-                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm('Delete this vehicle?')) doVehicleAction(vehicle.id, 'delete', 'Delete'); }}>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => { if (await confirm({ title: 'Delete Vehicle', message: 'Delete this vehicle?', confirmLabel: 'Delete', variant: 'danger' })) doVehicleAction(vehicle.id, 'delete', 'Delete'); }}>
                     <Trash2 size={12} /> Delete
                   </button>
                 </div>
@@ -479,7 +481,7 @@ export default function LiveMapPage({ serverId }) {
                   <button className="map-popup__btn" onClick={() => doVehicleAction(vehicle.id, 'unstuck', 'Unstuck')}>
                     <ArrowUp size={12} /> Unstuck
                   </button>
-                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm('Explode this vehicle?')) doVehicleAction(vehicle.id, 'explode', 'Explode'); }}>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => { if (await confirm({ title: 'Explode Vehicle', message: 'Explode this vehicle?', confirmLabel: 'Explode', variant: 'danger' })) doVehicleAction(vehicle.id, 'explode', 'Explode'); }}>
                     <Bomb size={12} /> Explode
                   </button>
                   <button className="map-popup__btn map-popup__btn--danger" onClick={() => doVehicleAction(vehicle.id, 'kill-engine', 'Kill Engine')}>
@@ -596,10 +598,10 @@ export default function LiveMapPage({ serverId }) {
               <div className="map-world-panel__section">
                 <div className="map-world-panel__label"><AlertTriangle size={12} /> Danger Zone</div>
                 <div className="map-world-panel__row">
-                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm('Wipe ALL AI from the map? This cannot be undone.')) doWorldAction('wipe-ai', null, 'Wipe AI'); }}>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => { if (await confirm({ title: 'Wipe AI', message: 'Wipe ALL AI from the map? This cannot be undone.', confirmLabel: 'Wipe AI', variant: 'danger' })) doWorldAction('wipe-ai', null, 'Wipe AI'); }}>
                     <Skull size={12} /> Wipe AI
                   </button>
-                  <button className="map-popup__btn map-popup__btn--danger" onClick={() => { if (window.confirm('Wipe ALL vehicles from the map? This cannot be undone.')) doWorldAction('wipe-vehicles', null, 'Wipe Vehicles'); }}>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => { if (await confirm({ title: 'Wipe Vehicles', message: 'Wipe ALL vehicles from the map? This cannot be undone.', confirmLabel: 'Wipe Vehicles', variant: 'danger' })) doWorldAction('wipe-vehicles', null, 'Wipe Vehicles'); }}>
                     <Trash2 size={12} /> Wipe Vehicles
                   </button>
                 </div>
@@ -638,6 +640,8 @@ export default function LiveMapPage({ serverId }) {
           />
         )}
       </div>
+
+      {DialogComponent}
     </div>
   );
 }

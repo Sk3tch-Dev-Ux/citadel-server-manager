@@ -11,10 +11,14 @@ export default function LoginScreen() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!username.trim() || !password) {
+      setError('Username and password are required');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const data = await API.post('/api/auth/login', { username, password });
+      const data = await API.post('/api/auth/login', { username: username.trim(), password });
       if (data.token) {
         login(data.user, data.token);
       } else {
@@ -34,16 +38,18 @@ export default function LoginScreen() {
         </div>
         <div className="login-title">Citadel</div>
         <div className="login-sub">Sign in to manage your servers</div>
-        {error && <div className="login-error">{error}</div>}
-        <div className="input-group">
-          <label className="input-label">Username</label>
-          <input className="input" value={username} onChange={e => setUsername(e.target.value)} autoFocus />
+        <div aria-live="polite">
+          {error && <div className="login-error">{error}</div>}
         </div>
         <div className="input-group">
-          <label className="input-label">Password</label>
-          <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+          <label className="input-label" htmlFor="login-username">Username</label>
+          <input id="login-username" className="input" value={username} onChange={e => setUsername(e.target.value)} autoFocus required autoComplete="username" aria-label="Username" />
         </div>
-        <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }} disabled={loading}>
+        <div className="input-group">
+          <label className="input-label" htmlFor="login-password">Password</label>
+          <input id="login-password" className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" aria-label="Password" />
+        </div>
+        <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }} disabled={loading} aria-busy={loading}>
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
       </form>

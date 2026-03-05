@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import API from '../api';
 import { useServers } from '../contexts/ServersContext';
 import { Modal, Toggle, EmptyState, Button, Input, FormField } from '../components/ui';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
+import PageLoader from '../components/PageLoader';
 import { Clock, Plus, Trash2, Edit, Check, X, AlertTriangle, Lock, Power, RotateCcw, Square, Play, Download, Save, Terminal, Webhook, Server, ChevronDown } from '../components/Icon';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -371,6 +373,7 @@ function JobModal({ open, onClose, onSave, editingJob, servers, currentServerId 
 // ─── Main Page ────────────────────────────────────────────
 export default function SchedulerPage({ serverId }) {
   const { servers } = useServers();
+  const { confirm: confirmDialog, DialogComponent } = useConfirmDialog();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -394,7 +397,7 @@ export default function SchedulerPage({ serverId }) {
   };
 
   const handleDelete = async (job) => {
-    if (!confirm(`Delete "${job.title}"?`)) return;
+    if (!await confirmDialog({ title: 'Delete Job', message: `Delete "${job.title}"?`, confirmLabel: 'Delete', variant: 'danger' })) return;
     try {
       await API.del(`/api/servers/${serverId}/scheduler/${job.id}`);
       setJobs(prev => prev.filter(j => j.id !== job.id));
@@ -440,7 +443,7 @@ export default function SchedulerPage({ serverId }) {
     } catch { window.addToast?.('Failed to save job', 'error'); }
   };
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading scheduler...</div>;
+  if (loading) return <PageLoader message="Loading scheduler..." />;
 
   return (
     <div className="scheduler-page">
@@ -464,6 +467,8 @@ export default function SchedulerPage({ serverId }) {
       )}
 
       <JobModal open={modalOpen} onClose={() => { setModalOpen(false); setEditingJob(null); }} onSave={handleSave} editingJob={editingJob} servers={servers} currentServerId={serverId} />
+
+      {DialogComponent}
     </div>
   );
 }
