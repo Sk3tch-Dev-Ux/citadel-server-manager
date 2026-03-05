@@ -362,7 +362,7 @@ export default function SettingsPage() {
         </div>
 
         <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
-          <strong style={{ color: 'var(--text-primary)' }}>Note:</strong> Steam login is only needed for <strong>Workshop mod downloads</strong>. Server deployment and updates use anonymous download. We recommend a dedicated Steam account with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator).
+          <strong style={{ color: 'var(--text-primary)' }}>Note:</strong> DayZ dedicated server requires a <strong>Steam account that owns DayZ</strong> for both server deployment and Workshop mod downloads. We recommend a dedicated Steam account with Steam Guard set to <strong>Email</strong> (not Mobile Authenticator).
         </div>
 
         {steamLoading ? (
