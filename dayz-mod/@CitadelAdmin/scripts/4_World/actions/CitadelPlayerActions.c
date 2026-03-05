@@ -319,8 +319,7 @@ class CitadelPlayerActions
             if (itemBase && itemBase.HasQuantity())
                 quantity = itemBase.GetQuantity();
 
-            json += string.Format("{\"className\":\"%1\",\"health\":%2,\"maxHealth\":%3,\"quantity\":%4}",
-                item.GetType(), health.ToString(), maxHealth.ToString(), quantity.ToString());
+            json += "{\"className\":\"" + item.GetType() + "\",\"health\":" + health.ToString() + ",\"maxHealth\":" + maxHealth.ToString() + ",\"quantity\":" + quantity.ToString() + "}";
         }
         json += "]}";
 
