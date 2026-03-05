@@ -91,7 +91,8 @@
       "Bash(xxd \"C:\\\\Citadel\\\\deployments\\\\@CitadelAdmin\\\\addons\\\\CitadelAdmin.pbo\")",
       "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Mikero\\\\DePboTools\\\\bin\\\\MakePbo.exe\")",
       "Bash(unzip -o \"C:\\\\Users\\\\KurtE\\\\OneDrive\\\\Pictures\\\\New DayZ Tools\\\\000_Scripts.zip\" \"000_Scripts/5_mission/dynamicactions/world/world_weather*.c\" \"000_Scripts/5_mission/dynamicactions/world/world_time*.c\" -d /tmp/gl_ref)",
-      "WebFetch(domain:mirasaki.dev)"
+      "WebFetch(domain:mirasaki.dev)",
+      "Bash(node docs/scripts/generate-changelog.cjs)"
     ]
   }
 }
