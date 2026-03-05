@@ -1,3 +1,7 @@
+---
+outline: [2, 3]
+---
+
 # Changelog
 
 ## v2.3.0
