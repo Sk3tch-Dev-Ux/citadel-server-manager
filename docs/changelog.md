@@ -1,5 +1,49 @@
 # Changelog
 
+## v2.3.0
+
+_Performance Audit, QoL Feature Pipeline & Discord Bot Expansion_
+
+### Performance
+- **34-item performance audit** — Comprehensive codebase audit with all findings resolved
+- **Eliminated blocking I/O** — Replaced `fs.readFileSync`/`fs.writeFileSync` with async equivalents across sidecar, backend, and mod manager
+- **Socket.IO room scoping** — All server-scoped events now broadcast to per-server rooms instead of global emits
+- **Memory leak fixes** — Proper cleanup of RCON listeners, polling intervals, and event handlers on server removal
+- **Debounced file watchers** — RPT tailer and sidecar watchers debounced to prevent CPU spikes on rapid file changes
+- **Lazy module loading** — Heavy modules loaded on demand instead of at startup
+- **Connection pooling** — Sidecar HTTP requests reuse persistent agents
+
+### Added — Player Actions
+- **Unstuck** — Teleport stuck players to the terrain surface (mod + sidecar + backend + frontend + Discord)
+- **Freeze/Unfreeze** — Lock a player in place or release them (mod + sidecar + backend + frontend + Discord)
+- **Message Player** — Send a direct in-game message to a specific player (mod + sidecar + backend + frontend + Discord)
+- **Teleport to Player** — Teleport one player to another player's location (mod + sidecar + backend + frontend)
+- **View Loadout** — Inspect a player's full inventory with item class, quantity, and health percentage (mod + sidecar + backend + frontend)
+
+### Added — Vehicle & Config Actions
+- **Vehicle Teleport** — Teleport a vehicle to specific world coordinates (mod + sidecar + backend)
+- **Config Reload** — Live reload of mod configuration without server restart (mod + sidecar + backend)
+
+### Added — Discord Bot
+- **5 new slash commands** — `/unstuck`, `/freeze`, `/strip`, `/explode`, `/dm` for direct admin actions
+- **Expanded admin panel** — 9 admin action buttons across 2 rows (was 4 in 1 row): Heal, Unstuck, Spawn Item, Teleport, Message, Freeze, Strip Gear, Kill, Explode
+- **Message player modal** — Discord modal for composing direct messages to players from the panel
+- **5 new backend action handlers** — `actionUnstuck`, `actionFreeze`, `actionStrip`, `actionExplode`, `actionMessage` in `discord.routes.js`
+
+### Added — DayZ Mod (@CitadelAdmin)
+- **UnstuckPlayer action** — Finds terrain surface height and teleports player above it
+- **FreezePlayer action** — Sets player movement speed multiplier to 0 (freeze) or restores it (unfreeze)
+- **TeleportToPlayer action** — Resolves target player by Steam ID and teleports source to their position
+- **GetLoadout action** — Serializes full player inventory (clothing, attachments, cargo) as JSON response
+- **MessagePlayer action** — Sends an in-game notification message to a specific player
+- **TeleportVehicle action** — Moves a vehicle to specified world coordinates
+- **ReloadConfig action** — Re-reads mod configuration files at runtime
+
+### Changed
+- **Frontend PlayersPage** — Player action dropdown reorganized into sections: Helpful (Heal, Unstuck, Spawn, Message), Info (View Loadout, Teleport To Player), Moderation (Freeze, Unfreeze, Strip, Kick), Dangerous (Explode, Kill, Ban)
+- **ActionType constants** — New frozen enum entries for all added actions with capability sets, labels, audit codes, and route maps
+- **Discord bot architecture** — 31-file structure (was 26) with expanded button dispatch map (40 handlers)
+
 ## v2.2.1
 
 _Messenger Templates, Deployment Fixes & Scheduler Reliability_

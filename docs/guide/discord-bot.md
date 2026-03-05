@@ -60,7 +60,7 @@ discord-bot/
 ├── bot.js              # Entry point — client, router, presence, shutdown
 ├── config.js           # Environment configuration
 ├── api.js              # Backend API client with user attribution
-├── commands/           # 13 slash commands (auto-loaded)
+├── commands/           # 18 slash commands (auto-loaded)
 │   ├── index.js        # Auto-loader + registerCommands()
 │   ├── panel.js        # /panel — ephemeral control panel
 │   ├── setup.js        # /setup — persistent panel in channel
@@ -73,9 +73,14 @@ discord-bot/
 │   ├── heal.js         # /heal
 │   ├── kill.js         # /kill
 │   ├── teleport.js     # /teleport
-│   └── spawnitem.js    # /spawnitem
+│   ├── spawnitem.js    # /spawnitem
+│   ├── unstuck.js      # /unstuck
+│   ├── freeze.js       # /freeze
+│   ├── strip.js        # /strip
+│   ├── explode.js      # /explode
+│   └── dm.js           # /dm
 ├── handlers/
-│   ├── buttons.js      # 35 button handlers (dispatch map)
+│   ├── buttons.js      # 40 button handlers (dispatch map)
 │   ├── selectMenus.js  # Server/category/player selects
 │   └── modals.js       # Modal submission handlers
 ├── ui/
@@ -117,6 +122,11 @@ discord-bot/
 | `/kill <steamid>` | Kill a player | Yes |
 | `/teleport <steamid> <x> <y> [z]` | Teleport a player to coordinates | Yes |
 | `/spawnitem <steamid> <item> [qty]` | Spawn an item on a player (max qty: 100) | Yes |
+| `/unstuck <steamid>` | Teleport a stuck player to the terrain surface | Yes |
+| `/freeze <steamid> [unfreeze]` | Freeze or unfreeze a player in place | Yes |
+| `/strip <steamid>` | Strip all gear from a player | Yes |
+| `/explode <steamid>` | Explode a player | Yes |
+| `/dm <steamid> <message>` | Send a direct in-game message to a player | Yes |
 
 ## Interactive Control Panel
 
@@ -135,7 +145,7 @@ Select a category to reveal its action buttons:
 | **Players** | Player List, Kick Player, Player Info |
 | **Mods** | Mod List, Install, Uninstall, Enable, Disable |
 | **Intel** | Chat Feed, Killfeed, Leaderboard, Watchlist, Priority Queue, Time/Weather |
-| **Admin Actions** | Heal, Kill, Teleport, Spawn Item (via player select menus) |
+| **Admin Actions** | Heal, Unstuck, Spawn Item, Teleport, Message, Freeze, Strip Gear, Kill, Explode (via player select menus) |
 
 ### Multi-Server Support
 If multiple servers are configured, a server selector dropdown appears at the top of the panel. Switching servers updates all subsequent actions to target the selected server.
@@ -151,7 +161,7 @@ Per-user per-action cooldowns prevent command spam:
 | Tier | Cooldown | Actions |
 |------|----------|---------|
 | **Query** | 3 seconds | Status, players, mods, intel feeds, leaderboard |
-| **Admin** | 10 seconds | Heal, kill, teleport, spawn, kick, RCON, broadcast, mod operations |
+| **Admin** | 10 seconds | Heal, kill, teleport, spawn, unstuck, freeze, strip, explode, message, kick, RCON, broadcast, mod operations |
 | **Control** | 30 seconds | Start, stop, restart |
 
 ### Input Validation

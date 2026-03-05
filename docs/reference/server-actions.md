@@ -16,6 +16,11 @@ Server actions are the standardized operations that can be executed on a DayZ se
 | `spawn-item` | `{ steamId, itemClass, quantity? }` | Spawn item in player inventory |
 | `strip` | `{ steamId }` | Remove all items from player |
 | `explode` | `{ steamId }` | Create explosion at player position |
+| `unstuck` | `{ steamId }` | Teleport player to terrain surface |
+| `freeze` | `{ steamId, frozen }` | Freeze (1) or unfreeze (0) a player |
+| `message` | `{ steamId, message }` | Send a direct in-game message |
+| `teleport-to-player` | `{ steamId, targetSteamId }` | Teleport player to another player |
+| `loadout` | `{ steamId }` | Retrieve player's full inventory |
 
 ### Vehicle Actions
 
@@ -28,6 +33,7 @@ Server actions are the standardized operations that can be executed on a DayZ se
 | `vehicle/explode` | `{ vehicleId }` | Destroy vehicle with explosion |
 | `vehicle/kill-engine` | `{ vehicleId }` | Kill the vehicle engine |
 | `vehicle/eject-driver` | `{ vehicleId }` | Force eject the driver |
+| `vehicle/teleport` | `{ vehicleId, x, y, z }` | Teleport vehicle to coordinates |
 
 ### World Actions
 
@@ -39,14 +45,24 @@ Server actions are the standardized operations that can be executed on a DayZ se
 | `world/wipe-ai` | — | Remove all AI entities |
 | `world/wipe-vehicles` | — | Remove all vehicles |
 
+### Config Actions
+
+| Action Type | Parameters | Description |
+|-------------|-----------|-------------|
+| `config/reload` | — | Reload mod configuration without restart |
+
 ## Provider Capability Matrix
 
 | Action Category | InHouseProvider | RCONProvider |
 |----------------|-----------------|--------------|
 | Player heal/kill/teleport/spawn | ✅ | ❌ |
+| Player unstuck/freeze/strip/explode | ✅ | ❌ |
+| Player teleport-to-player | ✅ | ❌ |
+| Player loadout (read-only) | ✅ | ❌ |
 | Player kick/ban | ✅ | ✅ |
-| Vehicle actions | ✅ | ❌ |
+| Vehicle actions (incl. teleport) | ✅ | ❌ |
 | World actions | ✅ | ❌ |
+| Config reload | ✅ | ❌ |
 | Detailed player info | ✅ | ❌ |
 | Raw RCON commands | ❌ | ✅ |
 | Send message | ✅ | ✅ |

@@ -35,6 +35,11 @@ Available when the Sidecar + Mod are configured:
 | **Spawn Item** | Add items to inventory |
 | **Strip** | Remove all inventory |
 | **Explode** | Create explosion at position |
+| **Unstuck** | Teleport player to terrain surface |
+| **Freeze / Unfreeze** | Lock player in place or release them |
+| **Message** | Send a direct in-game message |
+| **Teleport to Player** | Move one player to another player's location |
+| **View Loadout** | Inspect full inventory (item class, quantity, health %) |
 
 ## Ban Management
 

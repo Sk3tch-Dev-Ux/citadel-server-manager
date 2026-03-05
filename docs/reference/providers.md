@@ -56,9 +56,10 @@ class BaseProvider {
 The primary provider with full feature support. Communicates with the Citadel Sidecar via HTTP, which translates requests into file-based commands for the `@CitadelAdmin` mod.
 
 **Capabilities:**
-- Player actions (heal, kill, teleport, spawn items, strip, explode)
-- Vehicle actions (delete, repair, refuel, unstuck, explode)
+- Player actions (heal, kill, teleport, spawn items, strip, explode, unstuck, freeze, message, teleport to player, view loadout)
+- Vehicle actions (delete, repair, refuel, unstuck, explode, kill engine, eject driver, teleport)
 - World actions (time, weather, wipe AI, wipe vehicles)
+- Config actions (live reload)
 - Detailed player info (stats, position, playtime)
 - Ban management
 - Priority queue

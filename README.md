@@ -17,7 +17,7 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 - **Live map** — Real-time player and vehicle positions on interactive map with in-game actions
 - **Server controls** — Start, stop, restart with health monitoring and auto-restart
 - **Rich console** — Live RPT log streaming + RCON output in a unified real-time console
-- **Player management** — Online player list, kick, ban, heal, teleport, spawn items
+- **Player management** — Online player list, kick, ban, heal, teleport, spawn items, unstuck, freeze, message, strip gear, view loadout, teleport to player
 - **RCON console** — Send BattlEye commands directly with command history
 - **Mod manager** — Search Steam Workshop, install/uninstall/toggle mods, reorder load priority, mod cache
 - **Config editor** — Edit `serverDZ.cfg` from the UI with validation
@@ -39,19 +39,20 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 - **First-run setup wizard** — Guided 5-step setup (admin account, SteamCMD, server profile)
 
 ### In-Game Admin Mod (@CitadelAdmin)
-- **Player actions** — Heal, kill, teleport, spawn items, strip gear, explode
-- **Vehicle actions** — Delete, repair, refuel, unstuck, explode, engine kill, eject driver
+- **Player actions** — Heal, kill, teleport, spawn items, strip gear, explode, unstuck, freeze, message, teleport to player
+- **Vehicle actions** — Delete, repair, refuel, unstuck, explode, engine kill, eject driver, teleport to coordinates
 - **World actions** — Set time, weather control, AI wipe, vehicle wipe
+- **Config actions** — Live config reload without server restart
 - **Player tracking** — Real-time position snapshots for live map
 - **Event logging** — Kills, connections, disconnections, vehicle events
 - **File-based IPC** — Commands relayed through the Citadel Sidecar (no network dependency)
 
 ### Discord Bot
-- **Modular architecture** — 26-file enterprise structure (commands, handlers, UI, utils)
+- **Modular architecture** — 31-file enterprise structure (commands, handlers, UI, utils)
 - **Interactive control panel** — Persistent button panel deployable in any channel
-- **13 slash commands** — `/panel`, `/setup`, `/status`, `/players`, `/rcon`, `/broadcast`, `/restart`, `/playerinfo`, `/heal`, `/kill`, `/teleport`, `/spawnitem`
+- **18 slash commands** — `/panel`, `/setup`, `/status`, `/players`, `/rcon`, `/broadcast`, `/restart`, `/playerinfo`, `/heal`, `/kill`, `/teleport`, `/spawnitem`, `/unstuck`, `/freeze`, `/strip`, `/explode`, `/dm`
 - **Full mod management** — Install, uninstall, enable, disable mods from Discord
-- **Admin actions** — Heal, kill, teleport players, spawn items — all with player select menus
+- **Admin actions** — Heal, kill, teleport, spawn items, unstuck, freeze, strip gear, explode, message player — all with player select menus
 - **Live feeds** — Chat feed, killfeed, leaderboard, watchlist, time/weather from Discord
 - **Per-user cooldowns** — Three-tier rate limiting (query 3s, admin 10s, control 30s)
 - **Input validation** — Steam64 IDs, coordinates, workshop IDs, and broadcasts validated before API calls
@@ -371,6 +372,11 @@ pm2 startup
 | `/kill <steamid>` | Kill a player | Yes |
 | `/teleport <steamid> <x> <y> [z]` | Teleport a player to coordinates | Yes |
 | `/spawnitem <steamid> <item> [qty]` | Spawn an item on a player (max 100) | Yes |
+| `/unstuck <steamid>` | Teleport a stuck player to the surface | Yes |
+| `/freeze <steamid> [unfreeze]` | Freeze or unfreeze a player in place | Yes |
+| `/strip <steamid>` | Strip all gear from a player | Yes |
+| `/explode <steamid>` | Explode a player | Yes |
+| `/dm <steamid> <message>` | Send a direct message to a player | Yes |
 
 ---
 

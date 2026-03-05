@@ -44,6 +44,11 @@ Configure the key via the `INHOUSE_API_KEY` environment variable on both the bac
 | POST | `/player/spawnItem` | `{ "steamId", "itemClass", "quantity" }` | Spawn item in player inventory |
 | POST | `/player/strip` | `{ "steamId": "76561..." }` | Strip all inventory |
 | POST | `/player/explode` | `{ "steamId": "76561..." }` | Explode a player |
+| POST | `/player/unstuck` | `{ "steamId": "76561..." }` | Teleport player to terrain surface |
+| POST | `/player/freeze` | `{ "steamId", "frozen": 1 }` | Freeze (1) or unfreeze (0) a player |
+| POST | `/player/message` | `{ "steamId", "message" }` | Send a direct in-game message |
+| POST | `/player/teleportToPlayer` | `{ "steamId", "targetSteamId" }` | Teleport player to another player |
+| GET | `/player/loadout?steamId=76561...` | — | Get player's full inventory (items, qty, health) |
 | POST | `/player/kick` | `{ "steamId", "reason" }` | Kick player with reason |
 | POST | `/player/ban` | `{ "steamId", "reason", "duration" }` | Ban a player |
 | GET | `/player/details?steamId=76561...` | — | Get player details, stats, position |
@@ -63,6 +68,7 @@ All vehicle actions use the same pattern:
 | POST | `/vehicle/explode` | `{ "vehicleId": "..." }` | Explode a vehicle |
 | POST | `/vehicle/kill-engine` | `{ "vehicleId": "..." }` | Kill vehicle engine |
 | POST | `/vehicle/eject-driver` | `{ "vehicleId": "..." }` | Eject the driver |
+| POST | `/vehicle/teleport` | `{ "vehicleId", "x", "y", "z" }` | Teleport vehicle to coordinates |
 
 ---
 
@@ -76,6 +82,14 @@ All vehicle actions use the same pattern:
 | POST | `/world/wipe-ai` | — | Remove all AI entities |
 | POST | `/world/wipe-vehicles` | — | Remove all vehicles |
 | POST | `/world/spawn-item` | `{ "itemClass", "x", "y", "z" }` | Spawn item at world coordinates |
+
+---
+
+## Config Actions
+
+| Method | Path | Body | Description |
+|--------|------|------|-------------|
+| POST | `/config/reload` | — | Reload mod configuration at runtime |
 
 ---
 
