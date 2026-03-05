@@ -63,10 +63,9 @@ function scaffoldDeployment(installDir, map) {
 
 /**
  * Build default launch params for a DayZ server.
- * Includes @CitadelAdmin mod for live map and admin actions.
  */
 function buildLaunchParams(gamePort) {
-  return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck -serverMod=@CitadelAdmin`;
+  return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck`;
 }
 
 /**
