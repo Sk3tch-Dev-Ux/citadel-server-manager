@@ -20,6 +20,8 @@ const { addLog } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { executeHooks } = require('./lifecycle-hooks');
 const { updateServerApp, updateWorkshopMod } = require('./steamcmd');
+const { createBackup } = require('./backup-engine');
+// polling.js is lazy-required below to avoid circular dependency (polling → auto-updater → polling)
 
 // ─── In-memory update state per server ───────────────────
 const updateStates = new Map();
@@ -379,6 +381,21 @@ async function runUpdatePhase(serverId) {
   emitProgress(serverId);
   addLog(serverId, 'info', 'updates', `Running ${us.updateType} update via SteamCMD...`);
 
+  // ── Pre-Update Backup (for rollback on failure) ──
+  let preUpdateBackup = null;
+  try {
+    addLog(serverId, 'info', 'updates', 'Creating pre-update backup...');
+    emitProgress(serverId, { message: 'Creating pre-update backup...' });
+    preUpdateBackup = await createBackup(serverId, 'automated');
+    if (preUpdateBackup) {
+      addLog(serverId, 'info', 'updates', `Pre-update backup created: ${preUpdateBackup.filename}`);
+    } else {
+      addLog(serverId, 'warn', 'updates', 'Pre-update backup skipped (no paths configured or backup in progress)');
+    }
+  } catch (backupErr) {
+    addLog(serverId, 'warn', 'updates', `Pre-update backup failed: ${backupErr.message} — proceeding with update`);
+  }
+
   try {
     if (us.updateType === 'game') {
       await updateServerApp(serverId, srv.installDir);
@@ -386,6 +403,8 @@ async function runUpdatePhase(serverId) {
     } else if (us.updateType === 'mod' && us.updateInfo?.modId) {
       await updateWorkshopMod(serverId, srv.installDir, us.updateInfo.modId);
       addLog(serverId, 'info', 'updates', `Mod update completed: ${us.updateInfo.modName || us.updateInfo.modId}`);
+      // Clear the pending mod update tracker (lazy require to avoid circular dep)
+      require('./polling').clearPendingModUpdate(us.updateInfo.modId);
     } else {
       throw new Error(`Unknown update type: ${us.updateType}`);
     }
@@ -409,6 +428,29 @@ async function runUpdatePhase(serverId) {
   } catch (err) {
     logger.error({ err, serverId }, 'Update failed');
     addLog(serverId, 'error', 'updates', `Update failed: ${err.message}`);
+
+    // ── Rollback: restore pre-update backup if available ──
+    if (preUpdateBackup) {
+      try {
+        addLog(serverId, 'info', 'updates', `Rolling back: restoring pre-update backup ${preUpdateBackup.filename}...`);
+        addNotification(serverId, 'update.rollback', 'Rolling Back Update', `${srv.name}: restoring from pre-update backup`, 'warning');
+        emitProgress(serverId, { message: 'Update failed — rolling back...' });
+        const { restoreBackup } = require('./backup-engine');
+        const result = await restoreBackup(serverId, preUpdateBackup.filename, 'automated');
+        if (result.success) {
+          addLog(serverId, 'info', 'updates', 'Rollback successful — server files restored to pre-update state');
+          addNotification(serverId, 'update.rollback', 'Rollback Complete', `${srv.name}: rolled back to pre-update state`, 'success');
+          sendDiscordWebhook(`🔄 **${srv.name}** update failed — rolled back to pre-update state`);
+        } else {
+          addLog(serverId, 'error', 'updates', `Rollback failed: ${result.error}`);
+          sendDiscordWebhook(`⚠️ **${srv.name}** update AND rollback failed: ${result.error}`);
+        }
+      } catch (rollbackErr) {
+        addLog(serverId, 'error', 'updates', `Rollback error: ${rollbackErr.message}`);
+        sendDiscordWebhook(`⚠️ **${srv.name}** update AND rollback failed: ${rollbackErr.message}`);
+      }
+    }
+
     addNotification(serverId, 'update.available', 'Update Failed', `${srv.name}: ${err.message}`, 'error');
     fireWebhooks('server.crashed', { serverId, serverName: srv.name, reason: `Update failed: ${err.message}` });
     sendDiscordWebhook(`❌ **${srv.name}** update failed: ${err.message}`);

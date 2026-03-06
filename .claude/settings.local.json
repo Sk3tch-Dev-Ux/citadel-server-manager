@@ -103,7 +103,8 @@
       "WebFetch(domain:www.steamcmd.net)",
       "WebFetch(domain:developer.valvesoftware.com)",
       "WebFetch(domain:docs.linuxgsm.com)",
-      "Bash(git rm backend/server.v1.bak.js)"
+      "Bash(git rm backend/server.v1.bak.js)",
+      "Bash(xargs grep -l \"update\")"
     ]
   }
 }

@@ -315,7 +315,9 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .mod-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; transition: all 0.15s; }
 .mod-item:hover { border-color: var(--border-active); }
 .mod-order { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); min-width: 28px; }
-.mod-name { flex: 1; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-name { flex: 1; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; }
+.mod-update-badge { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; background: rgba(229,192,123,0.15); color: var(--accent-yellow); flex-shrink: 0; letter-spacing: 0.3px; text-transform: uppercase; }
+.mod-update-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10px; font-weight: 700; background: var(--accent-yellow); color: var(--bg-deep); margin-left: 4px; padding: 0 5px; }
 .mod-id { font-size: 11px; font-family: var(--font-mono); color: var(--accent-blue); text-decoration: none; }
 .mod-id:hover { text-decoration: underline; }
 .mod-reorder { display: flex; flex-direction: column; gap: 1px; }

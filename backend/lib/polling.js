@@ -24,7 +24,7 @@ const {
   RCON_STARTUP_DELAY_MS,
   SHUTDOWN_FORCE_TIMEOUT_MS,
 } = require('./constants');
-const { flushAll } = require('./data-store');
+const { loadJSON, saveJSON, flushAll } = require('./data-store');
 const { detectRunningProcess, detectProcessByPid, spawnDayZServer, applyProcessSettings } = require('./process-manager');
 const { updateLeaderboard } = require('./cftools-leaderboard');
 const { fetchPlayers } = require('./cftools-players');
@@ -39,9 +39,62 @@ const { collectMetrics } = require('./metrics-collector');
 const { handleCrash } = require('./crash-detector');
 const { startTailing, stopTailing } = require('./rpt-tailer');
 
-// ─── Steam Update Polling ────────────────────────────────
+// ─── Steam Update Polling (persisted to disk) ───────────
+// Tracking data is loaded lazily on first access (after CONFIG is initialized)
+const _trackingFile = 'update-tracking.json';
+let _trackingLoaded = false;
 let lastModVersions = {};
 let lastGameBuild = null;
+// pendingModUpdates: { [workshopId]: { name, detectedAt, remoteVersion } }
+let pendingModUpdates = {};
+
+function _ensureTrackingLoaded() {
+  if (_trackingLoaded) return;
+  _trackingLoaded = true;
+  try {
+    const data = loadJSON(ctx.CONFIG.dataDir, _trackingFile, { gameBuild: null, modVersions: {}, pendingModUpdates: {} });
+    lastModVersions = data.modVersions || {};
+    lastGameBuild = data.gameBuild || null;
+    pendingModUpdates = data.pendingModUpdates || {};
+    logger.info({ gameBuild: lastGameBuild, modCount: Object.keys(lastModVersions).length }, 'Loaded persisted update tracking data');
+  } catch (err) {
+    logger.debug({ err }, 'Could not load update tracking — starting fresh');
+  }
+}
+
+function _persistTracking() {
+  saveJSON(ctx.CONFIG.dataDir, _trackingFile, {
+    gameBuild: lastGameBuild,
+    modVersions: lastModVersions,
+    pendingModUpdates,
+  });
+}
+
+/** Get pending mod updates for a server (based on its modList) */
+function getPendingModUpdates(serverId) {
+  _ensureTrackingLoaded();
+  const state = ctx.serverStates[serverId];
+  if (!state?.modList) return {};
+  const result = {};
+  for (const mod of state.modList) {
+    if (mod.workshopId && pendingModUpdates[mod.workshopId]) {
+      result[mod.workshopId] = pendingModUpdates[mod.workshopId];
+    }
+  }
+  return result;
+}
+
+/** Clear a pending mod update after it has been installed */
+function clearPendingModUpdate(workshopId) {
+  _ensureTrackingLoaded();
+  delete pendingModUpdates[workshopId];
+  _persistTracking();
+}
+
+/** Get the last known game build */
+function getLastGameBuild() {
+  return lastGameBuild;
+}
 
 async function getWorkshopModVersion(workshopId) {
   try {
@@ -169,6 +222,7 @@ async function runStartupDetection() {
 
 // ─── Steam update polling (every 15 minutes) ─────────────
 function startSteamUpdatePolling() {
+  _ensureTrackingLoaded();
   return setInterval(async () => {
     for (const srv of ctx.servers) {
       const state = ctx.serverStates[srv.id];
@@ -182,13 +236,15 @@ function startSteamUpdatePolling() {
             addLog(srv.id, 'info', 'updates', `Workshop mod ${mod.name} update detected (${lastModVersions[mod.workshopId]} -> ${remoteVersion})`);
             addNotification(srv.id, 'mod.update', 'Mod Update Available', `Workshop mod ${mod.name} has a new version available.`, 'warning');
             fireWebhooks('mod.updated', { serverId: srv.id, serverName: srv.name, modName: mod.name });
-            ctx.io.emit('modUpdate', { serverId: srv.id, mod: mod.name });
+            ctx.io.emit('modUpdate', { serverId: srv.id, mod: mod.name, workshopId: mod.workshopId });
+            // Track as pending update for frontend badges
+            pendingModUpdates[mod.workshopId] = { name: mod.name, detectedAt: new Date().toISOString(), remoteVersion };
             // Auto-updater integration: trigger update pipeline when enabled
             if (srv.autoUpdateEnabled) {
               triggerAutoUpdate(srv.id, 'mod', { modId: mod.workshopId, modName: mod.name });
             }
           }
-          lastModVersions[mod.workshopId] = remoteVersion;
+          if (remoteVersion) lastModVersions[mod.workshopId] = remoteVersion;
         }
       }
       // Game build update polling
@@ -203,7 +259,9 @@ function startSteamUpdatePolling() {
           triggerAutoUpdate(srv.id, 'game', { build: remoteBuild });
         }
       }
-      lastGameBuild = remoteBuild;
+      if (remoteBuild) lastGameBuild = remoteBuild;
+      // Persist tracking data to disk after each poll cycle
+      _persistTracking();
     }
   }, STEAM_UPDATE_POLL_INTERVAL_MS);
 }
@@ -281,4 +339,4 @@ function gracefulShutdown(httpServer, signal) {
   }, SHUTDOWN_FORCE_TIMEOUT_MS);
 }
 
-module.exports = { startAllPolling, gracefulShutdown };
+module.exports = { startAllPolling, gracefulShutdown, getPendingModUpdates, clearPendingModUpdate, getLastGameBuild };

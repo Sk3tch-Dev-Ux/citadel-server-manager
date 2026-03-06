@@ -10,6 +10,7 @@ const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
 const { auth, authForServer } = require('../middleware/auth');
 const modCache = require('../lib/mod-cache');
+const { getPendingModUpdates, clearPendingModUpdate } = require('../lib/polling');
 
 module.exports = function(app) {
   app.get('/api/servers/:id/mods', authForServer('mods.view'), (req, res) => {
@@ -120,6 +121,18 @@ module.exports = function(app) {
     const result = modCache.cleanCache();
     addAudit(req.user.id, req.user.username, 'mod.cache.clean', `Cleaned mod cache: ${result.removed} mods, ${result.freedFormatted} freed`);
     res.json(result);
+  });
+
+  // ─── Pending Mod Updates ────────────────────────────────────────
+  /** Get pending mod updates for a server (mods with newer Workshop versions) */
+  app.get('/api/servers/:id/mods/updates', authForServer('mods.view'), (req, res) => {
+    res.json(getPendingModUpdates(req.params.id));
+  });
+
+  /** Clear a pending mod update (e.g. after manual update or dismissal) */
+  app.delete('/api/servers/:id/mods/updates/:workshopId', authForServer('mods.install'), (req, res) => {
+    clearPendingModUpdate(req.params.workshopId);
+    res.json({ message: 'Pending update cleared' });
   });
 
   app.get('/api/mods/install-status', auth(), (req, res) => { res.json(ctx.activeInstalls); });
