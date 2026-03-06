@@ -340,9 +340,10 @@ async function stopAndUpdate(serverId) {
         // Use individual kicks based on player list for reliability
         if (state.players && state.players.length > 0) {
           for (const player of state.players) {
-            const playerId = player.id || player.index;
-            if (playerId !== undefined) {
-              await state.rcon.kick(playerId, 'Server updating');
+            // Use BattlEye slot number for reliable RCON kick with reason display
+            const rconId = player.rconSlot != null ? String(player.rconSlot) : (player.id || player.index);
+            if (rconId !== undefined) {
+              await state.rcon.kick(rconId, 'Server updating');
             }
           }
         }

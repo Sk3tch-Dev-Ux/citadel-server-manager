@@ -232,7 +232,9 @@ async function processJob(job, server, state) {
     if (job.kickPlayers && minutesUntil <= (job.kickMinutesBefore || 1) && !pending.kicked) {
       try {
         for (const player of (state.players || [])) {
-          await state.rcon.kick(player.id || player.number, 'Server restarting');
+          // Use BattlEye slot number for reliable RCON kick with reason display
+          const rconId = player.rconSlot != null ? String(player.rconSlot) : (player.id || player.number);
+          await state.rcon.kick(rconId, 'Server restarting');
         }
         pending.kicked = true;
         logger.info({ serverId: server.id, job: job.title, count: (state.players || []).length }, 'Scheduler: kicked players');
