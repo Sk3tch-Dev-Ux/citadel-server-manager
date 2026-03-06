@@ -586,6 +586,58 @@ export default function StoreManagementPage() {
         </div>
       )}
 
+      {/* Public access warning — show when on localhost */}
+      {storeEnabled && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+        <div style={{
+          display: 'flex', gap: 12,
+          padding: '14px 16px',
+          background: 'rgba(245,158,11,0.06)',
+          border: '1px solid rgba(245,158,11,0.18)',
+          borderRadius: 8,
+          marginBottom: 16,
+          fontSize: 12,
+          color: 'var(--text-secondary)',
+          lineHeight: 1.5,
+        }}>
+          <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <strong style={{ color: '#f59e0b', fontSize: 13 }}>Public access required</strong>
+            <div style={{ marginTop: 4 }}>
+              Your store is running on <code style={{ fontSize: 11 }}>localhost</code> which players cannot reach.
+              To accept real purchases, expose your panel to the internet using a <strong>Cloudflare Tunnel</strong> (free, recommended)
+              or port forwarding.
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+              <a
+                href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-remote-tunnel/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary btn-sm"
+                style={{ textDecoration: 'none', fontSize: 11 }}
+              >
+                <ExternalLink size={10} /> Cloudflare Tunnel Guide
+              </a>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                Free &bull; No port forwarding &bull; Automatic HTTPS
+              </span>
+            </div>
+            <details style={{ marginTop: 8 }}>
+              <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--accent-blue)', fontWeight: 500 }}>
+                Quick setup steps
+              </summary>
+              <div style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-primary)', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 10, lineHeight: 1.8 }}>
+                <div><span style={{ color: 'var(--text-muted)' }}>1.</span> <code>winget install Cloudflare.cloudflared</code></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>2.</span> <code>cloudflared tunnel login</code></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>3.</span> <code>cloudflared tunnel create citadel</code></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>4.</span> <code>cloudflared tunnel route dns citadel panel.yourdomain.com</code></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>5.</span> Create <code>config.yml</code> with <code>http://localhost:3001</code></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>6.</span> <code>cloudflared service install</code></div>
+              </div>
+            </details>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

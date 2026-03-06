@@ -56,6 +56,13 @@ export default defineConfig({
           ],
         },
         {
+          text: 'Monetization',
+          items: [
+            { text: 'VIP Store', link: '/guide/vip-store' },
+            { text: 'Remote Access', link: '/guide/remote-access' },
+          ],
+        },
+        {
           text: 'Operations',
           items: [
             { text: 'RCON Commands', link: '/guide/rcon' },
