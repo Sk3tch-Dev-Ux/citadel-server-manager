@@ -3,7 +3,7 @@ import { useSocket } from '../../contexts/SocketContext';
 import API from '../../api';
 import WorkshopItem from './WorkshopItem';
 import SteamSettingsPanel from './SteamSettingsPanel';
-import { Puzzle, Search, Flame, Settings, Package, Trash2, ChevronUp, ChevronDown } from '../../components/Icon';
+import { Puzzle, Search, Flame, Settings, Package, Trash2, ChevronUp, ChevronDown, AlertTriangle, Download } from '../../components/Icon';
 
 const formatSubs = (n) => {
   if (!n) return '0';
@@ -22,9 +22,29 @@ export default function ModsPage({ serverId }) {
   const [popularMods, setPopularMods] = useState([]);
   const [loadingPopular, setLoadingPopular] = useState(false);
   const [installProgress, setInstallProgress] = useState({});
+  const [pendingUpdates, setPendingUpdates] = useState({});
   const searchTimeout = useRef(null);
 
   useEffect(() => { API.get(`/api/servers/${serverId}/mods`).then(d => setMods(Array.isArray(d) ? d : [])); }, [serverId]);
+
+  // Fetch pending mod updates
+  useEffect(() => {
+    API.get(`/api/servers/${serverId}/mods/updates`).then(d => setPendingUpdates(d || {})).catch(() => {});
+  }, [serverId]);
+
+  // Listen for real-time mod update events
+  useEffect(() => {
+    const handler = (data) => {
+      if (data.serverId === serverId && data.workshopId) {
+        setPendingUpdates(prev => ({ ...prev, [data.workshopId]: { name: data.mod, detectedAt: new Date().toISOString() } }));
+      }
+    };
+    socket.on('modUpdate', handler);
+    return () => socket.off('modUpdate', handler);
+  }, [serverId, socket]);
+
+  const pendingCount = Object.keys(pendingUpdates).length;
+  const hasUpdate = (workshopId) => !!pendingUpdates[workshopId];
 
   useEffect(() => {
     const handler = (data) => { if (data.serverId === serverId) setMods(Array.isArray(data.mods) ? data.mods : []); };
@@ -144,7 +164,10 @@ export default function ModsPage({ serverId }) {
   return (
     <div>
       <div className="tabs">
-        <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}><Puzzle size={14} /> Installed ({mods.length})</div>
+        <div className={`tab ${tab === 'installed' ? 'active' : ''}`} onClick={() => setTab('installed')}>
+          <Puzzle size={14} /> Installed ({mods.length})
+          {pendingCount > 0 && <span className="mod-update-count" title={`${pendingCount} mod update${pendingCount > 1 ? 's' : ''} available`}>{pendingCount}</span>}
+        </div>
         <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}><Search size={14} /> Workshop</div>
         <div className={`tab ${tab === 'popular' ? 'active' : ''}`} onClick={() => { setTab('popular'); loadPopular(); }}><Flame size={14} /> Popular</div>
         <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}><Settings size={14} /> Steam</div>
@@ -173,7 +196,14 @@ export default function ModsPage({ serverId }) {
                     </button>
                   </div>
                   <div className={`toggle ${mod.enabled ? 'on' : ''}`} onClick={() => toggleMod(mod.workshopId, mod.enabled)}><div className="toggle-knob" /></div>
-                  <span className="mod-name" style={{ opacity: mod.enabled ? 1 : 0.4 }}>{mod.name}</span>
+                  <span className="mod-name" style={{ opacity: mod.enabled ? 1 : 0.4 }}>
+                    {mod.name}
+                    {hasUpdate(mod.workshopId) && (
+                      <span className="mod-update-badge" title="Workshop update available">
+                        <AlertTriangle size={11} /> Update
+                      </span>
+                    )}
+                  </span>
                   <select
                     className="mod-type-select"
                     value={mod.type || 'client'}
