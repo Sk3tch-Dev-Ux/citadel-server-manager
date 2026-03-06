@@ -53,6 +53,8 @@ async function startServer(serverId, reason) {
     startSidecar(srv);
     // Sync global bans to this server's ban.txt
     require('./cftools-bans').syncAllBansToServer(serverId);
+    // Sync priority queue to this server's priority.txt
+    require('./cftools-priority').syncToServer(serverId);
     return { success: true, message: `Already running (PID: ${existingPid})` };
   }
 
@@ -103,6 +105,8 @@ async function startServer(serverId, reason) {
     startSidecar(srv);
     // Sync global bans to this server's ban.txt
     require('./cftools-bans').syncAllBansToServer(serverId);
+    // Sync priority queue to this server's priority.txt
+    require('./cftools-priority').syncToServer(serverId);
 
     // Monitor launch asynchronously
     launchFailed.then(async (failReason) => {
@@ -272,6 +276,8 @@ async function restartServer(serverId, reason) {
         startTailing(serverId);
         // Sync global bans to this server's ban.txt
         require('./cftools-bans').syncAllBansToServer(serverId);
+        // Sync priority queue to this server's priority.txt
+        require('./cftools-priority').syncToServer(serverId);
         // Fire started hooks (non-blocking)
         executeHooks(serverId, 'started').catch(() => {});
         restartSuccess = true;
