@@ -59,3 +59,4 @@ tools/license-server/.env
 tools/license-server/.vercel/
 tools/license-server/node_modules/
 /000_Scripts
+/data
