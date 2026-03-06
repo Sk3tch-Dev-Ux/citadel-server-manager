@@ -63,7 +63,7 @@ Authorization: Bearer <jwt-token>
 | POST | `/api/servers/:id/message` | `chat.send` | Broadcast global message. Body: `{ "message": "..." }` |
 | GET | `/api/servers/:id/players` | `players.view` | List connected players |
 | POST | `/api/servers/:id/players/:playerId/kick` | `players.kick` | Kick a player. Body: `{ "reason": "..." }` |
-| POST | `/api/servers/:id/players/:playerId/ban` | `players.ban` | Ban a player via global ban database. Body: `{ "reason": "...", "expiration": "..." }` |
+| POST | `/api/servers/:id/players/:playerId/ban` | `players.ban` | Ban a player via global ban database. Kicks with configurable message. Body: `{ "reason": "...", "expiration": "..." }` |
 | GET | `/api/servers/:id/bans` | Any auth | List all global bans (alias for `/api/bans`) |
 | DELETE | `/api/servers/:id/bans/:banId` | `players.ban` | Remove a ban from the global database |
 
