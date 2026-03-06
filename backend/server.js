@@ -53,6 +53,8 @@ ctx.watchList = loadJSON(CONFIG.dataDir, 'watchlist.json', []);
 ctx.priorityQueue = loadJSON(CONFIG.dataDir, 'priority_queue.json', []);
 ctx.banDatabase = loadJSON(CONFIG.dataDir, 'bans.json', []);
 ctx.leaderboard = loadJSON(CONFIG.dataDir, 'leaderboard.json', []);
+ctx.storeProducts = loadJSON(CONFIG.dataDir, 'store_products.json', []);
+ctx.storePurchases = loadJSON(CONFIG.dataDir, 'store_purchases.json', []);
 
 // ─── Runtime state from env ──────────────────────────────
 const { resolveCredential } = require('./lib/credential-encryption');
@@ -104,7 +106,13 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,  // Allow image loading
 }));
 app.use(createCors(CONFIG.allowedOrigins));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    // Preserve raw body for Stripe webhook signature verification
+    if (req.originalUrl === '/api/store/webhook') req.rawBody = buf;
+  },
+}));
 app.use(secureCookies(useHttps));
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
@@ -156,6 +164,7 @@ require('./routes/actions.routes')(app);
 require('./routes/items.routes')(app);
 require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
+require('./routes/store.routes')(app);
 require('./routes/system.routes')(app);
 
 // ─── License status ──────────────────────────────────────

@@ -7,7 +7,7 @@ import API from '../api';
 import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound, Monitor, Gauge, Settings, Menu, X, Crown } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound, Monitor, Gauge, Settings, Menu, X, Crown, ShoppingCart } from '../components/Icon';
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -33,6 +33,7 @@ export default function AppLayout() {
     : location.pathname === '/users' ? 'Users & Roles'
     : location.pathname === '/webhooks' ? 'Webhooks'
     : location.pathname === '/priority-queue' ? 'Priority Queue'
+    : location.pathname === '/store-management' ? 'VIP Store'
     : location.pathname === '/settings' ? 'Settings'
     : location.pathname === '/license' ? 'License'
     : location.pathname === '/dashboard' ? 'Dashboard'
@@ -94,6 +95,9 @@ export default function AppLayout() {
           </Link>
           <Link to="/priority-queue" className={`nav-item ${location.pathname === '/priority-queue' ? 'active' : ''}`}>
             <span className="nav-icon"><Crown size={16} /></span>Priority Queue
+          </Link>
+          <Link to="/store-management" className={`nav-item ${location.pathname === '/store-management' ? 'active' : ''}`}>
+            <span className="nav-icon"><ShoppingCart size={16} /></span>VIP Store
           </Link>
           {user.role === 'admin' && (
             <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
