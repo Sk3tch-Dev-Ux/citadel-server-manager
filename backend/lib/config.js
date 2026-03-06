@@ -118,6 +118,12 @@ const CONFIG = {
   },
 };
 
+// Ban message configuration
+CONFIG.bans = {
+  kickMessage: structured.bans.kickMessage,
+  appealUrl: structured.bans.appealUrl,
+};
+
 // License purchase URL (Stripe Payment Link or custom checkout page)
 CONFIG.purchaseUrl = process.env.PURCHASE_URL || 'https://citadel.gg/purchase';
 

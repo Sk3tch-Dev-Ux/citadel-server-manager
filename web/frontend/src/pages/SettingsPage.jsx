@@ -11,6 +11,7 @@ const SECTION_LABELS = {
   logging: 'Logging',
   backups: 'Backups',
   polling: 'Polling Intervals',
+  bans: 'Ban Settings',
 };
 
 // Section icons mapping
@@ -22,6 +23,7 @@ const SECTION_ICONS = {
   logging: Settings,
   backups: Settings,
   polling: Settings,
+  bans: Shield,
 };
 
 // ─── ConfigField Component ────────────────────────────────
