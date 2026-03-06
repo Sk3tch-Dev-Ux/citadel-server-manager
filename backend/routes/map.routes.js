@@ -191,4 +191,49 @@ module.exports = function(app) {
     addAudit(req.user.id, req.user.username, 'map.event.clear', 'Cleared all map events');
     res.json({ message: 'Events cleared' });
   });
+
+  // ─── Available Map Icons Reference ──────────────────────
+  // Returns the full list of icon names available for custom map markers.
+  // Useful for users configuring MapMarkers.json or dynamic events.
+  app.get('/api/map/icons', authForServer('server.view'), (req, res) => {
+    const icons = [
+      // Events
+      { name: 'helicrash', category: 'Events', description: 'Helicopter crash site' },
+      { name: 'airdrop', category: 'Events', description: 'Airdrop / supply drop' },
+      { name: 'contamination', category: 'Events', description: 'Contamination zone' },
+      { name: 'horde', category: 'Events', description: 'Infected horde' },
+      // Vehicles
+      { name: 'car', category: 'Vehicles', description: 'Car / sedan' },
+      { name: 'truck', category: 'Vehicles', description: 'Truck' },
+      { name: 'boat', category: 'Vehicles', description: 'Sailboat' },
+      { name: 'ship', category: 'Vehicles', description: 'Ship / large vessel' },
+      { name: 'helicopter', category: 'Vehicles', description: 'Helicopter' },
+      // Structures
+      { name: 'house', category: 'Structures', description: 'House / building' },
+      { name: 'tent', category: 'Structures', description: 'Tent / camp' },
+      { name: 'camp', category: 'Structures', description: 'Campsite' },
+      { name: 'flag', category: 'Structures', description: 'Flag / territory' },
+      // Items & Loot
+      { name: 'chest', category: 'Loot', description: 'Chest / crate' },
+      { name: 'barrel', category: 'Loot', description: 'Barrel / storage' },
+      { name: 'briefcase', category: 'Loot', description: 'Briefcase / loot stash' },
+      { name: 'military', category: 'Loot', description: 'Military area' },
+      // Utilities
+      { name: 'marker', category: 'General', description: 'Generic map pin' },
+      { name: 'star', category: 'General', description: 'Star / point of interest' },
+      { name: 'warning', category: 'General', description: 'Warning / danger' },
+      { name: 'medical', category: 'General', description: 'Medical / hospital' },
+      { name: 'food', category: 'General', description: 'Food / restaurant' },
+      { name: 'water', category: 'General', description: 'Water source' },
+      { name: 'fire', category: 'General', description: 'Fire / campfire' },
+      { name: 'lock', category: 'General', description: 'Locked / secured' },
+      { name: 'key', category: 'General', description: 'Key / access point' },
+      { name: 'bolt', category: 'General', description: 'Power / electricity' },
+      { name: 'skull', category: 'General', description: 'Death / danger zone' },
+      { name: 'biohazard', category: 'General', description: 'Biohazard / toxic' },
+      { name: 'hammer', category: 'General', description: 'Construction / crafting' },
+      { name: 'wrench', category: 'General', description: 'Repair / mechanic' },
+    ];
+    res.json({ icons });
+  });
 };
