@@ -152,11 +152,15 @@ module.exports = function(app) {
       case 'kick':
         if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
         try {
-          await state.rcon.kick(params?.playerId, params?.reason || 'Kicked via Discord');
-          state.players = state.players.filter(p => p.id !== params?.playerId);
+          const kickReason = params?.reason || 'Kicked via Discord';
+          // Resolve BattlEye slot number — RCON kick requires slot# for reason display
+          const kickPlayer = state.players?.find(p => p.id === params?.playerId || p.steamId === params?.playerId);
+          const kickRconId = kickPlayer?.rconSlot != null ? String(kickPlayer.rconSlot) : params?.playerId;
+          await state.rcon.kick(kickRconId, kickReason);
+          state.players = state.players.filter(p => p.id !== params?.playerId && p.steamId !== params?.playerId);
           ctx.io.emit('players', { serverId: targetSrv.id, players: state.players });
-          addAudit(discordUserId, discordUser, 'player.kick', `Kicked ${params?.playerId}: ${params?.reason || 'Kicked via Discord'}`);
-          fireWebhooks('player.kick', { serverId: targetSrv.id, playerId: params?.playerId, reason: params?.reason });
+          addAudit(discordUserId, discordUser, 'player.kick', `Kicked ${kickPlayer?.name || params?.playerId}: ${kickReason}`);
+          fireWebhooks('player.kick', { serverId: targetSrv.id, playerId: params?.playerId, reason: kickReason });
           return res.json({ message: 'Kicked' });
         } catch (err) { return res.status(500).json({ error: err.message }); }
 

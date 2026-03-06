@@ -166,21 +166,38 @@ module.exports = function(app) {
     const session = findSession(req.params.id, steamId);
     if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
 
+    const kickReason = reason || 'Kicked by admin';
+
     try {
-      const provider = getProviderForAction(req.params.id, ActionType.KICK_PLAYER);
-      await provider.kickPlayer(req.params.id, steamId, reason || 'Kicked by admin');
-      // Remove from cached player list
+      // RCON kick shows the reason natively in DayZ ("BattlEye: Admin Kick (reason)").
+      // Always prefer RCON kick with the player's BattlEye slot number for reason display.
       const state = require('../lib/context').serverStates[req.params.id];
+      const player = state?.players?.find(p => p.steamId === steamId || p.id === steamId);
+      let kicked = false;
+
+      if (state?.rcon?.loggedIn && player?.rconSlot != null) {
+        // RCON kick with slot number — reason will show in DayZ client
+        await state.rcon.kick(player.rconSlot, kickReason);
+        kicked = true;
+      }
+
+      if (!kicked) {
+        // Fall back to provider kick (sidecar/RCON) — reason may not display
+        const provider = getProviderForAction(req.params.id, ActionType.KICK_PLAYER);
+        await provider.kickPlayer(req.params.id, steamId, kickReason);
+      }
+
+      // Remove from cached player list
       if (state) {
         state.players = state.players.filter(p => p.steamId !== steamId && p.id !== steamId);
         require('../lib/context').io.emit('players', { serverId: req.params.id, players: state.players });
       }
       addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.KICK_PLAYER],
-        `Kicked ${session.playerName || session.name}: ${reason || 'Kicked by admin'}`);
+        `Kicked ${session.playerName || session.name}: ${kickReason}`);
       const { addNotification, fireWebhooks } = require('../lib/notifications');
       addNotification(req.params.id, 'player.kick', 'Player Kicked', `${session.playerName || session.name} was kicked`, 'warning');
       const kickSrv = require('../lib/context').servers.find(s => s.id === req.params.id);
-      fireWebhooks('player.kick', { serverId: req.params.id, serverName: kickSrv?.name || 'Unknown', playerId: steamId, playerName: session.playerName || session.name, reason: reason || 'Kicked by admin' });
+      fireWebhooks('player.kick', { serverId: req.params.id, serverName: kickSrv?.name || 'Unknown', playerId: steamId, playerName: session.playerName || session.name, reason: kickReason });
       res.json({ message: `Kicked ${session.playerName || session.name}` });
     } catch (err) {
       res.status(500).json({ error: err.message });

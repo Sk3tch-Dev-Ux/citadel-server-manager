@@ -32,13 +32,17 @@ module.exports = function(app) {
   app.post('/api/servers/:id/players/:playerId/kick', auth('players.kick'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
-    await state.rcon.kick(req.params.playerId, req.body.reason || 'Kicked');
-    state.players = state.players.filter(p => p.id !== req.params.playerId);
+    const kickReason = req.body.reason || 'Kicked';
+    // Resolve the BattlEye slot number from player list — RCON kick requires slot# (not steamId)
+    const player = state.players?.find(p => p.id === req.params.playerId || p.steamId === req.params.playerId);
+    const rconId = player?.rconSlot != null ? String(player.rconSlot) : req.params.playerId;
+    await state.rcon.kick(rconId, kickReason);
+    state.players = state.players.filter(p => p.id !== req.params.playerId && p.steamId !== req.params.playerId);
     ctx.io.emit('players', { serverId: req.params.id, players: state.players });
-    addAudit(req.user.id, req.user.username, 'player.kick', `Kicked player ${req.params.playerId}`);
-    addNotification(req.params.id, 'player.kick', 'Player Kicked', `Player ${req.params.playerId} was kicked`, 'warning');
+    addAudit(req.user.id, req.user.username, 'player.kick', `Kicked player ${player?.name || req.params.playerId}`);
+    addNotification(req.params.id, 'player.kick', 'Player Kicked', `Player ${player?.name || req.params.playerId} was kicked`, 'warning');
     const kickSrv = ctx.servers.find(s => s.id === req.params.id);
-    fireWebhooks('player.kick', { serverId: req.params.id, serverName: kickSrv?.name || 'Unknown', playerId: req.params.playerId, reason: req.body.reason || 'Kicked' });
+    fireWebhooks('player.kick', { serverId: req.params.id, serverName: kickSrv?.name || 'Unknown', playerId: req.params.playerId, reason: kickReason });
     res.json({ message: 'Kicked' });
   });
 
