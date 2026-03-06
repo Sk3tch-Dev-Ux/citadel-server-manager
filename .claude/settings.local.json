@@ -104,7 +104,9 @@
       "WebFetch(domain:developer.valvesoftware.com)",
       "WebFetch(domain:docs.linuxgsm.com)",
       "Bash(git rm backend/server.v1.bak.js)",
-      "Bash(xargs grep -l \"update\")"
+      "Bash(xargs grep -l \"update\")",
+      "Bash(grep -r \"pfceppendorfer\\\\|C:\\\\\\\\Users\\\\\\\\KurtE\" C:/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController --include=\"*.js\" --include=\"*.ts\" --include=\"*.jsx\" --include=\"*.tsx\")",
+      "Bash(grep -n \"^#\\\\|^\\\\s*//.*pfceppendorfer\\\\|^\\\\s*//.*KurtE\\\\|^\\\\s*//.*test.*account\" \"C:/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/.env.example\")"
     ]
   }
 }
