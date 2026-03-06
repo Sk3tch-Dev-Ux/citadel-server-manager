@@ -4,6 +4,30 @@ outline: [2, 3]
 
 # Changelog
 
+## v2.4.0
+
+_Priority Queue, Config Editor Expansion & Ban Kick Messages_
+
+### Added — Priority Queue (VIP System)
+- **Automated `priority.txt` sync** — Adding or removing a VIP entry instantly updates every server's `priority.txt` file. DayZ reads the file live since 1.13 — no restart needed
+- **Time-limited VIP** — Set expiration with presets (30 days, 90 days, 1 year, permanent) or a custom date. Expired entries are auto-cleaned every 60 seconds
+- **Role tiers** — Entries categorized as VIP, Supporter, or Premium with color-coded badges
+- **Priority Queue management page** — Full CRUD UI with search, expiration countdown display, add/edit modals, import/export, and expired entry cleanup
+- **8 API endpoints** — Complete REST API for priority queue management (`GET/POST/PATCH/DELETE /api/priority-queue`, export, import, cleanup)
+- **Server lifecycle sync** — Priority queue re-synced to `priority.txt` on every server start, restart, and external process detection
+- **Moderator access** — `priority.manage` permission added to the built-in moderator role
+
+### Added — Ban Kick Messages
+- **Configurable kick message** — Customize the message shown to banned players with `{reason}` and `{banId}` placeholders
+- **Appeal URL** — Set a Discord invite or appeal URL that replaces "our Discord" in the default kick message
+- **Settings UI** — New "Ban Settings" section in the Settings page for configuring kick message and appeal URL
+- **Environment variables** — `BAN_KICK_MESSAGE` and `BAN_APPEAL_URL` for configuration via `.env`
+
+### Changed — Config Editor
+- **49 fields across 7 sections** — Expanded from 12 flat fields to 49 organized fields: Server Identity, Gameplay, Time & Environment, Voice & Communication, Network & Performance, Persistence & Base Building, Logging
+- **Bug fix** — Corrected `disableThirdPerson` to `disable3rdPerson` (the actual `serverDZ.cfg` key name)
+- **Popular additions** — `enableCfgGameplayFile`, `logAverageFps`, `logMemory`, `logPlayers`, `adminLogPlayerHitsOnly`, `adminLogPlacement`, `adminLogBuildActions`, `simulatedPlayersBatch`, `multithreadedReplication`, `storageAutoFix`, and many more
+
 ## v2.3.0
 
 _Performance Audit, QoL Feature Pipeline & Discord Bot Expansion_
