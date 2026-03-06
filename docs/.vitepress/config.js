@@ -9,7 +9,7 @@ export default defineConfig({
   ],
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/DayzServerController/favicon.svg' }],
-    ['meta', { name: 'theme-color', content: '#6366F1' }],
+    ['meta', { name: 'theme-color', content: '#7c3aed' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Citadel Docs' }],
     ['meta', { property: 'og:description', content: 'Enterprise DayZ server management platform' }],
