@@ -254,7 +254,6 @@ Automated VIP system that syncs entries to DayZ's native `priority.txt` file. Pl
 | GET/POST/DELETE | `/api/users` | `admin` | User management |
 | GET/POST/DELETE | `/api/roles` | `admin` | Role & permission management |
 | GET/POST/DELETE | `/api/watchlist` | Any auth | Player watchlist |
-| GET/POST/PATCH/DELETE | `/api/priority-queue` | `priority.manage` | Priority queue (VIP) management — see below |
 | GET | `/api/killfeed` | Any auth | Kill feed data |
 | GET | `/api/leaderboard` | Any auth | Player leaderboard |
 | GET | `/api/servers/:id/map/*` | Any auth | Live map data |
