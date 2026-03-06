@@ -201,6 +201,50 @@ These actions route through the Provider System (InHouseProvider → Sidecar, or
 
 ---
 
+## Priority Queue (VIP)
+
+Automated VIP system that syncs entries to DayZ's native `priority.txt` file. Players in the queue get priority position in the login queue. Entries support time-limited expiration and are automatically cleaned every 60 seconds.
+
+| Method | Path | Permission | Description |
+|--------|------|------------|-------------|
+| GET | `/api/priority-queue` | `priority.manage` | List all priority queue entries |
+| GET | `/api/priority-queue/export` | `priority.manage` | Export all entries as a downloadable JSON file |
+| POST | `/api/priority-queue/import` | `priority.manage` | Import entries from a JSON array. Returns `{ added, skipped, errors }` |
+| POST | `/api/priority-queue/cleanup` | `priority.manage` | Manually trigger expired entry cleanup. Returns `{ removed, remaining }` |
+| GET | `/api/priority-queue/:id` | `priority.manage` | Get a single entry by UUID |
+| POST | `/api/priority-queue` | `priority.manage` | Add an entry. Body: `{ "steamId", "name", "role", "expiresAt" }` |
+| PATCH | `/api/priority-queue/:id` | `priority.manage` | Update an entry. Body: `{ "name", "role", "expiresAt" }` |
+| DELETE | `/api/priority-queue/:id` | `priority.manage` | Remove an entry. Cleans all server `priority.txt` files |
+
+**Add entry example:**
+```json
+{
+  "steamId": "76561198012345678",
+  "name": "PlayerName",
+  "role": "VIP",
+  "expiresAt": "2026-04-06T23:59:59.999Z"
+}
+```
+
+**Roles:** `VIP`, `Supporter`, `Premium`
+
+**Expiration:** Set `expiresAt` to an ISO date string for time-limited VIP, or `null` for permanent access.
+
+**Import format** (POST body is a JSON array):
+```json
+[
+  {
+    "steamId": "76561198012345678",
+    "name": "PlayerName",
+    "role": "VIP",
+    "expiresAt": null,
+    "addedBy": "admin"
+  }
+]
+```
+
+---
+
 ## Additional Endpoints
 
 | Method | Path | Permission | Description |
@@ -210,7 +254,7 @@ These actions route through the Provider System (InHouseProvider → Sidecar, or
 | GET/POST/DELETE | `/api/users` | `admin` | User management |
 | GET/POST/DELETE | `/api/roles` | `admin` | Role & permission management |
 | GET/POST/DELETE | `/api/watchlist` | Any auth | Player watchlist |
-| GET/POST/DELETE | `/api/priority-queue` | Any auth | Priority queue management |
+| GET/POST/PATCH/DELETE | `/api/priority-queue` | `priority.manage` | Priority queue (VIP) management — see below |
 | GET | `/api/killfeed` | Any auth | Kill feed data |
 | GET | `/api/leaderboard` | Any auth | Player leaderboard |
 | GET | `/api/servers/:id/map/*` | Any auth | Live map data |

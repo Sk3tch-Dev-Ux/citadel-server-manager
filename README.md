@@ -31,7 +31,8 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 - **User & role management** — Granular permissions with custom roles and audit logging
 - **Webhook system** — Event-driven webhooks to Discord or any HTTP endpoint with retry logic
 - **Notification center** — Real-time in-app notifications for server events
-- **Watchlist & priority queue** — Track suspicious players, manage VIP access
+- **Priority queue (VIP)** — Automated VIP system with time-limited entries (30d/90d/1y/permanent/custom), role tiers (VIP/Supporter/Premium), automatic `priority.txt` sync to all servers, expiration cleanup, JSON import/export
+- **Watchlist** — Track suspicious players across servers
 - **Killfeed & leaderboard** — Parsed from RPT logs with player statistics
 - **Automated backups** — Scheduled server file backups with retention policies
 - **Firewall management** — Automatic Windows Firewall rule creation for server ports (elevated)
