@@ -105,8 +105,8 @@ module.exports = function(app) {
     const srv = {
       id: uuid(), name, installDir: installDir.replace(/\//g, '\\'),
       executable: executable || 'DayZServer_x64.exe',
-      launchParams: launchParams || `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck`,
-      ip: ip || '127.0.0.1', gamePort: gamePort || 2302, queryPort: queryPort || 2303,
+      launchParams: launchParams || `-config=serverDZ.cfg -ip=0.0.0.0 -port=${gamePort || 2302} -steamQueryPort=${queryPort || ((gamePort || 2302) + 1)} -profiles=profiles -dologs -adminlog -netlog -freezecheck`,
+      ip: ip || '0.0.0.0', gamePort: gamePort || 2302, queryPort: queryPort || 2303,
       rconPort: rconPort || 2305, rconPassword: rconPassword || '',
       maxPlayers: maxPlayers || 60, map: map || 'chernarusplus',
       gameTitle: gameTitle || 'DayZ, PC', profileDir: 'profiles', createdAt: new Date().toISOString(),

@@ -40,7 +40,7 @@ const { ensureFirewallRules } = require('../lib/firewall-manager');
  * Scaffold the deployment directory structure.
  * Creates profiles/, .backups/, ban.txt, whitelist.txt.
  */
-function scaffoldDeployment(installDir, map) {
+function scaffoldDeployment(installDir, map, opts = {}) {
   const dirs = [
     path.join(installDir, 'profiles'),
     path.join(installDir, 'profiles', 'BattlEye'),
@@ -59,13 +59,53 @@ function scaffoldDeployment(installDir, map) {
     const filePath = path.join(installDir, file);
     if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, '');
   }
+  // Create BattlEye server config if it doesn't exist (required for DayZ anti-cheat)
+  const beCfgPath = path.join(installDir, 'profiles', 'BattlEye', 'beserver.cfg');
+  if (!fs.existsSync(beCfgPath)) {
+    const rconPort = opts.rconPort || 2305;
+    const rconPw = opts.rconPassword || '';
+    fs.writeFileSync(beCfgPath, `RConPassword ${rconPw}\nRConPort ${rconPort}\nRestrictRCon 0\n`);
+  }
 }
 
 /**
  * Build default launch params for a DayZ server.
+ * -ip=0.0.0.0  binds the server to all network interfaces (required for external connectivity)
+ * -steamQueryPort  explicitly sets the Steam query port (required for server browser visibility)
  */
-function buildLaunchParams(gamePort) {
-  return `-config=serverDZ.cfg -port=${gamePort || 2302} -profiles=profiles -dologs -adminlog -netlog -freezecheck`;
+function buildLaunchParams(gamePort, queryPort) {
+  const port = gamePort || 2302;
+  const qPort = queryPort || (port + 1);
+  return `-config=serverDZ.cfg -ip=0.0.0.0 -port=${port} -steamQueryPort=${qPort} -profiles=profiles -dologs -adminlog -netlog -freezecheck`;
+}
+
+/**
+ * Build a complete serverDZ.cfg with all essential settings.
+ */
+function buildServerDZCfg(name, maxPlayers, map, queryPort) {
+  return [
+    `hostname = "${name}";`,
+    `password = "";`,
+    `passwordAdmin = "";`,
+    `maxPlayers = ${maxPlayers || 60};`,
+    `steamQueryPort = ${queryPort || 2303};`,
+    `verifySignatures = 2;`,
+    `forceSameBuild = 1;`,
+    `disableThirdPerson = 0;`,
+    `serverTime = "SystemTime";`,
+    `serverTimeAcceleration = 1;`,
+    `serverTimePersistent = 0;`,
+    `guaranteedUpdates = 1;`,
+    `loginQueueConcurrentPlayers = 5;`,
+    `loginQueueMaxPlayers = 500;`,
+    `instanceId = 1;`,
+    `storageAutoFix = 1;`,
+    `respawnTime = 5;`,
+    `timeStampFormat = "Short";`,
+    `allowFilePatching = 1;`,
+    `template = "${map || 'chernarusplus'}";`,
+    ``,
+  ].join('\n');
 }
 
 /**
@@ -196,8 +236,8 @@ module.exports = function(app) {
     const srv = {
       id: uuid(), name, installDir: resolvedDir,
       executable: 'DayZServer_x64.exe',
-      launchParams: buildLaunchParams(gamePort),
-      ip: '127.0.0.1', gamePort: gamePort || 2302, queryPort: queryPort || 2303,
+      launchParams: buildLaunchParams(gamePort, queryPort),
+      ip: '0.0.0.0', gamePort: gamePort || 2302, queryPort: queryPort || 2303,
       rconPort: rconPort || 2305, rconPassword: rconPassword || '',
       maxPlayers: maxPlayers || 60, map: map || 'chernarusplus',
       gameTitle: gameTitle || 'DayZ, PC', profileDir: 'profiles', createdAt: new Date().toISOString(), deploying: true,
@@ -257,8 +297,8 @@ module.exports = function(app) {
       }
       if (lastError) throw lastError;
 
-      // Scaffold deployment directory structure
-      scaffoldDeployment(resolvedDir, map || 'chernarusplus');
+      // Scaffold deployment directory structure (including BattlEye config)
+      scaffoldDeployment(resolvedDir, map || 'chernarusplus', { rconPort: srv.rconPort, rconPassword: srv.rconPassword });
 
       // Scaffold lifecycle hooks directory
       scaffoldHookDirectory(resolvedDir);
@@ -274,7 +314,7 @@ module.exports = function(app) {
       // Create default config
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
       if (!fs.existsSync(cfgPath)) {
-        fs.writeFileSync(cfgPath, `hostname = "${name}";\npassword = "";\npasswordAdmin = "";\nmaxPlayers = ${maxPlayers || 60};\nverifySignatures = 2;\nforceSameBuild = 1;\ndisableThirdPerson = 0;\nserverTime = "SystemTime";\nserverTimeAcceleration = 1;\nserverTimePersistent = 0;\nguaranteedUpdates = 1;\nloginQueueConcurrentPlayers = 5;\nloginQueueMaxPlayers = 500;\ninstanceId = 1;\nstorageAutoFix = 1;\nrespawnTime = 5;\ntimeStampFormat = "Short";\ntemplate = "${map || 'chernarusplus'}";\n`);
+        fs.writeFileSync(cfgPath, buildServerDZCfg(name, maxPlayers, map, srv.queryPort));
       }
       srv.deploying = false;
       saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
@@ -351,15 +391,15 @@ module.exports = function(app) {
       }
       if (lastError) throw lastError;
 
-      // Scaffold deployment directory structure
-      scaffoldDeployment(resolvedDir, srv.map || 'chernarusplus');
+      // Scaffold deployment directory structure (including BattlEye config)
+      scaffoldDeployment(resolvedDir, srv.map || 'chernarusplus', { rconPort: srv.rconPort, rconPassword: srv.rconPassword });
 
       // Scaffold lifecycle hooks directory
       scaffoldHookDirectory(resolvedDir);
 
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
       if (!fs.existsSync(cfgPath)) {
-        fs.writeFileSync(cfgPath, `hostname = "${srv.name}";\npassword = "";\npasswordAdmin = "";\nmaxPlayers = ${srv.maxPlayers || 60};\nverifySignatures = 2;\nforceSameBuild = 1;\ndisableThirdPerson = 0;\nserverTime = "SystemTime";\nserverTimeAcceleration = 1;\nserverTimePersistent = 0;\nguaranteedUpdates = 1;\nloginQueueConcurrentPlayers = 5;\nloginQueueMaxPlayers = 500;\ninstanceId = 1;\nstorageAutoFix = 1;\nrespawnTime = 5;\ntimeStampFormat = "Short";\ntemplate = "${srv.map || 'chernarusplus'}";\n`);
+        fs.writeFileSync(cfgPath, buildServerDZCfg(srv.name, srv.maxPlayers, srv.map, srv.queryPort));
       }
       ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'complete', message: 'Rebuild complete!' });
       addNotification(srv.id, 'server.rebuild', 'Server Rebuilt', `${srv.name} wiped and reinstalled`, 'danger');
