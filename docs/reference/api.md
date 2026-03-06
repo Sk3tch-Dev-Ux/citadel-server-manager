@@ -62,10 +62,53 @@ Authorization: Bearer <jwt-token>
 | POST | `/api/servers/:id/rcon` | `server.rcon` | Send raw RCON command. Body: `{ "command": "..." }` |
 | POST | `/api/servers/:id/message` | `chat.send` | Broadcast global message. Body: `{ "message": "..." }` |
 | GET | `/api/servers/:id/players` | `players.view` | List connected players |
-| POST | `/api/servers/:id/players/:playerId/kick` | `players.kick` | Kick a player |
-| POST | `/api/servers/:id/players/:playerId/ban` | `players.ban` | Ban a player. Body: `{ "reason": "...", "expiration": "..." }` |
-| GET | `/api/servers/:id/bans` | Any auth | List all bans |
-| DELETE | `/api/servers/:id/bans/:banId` | `players.ban` | Remove a ban |
+| POST | `/api/servers/:id/players/:playerId/kick` | `players.kick` | Kick a player. Body: `{ "reason": "..." }` |
+| POST | `/api/servers/:id/players/:playerId/ban` | `players.ban` | Ban a player via global ban database. Body: `{ "reason": "...", "expiration": "..." }` |
+| GET | `/api/servers/:id/bans` | Any auth | List all global bans (alias for `/api/bans`) |
+| DELETE | `/api/servers/:id/bans/:banId` | `players.ban` | Remove a ban from the global database |
+
+---
+
+## Global Ban Database
+
+Centralized ban system with UUID-based shareable ban IDs. Bans apply to all servers and are automatically synced to each server's `ban.txt` on start/restart.
+
+| Method | Path | Permission | Description |
+|--------|------|------------|-------------|
+| GET | `/api/bans` | `bans.manage` | List all bans in the global database |
+| GET | `/api/bans/export` | `bans.manage` | Export all bans as a downloadable JSON file |
+| POST | `/api/bans/import` | `bans.manage` | Import bans from a JSON array. Returns `{ added, skipped, errors, total }` |
+| GET | `/api/bans/:id` | `bans.manage` | Get a single ban by UUID |
+| POST | `/api/bans` | `bans.manage` | Add a manual ban. Body: `{ "steamId", "playerName", "reason", "expiresAt" }` |
+| DELETE | `/api/bans/:id` | `bans.manage` | Remove a ban by UUID. Cleans all server `ban.txt` files |
+
+**Import format** (POST body is a JSON array):
+```json
+[
+  {
+    "steamId": "76561198012345678",
+    "playerName": "PlayerName",
+    "reason": "Cheating",
+    "bannedBy": "admin",
+    "bannedAt": "2026-03-05T12:00:00.000Z"
+  }
+]
+```
+
+**Export response** (download as `citadel-bans-YYYY-MM-DD.json`):
+```json
+[
+  {
+    "id": "a1b2c3d4-...",
+    "steamId": "76561198012345678",
+    "playerName": "PlayerName",
+    "reason": "Cheating",
+    "bannedBy": "admin",
+    "bannedAt": "2026-03-05T12:00:00.000Z",
+    "source": "manual"
+  }
+]
+```
 
 ---
 

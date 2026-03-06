@@ -17,14 +17,14 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 - **Live map** — Real-time player and vehicle positions on interactive map with in-game actions
 - **Server controls** — Start, stop, restart with health monitoring and auto-restart
 - **Rich console** — Live RPT log streaming + RCON output in a unified real-time console
-- **Player management** — Online player list, kick, ban, heal, teleport, spawn items, unstuck, freeze, message, strip gear, view loadout, teleport to player
+- **Player management** — Online player list with kick/ban reason prompts, heal, teleport, spawn items, unstuck, freeze, message, strip gear, view loadout, teleport to player
 - **RCON console** — Send BattlEye commands directly with command history
 - **Mod manager** — Search Steam Workshop, install/uninstall/toggle mods, reorder load priority, mod cache
 - **Config editor** — Edit `serverDZ.cfg` from the UI with validation
 - **File browser** — Browse and edit server files with Monaco Editor and automatic backups
 - **Restart scheduler** — Cron-based automatic restarts with presets and in-game warnings
 - **Automated messenger** — Scheduled broadcast messages to players via RCON
-- **Ban management** — View, add, remove bans with ban list export
+- **Global ban database** — Centralized ban system with UUID-based shareable ban IDs, JSON export/import for sharing between server owners, automatic sync to all server `ban.txt` files on start/restart
 - **Log viewer** — Filterable real-time log stream by level and source (RPT, RCON, system)
 - **Server deployment** — Deploy new servers via SteamCMD (stable and experimental branches)
 - **Dangerzone** — Wipe missions, rebuild server files, full reinstall from the UI
@@ -241,7 +241,7 @@ Citadel/
 │   │   ├── steamcmd.js        # SteamCMD wrapper
 │   │   └── ...
 │   ├── middleware/            # Auth, rate-limit, security
-│   └── routes/                # 28 API route files
+│   └── routes/                # 29 API route files
 ├── web/frontend/              # React 18 + Vite 6 SPA
 │   └── src/
 │       ├── pages/             # Dashboard page components

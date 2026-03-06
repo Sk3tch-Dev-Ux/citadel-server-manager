@@ -24,7 +24,7 @@ POST /api/servers/detect
 This scans the directory for:
 - `serverDZ.cfg` — Parses hostname, ports, passwords
 - `@` mod folders — Detects installed mods
-- `.bat` launch files — Extracts launch parameters
+- Executable and launch parameters
 
 ## Profile Fields
 
@@ -33,13 +33,34 @@ This scans the directory for:
 | `name` | string | Display name for the server |
 | `installDir` | string | Path to the DayZ server installation |
 | `gamePort` | number | Game port (default: 2302) |
-| `steamQueryPort` | number | Steam query port (default: 27016) |
+| `steamQueryPort` | number | Steam query port (default: gamePort + 1, typically 2303) |
 | `rconPort` | number | BattlEye RCON port |
 | `rconPassword` | string | RCON password |
 | `map` | string | Map name (e.g., `chernarusplus`, `enoch`) |
 | `launchParams` | string | Additional launch parameters |
 | `maxPlayers` | number | Maximum player slots |
 | `providers` | array | Ordered list of action providers |
+
+## Default Launch Parameters
+
+When deploying a server through Citadel, the following launch parameters are automatically configured:
+
+```
+-config=serverDZ.cfg -ip=0.0.0.0 -port=2302 -steamQueryPort=2303 -profiles=profiles -dologs -adminlog -netlog -freezecheck
+```
+
+| Parameter | Purpose |
+|-----------|---------|
+| `-ip=0.0.0.0` | Bind to all network interfaces (required for external access) |
+| `-port=2302` | Game port |
+| `-steamQueryPort=2303` | Steam query port (must match `steamQueryPort` in `serverDZ.cfg`) |
+| `-profiles=profiles` | Profile directory for RPT logs, BattlEye config, and mod configs |
+| `-dologs -adminlog -netlog` | Enable logging |
+| `-freezecheck` | Enable freeze detection |
+
+::: warning
+The `-ip=0.0.0.0` and `-steamQueryPort=` parameters are critical. Without them, the server will not be reachable by Steam for queries or the server browser.
+:::
 
 ## Multi-Server Setup
 

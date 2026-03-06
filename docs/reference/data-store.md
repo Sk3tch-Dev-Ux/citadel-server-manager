@@ -11,6 +11,7 @@ Citadel uses a JSON file-based data store — no database required. All data liv
 | `audit.json` | Audit trail | Action log with who, what, when, result |
 | `webhooks.json` | Webhook configs | Discord and HTTP webhook configurations |
 | `leaderboard.json` | Leaderboard cache | Player stats leaderboard data |
+| `bans.json` | Global ban database | Centralized ban list with UUID IDs, synced to all server `ban.txt` files |
 | `setup_complete.json` | Setup state | Tracks whether initial setup has been completed |
 
 ## Backup & Restore
@@ -40,6 +41,24 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ```
 
 Available backup types: `servers`, `users`, `roles`, `webhooks`
+
+### Ban Database Export/Import
+
+The global ban database can be exported and imported via dedicated API endpoints:
+
+```bash
+# Export bans
+curl -H "Authorization: Bearer $TOKEN" \
+  http://localhost:3000/api/bans/export > bans-backup.json
+
+# Import bans (merges with existing, deduplicates by Steam ID)
+curl -X POST -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @bans-backup.json \
+  http://localhost:3000/api/bans/import
+```
+
+Each ban has a UUID that can be shared with other server owners for cross-community ban sharing.
 
 ## Data Safety
 

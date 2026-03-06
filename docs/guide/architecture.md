@@ -104,6 +104,7 @@ Citadel uses a JSON file-based data store (no database required):
 data/
 ├── servers.json       # Server profiles and configuration
 ├── users.json         # User accounts and roles
+├── bans.json          # Global ban database (UUID IDs, synced to ban.txt)
 ├── audit.json         # Action audit trail
 ├── webhooks.json      # Webhook configurations
 ├── leaderboard.json   # Player leaderboard cache
