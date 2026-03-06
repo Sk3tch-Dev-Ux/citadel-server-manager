@@ -45,6 +45,10 @@ const CONFIG_SCHEMA = {
     steamUpdateIntervalMs: { type: 'number', default: 300000, min: 60000, max: 3600000, description: 'Steam update check interval in ms' },
     metricsHistorySize: { type: 'number', default: 360, min: 10, max: 10000, description: 'Number of metrics history data points to retain' },
   },
+  bans: {
+    kickMessage: { type: 'string', default: 'You have been banned. Reason: {reason}. To appeal, visit our Discord.', envKey: 'BAN_KICK_MESSAGE', description: 'Message shown to players when kicked for a ban. Use {reason} for the ban reason and {banId} for the ban ID.' },
+    appealUrl: { type: 'string', default: '', envKey: 'BAN_APPEAL_URL', description: 'Discord invite or appeal URL included in ban messages. If set, replaces "our Discord" in the default kick message.' },
+  },
 };
 
 /**

@@ -12,6 +12,7 @@ const path = require('path');
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');
+const CONFIG = require('./config');
 const { saveJSON } = require('./data-store');
 
 // ─── Persistence ──────────────────────────────────────────
@@ -90,17 +91,55 @@ function removeBan(banId) {
   return ban;
 }
 
+// ─── Kick Message Formatting ─────────────────────────────
+
+/**
+ * Build the kick reason string shown to the player when banned.
+ * Uses the configurable template from Settings → Ban Settings.
+ *
+ * Supported placeholders:
+ *   {reason} — the admin-provided ban reason
+ *   {banId}  — the UUID ban ID (for appeals)
+ *
+ * If an appealUrl is configured, it replaces "our Discord" in the message.
+ */
+function _formatKickMessage(reason, banId) {
+  let msg = CONFIG.bans?.kickMessage || 'You have been banned. Reason: {reason}. To appeal, visit our Discord.';
+  const appealUrl = CONFIG.bans?.appealUrl;
+
+  // Substitute placeholders
+  msg = msg.replace(/\{reason\}/g, reason || 'Banned');
+  msg = msg.replace(/\{banId\}/g, banId || '');
+
+  // If an appeal URL is configured and the message still has the default "our Discord", replace it
+  if (appealUrl) {
+    msg = msg.replace(/our Discord/gi, appealUrl);
+  }
+
+  return msg;
+}
+
 // ─── Full Ban Flow (from Players page) ───────────────────
 
 /**
- * Ban a live player: add to global DB + RCON enforce + kick + update player list.
+ * Ban a live player: add to global DB + write ban.txt + kick + update player list.
+ *
+ * Enforcement strategy:
+ *   1. Persist to bans.json (global database)
+ *   2. Write steamId to ban.txt for all servers (DayZ reads this on connect)
+ *   3. RCON kick with configurable ban message (shows reason + appeal info)
+ *   4. Update in-memory player list + notify frontend
+ *
+ * Note: We do NOT use RCON `ban` because it requires a BattlEye session slot
+ * number (0, 1, 2...) not a Steam64 ID. ban.txt is the reliable persistence
+ * mechanism — DayZ checks it on every connection attempt.
  */
 async function banPlayer(serverId, playerId, reason, expiration, adminUsername) {
   const state = ctx.serverStates[serverId];
   const player = state?.players?.find(p => p.id === playerId || p.steamId === playerId);
   const steamId = player?.steamId || player?.id || playerId;
 
-  // Add to global ban database
+  // 1. Add to global ban database (also writes ban.txt for all servers)
   const ban = addBan({
     steamId,
     playerName: player?.name || 'Unknown',
@@ -110,17 +149,18 @@ async function banPlayer(serverId, playerId, reason, expiration, adminUsername) 
     source: 'manual',
   });
 
-  // RCON immediate enforcement: ban + kick
+  // 2. RCON kick with ban message (shows reason + appeal info to the player)
   if (state?.rcon) {
     try {
-      await state.rcon.ban(playerId, reason || 'Banned', -1);
-      try { await state.rcon.kick(playerId, reason || 'Banned'); } catch { /* already disconnecting */ }
+      const rconId = player?.rconSlot != null ? String(player.rconSlot) : playerId;
+      const kickMessage = _formatKickMessage(reason, ban.id);
+      await state.rcon.kick(rconId, kickMessage);
     } catch (err) {
-      logger.warn({ err: err.message, serverId }, 'RCON ban enforcement failed');
+      logger.warn({ err: err.message, serverId }, 'RCON kick after ban failed');
     }
   }
 
-  // Remove from player list
+  // 3. Remove from player list and notify frontend
   if (state?.players) {
     state.players = state.players.filter(p => p.id !== playerId && p.steamId !== playerId);
     if (ctx.io) ctx.io.emit('players', { serverId, players: state.players });

@@ -97,6 +97,7 @@ async function fetchPlayers(serverId) {
         steamId: player.steamId || '',
         ping: rcon?.ping || player.ping || 0,
         ip: rcon?.ip || '',
+        rconSlot: rcon?.slot ?? null,
         source: 'inhouse',
         loaded: player.loaded !== false,
         position: player.position || null,

@@ -188,6 +188,8 @@ module.exports = function(app) {
   });
 
   // ─── Ban Player ───────────────────────────────────
+  // Routes through the global ban database: persists to bans.json, writes ban.txt,
+  // RCON ban + kick for immediate enforcement, and updates the player list.
   app.post('/api/servers/:id/actions/ban', auth('players.ban'), async (req, res) => {
     const { steamId, reason } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
@@ -196,21 +198,15 @@ module.exports = function(app) {
     if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
 
     try {
-      const provider = getProviderForAction(req.params.id, ActionType.BAN_PLAYER);
-      await provider.banPlayer(req.params.id, steamId, reason || 'Banned by admin');
-      // Remove from cached player list
-      const state = require('../lib/context').serverStates[req.params.id];
-      if (state) {
-        state.players = state.players.filter(p => p.steamId !== steamId && p.id !== steamId);
-        require('../lib/context').io.emit('players', { serverId: req.params.id, players: state.players });
-      }
+      const { banPlayer } = require('../lib/cftools-bans');
+      const ban = await banPlayer(req.params.id, steamId, reason || 'Banned by admin', null, req.user.username);
       addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.BAN_PLAYER],
         `Banned ${session.playerName || session.name}: ${reason || 'Banned by admin'}`);
       const { addNotification, fireWebhooks } = require('../lib/notifications');
       addNotification(req.params.id, 'player.ban', 'Player Banned', `${session.playerName || session.name} was banned`, 'error');
       const banSrv = require('../lib/context').servers.find(s => s.id === req.params.id);
       fireWebhooks('player.ban', { serverId: req.params.id, serverName: banSrv?.name || 'Unknown', playerId: steamId, playerName: session.playerName || session.name, reason: reason || 'Banned by admin' });
-      res.json({ message: `Banned ${session.playerName || session.name}` });
+      res.json({ message: `Banned ${session.playerName || session.name}`, ban });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
