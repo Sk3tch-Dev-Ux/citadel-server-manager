@@ -1,5 +1,21 @@
 [
   {
+    "id": "e92743f0-e87c-47a5-9129-ea5aa798705b",
+    "timestamp": "2026-03-06T02:41:14.542Z",
+    "userId": "b6c6869b-751f-4eae-be8c-789bc3785d4c",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Lollipop"
+  },
+  {
+    "id": "6b8cd691-ec4e-4a7f-9e51-945960744f55",
+    "timestamp": "2026-03-06T02:41:10.447Z",
+    "userId": "b6c6869b-751f-4eae-be8c-789bc3785d4c",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
     "id": "09a2d079-e10c-4ea4-b73a-f7e8ed36c421",
     "timestamp": "2026-03-06T01:04:56.805Z",
     "userId": "b6c6869b-751f-4eae-be8c-789bc3785d4c",
