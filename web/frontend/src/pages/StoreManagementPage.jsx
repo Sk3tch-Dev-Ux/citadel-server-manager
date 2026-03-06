@@ -476,7 +476,15 @@ export default function StoreManagementPage() {
               )}
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
                 <Info size={10} style={{ verticalAlign: 'middle', marginRight: 3 }} />
-                Create a webhook endpoint in Stripe pointing to <code style={{ fontSize: 10 }}>{window.location.origin}/api/store/webhook</code> for event <code style={{ fontSize: 10 }}>checkout.session.completed</code>.
+                Create a webhook endpoint in Stripe pointing to <code style={{ fontSize: 10 }}>https://yourdomain.com/api/store/webhook</code> for event <code style={{ fontSize: 10 }}>checkout.session.completed</code>.
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                <AlertTriangle size={10} style={{ verticalAlign: 'middle', marginRight: 3, color: '#f59e0b' }} />
+                The URL must be publicly accessible. To test webhooks locally consider using the{' '}
+                <a href="https://docs.stripe.com/stripe-cli" target="_blank" rel="noopener noreferrer"
+                  style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>
+                  Stripe CLI <ExternalLink size={9} />
+                </a>
               </div>
             </div>
 
