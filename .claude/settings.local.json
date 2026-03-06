@@ -121,7 +121,16 @@
       "Bash(grep -n \"data/priority_queue.json\\\\|priority_queue.json\" \"C:\\\\Users\\\\KurtE\\\\OneDrive\\\\Documents\\\\GitHub\\\\DayzServerController\\\\backend\\\\lib\"/*)",
       "Bash(xargs grep -l \"priority\\\\|queue\\\\|vip\")",
       "WebFetch(domain:feedback.bistudio.com)",
-      "WebFetch(domain:api.steampowered.com)"
+      "WebFetch(domain:api.steampowered.com)",
+      "WebFetch(domain:docs.stripe.com)",
+      "Bash(stripe --version)",
+      "Bash(where winget)",
+      "Bash(winget install Stripe.StripeCLI --accept-source-agreements --accept-package-agreements)",
+      "Bash(winget install Stripe.StripeCli --source winget --accept-source-agreements --accept-package-agreements)",
+      "Bash(\"C:\\\\Users\\\\KurtE\\\\AppData\\\\Local\\\\Microsoft\\\\WinGet\\\\Links\\\\stripe.exe\" --version)",
+      "Bash(cmd.exe /c \"stripe --version\")",
+      "Bash(cmd.exe /c \"stripe --version 2>&1\")",
+      "Bash(\"C:/Users/KurtE/AppData/Local/Microsoft/WinGet/Packages/Stripe.StripeCli_Microsoft.Winget.Source_8wekyb3d8bbwe/stripe.exe\" --version)"
     ]
   }
 }
