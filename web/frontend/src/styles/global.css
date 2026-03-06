@@ -903,52 +903,50 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 /* ─── Map Markers ─────────────────────────────────────── */
 .map-marker { background: none !important; border: none !important; }
 
-/* Player markers */
-.map-marker__dot { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+/* Shared marker base */
+.map-marker__dot {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; line-height: 1;
+  transition: transform 0.15s ease;
+}
+.map-marker__dot:hover { transform: scale(1.12); }
+
+/* Player markers — clean solid dot */
 .map-marker__dot--player {
-  width: 12px; height: 12px; background: #3b82f6;
-  border: 2px solid #60a5fa; border-radius: 50%;
-  box-shadow: 0 0 8px rgba(59,130,246,0.6), 0 0 16px rgba(59,130,246,0.3);
-  animation: pulse-blue 2s ease-in-out infinite;
+  width: 10px; height: 10px; background: #3b82f6;
+  border: 2px solid #fff; border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 .map-marker__label {
   position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
   white-space: nowrap; font-size: 10px; font-weight: 600; color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.7);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.6);
   margin-top: 2px; pointer-events: none;
 }
 
-/* Vehicle markers (Font Awesome icons) */
+/* Vehicle markers — flat with subtle fill */
 .map-marker__dot--vehicle {
-  width: 28px; height: 28px; background: rgba(34,197,94,0.15);
-  border: 2px solid #22c55e; border-radius: 6px;
-  box-shadow: 0 0 8px rgba(34,197,94,0.4);
-  color: #22c55e; font-size: 13px;
+  width: 26px; height: 26px; background: rgba(30,30,30,0.85);
+  border: 1.5px solid #4ade80; border-radius: 5px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  color: #4ade80; font-size: 12px;
 }
 
-/* Event markers (Font Awesome icons) */
+/* Event markers — flat circle with icon */
 .map-marker__dot--event {
-  width: 30px; height: 30px; background: rgba(249,115,22,0.15);
-  border: 2px solid #f97316; border-radius: 50%;
-  box-shadow: 0 0 12px rgba(249,115,22,0.5);
-  animation: pulse-event 1.5s ease-in-out infinite;
-  color: #f97316; font-size: 13px;
+  width: 28px; height: 28px; background: rgba(30,30,30,0.85);
+  border: 1.5px solid #fb923c; border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  color: #fb923c; font-size: 12px;
 }
 .map-marker__dot--event i, .map-marker__dot--vehicle i { line-height: 1; }
-.map-marker__dot--helicrash { border-color: #ef4444; background: rgba(239,68,68,0.15); box-shadow: 0 0 12px rgba(239,68,68,0.5); color: #ef4444; }
-.map-marker__dot--airdrop { border-color: #8b5cf6; background: rgba(139,92,246,0.15); box-shadow: 0 0 12px rgba(139,92,246,0.5); color: #8b5cf6; }
-.map-marker__dot--contamination { border-color: #eab308; background: rgba(234,179,8,0.15); box-shadow: 0 0 12px rgba(234,179,8,0.5); color: #eab308; }
-.map-marker__dot--horde { border-color: #dc2626; background: rgba(220,38,38,0.15); box-shadow: 0 0 12px rgba(220,38,38,0.5); color: #dc2626; }
-.map-marker__dot--custom-marker { border-color: #22d3ee; background: rgba(34,211,238,0.15); box-shadow: 0 0 12px rgba(34,211,238,0.5); color: #22d3ee; }
 
-@keyframes pulse-blue {
-  0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.6), 0 0 16px rgba(59,130,246,0.3); }
-  50% { box-shadow: 0 0 12px rgba(59,130,246,0.8), 0 0 24px rgba(59,130,246,0.4); }
-}
-@keyframes pulse-event {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.15); opacity: 0.8; }
-}
+/* Event type colors — clean flat style */
+.map-marker__dot--helicrash { border-color: #f87171; color: #f87171; }
+.map-marker__dot--airdrop { border-color: #a78bfa; color: #a78bfa; }
+.map-marker__dot--contamination { border-color: #facc15; color: #facc15; }
+.map-marker__dot--horde { border-color: #ef4444; color: #ef4444; }
+.map-marker__dot--custom-marker { border-color: #22d3ee; color: #22d3ee; }
 
 /* ─── Map Popup ───────────────────────────────────────── */
 .map-popup .leaflet-popup-content { margin: 0 !important; padding: 0 !important; min-width: 200px; }
@@ -1042,9 +1040,9 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .map-legend__dot {
   width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
 }
-.map-legend__dot--player { background: #3b82f6; box-shadow: 0 0 4px rgba(59,130,246,0.5); }
-.map-legend__dot--vehicle { background: #22c55e; box-shadow: 0 0 4px rgba(34,197,94,0.5); border-radius: 3px; }
-.map-legend__dot--event { background: #f97316; box-shadow: 0 0 4px rgba(249,115,22,0.5); }
+.map-legend__dot--player { background: #3b82f6; border: 1.5px solid #fff; }
+.map-legend__dot--vehicle { background: #4ade80; border-radius: 3px; }
+.map-legend__dot--event { background: #fb923c; }
 .map-legend__divider { height: 1px; background: var(--border); margin: 6px 0; }
 .map-legend__selected { font-size: 12px; }
 .map-legend__selected-title {
@@ -1058,6 +1056,38 @@ tr:hover td { background: rgba(255,255,255,0.04); }
   cursor: pointer; padding: 2px; display: flex;
 }
 .map-legend__clear:hover { color: var(--text-primary); }
+
+/* ─── Icon Reference Panel ───────────────────────────── */
+.map-icon-ref__toggle {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: none; border: none; color: var(--text-muted);
+  font-size: 11px; font-weight: 500; cursor: pointer; padding: 4px 0;
+}
+.map-icon-ref__toggle:hover { color: var(--text-primary); }
+.map-icon-ref {
+  max-height: 320px; overflow-y: auto; margin-top: 4px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.map-icon-ref__cat { margin-bottom: 8px; }
+.map-icon-ref__cat-title {
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+}
+.map-icon-ref__grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+}
+.map-icon-ref__item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--text-secondary); padding: 3px 4px;
+  border-radius: 3px;
+}
+.map-icon-ref__item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.map-icon-ref__item i { width: 14px; text-align: center; font-size: 11px; color: var(--text-muted); }
+.map-icon-ref__item:hover i { color: var(--accent); }
+.map-icon-ref__hint {
+  font-size: 9px; color: var(--text-muted); margin-top: 6px;
+  padding-top: 6px; border-top: 1px solid var(--border); line-height: 1.4;
+}
 
 /* ─── Context Menu ────────────────────────────────────── */
 .map-context-menu {

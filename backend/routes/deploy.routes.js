@@ -311,11 +311,10 @@ module.exports = function(app) {
       const sidecarPort = getSidecarPort(srv);
       srv.inHouseApiUrl = `http://127.0.0.1:${sidecarPort}`;
 
-      // Create default config
+      // Write server config — always overwrite on fresh deploy since SteamCMD
+      // installs a bare default serverDZ.cfg that lacks steamQueryPort and other essentials
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
-      if (!fs.existsSync(cfgPath)) {
-        fs.writeFileSync(cfgPath, buildServerDZCfg(name, maxPlayers, map, srv.queryPort));
-      }
+      fs.writeFileSync(cfgPath, buildServerDZCfg(name, maxPlayers, map, srv.queryPort));
       srv.deploying = false;
       saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
       ctx.serverStates[srv.id].config = readServerConfig(resolvedDir);
@@ -397,10 +396,10 @@ module.exports = function(app) {
       // Scaffold lifecycle hooks directory
       scaffoldHookDirectory(resolvedDir);
 
+      // Write server config — always overwrite on rebuild since SteamCMD
+      // installs a bare default that lacks steamQueryPort and other essentials
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
-      if (!fs.existsSync(cfgPath)) {
-        fs.writeFileSync(cfgPath, buildServerDZCfg(srv.name, srv.maxPlayers, srv.map, srv.queryPort));
-      }
+      fs.writeFileSync(cfgPath, buildServerDZCfg(srv.name, srv.maxPlayers, srv.map, srv.queryPort));
       ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'complete', message: 'Rebuild complete!' });
       addNotification(srv.id, 'server.rebuild', 'Server Rebuilt', `${srv.name} wiped and reinstalled`, 'danger');
       addAudit(req.user.id, req.user.username, 'server.rebuild', `Completed rebuild for ${srv.name}`);

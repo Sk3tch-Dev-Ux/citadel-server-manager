@@ -95,6 +95,25 @@ const FA_ICON_MAP = {
   camp: 'fa-campground',
 };
 
+// Categorized icon reference for the legend panel (deduped, no aliases)
+const ICON_CATEGORIES = (() => {
+  const aliases = new Set(['home', 'box-open', 'custom']);
+  const catMap = {
+    helicrash: 'Events', airdrop: 'Events', contamination: 'Events', horde: 'Events',
+    car: 'Vehicles', truck: 'Vehicles', boat: 'Vehicles', ship: 'Vehicles', helicopter: 'Vehicles',
+    house: 'Structures', tent: 'Structures', camp: 'Structures', flag: 'Structures',
+    chest: 'Loot', barrel: 'Loot', briefcase: 'Loot', military: 'Loot',
+  };
+  const cats = {};
+  for (const [name, faClass] of Object.entries(FA_ICON_MAP)) {
+    if (aliases.has(name)) continue;
+    const cat = catMap[name] || 'General';
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push({ name, faClass });
+  }
+  return Object.entries(cats);
+})();
+
 // Event icons (Font Awesome) — checks event.icon (from mod config), then event.type, then fallback
 function eventIcon(type, icon) {
   const faClass = FA_ICON_MAP[icon] || FA_ICON_MAP[type] || 'fa-location-dot';
@@ -179,6 +198,7 @@ export default function LiveMapPage({ serverId }) {
 
   // World controls panel
   const [showWorldPanel, setShowWorldPanel] = useState(false);
+  const [showIconRef, setShowIconRef] = useState(false);
   const [worldHour, setWorldHour] = useState(12);
   const [worldMinute, setWorldMinute] = useState(0);
 
@@ -544,6 +564,30 @@ export default function LiveMapPage({ serverId }) {
             <input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} />
             <Eye size={13} /> Labels
           </label>
+
+          <div className="map-legend__divider" />
+          <button className="map-icon-ref__toggle" onClick={() => setShowIconRef(p => !p)}>
+            <Info size={12} /> Available Icons
+            {showIconRef ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+          {showIconRef && (
+            <div className="map-icon-ref">
+              {ICON_CATEGORIES.map(([cat, items]) => (
+                <div key={cat} className="map-icon-ref__cat">
+                  <div className="map-icon-ref__cat-title">{cat}</div>
+                  <div className="map-icon-ref__grid">
+                    {items.map(({ name, faClass }) => (
+                      <div key={name} className="map-icon-ref__item" title={name}>
+                        <i className={`fa-solid ${faClass}`} />
+                        <span>{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="map-icon-ref__hint">Use these names in MapMarkers.json or dynamic marker configs</div>
+            </div>
+          )}
 
           {selectedPlayer && (
             <>
