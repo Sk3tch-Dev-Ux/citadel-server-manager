@@ -137,8 +137,17 @@ async function executeAction(actionType, job, server, state) {
         logger.warn({ serverId: server.id, job: job.title }, 'Scheduler: rcon_command has no command configured');
         break;
       }
-      state.rcon.command(cmd.trim());
-      logger.info({ serverId: server.id, job: job.title, rconCommand: cmd.trim() }, 'Scheduler: executed rcon_command');
+      if (!state.rcon) {
+        logger.warn({ serverId: server.id, job: job.title }, 'Scheduler: rcon_command skipped — no RCON connection');
+        break;
+      }
+      const rconResult = await state.rcon.send(cmd.trim());
+      if (typeof rconResult === 'string' && (rconResult.startsWith('[Error]') || rconResult === '[No response]')) {
+        logger.warn({ serverId: server.id, job: job.title, rconCommand: cmd.trim(), result: rconResult }, 'Scheduler: rcon_command failed');
+        state.rcon.loggedIn = false;
+      } else {
+        logger.info({ serverId: server.id, job: job.title, rconCommand: cmd.trim() }, 'Scheduler: executed rcon_command');
+      }
       break;
     }
 

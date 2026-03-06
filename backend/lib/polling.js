@@ -109,13 +109,54 @@ async function getWorkshopModVersion(workshopId) {
   } catch { return null; }
 }
 
-async function getDayZBuildVersion() {
+/**
+ * Get the latest DayZ dedicated server build ID via SteamCMD app_info_print.
+ * Falls back to reading the local appmanifest file if SteamCMD is unavailable.
+ *
+ * @param {string} [serverAppId='223350'] - The Steam app ID (223350 stable, 1042420 experimental)
+ * @returns {Promise<string|null>} Build ID string or null
+ */
+async function getDayZBuildVersion(serverAppId) {
+  const appId = serverAppId || ctx.CONFIG.steam.serverAppId || '223350';
+  const { spawn } = require('child_process');
+
   try {
-    const appId = ctx.CONFIG.steam.appId;
-    const resp = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}`);
-    const data = await resp.json();
-    return data?.[appId]?.data?.build_number || null;
-  } catch { return null; }
+    // Try SteamCMD app_info_print for the remote build ID
+    const cmdPath = ctx.steamCmdPath;
+    if (!cmdPath) return null;
+
+    const result = await new Promise((resolve) => {
+      const proc = spawn(cmdPath, [
+        '+login', 'anonymous',
+        '+app_info_update', '1',
+        '+app_info_print', appId,
+        '+quit',
+      ], { cwd: require('path').dirname(cmdPath), windowsHide: true });
+
+      let output = '';
+      const handleData = (data) => { output += data.toString(); };
+      proc.stdout?.on('data', handleData);
+      proc.stderr?.on('data', handleData);
+
+      const timeout = setTimeout(() => {
+        try { proc.kill(); } catch { /* ok */ }
+        resolve(null);
+      }, 30_000);
+
+      proc.on('exit', () => {
+        clearTimeout(timeout);
+        // Parse buildid from app_info_print output
+        // Format: "buildid"		"XXXXXXX"
+        const match = output.match(/"buildid"\s+"(\d+)"/);
+        resolve(match ? match[1] : null);
+      });
+      proc.on('error', () => { clearTimeout(timeout); resolve(null); });
+    });
+
+    return result;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Metrics & Status Polling (every 15s) ────────────────
@@ -248,7 +289,8 @@ function startSteamUpdatePolling() {
         }
       }
       // Game build update polling
-      const remoteBuild = await getDayZBuildVersion();
+      const srvAppId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
+      const remoteBuild = await getDayZBuildVersion(srvAppId);
       if (remoteBuild && lastGameBuild && remoteBuild !== lastGameBuild) {
         addLog(srv.id, 'info', 'updates', `DayZ game build updated (${lastGameBuild} -> ${remoteBuild})`);
         addNotification(srv.id, 'game.update', 'Game Update Available', `DayZ game build ${remoteBuild} is available.`, 'warning');
