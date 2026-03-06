@@ -116,7 +116,11 @@
       "Bash(npx vitepress build)",
       "Bash(npm run docs:build)",
       "WebFetch(domain:dzconfig.com)",
-      "WebFetch(domain:cybrancee.com)"
+      "WebFetch(domain:cybrancee.com)",
+      "Bash(xargs grep -l \"priorityQueue\\\\|priority-queue\")",
+      "Bash(grep -n \"data/priority_queue.json\\\\|priority_queue.json\" \"C:\\\\Users\\\\KurtE\\\\OneDrive\\\\Documents\\\\GitHub\\\\DayzServerController\\\\backend\\\\lib\"/*)",
+      "Bash(xargs grep -l \"priority\\\\|queue\\\\|vip\")",
+      "WebFetch(domain:feedback.bistudio.com)"
     ]
   }
 }

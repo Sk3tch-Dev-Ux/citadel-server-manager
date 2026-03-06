@@ -27,6 +27,7 @@ import DangerzonePage from './pages/DangerzonePage';
 import LiveMapPage from './pages/LiveMapPage';
 import LicensePage from './pages/LicensePage';
 import SettingsPage from './pages/SettingsPage';
+import PriorityQueuePage from './pages/PriorityQueuePage';
 import ToastContainer from './components/ToastContainer';
 import API from './api';
 
@@ -47,7 +48,7 @@ function PermGuard({ permission, children }) {
   if (user.role === 'admin') return children;
   // Map roles to allowed permissions (matches backend role definitions)
   const rolePerms = {
-    moderator: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','mods.view','logs.view','metrics.view','chat.send','bans.manage','scheduler.manage'],
+    moderator: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','mods.view','logs.view','metrics.view','chat.send','bans.manage','scheduler.manage','priority.manage'],
     viewer: ['server.view','players.view','mods.view','logs.view','metrics.view'],
   };
   const perms = rolePerms[user.role] || [];
@@ -114,6 +115,7 @@ export default function AppRouter() {
           <Route path="users" element={<PermGuard permission="users.manage"><ErrorBoundary><UsersPage /></ErrorBoundary></PermGuard>} />
           <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><WebhooksPage /></ErrorBoundary></PermGuard>} />
           <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><SettingsPage /></ErrorBoundary></PermGuard>} />
+          <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><PriorityQueuePage /></ErrorBoundary></PermGuard>} />
           <Route path="license" element={<PermGuard permission="license.manage"><ErrorBoundary><LicensePage /></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />

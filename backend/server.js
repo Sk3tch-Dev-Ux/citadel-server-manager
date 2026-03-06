@@ -44,7 +44,7 @@ ctx.servers = loadJSON(CONFIG.dataDir, 'servers.json', []);
 ctx.users = loadJSON(CONFIG.dataDir, 'users.json', []);
 ctx.roles = loadJSON(CONFIG.dataDir, 'roles.json', [
   { id: 'admin', name: 'Admin', permissions: ['*'], color: '#ff3b3b', builtIn: true },
-  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','bans.manage','mods.view','logs.view','metrics.view','chat.send'], color: '#3b82f6', builtIn: true },
+  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','bans.manage','priority.manage','mods.view','logs.view','metrics.view','chat.send'], color: '#3b82f6', builtIn: true },
   { id: 'viewer', name: 'Viewer', permissions: ['server.view','players.view','mods.view','logs.view','metrics.view'], color: '#00ff6a', builtIn: true },
 ]);
 ctx.webhooks = loadJSON(CONFIG.dataDir, 'webhooks.json', []);
@@ -240,6 +240,11 @@ const { fireWebhooks } = require('./lib/notifications');
 
   // Start all polling loops (metrics, mod detection, leaderboard, steam updates, RCON)
   await startAllPolling();
+
+  // Priority queue expiration cleanup (every 60s — lightweight array filter)
+  setInterval(() => {
+    try { require('./lib/cftools-priority').cleanExpired(); } catch {}
+  }, 60_000);
 
   // Listen
   server.listen(CONFIG.port, () => {
