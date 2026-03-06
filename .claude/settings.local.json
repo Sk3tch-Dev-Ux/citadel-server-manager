@@ -106,7 +106,13 @@
       "Bash(git rm backend/server.v1.bak.js)",
       "Bash(xargs grep -l \"update\")",
       "Bash(grep -r \"pfceppendorfer\\\\|C:\\\\\\\\Users\\\\\\\\KurtE\" C:/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController --include=\"*.js\" --include=\"*.ts\" --include=\"*.jsx\" --include=\"*.tsx\")",
-      "Bash(grep -n \"^#\\\\|^\\\\s*//.*pfceppendorfer\\\\|^\\\\s*//.*KurtE\\\\|^\\\\s*//.*test.*account\" \"C:/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/.env.example\")"
+      "Bash(grep -n \"^#\\\\|^\\\\s*//.*pfceppendorfer\\\\|^\\\\s*//.*KurtE\\\\|^\\\\s*//.*test.*account\" \"C:/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/.env.example\")",
+      "Bash(xargs grep -l \"ban.txt\\\\|BattlEye\")",
+      "Bash(grep -rn \"ban.txt\\\\|BattlEye\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib/*.js)",
+      "Bash(wc -l /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/data/*.json)",
+      "Bash(xargs grep -l \"bans\\\\|ban\")",
+      "Bash(xargs grep -l \"ban\\\\|Ban\")",
+      "Bash(find \"/c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages\" -type f -name \"{WatchlistPage,PriorityQueuePage}.jsx\")"
     ]
   }
 }

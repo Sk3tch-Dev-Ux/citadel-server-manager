@@ -117,8 +117,8 @@ class RCONClient {
   }
 
   async getPlayers() { return this.send('players'); }
-  async kick(id, reason) { return this.send(`kick ${id} ${reason}`); }
-  async ban(id, reason) { return this.send(`ban ${id} 0 ${reason}`); }
+  async kick(id, reason) { return this.send(`kick ${id} ${reason || 'Kicked by admin'}`); }
+  async ban(id, reason, duration = -1) { return this.send(`ban ${id} ${duration} ${reason || 'Banned'}`); }
   async say(message) { return this.send(`say -1 ${message}`); }
   async shutdown() { return this.send('#shutdown'); }
   async restart() { return this.send('#restart'); }

@@ -44,13 +44,14 @@ ctx.servers = loadJSON(CONFIG.dataDir, 'servers.json', []);
 ctx.users = loadJSON(CONFIG.dataDir, 'users.json', []);
 ctx.roles = loadJSON(CONFIG.dataDir, 'roles.json', [
   { id: 'admin', name: 'Admin', permissions: ['*'], color: '#ff3b3b', builtIn: true },
-  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','mods.view','logs.view','metrics.view','chat.send'], color: '#3b82f6', builtIn: true },
+  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','bans.manage','mods.view','logs.view','metrics.view','chat.send'], color: '#3b82f6', builtIn: true },
   { id: 'viewer', name: 'Viewer', permissions: ['server.view','players.view','mods.view','logs.view','metrics.view'], color: '#00ff6a', builtIn: true },
 ]);
 ctx.webhooks = loadJSON(CONFIG.dataDir, 'webhooks.json', []);
 ctx.auditLog = loadJSON(CONFIG.dataDir, 'audit.json', []);
 ctx.watchList = loadJSON(CONFIG.dataDir, 'watchlist.json', []);
 ctx.priorityQueue = loadJSON(CONFIG.dataDir, 'priority_queue.json', []);
+ctx.banDatabase = loadJSON(CONFIG.dataDir, 'bans.json', []);
 ctx.leaderboard = loadJSON(CONFIG.dataDir, 'leaderboard.json', []);
 
 // ─── Runtime state from env ──────────────────────────────
@@ -150,6 +151,7 @@ require('./routes/watchlist.routes')(app);
 require('./routes/priority-queue.routes')(app);
 require('./routes/killfeed.routes')(app);
 require('./routes/leaderboard.routes')(app);
+require('./routes/bans.routes')(app);
 require('./routes/actions.routes')(app);
 require('./routes/items.routes')(app);
 require('./routes/map.routes')(app);
