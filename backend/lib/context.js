@@ -12,6 +12,7 @@ module.exports = {
   auditLog: [],
   watchList: [],
   priorityQueue: [],
+  banDatabase: [],
   leaderboard: [],
   notifications: [],
 

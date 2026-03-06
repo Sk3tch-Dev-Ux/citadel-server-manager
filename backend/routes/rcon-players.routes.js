@@ -1,10 +1,13 @@
 /**
- * RCON commands, player management, and ban routes.
+ * RCON commands, player management, and per-server ban routes.
+ *
+ * Ban/unban actions now go through the global ban database (cftools-bans.js).
+ * The per-server /bans endpoint returns the global ban list (all bans apply to all servers).
  */
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
-const { banPlayer, listBans, unbanPlayer } = require('../lib/cftools-bans');
+const { banPlayer, listBans, removeBan } = require('../lib/cftools-bans');
 const auth = require('../middleware/auth');
 
 module.exports = function(app) {
@@ -42,22 +45,25 @@ module.exports = function(app) {
   app.post('/api/servers/:id/players/:playerId/ban', auth('players.ban'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(400).json({ error: 'Server not found' });
-    await banPlayer(req.params.id, req.params.playerId, req.body.reason, req.body.expiration);
-    state.players = state.players.filter(p => p.id !== req.params.playerId && p.steamId !== req.params.playerId);
-    ctx.io.emit('players', { serverId: req.params.id, players: state.players });
-    addAudit(req.user.id, req.user.username, 'player.ban', `Banned player ${req.params.playerId}`);
+    // Use global ban database — includes RCON enforce + kick + player list update
+    const ban = await banPlayer(req.params.id, req.params.playerId, req.body.reason, req.body.expiration, req.user.username);
+    addAudit(req.user.id, req.user.username, 'player.ban', `Banned player ${req.params.playerId}: ${req.body.reason || 'Banned'}`);
     addNotification(req.params.id, 'player.ban', 'Player Banned', `Player ${req.params.playerId} was banned`, 'error');
     const banSrv = ctx.servers.find(s => s.id === req.params.id);
     fireWebhooks('player.ban', { serverId: req.params.id, serverName: banSrv?.name || 'Unknown', playerId: req.params.playerId, reason: req.body.reason || 'Banned' });
-    res.json({ message: 'Banned' });
+    res.json({ message: 'Banned', ban });
   });
 
+  // Per-server ban list — returns global bans (all bans apply to all servers)
   app.get('/api/servers/:id/bans', auth(), async (req, res) => {
-    res.json(await listBans(req.params.id));
+    res.json(listBans());
   });
 
+  // Unban via global ban database by ban UUID
   app.delete('/api/servers/:id/bans/:banId', auth('players.ban'), async (req, res) => {
-    await unbanPlayer(req.params.id, req.params.banId);
-    res.json({ message: 'Ban removed' });
+    const ban = removeBan(req.params.banId);
+    if (!ban) return res.status(404).json({ error: 'Ban not found' });
+    addAudit(req.user.id, req.user.username, 'player.unban', `Unbanned ${ban.steamId} (${ban.playerName})`);
+    res.json({ message: 'Ban removed', ban });
   });
 };

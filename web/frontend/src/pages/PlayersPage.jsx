@@ -77,8 +77,16 @@ export default function PlayersPage({ serverId }) {
   };
 
   const kick = async (steamId, name) => {
+    const reason = await prompt({
+      title: `Kick ${name}`,
+      message: 'Provide a reason for the kick:',
+      placeholder: 'Kicked by admin',
+      defaultValue: 'Kicked by admin',
+      confirmLabel: 'Kick',
+    });
+    if (reason === null) return; // cancelled
     try {
-      await API.post(`/api/servers/${serverId}/actions/kick`, { steamId, reason: 'Kicked by admin' });
+      await API.post(`/api/servers/${serverId}/actions/kick`, { steamId, reason: reason.trim() || 'Kicked by admin' });
       window.addToast?.(`${name} kicked`, 'success');
     } catch (err) {
       window.addToast?.(`Kick failed: ${err.message}`, 'error');
@@ -86,8 +94,17 @@ export default function PlayersPage({ serverId }) {
   };
 
   const ban = async (steamId, name) => {
+    const reason = await prompt({
+      title: `Ban ${name}`,
+      message: 'This will permanently ban the player and remove them from the server.',
+      placeholder: 'Reason for ban',
+      defaultValue: 'Banned by admin',
+      confirmLabel: 'Ban Permanently',
+      variant: 'danger',
+    });
+    if (reason === null) return; // cancelled
     try {
-      await API.post(`/api/servers/${serverId}/actions/ban`, { steamId, reason: 'Banned by admin' });
+      await API.post(`/api/servers/${serverId}/actions/ban`, { steamId, reason: reason.trim() || 'Banned by admin' });
       window.addToast?.(`${name} banned`, 'success');
     } catch (err) {
       window.addToast?.(`Ban failed: ${err.message}`, 'error');

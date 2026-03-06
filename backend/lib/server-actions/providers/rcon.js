@@ -38,7 +38,17 @@ class RCONProvider extends BaseProvider {
   async banPlayer(serverId, playerId, reason) {
     const state = ctx.serverStates[serverId];
     if (!state?.rcon) throw new Error('RCON not connected');
-    return state.rcon.ban(playerId, reason || 'Banned by admin');
+    // Ban permanently (-1 = permanent in BattlEye)
+    const result = await state.rcon.ban(playerId, reason || 'Banned by admin', -1);
+    // Force kick to immediately disconnect and remove character from world
+    try { await state.rcon.kick(playerId, reason || 'Banned by admin'); } catch { /* already disconnecting */ }
+    // Remove from local player list
+    if (state.players) {
+      state.players = state.players.filter(p => p.id !== playerId);
+      const srv = ctx.servers.find(s => s.id === serverId);
+      if (srv && ctx.io) ctx.io.emit('players', { serverId, players: state.players });
+    }
+    return result;
   }
 }
 

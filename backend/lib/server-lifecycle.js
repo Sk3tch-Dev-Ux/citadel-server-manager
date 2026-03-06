@@ -51,6 +51,8 @@ async function startServer(serverId, reason) {
     state.startedAt = new Date().toISOString();
     ctx.io.emit('serverStatus', { serverId, status: 'running' });
     startSidecar(srv);
+    // Sync global bans to this server's ban.txt
+    require('./cftools-bans').syncAllBansToServer(serverId);
     return { success: true, message: `Already running (PID: ${existingPid})` };
   }
 
@@ -99,6 +101,8 @@ async function startServer(serverId, reason) {
 
     addLog(serverId, 'info', 'server', `Process spawned with PID: ${child.pid}`);
     startSidecar(srv);
+    // Sync global bans to this server's ban.txt
+    require('./cftools-bans').syncAllBansToServer(serverId);
 
     // Monitor launch asynchronously
     launchFailed.then(async (failReason) => {
@@ -266,6 +270,8 @@ async function restartServer(serverId, reason) {
         addLog(serverId, 'info', 'server', `Restart succeeded on attempt ${attempt}`);
         startSidecar(srv);
         startTailing(serverId);
+        // Sync global bans to this server's ban.txt
+        require('./cftools-bans').syncAllBansToServer(serverId);
         // Fire started hooks (non-blocking)
         executeHooks(serverId, 'started').catch(() => {});
         restartSuccess = true;
