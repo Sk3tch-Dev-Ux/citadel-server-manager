@@ -58,6 +58,13 @@ RCON is configured per-server in the server profile, but defaults can be set:
 |----------|----------|---------|-------------|
 | `WEBHOOK_URL` | No | — | Default Discord webhook URL for notifications |
 
+## Bans
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `BAN_KICK_MESSAGE` | No | `You have been banned. Reason: {reason}. To appeal, visit our Discord.` | Message shown to players when kicked for a ban. Supports `{reason}` and `{banId}` placeholders |
+| `BAN_APPEAL_URL` | No | — | Discord invite or appeal URL. If set, replaces "our Discord" in the default kick message |
+
 ## Security
 
 | Variable | Required | Default | Description |
@@ -85,4 +92,7 @@ INHOUSE_API_KEY=your-sidecar-api-key
 # Discord (optional)
 DISCORD_BOT_TOKEN=your-bot-token
 DISCORD_CHANNEL_ID=1234567890
+
+# Ban messages (optional)
+BAN_APPEAL_URL=https://discord.gg/your-server
 ```

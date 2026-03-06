@@ -57,12 +57,27 @@ RCON commands are low-level BattlEye protocol operations. For advanced actions l
 Citadel uses a **global ban database** rather than per-server bans. When you ban a player through the dashboard or API:
 
 1. The ban is recorded in `data/bans.json` with a unique UUID
-2. The player is immediately kicked from the server via RCON
+2. The player is immediately kicked via RCON with a configurable ban message
 3. The player's Steam ID is written to the server's `ban.txt` file
 4. On server start/restart, all global bans are synced to the server's `ban.txt`
 
 Bans can be exported as JSON and shared with other server owners for cross-community ban lists. Import shared ban lists via the Bans page or the `/api/bans/import` endpoint.
 
+### Ban Kick Message
+
+When a player is banned, they see a configurable kick message. Configure it in **Settings → Ban Settings** or via environment variables:
+
+| Setting | Env Variable | Default |
+|---------|-------------|---------|
+| Kick Message | `BAN_KICK_MESSAGE` | `You have been banned. Reason: {reason}. To appeal, visit our Discord.` |
+| Appeal URL | `BAN_APPEAL_URL` | *(empty)* |
+
+**Supported placeholders:**
+- `{reason}` — The admin-provided ban reason
+- `{banId}` — The UUID ban ID (useful for appeals)
+
+If `BAN_APPEAL_URL` is set (e.g. `https://discord.gg/your-server`), it automatically replaces "our Discord" in the default message.
+
 ::: tip
-Raw RCON `ban` commands bypass the global ban database. Use the dashboard Bans page or API for persistent bans that survive server restarts and apply across all your servers.
+Raw RCON `ban` commands bypass the global ban database and kick message. Use the dashboard Bans page or API for persistent bans that survive server restarts and apply across all your servers.
 :::

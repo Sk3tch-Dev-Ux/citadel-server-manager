@@ -24,7 +24,7 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 - **File browser** — Browse and edit server files with Monaco Editor and automatic backups
 - **Restart scheduler** — Cron-based automatic restarts with presets and in-game warnings
 - **Automated messenger** — Scheduled broadcast messages to players via RCON
-- **Global ban database** — Centralized ban system with UUID-based shareable ban IDs, JSON export/import for sharing between server owners, automatic sync to all server `ban.txt` files on start/restart
+- **Global ban database** — Centralized ban system with UUID-based shareable ban IDs, JSON export/import for sharing between server owners, automatic sync to all server `ban.txt` files on start/restart, configurable kick message with appeal URL
 - **Log viewer** — Filterable real-time log stream by level and source (RPT, RCON, system)
 - **Server deployment** — Deploy new servers via SteamCMD (stable and experimental branches)
 - **Dangerzone** — Wipe missions, rebuild server files, full reinstall from the UI
@@ -200,6 +200,8 @@ The setup wizard generates a `.env` file automatically. You can also create it m
 | `DISCORD_ADMIN_ROLE_ID` | For bot | Discord role ID for admin actions |
 | `DISCORD_BOT_API_KEY` | For bot | Random key for bot-to-API auth |
 | `CORS_ORIGINS` | No | Comma-separated allowed origins |
+| `BAN_KICK_MESSAGE` | No | Custom ban kick message template (supports `{reason}` and `{banId}` placeholders) |
+| `BAN_APPEAL_URL` | No | Discord invite or appeal URL shown in ban kick messages |
 
 ---
 
