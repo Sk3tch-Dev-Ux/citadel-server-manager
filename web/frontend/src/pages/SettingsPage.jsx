@@ -445,7 +445,7 @@ export default function SettingsPage() {
             <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
               <strong style={{ color: '#f59e0b' }}>Next step:</strong> Run SteamCMD manually on this server to complete the initial Steam Guard authentication. Once authenticated, SteamCMD caches the session and all future operations will work automatically.
               <div style={{ marginTop: 8, fontFamily: 'monospace', fontSize: 11, background: 'var(--bg-primary)', borderRadius: 4, padding: '8px 10px', color: 'var(--text-primary)' }}>
-                cd C:\SteamCMD<br />
+                {steamStatus?.steamCmdDir ? <>cd {steamStatus.steamCmdDir}<br /></> : null}
                 steamcmd +login {steamStatus?.username} +quit
               </div>
             </div>

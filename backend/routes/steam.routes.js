@@ -41,7 +41,8 @@ function persistSteamCredentials(username, password) {
 }
 
 module.exports = function(app) {
-  app.get('/api/steam/status', auth(), async (req, res) => {
+  // All Steam credential endpoints are admin-only — credentials are global system config
+  app.get('/api/steam/status', auth('system.steam'), async (req, res) => {
     let steamCmdFound = false;
     try { await ensureSteamCMD(); steamCmdFound = true; } catch {}
     res.json({
@@ -50,10 +51,11 @@ module.exports = function(app) {
       hasPassword: !!ctx.steamCredentials.password,
       hasGuardCode: !!ctx.steamCredentials.guardCode,
       loginValidated: ctx.steamLoginValidated,
+      steamCmdDir: ctx.steamCmdPath ? path.dirname(ctx.steamCmdPath) : '',
     });
   });
 
-  app.post('/api/steam/credentials', auth('mods.install'), async (req, res) => {
+  app.post('/api/steam/credentials', auth('system.steam'), async (req, res) => {
     const { username, password, guardCode } = req.body;
     if (username !== undefined) ctx.steamCredentials.username = username;
     if (password !== undefined) ctx.steamCredentials.password = password;
@@ -104,7 +106,7 @@ module.exports = function(app) {
    *   3. SteamCMD caches the auth token in config/config.vdf
    *   4. All future automated logins reuse the cached token
    */
-  app.post('/api/steam/credentials/save', auth('mods.install'), (req, res) => {
+  app.post('/api/steam/credentials/save', auth('system.steam'), (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password required' });

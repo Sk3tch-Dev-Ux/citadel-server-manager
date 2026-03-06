@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '../../contexts/SocketContext';
+import { useAuth } from '../../contexts/AuthContext';
 import API from '../../api';
 import WorkshopItem from './WorkshopItem';
 import SteamSettingsPanel from './SteamSettingsPanel';
@@ -14,6 +15,8 @@ const formatSubs = (n) => {
 
 export default function ModsPage({ serverId }) {
   const socket = useSocket();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [mods, setMods] = useState([]);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
@@ -170,7 +173,7 @@ export default function ModsPage({ serverId }) {
         </div>
         <div className={`tab ${tab === 'workshop' ? 'active' : ''}`} onClick={() => setTab('workshop')}><Search size={14} /> Workshop</div>
         <div className={`tab ${tab === 'popular' ? 'active' : ''}`} onClick={() => { setTab('popular'); loadPopular(); }}><Flame size={14} /> Popular</div>
-        <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}><Settings size={14} /> Steam</div>
+        {isAdmin && <div className={`tab ${tab === 'steam' ? 'active' : ''}`} onClick={() => setTab('steam')}><Settings size={14} /> Steam</div>}
       </div>
 
       {tab === 'installed' && (
