@@ -124,6 +124,10 @@ CONFIG.bans = {
   appealUrl: structured.bans.appealUrl,
 };
 
+// VIP Store / Stripe configuration — live reference to structured config
+// so that runtime updates (via store config API) are immediately reflected.
+CONFIG.store = structured.store;
+
 // License purchase URL (Stripe Payment Link or custom checkout page)
 CONFIG.purchaseUrl = process.env.PURCHASE_URL || 'https://citadel.gg/purchase';
 

@@ -6,6 +6,7 @@ import Modal from '../components/ui/Modal';
 import {
   ShoppingCart, CreditCard, Plus, Search, Trash2, Edit, Crown,
   AlertTriangle, CheckCircle, Info, Infinity, Calendar, ExternalLink, Copy, Link,
+  Save, Eye, EyeOff, Loader, Settings,
 } from '../components/Icon';
 
 /** Duration presets for product creation */
@@ -210,6 +211,61 @@ export default function StoreManagementPage() {
   const [search, setSearch] = useState('');
   const { confirm, DialogComponent } = useConfirmDialog();
 
+  // ─── Stripe config state ────────────────────────────────
+  const [stripeConfig, setStripeConfig] = useState(null);
+  const [showStripeConfig, setShowStripeConfig] = useState(false);
+  const [stripeSecretKey, setStripeSecretKey] = useState('');
+  const [stripeWebhookSecret, setStripeWebhookSecret] = useState('');
+  const [stripeEnabled, setStripeEnabled] = useState(false);
+  const [stripeStoreName, setStripeStoreName] = useState('');
+  const [stripeCurrency, setStripeCurrency] = useState('usd');
+  const [stripeSaving, setStripeSaving] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
+
+  const loadStripeConfig = useCallback(async () => {
+    try {
+      const cfg = await API.get('/api/store/admin/stripe-config');
+      setStripeConfig(cfg);
+      setStripeEnabled(cfg.enabled || false);
+      setStripeStoreName(cfg.storeName || 'VIP Priority Queue');
+      setStripeCurrency(cfg.currency || 'usd');
+      // Don't overwrite user's typed keys — only set empty placeholders
+      setStripeSecretKey('');
+      setStripeWebhookSecret('');
+      // Auto-show config if Stripe is not configured
+      if (!cfg.hasSecretKey) setShowStripeConfig(true);
+    } catch { /* ignore */ }
+  }, []);
+
+  const saveStripeConfig = async () => {
+    setStripeSaving(true);
+    try {
+      const payload = {
+        enabled: stripeEnabled,
+        storeName: stripeStoreName,
+        currency: stripeCurrency,
+      };
+      // Only send keys if user actually typed new ones
+      if (stripeSecretKey) payload.stripeSecretKey = stripeSecretKey;
+      if (stripeWebhookSecret) payload.stripeWebhookSecret = stripeWebhookSecret;
+
+      const result = await API.post('/api/store/admin/stripe-config', payload);
+      if (result.error) {
+        window.addToast?.(result.error, 'error');
+      } else {
+        window.addToast?.('Store configuration saved', 'success');
+        setStripeSecretKey('');
+        setStripeWebhookSecret('');
+        // Refresh both stripe config and store status
+        await Promise.all([loadStripeConfig(), loadData()]);
+      }
+    } catch (err) {
+      window.addToast?.(err.message || 'Failed to save configuration', 'error');
+    }
+    setStripeSaving(false);
+  };
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -230,7 +286,7 @@ export default function StoreManagementPage() {
     } catch { setPurchases([]); }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(); loadStripeConfig(); }, [loadData, loadStripeConfig]);
   useEffect(() => { if (tab === 'purchases') loadPurchases(); }, [tab, loadPurchases]);
 
   // ─── Product CRUD ──────────────────────────────────────
@@ -298,54 +354,183 @@ export default function StoreManagementPage() {
     );
   });
 
-  // ─── Stripe status banner ──────────────────────────────
-  const stripeConfigured = storeStatus?.stripeConfigured;
+  // ─── Stripe status ──────────────────────────────────────
   const storeEnabled = storeStatus?.enabled;
 
   return (
     <div style={{ maxWidth: 900 }}>
-      {/* Stripe Configuration Banner */}
-      {!stripeConfigured && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 16px',
-          background: 'rgba(245,158,11,0.08)',
-          border: '1px solid rgba(245,158,11,0.2)',
-          borderRadius: 8,
-          marginBottom: 16,
-          fontSize: 13,
-          color: 'var(--text-secondary)',
-        }}>
-          <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
-          <div>
-            <strong style={{ color: '#f59e0b' }}>Stripe not configured.</strong>{' '}
-            Add your Stripe Secret Key and Webhook Secret in{' '}
-            <a href="/settings" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>Settings</a>{' '}
-            to enable the VIP store.
+      {/* ═══ Stripe Configuration Section ═══ */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        marginBottom: 16,
+        overflow: 'hidden',
+      }}>
+        {/* Config header — always visible */}
+        <button
+          onClick={() => setShowStripeConfig(!showStripeConfig)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            width: '100%',
+            padding: '14px 18px',
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-primary)', fontFamily: 'var(--font-display)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Settings size={16} style={{ color: 'var(--accent-purple)' }} />
+            <span style={{ fontWeight: 600, fontSize: 14 }}>Stripe Configuration</span>
+            {stripeConfig?.hasSecretKey ? (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                background: stripeEnabled && storeEnabled
+                  ? 'rgba(92,184,92,0.12)' : stripeConfig?.hasSecretKey
+                    ? 'rgba(59,130,246,0.12)' : 'rgba(245,158,11,0.12)',
+                color: stripeEnabled && storeEnabled
+                  ? 'var(--accent-green)' : stripeConfig?.hasSecretKey
+                    ? 'var(--accent-blue)' : '#f59e0b',
+              }}>
+                {stripeEnabled && storeEnabled ? <><CheckCircle size={10} /> Live</> :
+                 stripeConfig?.hasSecretKey ? <><Info size={10} /> Configured</> :
+                 <><AlertTriangle size={10} /> Not configured</>}
+              </span>
+            ) : (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                background: 'rgba(245,158,11,0.12)', color: '#f59e0b',
+              }}>
+                <AlertTriangle size={10} /> Not configured
+              </span>
+            )}
           </div>
-        </div>
-      )}
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{showStripeConfig ? '▲ Hide' : '▼ Show'}</span>
+        </button>
 
-      {stripeConfigured && !storeEnabled && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 16px',
-          background: 'rgba(59,130,246,0.08)',
-          border: '1px solid rgba(59,130,246,0.2)',
-          borderRadius: 8,
-          marginBottom: 16,
-          fontSize: 13,
-          color: 'var(--text-secondary)',
-        }}>
-          <Info size={16} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
-          <div>
-            Stripe is configured but the store is <strong>disabled</strong>. Enable it in{' '}
-            <a href="/settings" style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>Settings</a>{' '}
-            under &ldquo;VIP Store / Payments&rdquo;.
+        {/* Config body — collapsible */}
+        {showStripeConfig && (
+          <div style={{ padding: '0 18px 18px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '14px 0', lineHeight: 1.5 }}>
+              Enter your Stripe API keys to enable the VIP store. Get your keys from{' '}
+              <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer"
+                style={{ color: 'var(--accent-blue)', textDecoration: 'none' }}>
+                Stripe Dashboard → API Keys <ExternalLink size={9} />
+              </a>
+            </div>
+
+            {/* Secret Key */}
+            <div className="input-group" style={{ marginBottom: 12 }}>
+              <label className="input-label">Stripe Secret Key</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="input"
+                  type={showSecretKey ? 'text' : 'password'}
+                  value={stripeSecretKey}
+                  onChange={e => setStripeSecretKey(e.target.value)}
+                  placeholder={stripeConfig?.hasSecretKey ? `Current: ${stripeConfig.secretKeyPrefix}` : 'sk_test_... or sk_live_...'}
+                  autoComplete="off"
+                  style={{ paddingRight: 36 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSecretKey(!showSecretKey)}
+                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
+                >
+                  {showSecretKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              {stripeConfig?.hasSecretKey && !stripeSecretKey && (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                  ✓ Key is saved. Leave blank to keep current key.
+                </div>
+              )}
+            </div>
+
+            {/* Webhook Secret */}
+            <div className="input-group" style={{ marginBottom: 12 }}>
+              <label className="input-label">Webhook Secret</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="input"
+                  type={showWebhookSecret ? 'text' : 'password'}
+                  value={stripeWebhookSecret}
+                  onChange={e => setStripeWebhookSecret(e.target.value)}
+                  placeholder={stripeConfig?.hasWebhookSecret ? `Current: ${stripeConfig.webhookSecretPrefix}` : 'whsec_...'}
+                  autoComplete="off"
+                  style={{ paddingRight: 36 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
+                >
+                  {showWebhookSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              {stripeConfig?.hasWebhookSecret && !stripeWebhookSecret && (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                  ✓ Secret is saved. Leave blank to keep current secret.
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                <Info size={10} style={{ verticalAlign: 'middle', marginRight: 3 }} />
+                Create a webhook endpoint in Stripe pointing to <code style={{ fontSize: 10 }}>{window.location.origin}/api/store/webhook</code> for event <code style={{ fontSize: 10 }}>checkout.session.completed</code>.
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              {/* Store Name */}
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">Store Name</label>
+                <input
+                  className="input"
+                  value={stripeStoreName}
+                  onChange={e => setStripeStoreName(e.target.value)}
+                  placeholder="VIP Priority Queue"
+                />
+              </div>
+
+              {/* Currency */}
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label">Default Currency</label>
+                <select className="input" value={stripeCurrency} onChange={e => setStripeCurrency(e.target.value)}>
+                  <option value="usd">USD ($)</option>
+                  <option value="eur">EUR (€)</option>
+                  <option value="gbp">GBP (£)</option>
+                  <option value="cad">CAD ($)</option>
+                  <option value="aud">AUD ($)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Enable toggle + Save */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                <input
+                  type="checkbox"
+                  checked={stripeEnabled}
+                  onChange={e => setStripeEnabled(e.target.checked)}
+                  style={{ width: 16, height: 16 }}
+                />
+                <span style={{ fontWeight: 600 }}>Enable Store</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— make the public store page accessible to players</span>
+              </label>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={saveStripeConfig}
+                disabled={stripeSaving}
+                style={{ minWidth: 120 }}
+              >
+                {stripeSaving ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</> : <><Save size={14} /> Save Config</>}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
+      {/* Store live banner with share links */}
       {storeEnabled && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
