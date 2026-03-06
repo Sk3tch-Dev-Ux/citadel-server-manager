@@ -31,7 +31,8 @@ Configure Discord webhooks to receive alerts in your Discord channels.
 | `server.stop` | Server stopped or crashed |
 | `server.restart` | Server restarted |
 | `player.kick` | Player was kicked |
-| `player.ban` | Player was banned |
+| `player.ban` | Player was banned (includes global ban database entries) |
+| `player.unban` | Player was unbanned (ban removed from global database) |
 | `scheduler.job` | Scheduled job executed |
 | `backup.complete` | Backup completed |
 | `backup.failed` | Backup failed |

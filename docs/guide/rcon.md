@@ -24,7 +24,7 @@ POST /api/servers/:id/rcon
 | `say -1 <message>` | Broadcast message to all players |
 | `say <player#> <message>` | Send private message to a player |
 | `kick <player#> <reason>` | Kick a player |
-| `ban <player#> <minutes> <reason>` | Ban a player |
+| `ban <player#> <minutes> <reason>` | Ban a player (`-1` for permanent) |
 | `players` | List connected players |
 | `bans` | List active bans |
 | `removeBan <ban#>` | Remove a ban |
@@ -51,3 +51,18 @@ RCON commands are low-level BattlEye protocol operations. For advanced actions l
 | Spawn items | ❌ | ✅ |
 | Vehicle control | ❌ | ✅ |
 | Weather/time | ❌ | ✅ |
+
+## Ban Management
+
+Citadel uses a **global ban database** rather than per-server bans. When you ban a player through the dashboard or API:
+
+1. The ban is recorded in `data/bans.json` with a unique UUID
+2. The player is immediately kicked from the server via RCON
+3. The player's Steam ID is written to the server's `ban.txt` file
+4. On server start/restart, all global bans are synced to the server's `ban.txt`
+
+Bans can be exported as JSON and shared with other server owners for cross-community ban lists. Import shared ban lists via the Bans page or the `/api/bans/import` endpoint.
+
+::: tip
+Raw RCON `ban` commands bypass the global ban database. Use the dashboard Bans page or API for persistent bans that survive server restarts and apply across all your servers.
+:::

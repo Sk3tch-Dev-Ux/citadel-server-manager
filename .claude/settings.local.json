@@ -112,7 +112,8 @@
       "Bash(wc -l /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/data/*.json)",
       "Bash(xargs grep -l \"bans\\\\|ban\")",
       "Bash(xargs grep -l \"ban\\\\|Ban\")",
-      "Bash(find \"/c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages\" -type f -name \"{WatchlistPage,PriorityQueuePage}.jsx\")"
+      "Bash(find \"/c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages\" -type f -name \"{WatchlistPage,PriorityQueuePage}.jsx\")",
+      "Bash(npx vitepress build)"
     ]
   }
 }
