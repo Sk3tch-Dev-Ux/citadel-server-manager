@@ -99,8 +99,19 @@ class RCONClient {
 
   _startKeepAlive() {
     this._stopKeepAlive();
-    this.keepAliveInterval = setInterval(() => {
-      if (this.loggedIn && this.socket) { const { packet } = this._buildCommandPacket(''); this.socket.send(packet, 0, packet.length, this.port, this.ip); }
+    this.keepAliveInterval = setInterval(async () => {
+      if (this.loggedIn && this.socket) {
+        try {
+          const result = await this.send('');
+          if (result === '[No response]' || (typeof result === 'string' && result.startsWith('[Error]'))) {
+            logger.warn({ serverId: this.serverId }, 'RCON keepalive got no response — marking connection stale');
+            this.loggedIn = false;
+          }
+        } catch (err) {
+          logger.warn({ err, serverId: this.serverId }, 'RCON keepalive error — marking connection stale');
+          this.loggedIn = false;
+        }
+      }
     }, 30000);
   }
 

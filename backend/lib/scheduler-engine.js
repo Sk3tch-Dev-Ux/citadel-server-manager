@@ -188,24 +188,35 @@ async function processJob(job, server, state) {
         const msg = (job.warningMessage || 'Server restart in {minutes} minute(s)!')
           .replace(/\{minutes\}/g, String(warnMin));
         try {
-          await state.rcon.say(msg);
+          const result = await state.rcon.say(msg);
+          if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
+            // RCON returned an error string instead of throwing — connection is likely stale
+            logger.warn({ serverId: server.id, job: job.title, warning: warnMin, result }, 'Scheduler: warning broadcast failed — will retry next tick');
+            state.rcon.loggedIn = false; // Force reconnect on next attempt
+            break; // Stop trying more warnings this tick — RCON is down
+          }
+          pending.warned.add(warnMin);
           logger.info({ serverId: server.id, job: job.title, warning: warnMin }, 'Scheduler: broadcast warning');
         } catch (err) {
           logger.warn({ err, serverId: server.id }, 'Scheduler: failed to broadcast warning');
+          // Don't mark as warned — retry on next tick
         }
-        pending.warned.add(warnMin);
       }
     }
 
     // Lock server
     if (job.lockServer && minutesUntil <= (job.lockMinutesBefore || 2) && !pending.locked) {
       try {
-        await state.rcon.lock();
-        logger.info({ serverId: server.id, job: job.title }, 'Scheduler: locked server');
+        const result = await state.rcon.lock();
+        if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
+          logger.warn({ serverId: server.id, result }, 'Scheduler: failed to lock server — will retry');
+        } else {
+          pending.locked = true;
+          logger.info({ serverId: server.id, job: job.title }, 'Scheduler: locked server');
+        }
       } catch (err) {
         logger.warn({ err }, 'Scheduler: failed to lock server');
       }
-      pending.locked = true;
     }
 
     // Kick players
@@ -214,11 +225,11 @@ async function processJob(job, server, state) {
         for (const player of (state.players || [])) {
           await state.rcon.kick(player.id || player.number, 'Server restarting');
         }
+        pending.kicked = true;
         logger.info({ serverId: server.id, job: job.title, count: (state.players || []).length }, 'Scheduler: kicked players');
       } catch (err) {
         logger.warn({ err }, 'Scheduler: failed to kick players');
       }
-      pending.kicked = true;
     }
   }
 
@@ -260,7 +271,7 @@ async function processJob(job, server, state) {
 /**
  * Process messenger messages for a running server.
  */
-function processMessenger(server, state) {
+async function processMessenger(server, state) {
   if (!state.messenger || !state.messenger.enabled) return;
   if (!state.rcon) return;
   if (!state.startedAt) return;
@@ -292,7 +303,12 @@ function processMessenger(server, state) {
       text = text.replace(/\{player_count\}/g, String((state.players || []).length));
       text = text.replace(/\{max_players\}/g, String(server.maxPlayers || 60));
 
-      state.rcon.say(text);
+      const result = await state.rcon.say(text);
+      if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
+        logger.warn({ serverId: server.id, msgId: msg.id, result }, 'Messenger: broadcast failed — RCON stale');
+        state.rcon.loggedIn = false; // Force reconnect on next attempt
+        break; // Stop trying more messages this tick
+      }
       state.messenger.lastSent.set(msg.id, now);
       logger.debug({ serverId: server.id, msgId: msg.id }, 'Messenger: sent message');
     } catch (err) {
@@ -322,7 +338,7 @@ async function tick() {
     // Process messenger (only when running — needs RCON)
     if (state.status === 'running') {
       try {
-        processMessenger(server, state);
+        await processMessenger(server, state);
       } catch (err) {
         logger.error({ err, serverId: server.id }, 'Messenger tick error');
       }
