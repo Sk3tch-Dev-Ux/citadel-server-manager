@@ -93,19 +93,92 @@ export default function ConfigPage({ serverId }) {
     } catch { return iso; }
   };
 
-  const fields = [
-    { key: 'hostname', label: 'Server Name', type: 'text', description: 'The name shown in the server browser.' },
-    { key: 'maxPlayers', label: 'Max Players', type: 'number', description: 'Maximum number of players allowed.' },
-    { key: 'password', label: 'Server Password', type: 'text', description: 'Password required to join the server.' },
-    { key: 'passwordAdmin', label: 'Admin Password', type: 'text', description: 'Password for admin access.' },
-    { key: 'verifySignatures', label: 'Verify Signatures', type: 'toggle', description: 'Enable signature verification for mods.' },
-    { key: 'forceSameBuild', label: 'Force Same Build', type: 'toggle', description: 'Require all clients to use the same game build.' },
-    { key: 'disableThirdPerson', label: 'Disable 3rd Person', type: 'toggle', description: 'Disables third person camera for players.' },
-    { key: 'serverTime', label: 'Server Time', type: 'text', description: 'Initial server time (e.g. 8:00).' },
-    { key: 'serverTimeAcceleration', label: 'Time Acceleration', type: 'number', description: 'Multiplier for in-game time speed.' },
-    { key: 'respawnTime', label: 'Respawn Time', type: 'number', description: 'Time (seconds) before a player can respawn.' },
-    { key: 'loginQueueMaxPlayers', label: 'Login Queue Max', type: 'number', description: 'Maximum players allowed in login queue.' },
-    { key: 'template', label: 'Map Template', type: 'text', description: 'Map template used for the server.' },
+  // ─── Config Field Definitions (grouped by section) ────
+  const sections = [
+    {
+      title: 'Server Identity',
+      fields: [
+        { key: 'hostname', label: 'Server Name', type: 'text', description: 'The name shown in the server browser.' },
+        { key: 'description', label: 'Description', type: 'text', description: 'Server description shown in the DayZ Launcher.' },
+        { key: 'maxPlayers', label: 'Max Players', type: 'number', description: 'Maximum number of players allowed.' },
+        { key: 'password', label: 'Server Password', type: 'text', description: 'Password required to join. Leave empty for public.' },
+        { key: 'passwordAdmin', label: 'Admin Password', type: 'text', description: 'Password for RCON admin access.' },
+        { key: 'enableWhitelist', label: 'Enable Whitelist', type: 'toggle', description: 'Only allow whitelisted players to join.' },
+        { key: 'template', label: 'Map Template', type: 'text', description: 'Mission template (e.g. dayzOffline.chernarusplus).' },
+        { key: 'instanceId', label: 'Instance ID', type: 'number', description: 'Server instance identifier for persistence.' },
+      ],
+    },
+    {
+      title: 'Gameplay',
+      fields: [
+        { key: 'enableCfgGameplayFile', label: 'Enable Gameplay File', type: 'toggle', description: 'Load cfggameplay.json for custom gameplay settings.' },
+        { key: 'disable3rdPerson', label: 'Disable 3rd Person', type: 'toggle', description: 'Disables third-person camera for players.' },
+        { key: 'disableCrosshair', label: 'Disable Crosshair', type: 'toggle', description: 'Removes the crosshair from all players.' },
+        { key: 'verifySignatures', label: 'Verify Signatures', type: 'toggle', description: 'Verify mod .pbo files against .bisign signatures.' },
+        { key: 'forceSameBuild', label: 'Force Same Build', type: 'toggle', description: 'Require clients to match the server game build.' },
+        { key: 'respawnTime', label: 'Respawn Time', type: 'number', description: 'Seconds before respawn button becomes available.' },
+        { key: 'allowFilePatching', label: 'Allow File Patching', type: 'toggle', description: 'Allow clients with -filePatching launch parameter.' },
+      ],
+    },
+    {
+      title: 'Time & Environment',
+      fields: [
+        { key: 'serverTime', label: 'Server Time', type: 'text', description: 'Initial time. Use "SystemTime" or YYYY/MM/DD/HH/MM format.' },
+        { key: 'serverTimeAcceleration', label: 'Day Time Acceleration', type: 'number', description: 'Daytime speed multiplier (1 = real time, 12 = 12x faster).' },
+        { key: 'serverNightTimeAcceleration', label: 'Night Time Acceleration', type: 'number', description: 'Night speed multiplier relative to day acceleration (0.1–64).' },
+        { key: 'serverTimePersistent', label: 'Persistent Time', type: 'toggle', description: 'Save and restore server time across restarts.' },
+        { key: 'lightingConfig', label: 'Lighting Config', type: 'number', description: 'Night brightness (0 = brighter nights, 1 = darker nights).' },
+        { key: 'disablePersonalLight', label: 'Disable Personal Light', type: 'toggle', description: 'Disable the faint personal light around all players.' },
+      ],
+    },
+    {
+      title: 'Voice & Communication',
+      fields: [
+        { key: 'disableVoN', label: 'Disable Voice Chat', type: 'toggle', description: 'Disable Voice over Network for all players.' },
+        { key: 'vonCodecQuality', label: 'VoN Codec Quality', type: 'number', description: 'Voice codec quality (0–30). Higher is better.' },
+        { key: 'motdInterval', label: 'MOTD Interval', type: 'number', description: 'Message of the Day display interval in seconds.' },
+      ],
+    },
+    {
+      title: 'Network & Performance',
+      fields: [
+        { key: 'maxPing', label: 'Max Ping', type: 'number', description: 'Maximum ping in ms before a player is kicked.' },
+        { key: 'loginQueueConcurrentPlayers', label: 'Login Queue Concurrent', type: 'number', description: 'Players processed simultaneously during login.' },
+        { key: 'loginQueueMaxPlayers', label: 'Login Queue Max', type: 'number', description: 'Maximum players allowed in login queue.' },
+        { key: 'simulatedPlayersBatch', label: 'Simulated Players Batch', type: 'number', description: 'Player simulation limit per server frame.' },
+        { key: 'multithreadedReplication', label: 'Multithreaded Replication', type: 'toggle', description: 'Enable multi-threaded network replication.' },
+        { key: 'defaultVisibility', label: 'Terrain View Distance', type: 'number', description: 'Maximum terrain render distance in meters.' },
+        { key: 'defaultObjectViewDistance', label: 'Object View Distance', type: 'number', description: 'Maximum object render distance in meters.' },
+        { key: 'networkRangeClose', label: 'Network Range Close', type: 'number', description: 'Network bubble for nearby objects (meters).' },
+        { key: 'networkRangeNear', label: 'Network Range Near', type: 'number', description: 'Network bubble for near inventory items (meters).' },
+        { key: 'networkRangeFar', label: 'Network Range Far', type: 'number', description: 'Network bubble for far objects (meters).' },
+        { key: 'networkRangeDistantEffect', label: 'Network Range Distant', type: 'number', description: 'Network bubble for effects and sounds (meters).' },
+      ],
+    },
+    {
+      title: 'Persistence & Base Building',
+      fields: [
+        { key: 'storageAutoFix', label: 'Storage Auto Fix', type: 'toggle', description: 'Automatically repair corrupted persistence files.' },
+        { key: 'storeHouseStateDisabled', label: 'Disable House State', type: 'toggle', description: 'Disable persistence for house doors and windows.' },
+        { key: 'disableBaseDamage', label: 'Disable Base Damage', type: 'toggle', description: 'Prevent damage to fences and watchtowers.' },
+        { key: 'disableContainerDamage', label: 'Disable Container Damage', type: 'toggle', description: 'Prevent damage to tents, barrels, and crates.' },
+        { key: 'lootHistory', label: 'Loot History', type: 'number', description: 'Number of persistence history files to retain.' },
+      ],
+    },
+    {
+      title: 'Logging',
+      fields: [
+        { key: 'logAverageFps', label: 'Log Average FPS', type: 'number', description: 'Log average server FPS every N seconds (requires -doLogs).' },
+        { key: 'logMemory', label: 'Log Memory', type: 'number', description: 'Log server memory usage every N seconds.' },
+        { key: 'logPlayers', label: 'Log Players', type: 'number', description: 'Log connected player count every N seconds.' },
+        { key: 'adminLogPlayerHitsOnly', label: 'Log Player Hits Only', type: 'toggle', description: 'Only log player-to-player hits (not AI).' },
+        { key: 'adminLogPlacement', label: 'Log Placements', type: 'toggle', description: 'Log item and object placement actions.' },
+        { key: 'adminLogBuildActions', label: 'Log Build Actions', type: 'toggle', description: 'Log base building actions.' },
+        { key: 'adminLogPlayerList', label: 'Log Player List', type: 'toggle', description: 'Log a full player list every 5 minutes.' },
+        { key: 'enableDebugMonitor', label: 'Debug Monitor', type: 'toggle', description: 'Show character debug info window in-game.' },
+        { key: 'timeStampFormat', label: 'Timestamp Format', type: 'text', description: 'Log timestamp format ("Full" or "Short").' },
+      ],
+    },
   ];
 
   return (
@@ -128,24 +201,31 @@ export default function ConfigPage({ serverId }) {
         </div>
       </div>
 
-      {/* Config editor grid */}
-      <div className="grid grid-2">
-        {fields.map(f => (
-          <div key={f.key} className="input-group">
-            <label className="input-label">{f.label}</label>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{f.description}</div>
-            {f.type === 'toggle' ? (
-              <div>
-                <label>
-                  <input type="checkbox" checked={!!config[f.key]} onChange={e => update(f.key, e.target.checked ? 1 : 0)} />
-                </label>
-              </div>
-            ) : (
-              <input className="input" type={f.type} value={config[f.key] ?? ''} onChange={e => update(f.key, f.type === 'number' ? parseInt(e.target.value) || 0 : e.target.value)} />
-            )}
+      {/* Config editor — grouped sections */}
+      {sections.map(section => (
+        <div key={section.title} style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+            {section.title}
           </div>
-        ))}
-      </div>
+          <div className="grid grid-2">
+            {section.fields.map(f => (
+              <div key={f.key} className="input-group">
+                <label className="input-label">{f.label}</label>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{f.description}</div>
+                {f.type === 'toggle' ? (
+                  <div>
+                    <label>
+                      <input type="checkbox" checked={!!config[f.key]} onChange={e => update(f.key, e.target.checked ? 1 : 0)} />
+                    </label>
+                  </div>
+                ) : (
+                  <input className="input" type={f.type} value={config[f.key] ?? ''} onChange={e => update(f.key, f.type === 'number' ? (e.target.value === '' ? '' : parseInt(e.target.value) || 0) : e.target.value)} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {/* Templates panel */}
       <div style={{ marginTop: 32 }}>
