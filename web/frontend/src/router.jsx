@@ -28,6 +28,8 @@ import LiveMapPage from './pages/LiveMapPage';
 import LicensePage from './pages/LicensePage';
 import SettingsPage from './pages/SettingsPage';
 import PriorityQueuePage from './pages/PriorityQueuePage';
+import StorePage from './pages/StorePage';
+import StoreManagementPage from './pages/StoreManagementPage';
 import ToastContainer from './components/ToastContainer';
 import API from './api';
 
@@ -108,6 +110,7 @@ export default function AppRouter() {
       <Routes>
         <Route path="/login" element={<SmartLogin />} />
         <Route path="/setup" element={<><SetupWizardPage /><ToastContainer /></>} />
+        <Route path="/store" element={<><StorePage /><ToastContainer /></>} />
         <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route index element={<ErrorBoundary><ServerHubPage /></ErrorBoundary>} />
           <Route path="dashboard" element={<ErrorBoundary><SystemDashboardPage /></ErrorBoundary>} />
@@ -116,6 +119,7 @@ export default function AppRouter() {
           <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><WebhooksPage /></ErrorBoundary></PermGuard>} />
           <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><SettingsPage /></ErrorBoundary></PermGuard>} />
           <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><PriorityQueuePage /></ErrorBoundary></PermGuard>} />
+          <Route path="store-management" element={<PermGuard permission="priority.manage"><ErrorBoundary><StoreManagementPage /></ErrorBoundary></PermGuard>} />
           <Route path="license" element={<PermGuard permission="license.manage"><ErrorBoundary><LicensePage /></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />

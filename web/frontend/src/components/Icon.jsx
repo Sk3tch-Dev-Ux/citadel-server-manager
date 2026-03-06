@@ -106,4 +106,6 @@ export {
   Bookmark,
   MessageSquare,
   Menu,
+  ShoppingCart,
+  CreditCard,
 } from 'lucide-react';

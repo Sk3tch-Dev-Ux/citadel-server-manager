@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import API from '../api';
-import { Shield, AlertTriangle, Loader, CheckCircle, Gamepad2, Settings, Save, Eye, EyeOff, Lock, Info } from '../components/Icon';
+import { Shield, AlertTriangle, Loader, CheckCircle, Gamepad2, Settings, Save, Eye, EyeOff, Lock, Info, CreditCard } from '../components/Icon';
 
 // ─── Section labels for display ───────────────────────────
 const SECTION_LABELS = {
@@ -12,6 +12,7 @@ const SECTION_LABELS = {
   backups: 'Backups',
   polling: 'Polling Intervals',
   bans: 'Ban Settings',
+  store: 'VIP Store / Payments',
 };
 
 // Section icons mapping
@@ -24,6 +25,7 @@ const SECTION_ICONS = {
   backups: Settings,
   polling: Settings,
   bans: Shield,
+  store: CreditCard,
 };
 
 // ─── ConfigField Component ────────────────────────────────
