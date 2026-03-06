@@ -238,9 +238,17 @@ function startCountdown(serverId) {
     const delayMs = (countdownSeconds - secondsBefore) * 1000;
     const timer = setTimeout(async () => {
       try {
-        if (state?.rcon?.loggedIn) {
-          const msg = `Server restarting for update in ${minutesBefore} minute${minutesBefore === 1 ? '' : 's'}`;
-          await state.rcon.say(msg);
+        if (!state?.rcon) return;
+        // Attempt reconnect if RCON is stale
+        if (!state.rcon.loggedIn) {
+          try { await state.rcon.connect(); } catch { return; }
+        }
+        const msg = `Server restarting for update in ${minutesBefore} minute${minutesBefore === 1 ? '' : 's'}`;
+        const result = await state.rcon.say(msg);
+        if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
+          logger.warn({ serverId, minutesBefore, result }, 'Update RCON warning failed — connection stale');
+          state.rcon.loggedIn = false;
+        } else {
           addLog(serverId, 'info', 'updates', `RCON broadcast: ${msg}`);
         }
       } catch (err) {
@@ -255,9 +263,16 @@ function startCountdown(serverId) {
     const minutes = Math.ceil(countdownSeconds / 60);
     (async () => {
       try {
-        if (state?.rcon?.loggedIn) {
-          const msg = `Server restarting for update in ${minutes} minute${minutes === 1 ? '' : 's'}`;
-          await state.rcon.say(msg);
+        if (!state?.rcon) return;
+        if (!state.rcon.loggedIn) {
+          try { await state.rcon.connect(); } catch { return; }
+        }
+        const msg = `Server restarting for update in ${minutes} minute${minutes === 1 ? '' : 's'}`;
+        const result = await state.rcon.say(msg);
+        if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
+          logger.warn({ serverId, result }, 'Update initial RCON warning failed — connection stale');
+          state.rcon.loggedIn = false;
+        } else {
           addLog(serverId, 'info', 'updates', `RCON broadcast: ${msg}`);
         }
       } catch (err) {
@@ -279,8 +294,16 @@ function startCountdown(serverId) {
       // Final RCON warning
       (async () => {
         try {
-          if (state?.rcon?.loggedIn) {
-            await state.rcon.say('Server restarting NOW for update');
+          if (state?.rcon) {
+            if (!state.rcon.loggedIn) {
+              try { await state.rcon.connect(); } catch { /* best effort */ }
+            }
+            if (state.rcon.loggedIn) {
+              const result = await state.rcon.say('Server restarting NOW for update');
+              if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
+                state.rcon.loggedIn = false;
+              }
+            }
           }
         } catch { /* best effort */ }
         // Proceed to stopping phase
