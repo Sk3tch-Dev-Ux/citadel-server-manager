@@ -5,7 +5,7 @@ import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
 import {
   ShoppingCart, CreditCard, Plus, Search, Trash2, Edit, Crown,
-  AlertTriangle, CheckCircle, Info, Infinity, Calendar, ExternalLink,
+  AlertTriangle, CheckCircle, Info, Infinity, Calendar, ExternalLink, Copy, Link,
 } from '../components/Icon';
 
 /** Duration presets for product creation */
@@ -348,7 +348,7 @@ export default function StoreManagementPage() {
 
       {storeEnabled && (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '12px 16px',
           background: 'rgba(92,184,92,0.08)',
           border: '1px solid rgba(92,184,92,0.2)',
@@ -357,12 +357,37 @@ export default function StoreManagementPage() {
           fontSize: 13,
           color: 'var(--text-secondary)',
         }}>
-          <CheckCircle size={16} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
-          <div>
-            Store is <strong style={{ color: 'var(--accent-green)' }}>live</strong>.
-            Players can purchase VIP access at{' '}
-            <a href="/store" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-blue)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              /store <ExternalLink size={10} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CheckCircle size={16} style={{ color: 'var(--accent-green)', flexShrink: 0 }} />
+            <div>
+              Store is <strong style={{ color: 'var(--accent-green)' }}>live</strong>.
+              Share the link below with your players so they can purchase VIP access.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                const url = `${window.location.origin}/store`;
+                navigator.clipboard.writeText(url).then(() => {
+                  window.addToast?.('Store link copied to clipboard!', 'success');
+                }).catch(() => {
+                  window.addToast?.(url, 'info');
+                });
+              }}
+              title="Copy public store URL"
+            >
+              <Copy size={12} /> Copy Store Link
+            </button>
+            <a
+              href="/store"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary btn-sm"
+              style={{ textDecoration: 'none' }}
+              title="Open store in new tab"
+            >
+              <ExternalLink size={12} /> Preview
             </a>
           </div>
         </div>
