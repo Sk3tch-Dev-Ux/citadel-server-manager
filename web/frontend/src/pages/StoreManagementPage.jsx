@@ -88,7 +88,7 @@ function ProductModal({ product, onSave, onClose }) {
   };
 
   return (
-    <Modal title={isEdit ? 'Edit Product' : 'Add Product'} onClose={onClose}>
+    <Modal open={true} title={isEdit ? 'Edit Product' : 'Add Product'} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div className="input-group">
           <label className="input-label">Product Name *</label>
