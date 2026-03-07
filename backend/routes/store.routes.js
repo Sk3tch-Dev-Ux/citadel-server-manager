@@ -119,8 +119,8 @@ module.exports = function (app) {
   // ─── Create product ─────────────────────────────────
   app.post('/api/store/admin/products', auth('priority.manage'), (req, res) => {
     try {
-      const { name, description, role, durationDays, price, currency } = req.body;
-      const product = addProduct({ name, description, role, durationDays, price, currency });
+      const { name, description, role, durationDays, price, currency, lbPerks } = req.body;
+      const product = addProduct({ name, description, role, durationDays, price, currency, lbPerks });
 
       addAudit(req.user.id, req.user.username, 'store.product.add',
         `Created store product: ${product.name} (${product.role}, $${(product.price / 100).toFixed(2)} ${product.currency.toUpperCase()})`);

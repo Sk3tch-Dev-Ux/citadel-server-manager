@@ -130,7 +130,11 @@
       "Bash(\"C:\\\\Users\\\\KurtE\\\\AppData\\\\Local\\\\Microsoft\\\\WinGet\\\\Links\\\\stripe.exe\" --version)",
       "Bash(cmd.exe /c \"stripe --version\")",
       "Bash(cmd.exe /c \"stripe --version 2>&1\")",
-      "Bash(\"C:/Users/KurtE/AppData/Local/Microsoft/WinGet/Packages/Stripe.StripeCli_Microsoft.Winget.Source_8wekyb3d8bbwe/stripe.exe\" --version)"
+      "Bash(\"C:/Users/KurtE/AppData/Local/Microsoft/WinGet/Packages/Stripe.StripeCli_Microsoft.Winget.Source_8wekyb3d8bbwe/stripe.exe\" --version)",
+      "WebFetch(domain:mgsm.io)",
+      "WebFetch(domain:lbmaster.de)",
+      "WebFetch(domain:demo.mgsm.io)",
+      "WebFetch(domain:api.github.com)"
     ]
   }
 }

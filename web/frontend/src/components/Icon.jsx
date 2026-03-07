@@ -108,4 +108,5 @@ export {
   Menu,
   ShoppingCart,
   CreditCard,
+  Tag,
 } from 'lucide-react';
