@@ -68,10 +68,15 @@ function ProductModal({ product, onSave, onClose }) {
   const [showLbPerks, setShowLbPerks] = useState(!!product?.lbPerks?.length);
   const [lbStatus, setLbStatus] = useState(null);
   const [lbPrefixGroups, setLbPrefixGroups] = useState([]);
+  const [lbTagGroups, setLbTagGroups] = useState([]);
   const [lbLoading, setLbLoading] = useState(false);
   const [selectedPrefixGroup, setSelectedPrefixGroup] = useState(() => {
     const perk = product?.lbPerks?.find(p => p.type === 'chatPrefix');
     return perk?.prefixGroupIndex != null ? String(perk.prefixGroupIndex) : 'none';
+  });
+  const [selectedTagGroup, setSelectedTagGroup] = useState(() => {
+    const perk = product?.lbPerks?.find(p => p.type === 'tagColor');
+    return perk?.groupFile || 'none';
   });
   const [lbServerForGroups, setLbServerForGroups] = useState('');
 
@@ -84,12 +89,18 @@ function ProductModal({ product, onSave, onClose }) {
         const status = await API.get('/api/lb-perks/status');
         if (cancelled) return;
         setLbStatus(status);
-        // Auto-select first server with Advanced Groups for prefix group list
-        const firstServer = status.servers?.find(s => s.hasAdvancedGroups);
+        // Auto-select first server with Advanced Groups or Tag Groups
+        const firstServer = status.servers?.find(s => s.hasAdvancedGroups || s.hasTagGroups);
         if (firstServer) {
           setLbServerForGroups(firstServer.serverId);
-          const data = await API.get(`/api/lb-perks/prefix-groups/${firstServer.serverId}`);
-          if (!cancelled) setLbPrefixGroups(data.prefixGroups || []);
+          const [prefixData, tagData] = await Promise.all([
+            firstServer.hasAdvancedGroups ? API.get(`/api/lb-perks/prefix-groups/${firstServer.serverId}`) : { prefixGroups: [] },
+            firstServer.hasTagGroups ? API.get(`/api/lb-perks/tag-groups/${firstServer.serverId}`) : { tagGroups: [] },
+          ]);
+          if (!cancelled) {
+            setLbPrefixGroups(prefixData.prefixGroups || []);
+            setLbTagGroups(tagData.tagGroups || []);
+          }
         }
       } catch { /* ignore */ }
       if (!cancelled) setLbLoading(false);
@@ -97,14 +108,19 @@ function ProductModal({ product, onSave, onClose }) {
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch prefix groups when server selection changes
+  // Fetch prefix groups and tag groups when server selection changes
   const handleServerChange = async (serverId) => {
     setLbServerForGroups(serverId);
-    if (!serverId) { setLbPrefixGroups([]); return; }
+    if (!serverId) { setLbPrefixGroups([]); setLbTagGroups([]); return; }
+    const srv = lbStatus?.servers?.find(s => s.serverId === serverId);
     try {
-      const data = await API.get(`/api/lb-perks/prefix-groups/${serverId}`);
-      setLbPrefixGroups(data.prefixGroups || []);
-    } catch { setLbPrefixGroups([]); }
+      const [prefixData, tagData] = await Promise.all([
+        srv?.hasAdvancedGroups ? API.get(`/api/lb-perks/prefix-groups/${serverId}`) : { prefixGroups: [] },
+        srv?.hasTagGroups ? API.get(`/api/lb-perks/tag-groups/${serverId}`) : { tagGroups: [] },
+      ]);
+      setLbPrefixGroups(prefixData.prefixGroups || []);
+      setLbTagGroups(tagData.tagGroups || []);
+    } catch { setLbPrefixGroups([]); setLbTagGroups([]); }
   };
 
   const getDurationDays = () => {
@@ -127,6 +143,9 @@ function ProductModal({ product, onSave, onClose }) {
     if (selectedPrefixGroup !== 'none') {
       lbPerks.push({ type: 'chatPrefix', prefixGroupIndex: parseInt(selectedPrefixGroup) });
     }
+    if (selectedTagGroup !== 'none') {
+      lbPerks.push({ type: 'tagColor', groupFile: selectedTagGroup });
+    }
 
     onSave({
       name: name.trim(),
@@ -139,7 +158,7 @@ function ProductModal({ product, onSave, onClose }) {
     });
   };
 
-  const hasLBMaster = lbStatus?.anyAdvancedGroups;
+  const hasLBMaster = lbStatus?.anyAdvancedGroups || lbStatus?.anyTagGroups;
 
   return (
     <Modal open={true} title={isEdit ? 'Edit Product' : 'Add Product'} onClose={onClose}>
@@ -260,12 +279,12 @@ function ProductModal({ product, onSave, onClose }) {
               <Tag size={14} style={{ color: 'var(--accent-purple)' }} />
               <span style={{ fontWeight: 600, fontSize: 13 }}>LB Master Perks</span>
               <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>Optional</span>
-              {selectedPrefixGroup !== 'none' && (
+              {((selectedPrefixGroup !== 'none') || (selectedTagGroup !== 'none')) && (
                 <span style={{
                   padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 600,
                   background: 'rgba(139,92,246,0.12)', color: 'var(--accent-purple)',
                 }}>
-                  1 perk
+                  {(selectedPrefixGroup !== 'none' ? 1 : 0) + (selectedTagGroup !== 'none' ? 1 : 0)} perk{(selectedPrefixGroup !== 'none') && (selectedTagGroup !== 'none') ? 's' : ''}
                 </span>
               )}
             </div>
@@ -289,22 +308,22 @@ function ProductModal({ product, onSave, onClose }) {
                   lineHeight: 1.5,
                 }}>
                   <Info size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                  No LB Master Advanced Groups mod detected on any server.
-                  Install the mod and its config files will be detected automatically.
+                  No LB Master mods detected on any server.
+                  Install Advanced Groups and its config files will be detected automatically.
                 </div>
               ) : (
                 <>
                   {/* Server selector (if multiple servers have LB Master) */}
-                  {lbStatus?.servers?.filter(s => s.hasAdvancedGroups).length > 1 && (
+                  {lbStatus?.servers?.filter(s => s.hasAdvancedGroups || s.hasTagGroups).length > 1 && (
                     <div className="input-group" style={{ marginBottom: 10 }}>
-                      <label className="input-label" style={{ fontSize: 11 }}>Server (for prefix group list)</label>
+                      <label className="input-label" style={{ fontSize: 11 }}>Server (for perk group list)</label>
                       <select
                         className="input"
                         value={lbServerForGroups}
                         onChange={e => handleServerChange(e.target.value)}
                         style={{ fontSize: 12 }}
                       >
-                        {lbStatus.servers.filter(s => s.hasAdvancedGroups).map(s => (
+                        {lbStatus.servers.filter(s => s.hasAdvancedGroups || s.hasTagGroups).map(s => (
                           <option key={s.serverId} value={s.serverId}>{s.serverName}</option>
                         ))}
                       </select>
@@ -312,27 +331,64 @@ function ProductModal({ product, onSave, onClose }) {
                   )}
 
                   {/* Chat Prefix selector */}
-                  <div className="input-group" style={{ marginBottom: 6 }}>
-                    <label className="input-label" style={{ fontSize: 11 }}>Chat Prefix Group</label>
-                    <select
-                      className="input"
-                      value={selectedPrefixGroup}
-                      onChange={e => setSelectedPrefixGroup(e.target.value)}
-                      style={{ fontSize: 12 }}
-                    >
-                      <option value="none">No prefix perk</option>
-                      {lbPrefixGroups.map(g => (
-                        <option key={g.index} value={String(g.index)}>
-                          {g.prefix}{g.permissionGroup ? ` (${g.permissionGroup})` : ''} — {g.memberCount} member{g.memberCount !== 1 ? 's' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {lbPrefixGroups.length > 0 && (
+                    <div className="input-group" style={{ marginBottom: 10 }}>
+                      <label className="input-label" style={{ fontSize: 11 }}>Chat Prefix Group</label>
+                      <select
+                        className="input"
+                        value={selectedPrefixGroup}
+                        onChange={e => setSelectedPrefixGroup(e.target.value)}
+                        style={{ fontSize: 12 }}
+                      >
+                        <option value="none">No prefix perk</option>
+                        {lbPrefixGroups.map(g => (
+                          <option key={g.index} value={String(g.index)}>
+                            {g.prefix}{g.permissionGroup ? ` (${g.permissionGroup})` : ''} — {g.memberCount} member{g.memberCount !== 1 ? 's' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Clan Tag Color Group selector */}
+                  {lbTagGroups.length > 0 && (
+                    <div className="input-group" style={{ marginBottom: 10 }}>
+                      <label className="input-label" style={{ fontSize: 11 }}>Clan Tag Color Group</label>
+                      <select
+                        className="input"
+                        value={selectedTagGroup}
+                        onChange={e => setSelectedTagGroup(e.target.value)}
+                        style={{ fontSize: 12 }}
+                      >
+                        <option value="none">No tag color perk</option>
+                        {lbTagGroups.map(g => (
+                          <option key={g.file} value={g.file}>
+                            {g.tag || g.name} — {g.memberCount} member{g.memberCount !== 1 ? 's' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedTagGroup !== 'none' && (() => {
+                        const g = lbTagGroups.find(t => t.file === selectedTagGroup);
+                        return g?.color ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                            <span style={{
+                              display: 'inline-block', width: 14, height: 14, borderRadius: 3,
+                              background: `rgb(${g.color.r},${g.color.g},${g.color.b})`,
+                              border: '1px solid rgba(255,255,255,0.15)',
+                            }} />
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              Tag: <strong style={{ color: `rgb(${g.color.r},${g.color.g},${g.color.b})` }}>{g.tag || g.name}</strong>
+                            </span>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
 
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
                     <Info size={10} style={{ verticalAlign: 'middle', marginRight: 3 }} />
-                    Player will be added to this prefix group on all servers when they purchase this product.
-                    Prefix groups are configured in <code style={{ fontSize: 10 }}>ChatConfig.json</code>.
+                    Player will be added to the selected group(s) on all servers when they purchase this product.
+                    Groups are configured in LB Master config files.
                   </div>
                 </>
               )}
@@ -895,8 +951,8 @@ export default function StoreManagementPage() {
                     {product.role}
                   </span>
 
-                  {/* LB Perk Badge */}
-                  {product.lbPerks?.length > 0 && (
+                  {/* LB Perk Badges */}
+                  {product.lbPerks?.some(p => p.type === 'chatPrefix') && (
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 3,
                       padding: '2px 8px',
@@ -908,6 +964,20 @@ export default function StoreManagementPage() {
                       fontWeight: 600,
                     }}>
                       <Tag size={10} /> Prefix
+                    </span>
+                  )}
+                  {product.lbPerks?.some(p => p.type === 'tagColor') && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      background: 'rgba(56,189,248,0.1)',
+                      border: '1px solid rgba(56,189,248,0.25)',
+                      color: '#38bdf8',
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}>
+                      <Tag size={10} /> Tag Color
                     </span>
                   )}
 
