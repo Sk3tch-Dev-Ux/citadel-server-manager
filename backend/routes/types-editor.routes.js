@@ -100,9 +100,13 @@ function loadLimits(missionDir) {
   let limits = { categories: [], usages: [], values: [], tags: [] };
   let userDefs = {};
 
-  // cfglimitsdefinition.xml
-  const limitsPath = path.join(missionDir, 'db', 'cfglimitsdefinition.xml');
-  if (fs.existsSync(limitsPath)) {
+  // cfglimitsdefinition.xml — check mission root first, then db/
+  const limitsCandidates = [
+    path.join(missionDir, 'cfglimitsdefinition.xml'),
+    path.join(missionDir, 'db', 'cfglimitsdefinition.xml'),
+  ];
+  const limitsPath = limitsCandidates.find(p => fs.existsSync(p));
+  if (limitsPath) {
     try {
       limits = parseLimitsDefinition(fs.readFileSync(limitsPath, 'utf8'));
     } catch (err) {
@@ -110,9 +114,13 @@ function loadLimits(missionDir) {
     }
   }
 
-  // cfglimitsdefinitionuser.xml
-  const userPath = path.join(missionDir, 'db', 'cfglimitsdefinitionuser.xml');
-  if (fs.existsSync(userPath)) {
+  // cfglimitsdefinitionuser.xml — check mission root first, then db/
+  const userCandidates = [
+    path.join(missionDir, 'cfglimitsdefinitionuser.xml'),
+    path.join(missionDir, 'db', 'cfglimitsdefinitionuser.xml'),
+  ];
+  const userPath = userCandidates.find(p => fs.existsSync(p));
+  if (userPath) {
     try {
       userDefs = parseUserDefinitions(fs.readFileSync(userPath, 'utf8'));
     } catch (err) {
