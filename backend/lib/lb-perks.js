@@ -7,6 +7,7 @@
  *
  * Supported perks (Advanced Groups mod):
  *   - Chat Prefixes: assigns player to a prefix group in ChatConfig.json
+ *   - Tag Colors: assigns player to a colored clan tag group in Groups/*.json
  *
  * File locations (per server):
  *   profiles/LBmaster/Config/Common/Api.json       — confirms LB Core installed
@@ -87,18 +88,24 @@ function _writeJSON(filePath, data) {
  * Looks for the Api.json config file in the expected location.
  *
  * @param {object} server - Server object
- * @returns {{ installed: boolean, hasAdvancedGroups: boolean }}
+ * @returns {{ installed: boolean, hasAdvancedGroups: boolean, hasTagGroups: boolean }}
  */
 function detectLBMaster(server) {
-  if (!server?.installDir) return { installed: false, hasAdvancedGroups: false };
+  if (!server?.installDir) return { installed: false, hasAdvancedGroups: false, hasTagGroups: false };
 
   const apiJsonPath = _lbPath(server, 'Config', 'Common', 'Api.json');
   const chatConfigPath = _lbPath(server, 'Config', 'LBGroup', 'ChatConfig.json');
+  const groupsDir = _lbPath(server, 'Data', 'LBGroup', 'Groups');
 
   const installed = fs.existsSync(apiJsonPath);
   const hasAdvancedGroups = fs.existsSync(chatConfigPath);
+  const hasTagGroups = (() => {
+    try {
+      return fs.existsSync(groupsDir) && fs.readdirSync(groupsDir).some(f => f.endsWith('.json'));
+    } catch { return false; }
+  })();
 
-  return { installed, hasAdvancedGroups };
+  return { installed, hasAdvancedGroups, hasTagGroups };
 }
 
 /**
@@ -172,6 +179,154 @@ function getChatConfig(server) {
   if (!server?.installDir) return null;
   const chatConfigPath = _lbPath(server, 'Config', 'LBGroup', 'ChatConfig.json');
   return _readJSON(chatConfigPath);
+}
+
+// ─── Tag Group Discovery ─────────────────────────────────
+
+/**
+ * Discover available tag color groups from a server's Groups/ directory.
+ *
+ * Each .json file in Data/LBGroup/Groups/ represents a clan tag group with
+ * a name, tag text, color (RGB), and member list.
+ *
+ * @param {object} server - Server object
+ * @returns {Array<{ file, name, tag, color, memberCount }>}
+ */
+function discoverTagGroups(server) {
+  if (!server?.installDir) return [];
+
+  const groupsDir = _lbPath(server, 'Data', 'LBGroup', 'Groups');
+  if (!fs.existsSync(groupsDir)) return [];
+
+  const groups = [];
+  try {
+    const files = fs.readdirSync(groupsDir).filter(f => f.endsWith('.json'));
+    for (const file of files) {
+      const data = _readJSON(path.join(groupsDir, file));
+      if (!data) continue;
+
+      const shortname = file.replace('.json', '');
+      const name = data.GroupName || data.groupName || data.Name || data.name || shortname;
+      const tag = data.Tag || data.tag || data.Prefix || data.prefix || '';
+      const color = data.TagColor || data.tagColor || data.Color || data.color || null;
+      const members = data.Members || data.members || data.SteamIds || data.steamIds
+        || data.UIDs || data.uids || [];
+
+      groups.push({
+        file: shortname,
+        name,
+        tag,
+        color: color ? {
+          r: color.r ?? color.R ?? 0,
+          g: color.g ?? color.G ?? 0,
+          b: color.b ?? color.B ?? 0,
+        } : null,
+        memberCount: Array.isArray(members) ? members.length : 0,
+      });
+    }
+  } catch (err) {
+    logger.debug({ err: err.message, server: server.name }, 'Failed to discover tag groups');
+  }
+
+  return groups;
+}
+
+// ─── Tag Color Perk Application ──────────────────────────
+
+/**
+ * Add a player to a tag color group in a server's Groups/*.json file.
+ *
+ * @param {object} server - Server object
+ * @param {string} steamId - Player's Steam64 ID
+ * @param {string} groupFile - Shortname of the group file (without .json)
+ * @returns {{ success: boolean, error?: string, groupName?: string }}
+ */
+function applyTagColorPerk(server, steamId, groupFile) {
+  if (!server?.installDir) {
+    return { success: false, error: 'Server has no installDir' };
+  }
+
+  const filePath = _lbPath(server, 'Data', 'LBGroup', 'Groups', `${groupFile}.json`);
+  const data = _readJSON(filePath);
+  if (!data) {
+    return { success: false, error: `Group file ${groupFile}.json not found or invalid` };
+  }
+
+  // Find the members array — try common field names
+  const membersKey = data.Members ? 'Members'
+    : data.members ? 'members'
+    : data.SteamIds ? 'SteamIds'
+    : data.steamIds ? 'steamIds'
+    : data.UIDs ? 'UIDs'
+    : data.uids ? 'uids'
+    : null;
+
+  if (!membersKey) data.Members = [];
+  const memberArray = data[membersKey || 'Members'];
+  if (!Array.isArray(memberArray)) data[membersKey || 'Members'] = [];
+  const members = data[membersKey || 'Members'];
+
+  // Deduplicate
+  const groupName = data.GroupName || data.groupName || data.Name || data.name || groupFile;
+  if (members.includes(steamId)) {
+    logger.debug({ steamId, groupFile, server: server.name }, 'Player already in tag group');
+    return { success: true, groupName, alreadyMember: true };
+  }
+
+  members.push(steamId);
+
+  const written = _writeJSON(filePath, data);
+  if (!written) {
+    return { success: false, error: `Failed to write ${groupFile}.json` };
+  }
+
+  logger.info({ steamId, groupFile, groupName, server: server.name }, 'Applied tag color perk');
+  return { success: true, groupName };
+}
+
+/**
+ * Remove a player from a tag color group.
+ *
+ * @param {object} server - Server object
+ * @param {string} steamId - Player's Steam64 ID
+ * @param {string} groupFile - Shortname of the group file (without .json)
+ * @returns {{ success: boolean, error?: string }}
+ */
+function removeTagColorPerk(server, steamId, groupFile) {
+  if (!server?.installDir) {
+    return { success: false, error: 'Server has no installDir' };
+  }
+
+  const filePath = _lbPath(server, 'Data', 'LBGroup', 'Groups', `${groupFile}.json`);
+  const data = _readJSON(filePath);
+  if (!data) {
+    return { success: false, error: `Group file ${groupFile}.json not found or invalid` };
+  }
+
+  const membersKey = data.Members ? 'Members'
+    : data.members ? 'members'
+    : data.SteamIds ? 'SteamIds'
+    : data.steamIds ? 'steamIds'
+    : data.UIDs ? 'UIDs'
+    : data.uids ? 'uids'
+    : null;
+
+  if (!membersKey || !Array.isArray(data[membersKey])) {
+    return { success: true }; // No members = nothing to remove
+  }
+
+  const idx = data[membersKey].indexOf(steamId);
+  if (idx === -1) return { success: true };
+
+  data[membersKey].splice(idx, 1);
+
+  const written = _writeJSON(filePath, data);
+  if (!written) {
+    return { success: false, error: `Failed to write ${groupFile}.json` };
+  }
+
+  logger.info({ steamId, groupFile, server: server.name }, 'Removed tag color perk');
+  return { success: true };
 }
 
 // ─── Perk Application ────────────────────────────────────
@@ -358,6 +513,33 @@ function applyPerksForPurchase(steamId, lbPerks) {
         serversFailed: serversFailed.length > 0 ? serversFailed : undefined,
         success: serversApplied.length > 0,
       });
+    } else if (perk.type === 'tagColor' && perk.groupFile) {
+      const serversApplied = [];
+      const serversFailed = [];
+
+      for (const server of (ctx.servers || [])) {
+        const detection = detectLBMaster(server);
+        if (!detection.installed || !detection.hasTagGroups) continue;
+
+        const result = applyTagColorPerk(server, steamId, perk.groupFile);
+        if (result.success) {
+          serversApplied.push(server.name);
+        } else {
+          serversFailed.push({ server: server.name, error: result.error });
+          logger.warn({
+            steamId, server: server.name,
+            error: result.error, groupFile: perk.groupFile,
+          }, 'Failed to apply tag color perk on server');
+        }
+      }
+
+      results.push({
+        type: 'tagColor',
+        groupFile: perk.groupFile,
+        serversApplied,
+        serversFailed: serversFailed.length > 0 ? serversFailed : undefined,
+        success: serversApplied.length > 0,
+      });
     } else {
       // Unknown perk type — log and skip
       logger.warn({ perk }, 'Unknown LB Master perk type — skipping');
@@ -378,10 +560,13 @@ module.exports = {
   getLBStatus,
   // Discovery
   discoverPrefixGroups,
+  discoverTagGroups,
   getChatConfig,
   // Perk application
   applyPrefixPerk,
   removePrefixPerk,
+  applyTagColorPerk,
+  removeTagColorPerk,
   // Purchase fulfillment
   applyPerksForPurchase,
 };
