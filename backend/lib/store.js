@@ -78,6 +78,7 @@ function getProduct(id) {
 
 /**
  * Create a new product.
+ * Products may grant priority queue access (role + durationDays), LB perks, or both.
  */
 function addProduct({ name, description, role, durationDays, price, currency, lbPerks }) {
   if (!name) throw new Error('Product name is required');
@@ -87,8 +88,8 @@ function addProduct({ name, description, role, durationDays, price, currency, lb
     id: uuid(),
     name,
     description: description || '',
-    role: role || 'VIP',
-    durationDays: durationDays != null ? parseInt(durationDays) || null : null,
+    role: role || undefined,
+    durationDays: role && durationDays != null ? parseInt(durationDays) || null : undefined,
     price: parseInt(price) || 0,
     currency: (currency || ctx.CONFIG?.store?.currency || 'usd').toLowerCase(),
     active: true,
@@ -112,8 +113,8 @@ function updateProduct(id, updates) {
 
   if (updates.name !== undefined) product.name = updates.name;
   if (updates.description !== undefined) product.description = updates.description;
-  if (updates.role !== undefined) product.role = updates.role;
-  if (updates.durationDays !== undefined) product.durationDays = updates.durationDays != null ? parseInt(updates.durationDays) || null : null;
+  if (updates.role !== undefined) product.role = updates.role || undefined;
+  if (updates.durationDays !== undefined) product.durationDays = product.role && updates.durationDays != null ? parseInt(updates.durationDays) || null : undefined;
   if (updates.price !== undefined) product.price = parseInt(updates.price) || 0;
   if (updates.currency !== undefined) product.currency = (updates.currency || 'usd').toLowerCase();
   if (updates.active !== undefined) product.active = !!updates.active;
@@ -174,9 +175,16 @@ async function createCheckoutSession({ productId, steamId, playerName, baseUrl }
   if (!product) throw new Error('Product not found');
   if (!product.active) throw new Error('Product is not available');
 
-  const durationLabel = product.durationDays
-    ? `${product.durationDays} day${product.durationDays === 1 ? '' : 's'}`
-    : 'Permanent';
+  // Build description for Stripe checkout
+  let stripeDescription = product.description || '';
+  if (product.role) {
+    const durationLabel = product.durationDays
+      ? `${product.durationDays} day${product.durationDays === 1 ? '' : 's'}`
+      : 'Permanent';
+    stripeDescription = stripeDescription || `${product.role} Priority Queue Access`;
+    stripeDescription += ` (${durationLabel})`;
+  }
+  if (!stripeDescription) stripeDescription = product.name;
 
   const successUrl = ctx.CONFIG?.store?.successUrl
     || `${baseUrl}/store?success=true&session_id={CHECKOUT_SESSION_ID}`;
@@ -191,7 +199,7 @@ async function createCheckoutSession({ productId, steamId, playerName, baseUrl }
         currency: product.currency,
         product_data: {
           name: product.name,
-          description: `${product.description || product.role + ' Priority Queue Access'} (${durationLabel})`,
+          description: stripeDescription,
         },
         unit_amount: product.price,
       },
@@ -202,7 +210,7 @@ async function createCheckoutSession({ productId, steamId, playerName, baseUrl }
       playerName: playerName || '',
       productId: product.id,
       productName: product.name,
-      role: product.role,
+      role: product.role || '',
       durationDays: product.durationDays != null ? String(product.durationDays) : '',
       lbPerks: product.lbPerks ? JSON.stringify(product.lbPerks) : '',
     },
@@ -269,23 +277,25 @@ async function handleWebhook(rawBody, signature) {
     throw new Error('Missing steamId in session metadata');
   }
 
-  // Calculate expiration
-  let expiresAt = null;
-  if (durationDays) {
-    const expires = new Date();
-    expires.setDate(expires.getDate() + durationDays);
-    expiresAt = expires.toISOString();
-  }
+  // Auto-provision priority queue entry (only if product has a role)
+  let entry = null;
+  if (role) {
+    let expiresAt = null;
+    if (durationDays) {
+      const expires = new Date();
+      expires.setDate(expires.getDate() + durationDays);
+      expiresAt = expires.toISOString();
+    }
 
-  // Auto-provision priority queue entry
-  const entry = addEntry({
-    steamId,
-    name: playerName,
-    role,
-    expiresAt,
-    addedBy: 'store',
-    source: 'purchase',
-  });
+    entry = addEntry({
+      steamId,
+      name: playerName,
+      role,
+      expiresAt,
+      addedBy: 'store',
+      source: 'purchase',
+    });
+  }
 
   // ── Apply LB Master perks (if product has them) ────────
   let lbPerksApplied;
@@ -313,14 +323,14 @@ async function handleWebhook(rawBody, signature) {
     email: session.customer_details?.email || '',
     productId,
     productName,
-    role,
-    durationDays,
+    role: role || undefined,
+    durationDays: durationDays || undefined,
     amount: session.amount_total || 0,
     currency: session.currency || 'usd',
     stripeSessionId: session.id,
     stripePaymentIntentId: session.payment_intent || '',
     status: 'completed',
-    priorityEntryId: entry.id,
+    priorityEntryId: entry?.id || undefined,
     lbPerksApplied: lbPerksApplied || undefined,
     purchasedAt: new Date().toISOString(),
   };
@@ -329,33 +339,36 @@ async function handleWebhook(rawBody, signature) {
   ctx.storePurchases.push(purchase);
   _persistPurchases();
 
+  const logParts = [];
+  if (role) logParts.push('priority queue entry created');
+  if (lbPerksApplied?.some(r => r.success)) logParts.push('LB perks applied');
   logger.info({
     purchaseId: purchase.id,
     steamId,
     product: productName,
     amount: purchase.amount,
-    role,
-    durationDays,
-  }, 'VIP purchase completed — priority queue entry created');
+    role: role || undefined,
+    durationDays: durationDays || undefined,
+  }, `Purchase completed — ${logParts.join(', ') || 'recorded'}`);
 
   // Fire notification
-  addNotification(null, 'priority.purchased', 'VIP Purchased',
+  addNotification(null, 'store.purchased', 'Purchase Completed',
     `${playerName} (${steamId}) purchased ${productName}`, 'success');
 
   // Fire webhook
   const durationLabel = durationDays
     ? `${durationDays} day${durationDays === 1 ? '' : 's'}`
-    : 'Permanent';
+    : role ? 'Permanent' : undefined;
   const amountFormatted = `${(purchase.amount / 100).toFixed(2)} ${purchase.currency.toUpperCase()}`;
 
-  fireWebhooks('priority.purchased', {
+  fireWebhooks('store.purchased', {
     playerName,
     steamId,
     productName,
-    role,
+    role: role || undefined,
     amount: amountFormatted,
     duration: durationLabel,
-  }).catch(err => logger.error({ err }, 'Failed to fire priority.purchased webhook'));
+  }).catch(err => logger.error({ err }, 'Failed to fire store.purchased webhook'));
 
   return purchase;
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Crown, ShoppingCart, CheckCircle, AlertTriangle, Loader, ExternalLink, Infinity, Calendar } from '../components/Icon';
+import { Crown, ShoppingCart, CheckCircle, AlertTriangle, Loader, ExternalLink, Infinity, Calendar, Tag } from '../components/Icon';
 import API from '../api';
 
 /**
@@ -119,7 +119,7 @@ export default function StorePage() {
           <CheckCircle size={56} style={{ color: 'var(--accent-green)', marginBottom: 16 }} />
           <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Purchase Complete!</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-            Your VIP priority queue access has been activated. You can now skip the queue when joining the server.
+            Your purchase has been activated. All perks have been applied to your account.
           </p>
           <div style={{
             background: 'rgba(92,184,92,0.08)',
@@ -129,8 +129,8 @@ export default function StorePage() {
             fontSize: 13,
             color: 'var(--text-secondary)',
           }}>
-            <Crown size={16} style={{ color: 'var(--accent-green)', verticalAlign: 'middle', marginRight: 6 }} />
-            Your Steam ID has been added to the priority queue. Changes take effect immediately.
+            <CheckCircle size={16} style={{ color: 'var(--accent-green)', verticalAlign: 'middle', marginRight: 6 }} />
+            Your Steam ID has been processed. Changes take effect immediately.
           </div>
           <button
             className="btn btn-secondary"
@@ -176,7 +176,7 @@ export default function StorePage() {
             {status?.storeName || 'VIP Priority Queue'}
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-            Purchase VIP access to skip the server login queue
+            Purchase VIP perks and priority queue access
           </p>
         </div>
 
@@ -271,7 +271,10 @@ export default function StorePage() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Crown size={16} style={{ color: isSelected ? 'var(--accent-blue)' : 'var(--accent-yellow)' }} />
+                      {product.role
+                        ? <Crown size={16} style={{ color: isSelected ? 'var(--accent-blue)' : 'var(--accent-yellow)' }} />
+                        : <Tag size={16} style={{ color: isSelected ? 'var(--accent-blue)' : 'var(--accent-purple)' }} />
+                      }
                       <span style={{ fontWeight: 700, fontSize: 15 }}>{product.name}</span>
                     </div>
                     <span style={{
@@ -290,22 +293,50 @@ export default function StorePage() {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, color: 'var(--text-muted)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {product.durationDays ? <Calendar size={11} /> : <Infinity size={11} />}
-                      {formatDuration(product.durationDays)}
-                    </span>
-                    <span style={{
-                      padding: '1px 6px',
-                      borderRadius: 4,
-                      background: 'rgba(196,155,255,0.1)',
-                      border: '1px solid rgba(196,155,255,0.2)',
-                      color: 'var(--accent-purple)',
-                      fontSize: 10,
-                      fontWeight: 600,
-                    }}>
-                      {product.role}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                    {product.role && (
+                      <>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {product.durationDays ? <Calendar size={11} /> : <Infinity size={11} />}
+                          {formatDuration(product.durationDays)}
+                        </span>
+                        <span style={{
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                          background: 'rgba(196,155,255,0.1)',
+                          border: '1px solid rgba(196,155,255,0.2)',
+                          color: 'var(--accent-purple)',
+                          fontSize: 10,
+                          fontWeight: 600,
+                        }}>
+                          {product.role}
+                        </span>
+                      </>
+                    )}
+                    {product.lbPerks?.some(p => p.type === 'chatPrefix') && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        padding: '1px 6px', borderRadius: 4,
+                        background: 'rgba(139,92,246,0.1)',
+                        border: '1px solid rgba(139,92,246,0.2)',
+                        color: 'var(--accent-purple)',
+                        fontSize: 10, fontWeight: 600,
+                      }}>
+                        <Tag size={9} /> Chat Prefix
+                      </span>
+                    )}
+                    {product.lbPerks?.some(p => p.type === 'tagColor') && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        padding: '1px 6px', borderRadius: 4,
+                        background: 'rgba(56,189,248,0.1)',
+                        border: '1px solid rgba(56,189,248,0.2)',
+                        color: '#38bdf8',
+                        fontSize: 10, fontWeight: 600,
+                      }}>
+                        <Tag size={9} /> Tag Color
+                      </span>
+                    )}
                   </div>
                 </button>
               );

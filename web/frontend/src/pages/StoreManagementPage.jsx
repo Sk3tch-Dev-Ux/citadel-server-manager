@@ -53,18 +53,21 @@ function ProductModal({ product, onSave, onClose }) {
   const isEdit = !!product;
   const [name, setName] = useState(product?.name || '');
   const [description, setDescription] = useState(product?.description || '');
-  const [role, setRole] = useState(product?.role || 'VIP');
   const [priceStr, setPriceStr] = useState(product ? (product.price / 100).toFixed(2) : '');
   const [currency, setCurrency] = useState(product?.currency || 'usd');
+
+  // ─── Priority Queue state (optional section) ────────────
+  const [showPriorityQueue, setShowPriorityQueue] = useState(!!product?.role);
+  const [role, setRole] = useState(product?.role || 'VIP');
   const [durationPreset, setDurationPreset] = useState(() => {
-    if (!product) return '30';
+    if (!product?.role) return '30';
     if (product.durationDays === null) return 'permanent';
     const match = DURATION_PRESETS.find(p => p.days === product.durationDays);
     return match ? String(product.durationDays) : 'custom';
   });
   const [customDays, setCustomDays] = useState(product?.durationDays || 30);
 
-  // ─── LB Master Perks state ─────────────────────────────
+  // ─── LB Master Perks state (optional section) ───────────
   const [showLbPerks, setShowLbPerks] = useState(!!product?.lbPerks?.length);
   const [lbStatus, setLbStatus] = useState(null);
   const [lbPrefixGroups, setLbPrefixGroups] = useState([]);
@@ -89,7 +92,6 @@ function ProductModal({ product, onSave, onClose }) {
         const status = await API.get('/api/lb-perks/status');
         if (cancelled) return;
         setLbStatus(status);
-        // Auto-select first server with Advanced Groups or Tag Groups
         const firstServer = status.servers?.find(s => s.hasAdvancedGroups || s.hasTagGroups);
         if (firstServer) {
           setLbServerForGroups(firstServer.serverId);
@@ -108,7 +110,6 @@ function ProductModal({ product, onSave, onClose }) {
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch prefix groups and tag groups when server selection changes
   const handleServerChange = async (serverId) => {
     setLbServerForGroups(serverId);
     if (!serverId) { setLbPrefixGroups([]); setLbTagGroups([]); return; }
@@ -129,6 +130,8 @@ function ProductModal({ product, onSave, onClose }) {
     return parseInt(durationPreset);
   };
 
+  const hasLbPerksSelected = selectedPrefixGroup !== 'none' || selectedTagGroup !== 'none';
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -137,21 +140,26 @@ function ProductModal({ product, onSave, onClose }) {
       window.addToast?.('Price must be at least $0.50 (Stripe minimum)', 'error');
       return;
     }
+    // Must have at least one fulfillment type
+    if (!showPriorityQueue && !(showLbPerks && hasLbPerksSelected)) {
+      window.addToast?.('Product must grant either Priority Queue access or an LB perk', 'error');
+      return;
+    }
 
     // Build lbPerks array from selections
     const lbPerks = [];
-    if (selectedPrefixGroup !== 'none') {
+    if (showLbPerks && selectedPrefixGroup !== 'none') {
       lbPerks.push({ type: 'chatPrefix', prefixGroupIndex: parseInt(selectedPrefixGroup) });
     }
-    if (selectedTagGroup !== 'none') {
+    if (showLbPerks && selectedTagGroup !== 'none') {
       lbPerks.push({ type: 'tagColor', groupFile: selectedTagGroup });
     }
 
     onSave({
       name: name.trim(),
       description: description.trim(),
-      role,
-      durationDays: getDurationDays(),
+      role: showPriorityQueue ? role : undefined,
+      durationDays: showPriorityQueue ? getDurationDays() : undefined,
       price: priceInCents,
       currency: currency.toLowerCase(),
       lbPerks: lbPerks.length > 0 ? lbPerks : undefined,
@@ -160,9 +168,19 @@ function ProductModal({ product, onSave, onClose }) {
 
   const hasLBMaster = lbStatus?.anyAdvancedGroups || lbStatus?.anyTagGroups;
 
+  /** Shared collapsible section header style */
+  const sectionHeaderStyle = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    width: '100%',
+    padding: '10px 14px',
+    background: 'var(--bg-primary)', border: 'none', cursor: 'pointer',
+    color: 'var(--text-primary)', fontFamily: 'var(--font-display)',
+  };
+
   return (
     <Modal open={true} title={isEdit ? 'Edit Product' : 'Add Product'} onClose={onClose}>
       <form onSubmit={handleSubmit}>
+        {/* ─── Common Fields ─────────────────────────────── */}
         <div className="input-group">
           <label className="input-label">Product Name *</label>
           <input
@@ -184,102 +202,128 @@ function ProductModal({ product, onSave, onClose }) {
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div className="input-group">
-            <label className="input-label">Role</label>
-            <select className="input" value={role} onChange={e => setRole(e.target.value)}>
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+        <div className="input-group">
+          <label className="input-label">Price *</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              className="input"
+              type="number"
+              step="0.01"
+              min="0.50"
+              value={priceStr}
+              onChange={e => setPriceStr(e.target.value)}
+              placeholder="5.00"
+              required
+              style={{ flex: 1 }}
+            />
+            <select
+              className="input"
+              value={currency}
+              onChange={e => setCurrency(e.target.value)}
+              style={{ width: 80 }}
+            >
+              <option value="usd">USD</option>
+              <option value="eur">EUR</option>
+              <option value="gbp">GBP</option>
+              <option value="cad">CAD</option>
+              <option value="aud">AUD</option>
             </select>
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">Price *</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                className="input"
-                type="number"
-                step="0.01"
-                min="0.50"
-                value={priceStr}
-                onChange={e => setPriceStr(e.target.value)}
-                placeholder="5.00"
-                required
-                style={{ flex: 1 }}
-              />
-              <select
-                className="input"
-                value={currency}
-                onChange={e => setCurrency(e.target.value)}
-                style={{ width: 80 }}
-              >
-                <option value="usd">USD</option>
-                <option value="eur">EUR</option>
-                <option value="gbp">GBP</option>
-                <option value="cad">CAD</option>
-                <option value="aud">AUD</option>
-              </select>
-            </div>
           </div>
         </div>
 
-        <div className="input-group">
-          <label className="input-label">Duration</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {DURATION_PRESETS.map(p => {
-              const val = p.days === null ? 'permanent' : p.days === -1 ? 'custom' : String(p.days);
-              const isActive = durationPreset === val;
-              return (
-                <button
-                  key={val}
-                  type="button"
-                  className={`btn ${isActive ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                  onClick={() => setDurationPreset(val)}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
-          </div>
-          {durationPreset === 'custom' && (
-            <div style={{ marginTop: 8 }}>
-              <input
-                className="input"
-                type="number"
-                min="1"
-                max="3650"
-                value={customDays}
-                onChange={e => setCustomDays(e.target.value)}
-                placeholder="Number of days"
-                style={{ width: 160 }}
-              />
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>days</span>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, marginTop: -4 }}>
+          Enable at least one section below to define what this product grants.
+        </div>
+
+        {/* ─── Priority Queue Section (optional) ────────── */}
+        <div style={{
+          border: `1px solid ${showPriorityQueue ? 'var(--accent-blue)' : 'var(--border)'}`,
+          borderRadius: 6,
+          overflow: 'hidden',
+          marginBottom: 8,
+          transition: 'border-color 0.15s',
+        }}>
+          <button type="button" onClick={() => setShowPriorityQueue(!showPriorityQueue)} style={sectionHeaderStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Crown size={14} style={{ color: showPriorityQueue ? 'var(--accent-yellow)' : 'var(--text-muted)' }} />
+              <span style={{ fontWeight: 600, fontSize: 13 }}>Priority Queue Access</span>
+              {showPriorityQueue && (
+                <span style={{
+                  padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 600,
+                  background: 'rgba(59,130,246,0.12)', color: 'var(--accent-blue)',
+                }}>
+                  Enabled
+                </span>
+              )}
+            </div>
+            {showPriorityQueue ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+
+          {showPriorityQueue && (
+            <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)' }}>
+              <div className="input-group" style={{ marginBottom: 10 }}>
+                <label className="input-label" style={{ fontSize: 11 }}>Role</label>
+                <select className="input" value={role} onChange={e => setRole(e.target.value)} style={{ fontSize: 12 }}>
+                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+
+              <div className="input-group" style={{ marginBottom: 6 }}>
+                <label className="input-label" style={{ fontSize: 11 }}>Duration</label>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {DURATION_PRESETS.map(p => {
+                    const val = p.days === null ? 'permanent' : p.days === -1 ? 'custom' : String(p.days);
+                    const isActive = durationPreset === val;
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        className={`btn ${isActive ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                        onClick={() => setDurationPreset(val)}
+                        style={{ fontSize: 11, padding: '3px 10px' }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {durationPreset === 'custom' && (
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input
+                      className="input"
+                      type="number"
+                      min="1"
+                      max="3650"
+                      value={customDays}
+                      onChange={e => setCustomDays(e.target.value)}
+                      placeholder="Number of days"
+                      style={{ width: 120, fontSize: 12 }}
+                    />
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>days</span>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                <Info size={10} style={{ verticalAlign: 'middle', marginRight: 3 }} />
+                Player will be added to the priority queue with this role when they purchase.
+              </div>
             </div>
           )}
         </div>
 
-        {/* ─── LB Master Perks Section ─────────────────────── */}
+        {/* ─── LB Master Perks Section (optional) ────────── */}
         <div style={{
-          marginTop: 16,
-          border: '1px solid var(--border)',
+          border: `1px solid ${showLbPerks && hasLbPerksSelected ? 'var(--accent-purple)' : 'var(--border)'}`,
           borderRadius: 6,
           overflow: 'hidden',
+          transition: 'border-color 0.15s',
         }}>
-          <button
-            type="button"
-            onClick={() => setShowLbPerks(!showLbPerks)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              width: '100%',
-              padding: '10px 14px',
-              background: 'var(--bg-primary)', border: 'none', cursor: 'pointer',
-              color: 'var(--text-primary)', fontFamily: 'var(--font-display)',
-            }}
-          >
+          <button type="button" onClick={() => setShowLbPerks(!showLbPerks)} style={sectionHeaderStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Tag size={14} style={{ color: 'var(--accent-purple)' }} />
+              <Tag size={14} style={{ color: showLbPerks && hasLbPerksSelected ? 'var(--accent-purple)' : 'var(--text-muted)' }} />
               <span style={{ fontWeight: 600, fontSize: 13 }}>LB Master Perks</span>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>Optional</span>
-              {((selectedPrefixGroup !== 'none') || (selectedTagGroup !== 'none')) && (
+              {showLbPerks && hasLbPerksSelected && (
                 <span style={{
                   padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 600,
                   background: 'rgba(139,92,246,0.12)', color: 'var(--accent-purple)',
@@ -313,7 +357,6 @@ function ProductModal({ product, onSave, onClose }) {
                 </div>
               ) : (
                 <>
-                  {/* Server selector (if multiple servers have LB Master) */}
                   {lbStatus?.servers?.filter(s => s.hasAdvancedGroups || s.hasTagGroups).length > 1 && (
                     <div className="input-group" style={{ marginBottom: 10 }}>
                       <label className="input-label" style={{ fontSize: 11 }}>Server (for perk group list)</label>
@@ -330,7 +373,6 @@ function ProductModal({ product, onSave, onClose }) {
                     </div>
                   )}
 
-                  {/* Chat Prefix selector */}
                   {lbPrefixGroups.length > 0 && (
                     <div className="input-group" style={{ marginBottom: 10 }}>
                       <label className="input-label" style={{ fontSize: 11 }}>Chat Prefix Group</label>
@@ -350,7 +392,6 @@ function ProductModal({ product, onSave, onClose }) {
                     </div>
                   )}
 
-                  {/* Clan Tag Color Group selector */}
                   {lbTagGroups.length > 0 && (
                     <div className="input-group" style={{ marginBottom: 10 }}>
                       <label className="input-label" style={{ fontSize: 11 }}>Clan Tag Color Group</label>
@@ -388,7 +429,6 @@ function ProductModal({ product, onSave, onClose }) {
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
                     <Info size={10} style={{ verticalAlign: 'middle', marginRight: 3 }} />
                     Player will be added to the selected group(s) on all servers when they purchase this product.
-                    Groups are configured in LB Master config files.
                   </div>
                 </>
               )}
@@ -552,7 +592,7 @@ export default function StoreManagementPage() {
   const filteredProducts = products.filter(p => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q);
+    return p.name.toLowerCase().includes(q) || (p.role || '').toLowerCase().includes(q);
   });
 
   const filteredPurchases = purchases.filter(p => {
@@ -928,7 +968,7 @@ export default function StoreManagementPage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1 }}>
-                  <Crown size={18} style={{ color: ROLE_COLORS[product.role] || '#f59e0b' }} />
+                  <Crown size={18} style={{ color: ROLE_COLORS[product.role] || (product.lbPerks?.length ? '#8b5cf6' : '#f59e0b') }} />
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{product.name}</div>
                     {product.description && (
@@ -938,18 +978,20 @@ export default function StoreManagementPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  {/* Role Badge */}
-                  <span style={{
-                    padding: '2px 8px',
-                    borderRadius: 4,
-                    background: `${ROLE_COLORS[product.role] || '#f59e0b'}18`,
-                    border: `1px solid ${ROLE_COLORS[product.role] || '#f59e0b'}40`,
-                    color: ROLE_COLORS[product.role] || '#f59e0b',
-                    fontSize: 11,
-                    fontWeight: 600,
-                  }}>
-                    {product.role}
-                  </span>
+                  {/* Role Badge — only if product grants priority queue */}
+                  {product.role && (
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      background: `${ROLE_COLORS[product.role] || '#f59e0b'}18`,
+                      border: `1px solid ${ROLE_COLORS[product.role] || '#f59e0b'}40`,
+                      color: ROLE_COLORS[product.role] || '#f59e0b',
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}>
+                      {product.role}
+                    </span>
+                  )}
 
                   {/* LB Perk Badges */}
                   {product.lbPerks?.some(p => p.type === 'chatPrefix') && (
@@ -981,11 +1023,13 @@ export default function StoreManagementPage() {
                     </span>
                   )}
 
-                  {/* Duration */}
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)', minWidth: 80 }}>
-                    {product.durationDays ? <Calendar size={12} /> : <Infinity size={12} />}
-                    {formatDuration(product.durationDays)}
-                  </span>
+                  {/* Duration — only if product grants priority queue */}
+                  {product.role && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)', minWidth: 80 }}>
+                      {product.durationDays ? <Calendar size={12} /> : <Infinity size={12} />}
+                      {formatDuration(product.durationDays)}
+                    </span>
+                  )}
 
                   {/* Price */}
                   <span style={{
