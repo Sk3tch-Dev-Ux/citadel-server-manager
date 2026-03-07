@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import API from '../../api';
 import WorkshopItem from './WorkshopItem';
 import SteamSettingsPanel from './SteamSettingsPanel';
-import { Puzzle, Search, Flame, Settings, Package, Trash2, ChevronUp, ChevronDown, AlertTriangle, Download } from '../../components/Icon';
+import { Puzzle, Search, Flame, Settings, Package, Trash2, ChevronUp, ChevronDown, AlertTriangle, Download, RefreshCw } from '../../components/Icon';
 
 const formatSubs = (n) => {
   if (!n) return '0';
@@ -26,6 +26,8 @@ export default function ModsPage({ serverId }) {
   const [loadingPopular, setLoadingPopular] = useState(false);
   const [installProgress, setInstallProgress] = useState({});
   const [pendingUpdates, setPendingUpdates] = useState({});
+  const [updatingMods, setUpdatingMods] = useState({});
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
   const searchTimeout = useRef(null);
 
   useEffect(() => { API.get(`/api/servers/${serverId}/mods`).then(d => setMods(Array.isArray(d) ? d : [])); }, [serverId]);
@@ -46,8 +48,25 @@ export default function ModsPage({ serverId }) {
     return () => socket.off('modUpdate', handler);
   }, [serverId, socket]);
 
+  // Listen for real-time mod update progress events
+  useEffect(() => {
+    const handler = (data) => {
+      if (data.serverId !== serverId) return;
+      setUpdatingMods(prev => ({ ...prev, [data.workshopId]: { status: data.status, progress: data.progress, message: data.message } }));
+      if (data.status === 'complete') {
+        setPendingUpdates(prev => { const next = { ...prev }; delete next[data.workshopId]; return next; });
+        window.addToast(data.message, 'success');
+      } else if (data.status === 'error') {
+        window.addToast(`Update failed: ${data.message}`, 'error');
+      }
+    };
+    socket.on('modUpdateProgress', handler);
+    return () => socket.off('modUpdateProgress', handler);
+  }, [serverId, socket]);
+
   const pendingCount = Object.keys(pendingUpdates).length;
   const hasUpdate = (workshopId) => !!pendingUpdates[workshopId];
+  const isUpdating = (workshopId) => { const u = updatingMods[workshopId]; return u && ['starting', 'downloading', 'installing'].includes(u.status); };
 
   useEffect(() => {
     const handler = (data) => { if (data.serverId === serverId) setMods(Array.isArray(data.mods) ? data.mods : []); };
@@ -149,6 +168,41 @@ export default function ModsPage({ serverId }) {
     }
   };
 
+  // ─── Mod update handlers ─────────────────────────────────────────
+  const updateMod = async (workshopId) => {
+    setUpdatingMods(prev => ({ ...prev, [workshopId]: { status: 'starting', progress: 0, message: 'Starting update...' } }));
+    try {
+      await API.post(`/api/servers/${serverId}/mods/update/${workshopId}`);
+    } catch (err) {
+      window.addToast(`Update failed: ${err.message}`, 'error');
+      setUpdatingMods(prev => ({ ...prev, [workshopId]: { status: 'error', progress: 0, message: err.message } }));
+    }
+  };
+
+  const updateAllMods = async () => {
+    try {
+      const result = await API.post(`/api/servers/${serverId}/mods/update-all`);
+      if (result.count) window.addToast(`Updating ${result.count} mod(s)...`, 'info');
+    } catch (err) {
+      window.addToast(`Update all failed: ${err.message}`, 'error');
+    }
+  };
+
+  const checkForUpdates = async () => {
+    setCheckingUpdates(true);
+    try {
+      const result = await API.post(`/api/servers/${serverId}/mods/check-updates`);
+      if (result.updatesFound > 0) {
+        window.addToast(`Found ${result.updatesFound} mod update(s)`, 'warning');
+      } else {
+        window.addToast(`All ${result.checked} mods are up to date`, 'success');
+      }
+    } catch (err) {
+      window.addToast(`Check failed: ${err.message}`, 'error');
+    }
+    setCheckingUpdates(false);
+  };
+
   useEffect(() => {
     const handler = (data) => {
       if (data.serverId !== serverId) return;
@@ -187,6 +241,18 @@ export default function ModsPage({ serverId }) {
             </div>
           ) : (
             <div>
+              {/* ─── Mod Update Toolbar ─────────────────────────────── */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+                <button className="btn btn-sm btn-secondary" onClick={checkForUpdates} disabled={checkingUpdates} title="Check Steam Workshop for mod updates">
+                  <RefreshCw size={14} className={checkingUpdates ? 'spin' : ''} /> {checkingUpdates ? 'Checking...' : 'Check for Updates'}
+                </button>
+                {pendingCount > 0 && (
+                  <button className="btn btn-sm mod-update-all-btn" onClick={updateAllMods} title={`Update all ${pendingCount} mod(s) with pending updates`}>
+                    <Download size={14} /> Update All ({pendingCount})
+                  </button>
+                )}
+              </div>
+
               {mods.map((mod, i) => (
                 <div className="mod-item" key={mod.workshopId || mod.name}>
                   <span className="mod-order">#{i + 1}</span>
@@ -201,9 +267,14 @@ export default function ModsPage({ serverId }) {
                   <div className={`toggle ${mod.enabled ? 'on' : ''}`} onClick={() => toggleMod(mod.workshopId, mod.enabled)}><div className="toggle-knob" /></div>
                   <span className="mod-name" style={{ opacity: mod.enabled ? 1 : 0.4 }}>
                     {mod.name}
-                    {hasUpdate(mod.workshopId) && (
-                      <span className="mod-update-badge" title="Workshop update available">
-                        <AlertTriangle size={11} /> Update
+                    {hasUpdate(mod.workshopId) && !isUpdating(mod.workshopId) && (
+                      <button className="mod-update-btn" onClick={() => updateMod(mod.workshopId)} title="Download and install update">
+                        <Download size={11} /> Update
+                      </button>
+                    )}
+                    {isUpdating(mod.workshopId) && (
+                      <span className="mod-updating-badge" title={updatingMods[mod.workshopId]?.message}>
+                        <RefreshCw size={11} className="spin" /> {updatingMods[mod.workshopId]?.status === 'downloading' ? 'Downloading...' : 'Installing...'}
                       </span>
                     )}
                   </span>
