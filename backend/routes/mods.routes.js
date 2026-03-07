@@ -4,13 +4,14 @@
 const fs = require('fs');
 const path = require('path');
 const ctx = require('../lib/context');
-const { downloadWorkshopMod } = require('../lib/steamcmd');
+const { downloadWorkshopMod, updateWorkshopMod, findWorkshopContent } = require('../lib/steamcmd');
 const { installModToServer, updateLaunchParamsMods, reorderMods, setModType } = require('../lib/mod-manager');
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
 const { auth, authForServer } = require('../middleware/auth');
 const modCache = require('../lib/mod-cache');
-const { getPendingModUpdates, clearPendingModUpdate } = require('../lib/polling');
+const { getPendingModUpdates, clearPendingModUpdate, checkModUpdatesNow } = require('../lib/polling');
+const logger = require('../lib/logger');
 
 module.exports = function(app) {
   app.get('/api/servers/:id/mods', authForServer('mods.view'), (req, res) => {
@@ -133,6 +134,124 @@ module.exports = function(app) {
   app.delete('/api/servers/:id/mods/updates/:workshopId', authForServer('mods.install'), (req, res) => {
     clearPendingModUpdate(req.params.workshopId);
     res.json({ message: 'Pending update cleared' });
+  });
+
+  // ─── Mod Update Routes ──────────────────────────────────────
+
+  /** Update a single mod — download latest from Workshop + reinstall to server */
+  app.post('/api/servers/:id/mods/update/:workshopId', authForServer('mods.install'), async (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const state = ctx.serverStates[srv.id];
+    const mod = state?.modList.find(m => m.workshopId === req.params.workshopId);
+    if (!mod) return res.status(404).json({ error: 'Mod not found in server mod list' });
+
+    const workshopId = req.params.workshopId;
+    if (ctx.activeInstalls[workshopId]?.status === 'downloading' || ctx.activeInstalls[workshopId]?.status === 'updating') {
+      return res.status(409).json({ error: 'Mod is already being updated' });
+    }
+
+    ctx.activeInstalls[workshopId] = { status: 'updating', progress: 0, name: mod.name };
+    res.json({ message: 'Update started', workshopId });
+
+    try {
+      ctx.io?.emit('modUpdateProgress', { serverId: srv.id, workshopId, status: 'downloading', progress: 0, message: `Downloading ${mod.name} update...` });
+
+      await updateWorkshopMod(srv.id, srv.installDir, workshopId);
+
+      ctx.io?.emit('modUpdateProgress', { serverId: srv.id, workshopId, status: 'installing', progress: 80, message: `Installing ${mod.name} update...` });
+
+      const contentPath = findWorkshopContent(workshopId, srv.installDir);
+      if (contentPath) {
+        installModToServer(contentPath, mod.name, workshopId, srv.installDir);
+        modCache.storeInCache(workshopId, contentPath, mod.name);
+      }
+
+      clearPendingModUpdate(workshopId);
+
+      ctx.activeInstalls[workshopId] = { status: 'complete', progress: 100, name: mod.name };
+      ctx.io?.emit('modUpdateProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${mod.name} updated successfully!` });
+      ctx.io?.emit('mods', { serverId: srv.id, mods: state.modList });
+
+      addAudit(req.user.id, req.user.username, 'mod.update', `Updated ${mod.name} on ${srv.name}`);
+      addNotification(srv.id, 'mod.updated', 'Mod Updated', `${mod.name} updated on ${srv.name}`, 'success');
+      fireWebhooks('mod.updated', { serverId: srv.id, serverName: srv.name, modName: mod.name, modId: workshopId });
+
+      setTimeout(() => delete ctx.activeInstalls[workshopId], 30000);
+    } catch (err) {
+      logger.error({ err: err.message, workshopId, server: srv.name }, 'Mod update failed');
+      ctx.activeInstalls[workshopId] = { status: 'error', progress: 0, name: mod.name, error: err.message };
+      ctx.io?.emit('modUpdateProgress', { serverId: srv.id, workshopId, status: 'error', progress: 0, message: err.message });
+      setTimeout(() => delete ctx.activeInstalls[workshopId], 60000);
+    }
+  });
+
+  /** Update all mods with pending updates — processes sequentially */
+  app.post('/api/servers/:id/mods/update-all', authForServer('mods.install'), async (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const state = ctx.serverStates[srv.id];
+    if (!state?.modList) return res.status(404).json({ error: 'Server not found' });
+
+    const pending = getPendingModUpdates(srv.id);
+    const modsToUpdate = state.modList.filter(m => m.workshopId && pending[m.workshopId]);
+    if (modsToUpdate.length === 0) return res.json({ message: 'No mods need updating', updated: 0 });
+
+    res.json({ message: `Updating ${modsToUpdate.length} mod(s)`, count: modsToUpdate.length });
+
+    let updated = 0;
+    let failed = 0;
+
+    for (const mod of modsToUpdate) {
+      const workshopId = mod.workshopId;
+      if (ctx.activeInstalls[workshopId]?.status === 'downloading' || ctx.activeInstalls[workshopId]?.status === 'updating') continue;
+
+      ctx.activeInstalls[workshopId] = { status: 'updating', progress: 0, name: mod.name };
+      try {
+        ctx.io?.emit('modUpdateProgress', { serverId: srv.id, workshopId, status: 'downloading', progress: 0, message: `Downloading ${mod.name} update...` });
+
+        await updateWorkshopMod(srv.id, srv.installDir, workshopId);
+
+        ctx.io?.emit('modUpdateProgress', { serverId: srv.id, workshopId, status: 'installing', progress: 80, message: `Installing ${mod.name} update...` });
+
+        const contentPath = findWorkshopContent(workshopId, srv.installDir);
+        if (contentPath) {
+          installModToServer(contentPath, mod.name, workshopId, srv.installDir);
+          modCache.storeInCache(workshopId, contentPath, mod.name);
+        }
+
+        clearPendingModUpdate(workshopId);
+
+        ctx.activeInstalls[workshopId] = { status: 'complete', progress: 100, name: mod.name };
+        ctx.io?.emit('modUpdateProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${mod.name} updated!` });
+
+        updated++;
+        setTimeout(() => delete ctx.activeInstalls[workshopId], 30000);
+      } catch (err) {
+        failed++;
+        logger.error({ err: err.message, workshopId, server: srv.name }, 'Mod update failed (batch)');
+        ctx.activeInstalls[workshopId] = { status: 'error', progress: 0, name: mod.name, error: err.message };
+        ctx.io?.emit('modUpdateProgress', { serverId: srv.id, workshopId, status: 'error', progress: 0, message: err.message });
+        setTimeout(() => delete ctx.activeInstalls[workshopId], 60000);
+      }
+    }
+
+    if (updated > 0) {
+      ctx.io?.emit('mods', { serverId: srv.id, mods: state.modList });
+      addAudit(req.user.id, req.user.username, 'mod.update.all', `Updated ${updated} mod(s) on ${srv.name}${failed > 0 ? ` (${failed} failed)` : ''}`);
+      addNotification(srv.id, 'mod.updated', 'Mods Updated', `${updated} mod(s) updated on ${srv.name}`, 'success');
+    }
+  });
+
+  /** Manually check for mod updates (bypass 15-minute polling interval) */
+  app.post('/api/servers/:id/mods/check-updates', authForServer('mods.view'), async (req, res) => {
+    try {
+      const result = await checkModUpdatesNow(req.params.id);
+      res.json(result);
+    } catch (err) {
+      logger.error({ err: err.message, serverId: req.params.id }, 'Manual mod update check failed');
+      res.status(500).json({ error: err.message || 'Failed to check for updates' });
+    }
   });
 
   app.get('/api/mods/install-status', auth(), (req, res) => { res.json(ctx.activeInstalls); });

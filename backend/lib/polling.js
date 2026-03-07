@@ -308,6 +308,47 @@ function startSteamUpdatePolling() {
   }, STEAM_UPDATE_POLL_INTERVAL_MS);
 }
 
+/**
+ * Manually check for mod updates on a specific server (bypass polling interval).
+ * Same logic as the periodic poll but triggered on-demand for a single server.
+ *
+ * @param {string} serverId - Server ID to check
+ * @returns {Promise<{ checked: number, updatesFound: number }>}
+ */
+async function checkModUpdatesNow(serverId) {
+  _ensureTrackingLoaded();
+  const srv = ctx.servers.find(s => s.id === serverId);
+  if (!srv) return { checked: 0, updatesFound: 0 };
+
+  const state = ctx.serverStates[srv.id];
+  if (!state?.modList?.length) return { checked: 0, updatesFound: 0 };
+
+  let checked = 0;
+  let updatesFound = 0;
+
+  for (const mod of state.modList) {
+    if (!mod.workshopId) continue;
+    checked++;
+    const remoteVersion = await getWorkshopModVersion(mod.workshopId);
+    if (!remoteVersion) continue;
+
+    if (lastModVersions[mod.workshopId] && remoteVersion > lastModVersions[mod.workshopId]) {
+      // New update detected — only notify if not already pending
+      if (!pendingModUpdates[mod.workshopId]) {
+        addLog(srv.id, 'info', 'updates', `Workshop mod ${mod.name} update detected (${lastModVersions[mod.workshopId]} -> ${remoteVersion})`);
+        addNotification(srv.id, 'mod.update', 'Mod Update Available', `Workshop mod ${mod.name} has a new version available.`, 'warning');
+        ctx.io?.emit('modUpdate', { serverId: srv.id, mod: mod.name, workshopId: mod.workshopId });
+        pendingModUpdates[mod.workshopId] = { name: mod.name, detectedAt: new Date().toISOString(), remoteVersion };
+      }
+      updatesFound++;
+    }
+    lastModVersions[mod.workshopId] = remoteVersion;
+  }
+
+  _persistTracking();
+  return { checked, updatesFound };
+}
+
 // ─── Start all polling loops ─────────────────────────────
 const intervals = [];
 
@@ -381,4 +422,4 @@ function gracefulShutdown(httpServer, signal) {
   }, SHUTDOWN_FORCE_TIMEOUT_MS);
 }
 
-module.exports = { startAllPolling, gracefulShutdown, getPendingModUpdates, clearPendingModUpdate, getLastGameBuild };
+module.exports = { startAllPolling, gracefulShutdown, getPendingModUpdates, clearPendingModUpdate, getLastGameBuild, checkModUpdatesNow };
