@@ -101,10 +101,8 @@ const CONFIG = {
     executable: process.env.DAYZ_EXECUTABLE || 'DayZServer_x64.exe',
     launchParams: process.env.DAYZ_LAUNCH_PARAMS || '-config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -adminlog -netlog -freezecheck',
   },
-  cftools: {
-    // DEPRECATED — CFTools is no longer required. Configure InHouse sidecar
-    // per-server via inHouseApiUrl/inHouseApiKey in servers.json instead.
-    // These are retained for backward compatibility during migration.
+  // Legacy integration credentials (retained for backward compatibility)
+  legacyIntegration: {
     applicationId: process.env.CFTOOLS_APPLICATION_ID || '',
     secret: process.env.CFTOOLS_SECRET || '',
   },

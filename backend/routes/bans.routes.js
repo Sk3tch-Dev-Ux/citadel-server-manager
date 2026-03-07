@@ -10,7 +10,7 @@ const { fireWebhooks } = require('../lib/notifications');
 const {
   listBans, getBanById, addBan, removeBan,
   importBans, exportBans,
-} = require('../lib/cftools-bans');
+} = require('../lib/ban-engine');
 
 module.exports = function (app) {
 

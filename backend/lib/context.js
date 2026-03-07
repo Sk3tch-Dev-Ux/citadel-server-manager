@@ -15,6 +15,8 @@ module.exports = {
   banDatabase: [],
   leaderboard: [],
   notifications: [],
+  storeProducts: [],
+  storePurchases: [],
 
   // ─── Runtime State ─────────────────────────────────────
   serverStates: {},

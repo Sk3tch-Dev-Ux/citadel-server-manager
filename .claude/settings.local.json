@@ -134,7 +134,17 @@
       "WebFetch(domain:mgsm.io)",
       "WebFetch(domain:lbmaster.de)",
       "WebFetch(domain:demo.mgsm.io)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(cd /tmp)",
+      "Bash(python3:*)",
+      "Bash(pyi-archive_viewer \"C:\\\\Users\\\\KurtE\\\\OneDrive\\\\Desktop\\\\DayZTypesEditor\\\\DayZTypesEditor.exe\")",
+      "Bash(pip install pyinstxtractor -q)",
+      "Bash(git mv backend/lib/cftools-bans.js backend/lib/ban-engine.js)",
+      "Bash(git mv backend/lib/cftools-players.js backend/lib/player-data.js)",
+      "Bash(git mv backend/lib/cftools-priority.js backend/lib/priority-engine.js)",
+      "Bash(git mv backend/lib/cftools-leaderboard.js backend/lib/leaderboard-engine.js)",
+      "Bash(git mv backend/lib/cftools-client.js backend/lib/legacy-sdk.js)",
+      "Bash(git mv backend/lib/server-actions/providers/cftools.js backend/lib/server-actions/providers/legacy-sdk.js)"
     ]
   }
 }

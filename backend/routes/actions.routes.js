@@ -1,8 +1,8 @@
 /**
  * Admin Action routes — vendor-neutral server actions via the provider system.
  *
- * Replaces the old gamelabs.routes.js. All CFCloud_* codes are now hidden
- * inside providers/cftools.js — this file only uses ActionType constants.
+ * Server admin actions — teleport, heal, kick, spawn items, etc.
+ * Uses the provider pattern to delegate to the best available backend.
  */
 const { addAudit } = require('../lib/audit');
 const auth = require('../middleware/auth');
@@ -215,7 +215,7 @@ module.exports = function(app) {
     if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
 
     try {
-      const { banPlayer } = require('../lib/cftools-bans');
+      const { banPlayer } = require('../lib/ban-engine');
       const ban = await banPlayer(req.params.id, steamId, reason || 'Banned by admin', null, req.user.username);
       addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.BAN_PLAYER],
         `Banned ${session.playerName || session.name}: ${reason || 'Banned by admin'}`);
@@ -435,11 +435,4 @@ module.exports = function(app) {
     }
   });
 
-  // ─── Backwards Compatibility ──────────────────────────
-  // Old /gamelabs/ URLs redirect to /actions/ (307 preserves method)
-  // Remove in next major version.
-  app.all('/api/servers/:id/gamelabs/*', (req, res) => {
-    const newPath = req.originalUrl.replace('/gamelabs/', '/actions/');
-    res.redirect(307, newPath);
-  });
 };

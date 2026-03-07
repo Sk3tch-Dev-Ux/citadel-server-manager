@@ -1,7 +1,7 @@
 /**
  * Leaderboard data — InHouse sidecar or RPT scraping fallback.
  * Normalizes to the same format used by ctx.leaderboard.
- * No CFTools dependency.
+ * No external API dependency.
  */
 const logger = require('./logger');
 const ctx = require('./context');

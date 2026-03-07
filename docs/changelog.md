@@ -124,7 +124,7 @@ _Discord Bot Enterprise Overhaul_
 - `discord.routes.js` — Rewritten to use shared lifecycle functions, add audit logging on all mutating actions, consume Discord user attribution params
 
 ### Removed
-- **Deprecated GameLabs aliases** — `gameLabsHeal`, `gameLabsKill`, `gameLabsTeleport`, `gameLabsSpawnItem` action aliases removed from `discord.routes.js`
+- **Deprecated action aliases** — Legacy action aliases removed from `discord.routes.js`
 
 ## v2.1.0
 
@@ -171,7 +171,7 @@ _Citadel — Complete Platform Rebuild_
 
 ### Breaking Changes
 - Rebranded from "DayZ Server Controller" / "DSC" to **Citadel**
-- Replaced all third-party API dependencies (CFTools, GameLabs) with the self-hosted **InHouseProvider** system
+- Replaced all third-party API dependencies with the self-hosted **InHouseProvider** system
 - New `@CitadelAdmin` DayZ mod replaces `@DSCAdmin`
 
 ### Added
@@ -198,6 +198,4 @@ _Citadel — Complete Platform Rebuild_
 - Config files reference Citadel branding throughout
 
 ### Removed
-- CFTools API integration
-- GameLabs API integration
-- All external service dependencies for core functionality
+- All external third-party API dependencies for core functionality

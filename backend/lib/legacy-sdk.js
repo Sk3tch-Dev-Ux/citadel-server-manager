@@ -1,7 +1,7 @@
 /**
- * CFTools SDK integration layer.
- * Provides per-server CFTools client instances with lazy initialization.
- * All exports are safe to call when CFTools is not configured — they return null/false.
+ * Legacy SDK integration layer (optional).
+ * Provides per-server client instances with lazy initialization.
+ * All exports are safe to call when not configured — they return null/false.
  */
 const logger = require('./logger');
 const ctx = require('./context');
@@ -9,34 +9,35 @@ const ctx = require('./context');
 let sdk = null;
 let sdkLoadAttempted = false;
 
-// Map of serverApiId -> built CFToolsClient instance
+// Map of serverApiId -> built client instance
 const clientCache = new Map();
 
 /**
- * Load the cftools-sdk module. Returns the SDK or null if unavailable.
+ * Load the optional SDK module. Returns the SDK or null if unavailable.
  */
 function loadSdk() {
   if (sdkLoadAttempted) return sdk;
   sdkLoadAttempted = true;
   try {
     sdk = require('cftools-sdk');
-    logger.info('cftools-sdk loaded successfully');
+    logger.info('Legacy SDK loaded successfully');
   } catch (err) {
     sdk = null;
-    logger.debug({ err: err.message }, 'cftools-sdk not available — CFTools features disabled');
+    logger.debug({ err: err.message }, 'Optional SDK not available — legacy provider disabled');
   }
   return sdk;
 }
 
 /**
- * Check whether CFTools is configured globally (application credentials exist).
+ * Check whether legacy SDK is configured globally (application credentials exist).
  */
 function isGloballyConfigured() {
-  return !!(ctx.CONFIG?.cftools?.applicationId && ctx.CONFIG?.cftools?.secret);
+  const legacy = ctx.CONFIG?.legacyIntegration || ctx.CONFIG?.cftools;
+  return !!(legacy?.applicationId && legacy?.secret);
 }
 
 /**
- * Check whether a specific server has CFTools configured.
+ * Check whether a specific server has legacy SDK configured.
  */
 function isConfiguredForServer(serverId) {
   if (!isGloballyConfigured()) return false;
@@ -45,8 +46,8 @@ function isConfiguredForServer(serverId) {
 }
 
 /**
- * Get or create a CFToolsClient for a specific server.
- * Returns null if CFTools is not configured for this server or SDK unavailable.
+ * Get or create a client for a specific server.
+ * Returns null if not configured for this server or SDK unavailable.
  */
 function getClient(serverId) {
   if (!isConfiguredForServer(serverId)) return null;
@@ -58,18 +59,19 @@ function getClient(serverId) {
 
   if (clientCache.has(serverApiId)) return clientCache.get(serverApiId);
 
+  const legacy = ctx.CONFIG?.legacyIntegration || ctx.CONFIG?.cftools;
   try {
     const client = new cfSdk.CFToolsClientBuilder()
       .withServerApiId(serverApiId)
-      .withCredentials(ctx.CONFIG.cftools.applicationId, ctx.CONFIG.cftools.secret)
+      .withCredentials(legacy.applicationId, legacy.secret)
       .withCache()
       .build();
 
     clientCache.set(serverApiId, client);
-    logger.info({ serverId, serverApiId }, 'CFTools client initialized');
+    logger.info({ serverId, serverApiId }, 'Legacy SDK client initialized');
     return client;
   } catch (err) {
-    logger.error({ err: err.message, serverId }, 'Failed to build CFTools client');
+    logger.error({ err: err.message, serverId }, 'Failed to build SDK client');
     return null;
   }
 }

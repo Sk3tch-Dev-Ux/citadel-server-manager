@@ -26,8 +26,8 @@ const {
 } = require('./constants');
 const { loadJSON, saveJSON, flushAll } = require('./data-store');
 const { detectRunningProcess, detectProcessByPid, spawnDayZServer, applyProcessSettings } = require('./process-manager');
-const { updateLeaderboard } = require('./cftools-leaderboard');
-const { fetchPlayers } = require('./cftools-players');
+const { updateLeaderboard } = require('./leaderboard-engine');
+const { fetchPlayers } = require('./player-data');
 const { autoDetectMods } = require('./mod-manager');
 const { addLog } = require('./audit');
 const { addNotification, fireWebhooks } = require('./notifications');

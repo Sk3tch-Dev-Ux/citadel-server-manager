@@ -182,8 +182,8 @@ module.exports = function (app) {
     res.json({
       hasSecretKey: !!secretKey,
       hasWebhookSecret: !!webhookSecret,
-      secretKeyPrefix: secretKey ? secretKey.slice(0, 10) + '...' : '',
-      webhookSecretPrefix: webhookSecret ? webhookSecret.slice(0, 10) + '...' : '',
+      secretKeyPrefix: secretKey ? '...' + secretKey.slice(-4) : '',
+      webhookSecretPrefix: webhookSecret ? '...' + webhookSecret.slice(-4) : '',
       enabled: CONFIG._structured?.store?.enabled === true,
       storeName: CONFIG._structured?.store?.storeName || 'VIP Priority Queue',
       currency: CONFIG._structured?.store?.currency || 'usd',

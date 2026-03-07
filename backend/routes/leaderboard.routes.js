@@ -2,7 +2,7 @@
  * Leaderboard routes.
  */
 const ctx = require('../lib/context');
-const { updateLeaderboard } = require('../lib/cftools-leaderboard');
+const { updateLeaderboard } = require('../lib/leaderboard-engine');
 const auth = require('../middleware/auth');
 
 module.exports = function(app) {

@@ -62,19 +62,19 @@ function buildPlayerListEmbed(players) {
   if (players.length === 0) {
     embed.setDescription('*No players currently online*');
   } else {
-    const hasCftools = players.some(p => p.source === 'cftools' || p.source === 'inhouse');
+    const hasEnrichedData = players.some(p => p.source === 'cftools' || p.source === 'inhouse');
     const list = players.map((p, i) => {
       const idx = `\`${String(i + 1).padStart(2)}\``;
       const name = `**${escapeMarkdown(p.name)}**`;
       const ping = `${p.ping || '?'}ms`;
-      if (hasCftools) {
+      if (hasEnrichedData) {
         const banWarning = (p.bans && p.bans.count > 0) ? ' :warning:' : '';
         return `${idx} ${name} — ${ping}${banWarning}`;
       }
       return `${idx} ${name} — ${ping}`;
     }).join('\n');
     embed.setDescription(list.slice(0, 4000));
-    if (hasCftools) {
+    if (hasEnrichedData) {
       const withBans = players.filter(p => p.bans && p.bans.count > 0).length;
       if (withBans > 0) {
         embed.addFields({ name: 'Flagged Players', value: `${withBans} player(s) with previous bans`, inline: false });
@@ -93,8 +93,8 @@ function buildLeaderboardEmbed(entries) {
   if (!entries || entries.length === 0) {
     embed.setDescription('*No leaderboard data*');
   } else {
-    const hasCftools = entries.some(e => e.kdratio != null || e.playtime != null);
-    if (hasCftools) {
+    const hasEnrichedData = entries.some(e => e.kdratio != null || e.playtime != null);
+    if (hasEnrichedData) {
       const list = entries.map((s, i) => {
         const rank = `\`${String(i + 1).padStart(2)}\``;
         const kd = s.kdratio != null ? ` | K/D: ${s.kdratio.toFixed(2)}` : '';

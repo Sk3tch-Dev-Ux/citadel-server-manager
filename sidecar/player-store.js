@@ -6,7 +6,7 @@
  * health, inventory summary, etc.
  *
  * Also maintains a player statistics database (kills, deaths, playtime)
- * that replaces CFTools player stats.
+ * for tracking player stats locally.
  */
 const fs = require('fs');
 const path = require('path');

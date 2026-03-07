@@ -77,6 +77,8 @@ const WEBHOOK_EVENTS = {
   'backup.created':       'Backup created',
   'backup.restored':      'Backup restored',
   'scheduler.executed':   'Scheduled task executed',
+  'store.purchased':      'Store purchase completed',
+  'player.unban':         'Player unbanned from server',
 };
 
 /** Delivery record TTL: 7 days in milliseconds */
@@ -87,6 +89,7 @@ const NOTIFICATION_ICONS = {
   'server.health': '⚠️', 'player.join': '👋', 'player.leave': '👤', 'player.kick': '🦶',
   'player.ban': '🔨', 'mod.installed': '📦', 'mod.updated': '📦', 'mod.removed': '🗑️',
   'scheduler.task': '📅', 'backup.created': '💾', 'update.available': '🆕', 'rcon.command': '🖥️',
+  'store.purchased': '🛒', 'player.unban': '✅',
 };
 
 /**

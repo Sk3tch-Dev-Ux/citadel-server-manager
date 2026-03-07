@@ -34,7 +34,7 @@ function initServerState(serverId) {
     modList: [], config: {}, scheduledRestarts: [], chatMessages: [], banList: [],
     rcon: srv.rconPassword ? new RCONClient(srv.ip, srv.rconPort, srv.rconPassword, serverId) : null,
     startedAt: null,
-    cftools: { lastSessionPoll: null, gameSessions: [] },
+    cftools: { lastSessionPoll: null, gameSessions: [] }, // legacy SDK sessions
     inhouse: { sessions: [], lastPoll: null },
     scheduler: { jobs: schedulerData.jobs || [], pendingActions: new Map() },
     messenger: { enabled: messengerData.enabled !== false, messages: messengerData.messages || [], lastSent: new Map() },

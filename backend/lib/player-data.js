@@ -2,7 +2,7 @@
  * Player data fetching — InHouse sidecar or RCON fallback.
  * Normalizes player data to a consistent format for state.players.
  * Enriches with IP/ping from BattlEye RCON when available.
- * No CFTools dependency.
+ * No external API dependency.
  */
 const logger = require('./logger');
 const ctx = require('./context');

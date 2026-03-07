@@ -2,7 +2,7 @@
  * Citadel Sidecar — Main Server
  *
  * Self-hosted REST API that runs alongside a DayZ server to provide
- * enterprise-level admin actions without CFTools or GameLabs dependency.
+ * enterprise-level admin actions without external API dependencies.
  *
  * Architecture:
  *   Citadel Backend → InHouseProvider → HTTP → THIS SERVER → File Queue → DayZ Mod

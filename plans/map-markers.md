@@ -1,6 +1,6 @@
 # Dynamic Map Markers Integration Plan
 
-Port CW_Gamelabs functionality into Citadel mod — track configurable items/buildings on the live map.
+Track configurable items/buildings on the live map via Citadel mod integration.
 
 ## Changes
 

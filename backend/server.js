@@ -162,6 +162,7 @@ require('./routes/leaderboard.routes')(app);
 require('./routes/bans.routes')(app);
 require('./routes/actions.routes')(app);
 require('./routes/items.routes')(app);
+require('./routes/types-editor.routes')(app);
 require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/store.routes')(app);
@@ -253,7 +254,7 @@ const { fireWebhooks } = require('./lib/notifications');
 
   // Priority queue expiration cleanup (every 60s — lightweight array filter)
   setInterval(() => {
-    try { require('./lib/cftools-priority').cleanExpired(); } catch {}
+    try { require('./lib/priority-engine').cleanExpired(); } catch {}
   }, 60_000);
 
   // Listen
@@ -278,5 +279,14 @@ const { fireWebhooks } = require('./lib/notifications');
 // ─── Graceful Shutdown ───────────────────────────────────
 process.on('SIGTERM', () => gracefulShutdown(server, 'SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown(server, 'SIGINT'));
+
+// ─── Uncaught Error Handlers ─────────────────────────────
+process.on('unhandledRejection', (reason, promise) => {
+  try { require('./lib/logger').error({ err: reason }, 'Unhandled promise rejection'); } catch {}
+});
+process.on('uncaughtException', (err) => {
+  try { require('./lib/logger').fatal({ err }, 'Uncaught exception — shutting down'); } catch {}
+  process.exit(1);
+});
 
 module.exports = { app, io, servers: ctx.servers, CONFIG };
