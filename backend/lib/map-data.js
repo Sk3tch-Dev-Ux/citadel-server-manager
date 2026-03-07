@@ -42,14 +42,14 @@ const serverEvents = {}; // { serverId: [{ id, type, displayName, icon, position
 const EVENT_PATTERNS = [
   // Helicopter crash sites
   {
-    regex: /Spawning loot on[\s:]+(\S*(?:CrashSite|crash|Heli)[^\s]*)\s+at\s+pos\s*[<\[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
+    regex: /Spawning loot on[\s:]+(\S*(?:CrashSite|crash|Heli)[^\s]*)\s+at\s+pos\s*[<[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
     type: 'helicrash',
     displayName: 'Helicopter Crash',
     icon: 'helicopter',
     ttl: 45 * 60 * 1000, // 45 minutes
   },
   {
-    regex: /(?:Dynamic event|CrashSite)\s+.*?(?:created|spawned)\s+.*?at\s+[<\[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
+    regex: /(?:Dynamic event|CrashSite)\s+.*?(?:created|spawned)\s+.*?at\s+[<[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
     type: 'helicrash',
     displayName: 'Helicopter Crash',
     icon: 'helicopter',
@@ -57,7 +57,7 @@ const EVENT_PATTERNS = [
   },
   // Airdrop events
   {
-    regex: /(?:Airdrop|AirDrop)\s+.*?(?:spawned|created|landed)\s+.*?at\s+[<\[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
+    regex: /(?:Airdrop|AirDrop)\s+.*?(?:spawned|created|landed)\s+.*?at\s+[<[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
     type: 'airdrop',
     displayName: 'Airdrop',
     icon: 'parachute',
@@ -65,7 +65,7 @@ const EVENT_PATTERNS = [
   },
   // Contamination zones
   {
-    regex: /(?:Contamination|ContaminatedArea)\s+.*?(?:triggered|activated|spawned)\s+.*?at\s+[<\[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
+    regex: /(?:Contamination|ContaminatedArea)\s+.*?(?:triggered|activated|spawned)\s+.*?at\s+[<[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
     type: 'contamination',
     displayName: 'Contamination Zone',
     icon: 'biohazard',
@@ -73,7 +73,7 @@ const EVENT_PATTERNS = [
   },
   // Animal herds / hordes
   {
-    regex: /(?:InfectedHorde|ZombieHorde)\s+.*?(?:spawned|created)\s+.*?at\s+[<\[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
+    regex: /(?:InfectedHorde|ZombieHorde)\s+.*?(?:spawned|created)\s+.*?at\s+[<[]?\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i,
     type: 'horde',
     displayName: 'Infected Horde',
     icon: 'skull',

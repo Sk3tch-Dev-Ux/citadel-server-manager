@@ -379,58 +379,60 @@ function findBackupFile(serverId, filename, type) {
  * @returns {Promise<{ success: boolean, error?: string }>}
  */
 function restoreBackup(serverId, filename, type) {
-  return new Promise(async (resolve) => {
-    const srv = ctx.servers.find(s => s.id === serverId);
-    if (!srv || !srv.installDir) {
-      return resolve({ success: false, error: 'Server not found or missing installDir' });
-    }
-
-    // Check server is stopped
-    const state = ctx.serverStates[serverId];
-    if (state && state.status && state.status !== 'stopped' && state.status !== 'offline') {
-      return resolve({ success: false, error: `Server must be stopped before restoring (current status: ${state.status})` });
-    }
-
-    // Find the backup file
-    const found = findBackupFile(serverId, filename, type);
-    if (!found) {
-      return resolve({ success: false, error: `Backup file not found: ${filename}` });
-    }
-    const { zipPath } = found;
-
-    // Emit progress: starting
-    if (ctx.io) {
-      ctx.io.emit('backupRestore', { serverId, status: 'starting', filename });
-    }
-
-    logger.info({ serverId, filename }, 'Backup Restore: starting');
-
-    // Create safety backup before restoring
-    try {
-      const safetyTs = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const safetyFilename = `pre-restore-${safetyTs}.zip`;
-      const safetyDir = path.join(srv.installDir, '.backups', 'manual');
-      try { fs.mkdirSync(safetyDir, { recursive: true }); } catch (_) { /* ignore */ }
-      const safetyZipPath = path.join(safetyDir, safetyFilename);
-
-      // Get the current backup config paths to know what to back up
-      const config = getBackupConfig(serverId);
-      const safetySources = [];
-      for (const relPath of (config.paths || [])) {
-        const expanded = expandWildcardPath(srv.installDir, relPath);
-        for (const p of expanded) {
-          if (!safetySources.includes(p)) safetySources.push(p);
-        }
+  return new Promise((resolve) => {
+    // Run async logic without async/await in the executor
+    (async () => {
+      const srv = ctx.servers.find(s => s.id === serverId);
+      if (!srv || !srv.installDir) {
+        return resolve({ success: false, error: 'Server not found or missing installDir' });
       }
 
-      if (safetySources.length > 0) {
-        const sources = safetySources.map(p => `'${p.replace(/'/g, "''")}'`).join(',');
-        const dest = safetyZipPath.replace(/'/g, "''");
-        const safetyCmd = `Compress-Archive -Path ${sources} -DestinationPath '${dest}' -Force`;
+      // Check server is stopped
+      const state = ctx.serverStates[serverId];
+      if (state && state.status && state.status !== 'stopped' && state.status !== 'offline') {
+        return resolve({ success: false, error: `Server must be stopped before restoring (current status: ${state.status})` });
+      }
 
-        logger.info({ serverId, safetyFilename }, 'Backup Restore: creating safety backup');
+      // Find the backup file
+      const found = findBackupFile(serverId, filename, type);
+      if (!found) {
+        return resolve({ success: false, error: `Backup file not found: ${filename}` });
+      }
+      const { zipPath } = found;
 
-        await new Promise((res) => {
+      // Emit progress: starting
+      if (ctx.io) {
+        ctx.io.emit('backupRestore', { serverId, status: 'starting', filename });
+      }
+
+      logger.info({ serverId, filename }, 'Backup Restore: starting');
+
+      // Create safety backup before restoring
+      try {
+        const safetyTs = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const safetyFilename = `pre-restore-${safetyTs}.zip`;
+        const safetyDir = path.join(srv.installDir, '.backups', 'manual');
+        try { fs.mkdirSync(safetyDir, { recursive: true }); } catch (_) { /* ignore */ }
+        const safetyZipPath = path.join(safetyDir, safetyFilename);
+
+        // Get the current backup config paths to know what to back up
+        const config = getBackupConfig(serverId);
+        const safetySources = [];
+        for (const relPath of (config.paths || [])) {
+          const expanded = expandWildcardPath(srv.installDir, relPath);
+          for (const p of expanded) {
+            if (!safetySources.includes(p)) safetySources.push(p);
+          }
+        }
+
+        if (safetySources.length > 0) {
+          const sources = safetySources.map(p => `'${p.replace(/'/g, "''")}'`).join(',');
+          const dest = safetyZipPath.replace(/'/g, "''");
+          const safetyCmd = `Compress-Archive -Path ${sources} -DestinationPath '${dest}' -Force`;
+
+          logger.info({ serverId, safetyFilename }, 'Backup Restore: creating safety backup');
+
+          await new Promise((res) => {
           const proc = spawn('powershell', [
             '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', safetyCmd,
           ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -523,6 +525,9 @@ function restoreBackup(serverId, filename, type) {
         ctx.io.emit('backupRestore', { serverId, status: 'error', filename, error: errMsg });
       }
       resolve({ success: false, error: errMsg });
+    });
+    })().catch(err => {
+      resolve({ success: false, error: err.message });
     });
   });
 }

@@ -1,5 +1,8 @@
 /**
  * File browser and editor routes (per server).
+ *
+ * SECURITY: Enforces a whitelist of safe file extensions for writing.
+ * Prevents execution of dangerous files (.exe, .dll, .js, .html, etc.)
  */
 const fs = require('fs');
 const path = require('path');
@@ -7,6 +10,22 @@ const ctx = require('../lib/context');
 const { safePath } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
 const { authForServer } = require('../middleware/auth');
+const logger = require('../lib/logger');
+
+// Whitelist of safe file extensions for writing
+const SAFE_WRITE_EXTENSIONS = new Set([
+  '.cfg', '.config',      // DayZ config files
+  '.xml',                 // XML configs
+  '.json',                // JSON configs
+  '.ini', '.txt',         // Text configs
+  '.c', '.h', '.cpp', '.hpp', '.js.bak', // Source code (read-only in editor)
+  '.bat', '.cmd', '.ps1', // Batch scripts (dangerous, but sometimes needed)
+  '.sh',                  // Shell scripts
+  '.md', '.log'           // Documentation
+]);
+
+// Maximum file size for writes (10 MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 module.exports = function(app) {
   app.get('/api/servers/:id/files', authForServer('files.browse'), (req, res) => {
@@ -52,6 +71,21 @@ module.exports = function(app) {
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const { file, content } = req.body;
     if (!file) return res.status(400).json({ error: 'File path required' });
+    if (!content || typeof content !== 'string') return res.status(400).json({ error: 'Content must be a string' });
+
+    // Check file extension against whitelist
+    const ext = path.extname(file).toLowerCase();
+    if (!SAFE_WRITE_EXTENSIONS.has(ext)) {
+      logger.warn({ userId: req.user.id, file, ext }, 'Attempted write to file with unsafe extension');
+      addAudit(req.user.id, req.user.username, 'file.write-blocked', `Blocked write to ${file} (unsafe extension: ${ext})`);
+      return res.status(400).json({ error: `File extension "${ext}" is not allowed. Allowed: ${Array.from(SAFE_WRITE_EXTENSIONS).join(', ')}` });
+    }
+
+    // Check file size
+    if (content.length > MAX_FILE_SIZE) {
+      return res.status(400).json({ error: `File content exceeds maximum size (${MAX_FILE_SIZE / 1024 / 1024}MB)` });
+    }
+
     const filePath = safePath(srv.installDir, file);
     if (!filePath) return res.status(403).json({ error: 'Access denied' });
     try {
@@ -61,6 +95,9 @@ module.exports = function(app) {
       fs.writeFileSync(filePath, content);
       addAudit(req.user.id, req.user.username, 'file.edit', `Edited ${file} on ${srv.name}`);
       res.json({ message: 'Saved' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+      logger.error({ err, file }, 'File write error');
+      res.status(500).json({ error: err.message });
+    }
   });
 };

@@ -34,11 +34,17 @@ module.exports = {
   /** Timeout for tasklist/taskkill child processes (ms) */
   PROCESS_CMD_TIMEOUT_MS: 5_000,
 
-  /** Delay between restart attempts (ms) */
+  /** Delay between restart attempts (ms) - DEPRECATED: use exponential backoff in restartServer */
   RESTART_DELAY_MS: 3_000,
 
   /** Maximum restart attempts before giving up */
   MAX_RESTART_ATTEMPTS: 3,
+
+  /** Exponential backoff delays for restart attempts (ms): 3s, 6s, 12s, 24s, max 120s */
+  RESTART_BACKOFF_DELAYS_MS: [3000, 6000, 12000, 24000, 120000],
+
+  /** Cool down window: if server runs for >5 min after restart, reset backoff to 0 */
+  RESTART_BACKOFF_COOLDOWN_MS: 5 * 60 * 1000,
 
   // ─── Log & Data Limits ──────────────────────────────────
   /** Max log entries per server kept in memory */

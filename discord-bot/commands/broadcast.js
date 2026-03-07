@@ -25,8 +25,11 @@ module.exports = {
     }
 
     const result = await panelAction('message', { message }, interaction.guildId, interaction);
-    if (result.error) {
-      return await interaction.editReply({ embeds: [buildErrorEmbed('Broadcast Failed', result.error)] });
+    if (!result.success || result.error) {
+      const errorMsg = result.error || 'Unknown error occurred';
+      return await interaction.editReply({
+        embeds: [buildErrorEmbed('Broadcast Failed', errorMsg)]
+      });
     }
 
     await interaction.editReply({

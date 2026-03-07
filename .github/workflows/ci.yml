@@ -31,7 +31,7 @@ jobs:
         node-version: [20.x, 22.x]
     env:
       JWT_SECRET: ci-test-secret
-      NODE_ENV: production
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

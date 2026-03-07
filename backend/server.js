@@ -88,6 +88,8 @@ ctx.io = io;
 // ─── Middleware ───────────────────────────────────────────
 const { createCors, secureCookies } = require('./middleware/security');
 const { apiLimiter, authLimiter, discordLimiter } = require('./middleware/rate-limit');
+const { csrfProtection, verifyCsrfToken } = require('./middleware/csrf');
+const cookieParser = require('cookie-parser');
 
 // Security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, etc.)
 app.use(helmet({
@@ -114,6 +116,13 @@ app.use(express.json({
   },
 }));
 app.use(secureCookies(useHttps));
+app.use(cookieParser()); // Parse cookies for CSRF middleware
+
+// CSRF Protection (double-submit cookie pattern for SPA)
+app.use(csrfProtection);                           // Generate + set CSRF token
+app.use('/api/', verifyCsrfToken);                 // Verify for state-changing requests
+
+// Rate limiting
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 app.use('/api/discord/', discordLimiter);
@@ -183,7 +192,13 @@ io.use((socket, next) => {
     const decoded = jwt.verify(token, CONFIG.jwtSecret);
     const user = ctx.users.find(u => u.id === decoded.id);
     if (!user) return next(new Error('User not found'));
-    socket.user = decoded;
+    // SECURITY: Always fetch fresh role from database, not stale JWT claim
+    // This prevents permission escalation via cached JWT tokens
+    socket.user = {
+      ...decoded,
+      role: user.role,
+      mustChangePassword: !!user.mustChangePassword
+    };
     next();
   } catch {
     next(new Error('Invalid or expired token'));
@@ -246,35 +261,38 @@ const { startup } = require('./lib/server-init');
 const { startAllPolling, gracefulShutdown } = require('./lib/polling');
 const { fireWebhooks } = require('./lib/notifications');
 
-(async () => {
-  await startup();
+// Only start the server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
+    await startup();
 
-  // Start all polling loops (metrics, mod detection, leaderboard, steam updates, RCON)
-  await startAllPolling();
+    // Start all polling loops (metrics, mod detection, leaderboard, steam updates, RCON)
+    await startAllPolling();
 
-  // Priority queue expiration cleanup (every 60s — lightweight array filter)
-  setInterval(() => {
-    try { require('./lib/priority-engine').cleanExpired(); } catch {}
-  }, 60_000);
+    // Priority queue expiration cleanup (every 60s — lightweight array filter)
+    setInterval(() => {
+      try { require('./lib/priority-engine').cleanExpired(); } catch {}
+    }, 60_000);
 
-  // Listen
-  server.listen(CONFIG.port, () => {
-    logger.info(`Citadel v2.0 (All-In-One) running on ${useHttps ? 'https' : 'http'}://localhost:${CONFIG.port}`);
-    logger.info(`${ctx.servers.length} server(s) configured, ${ctx.users.length} user(s)`);
+    // Listen
+    server.listen(CONFIG.port, () => {
+      logger.info(`Citadel v2.0 (All-In-One) running on ${useHttps ? 'https' : 'http'}://localhost:${CONFIG.port}`);
+      logger.info(`${ctx.servers.length} server(s) configured, ${ctx.users.length} user(s)`);
 
-    // Fire agent.ready webhook on successful startup
-    fireWebhooks('agent.ready', {
-      serverName: 'Citadel Agent',
-      serverId: 'agent',
-      reason: `Agent started on port ${CONFIG.port}`,
-    }).catch(err => logger.error({ err }, 'Failed to fire agent.ready webhook'));
+      // Fire agent.ready webhook on successful startup
+      fireWebhooks('agent.ready', {
+        serverName: 'Citadel Agent',
+        serverId: 'agent',
+        reason: `Agent started on port ${CONFIG.port}`,
+      }).catch(err => logger.error({ err }, 'Failed to fire agent.ready webhook'));
+    });
+  })().catch(err => {
+    // eslint-disable-next-line no-console
+    console.error('FATAL: Startup failed —', err.message || err);
+    try { require('./lib/logger').fatal({ err }, 'Startup failed'); } catch {}
+    process.exit(1);
   });
-})().catch(err => {
-  // eslint-disable-next-line no-console
-  console.error('FATAL: Startup failed —', err.message || err);
-  try { require('./lib/logger').fatal({ err }, 'Startup failed'); } catch {}
-  process.exit(1);
-});
+}
 
 // ─── Graceful Shutdown ───────────────────────────────────
 process.on('SIGTERM', () => gracefulShutdown(server, 'SIGTERM'));

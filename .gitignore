@@ -39,6 +39,9 @@ docs/.vitepress/cache/
 # Runtime data (contains credentials & user data)
 /data/
 
+# JWT secret file (auto-generated, never commit)
+data/.jwt-secret
+
 # PID files
 *.pid
 

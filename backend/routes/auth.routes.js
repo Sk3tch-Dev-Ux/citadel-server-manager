@@ -65,7 +65,17 @@ module.exports = function(app) {
     // MFA validation (TOTP)
     if (user.mfaEnabled && user.mfaSecret) {
       if (!mfa) return res.status(401).json({ error: 'MFA code required', mfaRequired: true });
-      const isValid = authenticator.check(String(mfa), user.mfaSecret);
+
+      // Decrypt the stored MFA secret
+      let decryptedSecret;
+      try {
+        decryptedSecret = decrypt(user.mfaSecret);
+      } catch (err) {
+        logger.error({ err, userId: user.id }, 'Failed to decrypt MFA secret');
+        return res.status(500).json({ error: 'Internal error' });
+      }
+
+      const isValid = authenticator.check(String(mfa), decryptedSecret);
       if (!isValid) {
         logger.warn({ userId: user.id }, 'Invalid MFA code');
         return res.status(401).json({ error: 'Invalid MFA code' });
@@ -73,24 +83,35 @@ module.exports = function(app) {
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      { id: user.id, username: user.username, role: user.role, mustChangePassword: !!user.mustChangePassword },
       ctx.CONFIG.jwtSecret,
       { expiresIn: '8h' }  // Shorter token lifetime for security
     );
     addAudit(user.id, user.username, 'login', 'User logged in');
-    res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        mustChangePassword: !!user.mustChangePassword
+      }
+    });
   });
 
   // MFA enrollment endpoint
   const auth = require('../middleware/auth');
+  const { encrypt, decrypt } = require('../lib/credential-encryption');
+
   app.post('/api/auth/mfa/setup', auth(), async (req, res) => {
     const user = ctx.users.find(u => u.id === req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.mfaEnabled) return res.status(400).json({ error: 'MFA already enabled' });
     const secret = authenticator.generateSecret();
     const otpauthUrl = authenticator.keyuri(user.username, 'Citadel', secret);
-    // Store secret temporarily (not yet enabled until verified)
-    user._pendingMfaSecret = secret;
+    // Store secret encrypted temporarily (not yet enabled until verified)
+    // The secret is encrypted for at-rest protection
+    user._pendingMfaSecret = encrypt(secret);
     res.json({ secret, otpauthUrl });
   });
 
@@ -99,9 +120,21 @@ module.exports = function(app) {
     const user = ctx.users.find(u => u.id === req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (!user._pendingMfaSecret) return res.status(400).json({ error: 'No MFA setup in progress' });
-    const isValid = authenticator.check(String(code), user._pendingMfaSecret);
+
+    // Decrypt the pending secret
+    let decryptedSecret;
+    try {
+      decryptedSecret = decrypt(user._pendingMfaSecret);
+    } catch (err) {
+      logger.error({ err }, 'Failed to decrypt pending MFA secret');
+      return res.status(500).json({ error: 'Internal error' });
+    }
+
+    const isValid = authenticator.check(String(code), decryptedSecret);
     if (!isValid) return res.status(400).json({ error: 'Invalid code — try again' });
-    user.mfaSecret = user._pendingMfaSecret;
+
+    // Store the verified secret (encrypted)
+    user.mfaSecret = encrypt(decryptedSecret);
     user.mfaEnabled = true;
     delete user._pendingMfaSecret;
     const { saveJSON } = require('../lib/data-store');
@@ -124,5 +157,26 @@ module.exports = function(app) {
     saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users);
     addAudit(user.id, user.username, 'mfa.disable', 'MFA disabled');
     res.json({ message: 'MFA disabled' });
+  });
+
+  // Force password change endpoint (for users with mustChangePassword flag)
+  app.post('/api/auth/change-password-forced', auth(), async (req, res) => {
+    const { newPassword } = req.body;
+    const user = ctx.users.find(u => u.id === req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Validate new password
+    const { checkPasswordPolicy } = require('../lib/helpers');
+    if (!newPassword || !checkPasswordPolicy(newPassword)) {
+      return res.status(400).json({ error: 'Password does not meet policy requirements (min 8 chars, uppercase, lowercase, number, special char).' });
+    }
+
+    // Update password and clear the flag
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.mustChangePassword = false;
+    const { saveJSON } = require('../lib/data-store');
+    saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users);
+    addAudit(user.id, user.username, 'password.force-change', 'User changed forced password');
+    res.json({ message: 'Password changed successfully' });
   });
 };

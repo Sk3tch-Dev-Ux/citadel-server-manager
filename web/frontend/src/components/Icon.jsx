@@ -1,4 +1,5 @@
 // Centralized icon exports — import only what we use for tree-shaking
+// eslint-disable-next-line no-shadow-restricted-names
 export {
   Home,
   Rocket,

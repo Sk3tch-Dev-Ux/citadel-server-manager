@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow-restricted-names */
 import { useState, useEffect } from 'react';
 import API from '../api';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';

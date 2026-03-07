@@ -7,6 +7,7 @@ const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { validateFields, checkPasswordPolicy } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
+const { revokeUserTokens } = require('../lib/token-revocation');
 const auth = require('../middleware/auth');
 
 module.exports = function(app) {
@@ -40,10 +41,51 @@ module.exports = function(app) {
     const user = ctx.users.find(u => u.id === req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.isRoot) return res.status(403).json({ error: 'Cannot modify root user' });
-    if (req.body.username) user.username = req.body.username;
-    if (req.body.role) user.role = req.body.role;
-    if (req.body.description !== undefined) user.description = req.body.description;
-    if (req.body.password) user.passwordHash = await bcrypt.hash(req.body.password, 10);
+
+    // Validate input fields
+    if (req.body.username !== undefined) {
+      if (typeof req.body.username !== 'string') return res.status(400).json({ error: 'Username must be a string' });
+      if (req.body.username.length < 3 || req.body.username.length > 32) return res.status(400).json({ error: 'Username must be 3-32 characters' });
+      if (!/^[a-zA-Z0-9_]+$/.test(req.body.username)) return res.status(400).json({ error: 'Username must contain only alphanumeric characters and underscores' });
+      // Check for duplicates
+      if (ctx.users.some(u => u.id !== user.id && u.username === req.body.username)) {
+        return res.status(400).json({ error: 'Username already exists' });
+      }
+      user.username = req.body.username;
+    }
+
+    if (req.body.role !== undefined) {
+      if (typeof req.body.role !== 'string') return res.status(400).json({ error: 'Role must be a string' });
+      // Validate role exists
+      if (!ctx.roles.find(r => r.id === req.body.role)) {
+        return res.status(400).json({ error: 'Invalid role' });
+      }
+      // Prevent non-admin users from escalating their own role
+      if (req.user.id === req.params.id && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Users cannot change their own role' });
+      }
+      user.role = req.body.role;
+    }
+
+    if (req.body.description !== undefined) {
+      if (typeof req.body.description !== 'string') return res.status(400).json({ error: 'Description must be a string' });
+      if (req.body.description.length > 256) return res.status(400).json({ error: 'Description must be 256 characters or less' });
+      user.description = req.body.description;
+    }
+
+    if (req.body.password !== undefined) {
+      if (typeof req.body.password !== 'string') return res.status(400).json({ error: 'Password must be a string' });
+      if (!checkPasswordPolicy(req.body.password)) {
+        return res.status(400).json({ error: 'Password does not meet policy requirements (min 8 chars, uppercase, lowercase, number, special char).' });
+      }
+      user.passwordHash = await bcrypt.hash(req.body.password, 10);
+    }
+
+    // Prevent non-admin users from modifying other users
+    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You can only modify your own account' });
+    }
+
     saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users.map(u => ({ ...u })));
     addAudit(req.user.id, req.user.username, 'user.update', `Updated user: ${user.username}`);
     res.json({ id: user.id, username: user.username, role: user.role });
@@ -53,6 +95,10 @@ module.exports = function(app) {
     const user = ctx.users.find(u => u.id === req.params.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.isRoot) return res.status(403).json({ error: 'Cannot delete root user' });
+
+    // Revoke all active tokens for this user
+    revokeUserTokens(req.params.id, 'user.deleted');
+
     ctx.users = ctx.users.filter(u => u.id !== req.params.id);
     saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users.map(u => ({ ...u })));
     addAudit(req.user.id, req.user.username, 'user.delete', `Deleted user: ${user.username}`);

@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow-restricted-names */
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Crown, ShoppingCart, CheckCircle, AlertTriangle, Loader, ExternalLink, Infinity, Calendar, Tag } from '../components/Icon';
