@@ -165,6 +165,7 @@ require('./routes/items.routes')(app);
 require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/store.routes')(app);
+require('./routes/lb-perks.routes')(app);
 require('./routes/system.routes')(app);
 
 // ─── License status ──────────────────────────────────────

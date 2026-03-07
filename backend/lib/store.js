@@ -7,6 +7,11 @@
  *
  * Products and purchases are stored in data/ JSON files.
  * Stripe SDK is optional — loaded with try/catch.
+ *
+ * LB Master Integration:
+ *   Products can optionally include `lbPerks` — an array of LB Master perks
+ *   (e.g., chat prefixes) that are automatically applied to the player's
+ *   Steam ID across all servers when a purchase completes.
  */
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
@@ -15,6 +20,7 @@ const { saveJSON } = require('./data-store');
 const { addEntry } = require('./cftools-priority');
 const { addNotification, fireWebhooks } = require('./notifications');
 const { addAudit } = require('./audit');
+const { applyPerksForPurchase } = require('./lb-perks');
 
 // ─── Optional Stripe SDK ────────────────────────────────
 let Stripe;
@@ -73,7 +79,7 @@ function getProduct(id) {
 /**
  * Create a new product.
  */
-function addProduct({ name, description, role, durationDays, price, currency }) {
+function addProduct({ name, description, role, durationDays, price, currency, lbPerks }) {
   if (!name) throw new Error('Product name is required');
   if (price == null || price < 0) throw new Error('Valid price is required');
 
@@ -87,6 +93,7 @@ function addProduct({ name, description, role, durationDays, price, currency }) 
     currency: (currency || ctx.CONFIG?.store?.currency || 'usd').toLowerCase(),
     active: true,
     order: (ctx.storeProducts || []).length,
+    lbPerks: Array.isArray(lbPerks) && lbPerks.length > 0 ? lbPerks : undefined,
     createdAt: new Date().toISOString(),
   };
 
@@ -111,6 +118,10 @@ function updateProduct(id, updates) {
   if (updates.currency !== undefined) product.currency = (updates.currency || 'usd').toLowerCase();
   if (updates.active !== undefined) product.active = !!updates.active;
   if (updates.order !== undefined) product.order = parseInt(updates.order) || 0;
+  if (updates.lbPerks !== undefined) {
+    product.lbPerks = Array.isArray(updates.lbPerks) && updates.lbPerks.length > 0
+      ? updates.lbPerks : undefined;
+  }
 
   _persistProducts();
   return product;
@@ -193,6 +204,7 @@ async function createCheckoutSession({ productId, steamId, playerName, baseUrl }
       productName: product.name,
       role: product.role,
       durationDays: product.durationDays != null ? String(product.durationDays) : '',
+      lbPerks: product.lbPerks ? JSON.stringify(product.lbPerks) : '',
     },
     success_url: successUrl,
     cancel_url: cancelUrl,
@@ -275,6 +287,24 @@ async function handleWebhook(rawBody, signature) {
     source: 'purchase',
   });
 
+  // ── Apply LB Master perks (if product has them) ────────
+  let lbPerksApplied;
+  try {
+    // Perks come from product definition (preferred) or Stripe metadata (fallback)
+    const product = getProduct(productId);
+    const perks = product?.lbPerks
+      || (meta.lbPerks ? JSON.parse(meta.lbPerks) : null);
+
+    if (perks && Array.isArray(perks) && perks.length > 0) {
+      lbPerksApplied = applyPerksForPurchase(steamId, perks);
+      const appliedCount = lbPerksApplied.filter(r => r.success).length;
+      logger.info({ steamId, appliedCount, total: perks.length }, 'LB Master perks applied');
+    }
+  } catch (err) {
+    logger.error({ err: err.message, steamId, productId }, 'Failed to apply LB Master perks');
+    lbPerksApplied = [{ type: 'error', success: false, error: err.message }];
+  }
+
   // Record purchase
   const purchase = {
     id: uuid(),
@@ -291,6 +321,7 @@ async function handleWebhook(rawBody, signature) {
     stripePaymentIntentId: session.payment_intent || '',
     status: 'completed',
     priorityEntryId: entry.id,
+    lbPerksApplied: lbPerksApplied || undefined,
     purchasedAt: new Date().toISOString(),
   };
 

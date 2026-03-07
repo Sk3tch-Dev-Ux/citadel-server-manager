@@ -6,7 +6,7 @@ import Modal from '../components/ui/Modal';
 import {
   ShoppingCart, CreditCard, Plus, Search, Trash2, Edit, Crown,
   AlertTriangle, CheckCircle, Info, Infinity, Calendar, ExternalLink, Copy, Link,
-  Save, Eye, EyeOff, Loader, Settings,
+  Save, Eye, EyeOff, Loader, Settings, Tag, ChevronDown, ChevronRight,
 } from '../components/Icon';
 
 /** Duration presets for product creation */
@@ -64,6 +64,49 @@ function ProductModal({ product, onSave, onClose }) {
   });
   const [customDays, setCustomDays] = useState(product?.durationDays || 30);
 
+  // ─── LB Master Perks state ─────────────────────────────
+  const [showLbPerks, setShowLbPerks] = useState(!!product?.lbPerks?.length);
+  const [lbStatus, setLbStatus] = useState(null);
+  const [lbPrefixGroups, setLbPrefixGroups] = useState([]);
+  const [lbLoading, setLbLoading] = useState(false);
+  const [selectedPrefixGroup, setSelectedPrefixGroup] = useState(() => {
+    const perk = product?.lbPerks?.find(p => p.type === 'chatPrefix');
+    return perk?.prefixGroupIndex != null ? String(perk.prefixGroupIndex) : 'none';
+  });
+  const [lbServerForGroups, setLbServerForGroups] = useState('');
+
+  // Load LB Master status on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLbLoading(true);
+      try {
+        const status = await API.get('/api/lb-perks/status');
+        if (cancelled) return;
+        setLbStatus(status);
+        // Auto-select first server with Advanced Groups for prefix group list
+        const firstServer = status.servers?.find(s => s.hasAdvancedGroups);
+        if (firstServer) {
+          setLbServerForGroups(firstServer.serverId);
+          const data = await API.get(`/api/lb-perks/prefix-groups/${firstServer.serverId}`);
+          if (!cancelled) setLbPrefixGroups(data.prefixGroups || []);
+        }
+      } catch { /* ignore */ }
+      if (!cancelled) setLbLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch prefix groups when server selection changes
+  const handleServerChange = async (serverId) => {
+    setLbServerForGroups(serverId);
+    if (!serverId) { setLbPrefixGroups([]); return; }
+    try {
+      const data = await API.get(`/api/lb-perks/prefix-groups/${serverId}`);
+      setLbPrefixGroups(data.prefixGroups || []);
+    } catch { setLbPrefixGroups([]); }
+  };
+
   const getDurationDays = () => {
     if (durationPreset === 'permanent') return null;
     if (durationPreset === 'custom') return parseInt(customDays) || 30;
@@ -78,6 +121,13 @@ function ProductModal({ product, onSave, onClose }) {
       window.addToast?.('Price must be at least $0.50 (Stripe minimum)', 'error');
       return;
     }
+
+    // Build lbPerks array from selections
+    const lbPerks = [];
+    if (selectedPrefixGroup !== 'none') {
+      lbPerks.push({ type: 'chatPrefix', prefixGroupIndex: parseInt(selectedPrefixGroup) });
+    }
+
     onSave({
       name: name.trim(),
       description: description.trim(),
@@ -85,8 +135,11 @@ function ProductModal({ product, onSave, onClose }) {
       durationDays: getDurationDays(),
       price: priceInCents,
       currency: currency.toLowerCase(),
+      lbPerks: lbPerks.length > 0 ? lbPerks : undefined,
     });
   };
+
+  const hasLBMaster = lbStatus?.anyAdvancedGroups;
 
   return (
     <Modal open={true} title={isEdit ? 'Edit Product' : 'Add Product'} onClose={onClose}>
@@ -181,6 +234,108 @@ function ProductModal({ product, onSave, onClose }) {
                 style={{ width: 160 }}
               />
               <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>days</span>
+            </div>
+          )}
+        </div>
+
+        {/* ─── LB Master Perks Section ─────────────────────── */}
+        <div style={{
+          marginTop: 16,
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          overflow: 'hidden',
+        }}>
+          <button
+            type="button"
+            onClick={() => setShowLbPerks(!showLbPerks)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 14px',
+              background: 'var(--bg-primary)', border: 'none', cursor: 'pointer',
+              color: 'var(--text-primary)', fontFamily: 'var(--font-display)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Tag size={14} style={{ color: 'var(--accent-purple)' }} />
+              <span style={{ fontWeight: 600, fontSize: 13 }}>LB Master Perks</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>Optional</span>
+              {selectedPrefixGroup !== 'none' && (
+                <span style={{
+                  padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 600,
+                  background: 'rgba(139,92,246,0.12)', color: 'var(--accent-purple)',
+                }}>
+                  1 perk
+                </span>
+              )}
+            </div>
+            {showLbPerks ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+
+          {showLbPerks && (
+            <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)' }}>
+              {lbLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', color: 'var(--text-muted)', fontSize: 12 }}>
+                  <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  Detecting LB Master mods...
+                </div>
+              ) : !hasLBMaster ? (
+                <div style={{
+                  padding: '10px 12px',
+                  background: 'var(--bg-primary)',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.5,
+                }}>
+                  <Info size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                  No LB Master Advanced Groups mod detected on any server.
+                  Install the mod and its config files will be detected automatically.
+                </div>
+              ) : (
+                <>
+                  {/* Server selector (if multiple servers have LB Master) */}
+                  {lbStatus?.servers?.filter(s => s.hasAdvancedGroups).length > 1 && (
+                    <div className="input-group" style={{ marginBottom: 10 }}>
+                      <label className="input-label" style={{ fontSize: 11 }}>Server (for prefix group list)</label>
+                      <select
+                        className="input"
+                        value={lbServerForGroups}
+                        onChange={e => handleServerChange(e.target.value)}
+                        style={{ fontSize: 12 }}
+                      >
+                        {lbStatus.servers.filter(s => s.hasAdvancedGroups).map(s => (
+                          <option key={s.serverId} value={s.serverId}>{s.serverName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Chat Prefix selector */}
+                  <div className="input-group" style={{ marginBottom: 6 }}>
+                    <label className="input-label" style={{ fontSize: 11 }}>Chat Prefix Group</label>
+                    <select
+                      className="input"
+                      value={selectedPrefixGroup}
+                      onChange={e => setSelectedPrefixGroup(e.target.value)}
+                      style={{ fontSize: 12 }}
+                    >
+                      <option value="none">No prefix perk</option>
+                      {lbPrefixGroups.map(g => (
+                        <option key={g.index} value={String(g.index)}>
+                          {g.prefix}{g.permissionGroup ? ` (${g.permissionGroup})` : ''} — {g.memberCount} member{g.memberCount !== 1 ? 's' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    <Info size={10} style={{ verticalAlign: 'middle', marginRight: 3 }} />
+                    Player will be added to this prefix group on all servers when they purchase this product.
+                    Prefix groups are configured in <code style={{ fontSize: 10 }}>ChatConfig.json</code>.
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -739,6 +894,22 @@ export default function StoreManagementPage() {
                   }}>
                     {product.role}
                   </span>
+
+                  {/* LB Perk Badge */}
+                  {product.lbPerks?.length > 0 && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      background: 'rgba(139,92,246,0.1)',
+                      border: '1px solid rgba(139,92,246,0.25)',
+                      color: 'var(--accent-purple)',
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}>
+                      <Tag size={10} /> Prefix
+                    </span>
+                  )}
 
                   {/* Duration */}
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)', minWidth: 80 }}>
