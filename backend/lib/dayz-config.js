@@ -44,10 +44,26 @@ function writeServerConfig(installDir, updates) {
     if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
     fs.copyFileSync(cfgPath, path.join(backupDir, `serverDZ.cfg.${Date.now()}.bak`));
     let content = fs.readFileSync(cfgPath, 'utf8');
+    const appended = [];
     for (const [key, value] of Object.entries(updates)) {
+      if (value === null || value === undefined) continue;
       const strValue = typeof value === 'string' ? `"${value}"` : String(value);
       const regex = new RegExp(`^(\\s*${key}\\s*=\\s*).+?(\\s*;.*)$`, 'm');
-      if (regex.test(content)) content = content.replace(regex, `$1${strValue}$2`);
+      if (regex.test(content)) {
+        // Key exists in file — update in place (including clearing to empty)
+        content = content.replace(regex, `$1${strValue}$2`);
+      } else if (value !== '' && value !== 0 && value !== false) {
+        // Key doesn't exist yet — only append if value is meaningful
+        // (skip empty/zero/false to avoid cluttering cfg with defaults the user never set)
+        appended.push(`${key} = ${strValue};`);
+      }
+    }
+    // Append new keys at the end of the file
+    if (appended.length > 0) {
+      const eol = content.includes('\r\n') ? '\r\n' : '\n';
+      if (!content.endsWith(eol)) content += eol;
+      content += eol + '// Added by Citadel' + eol;
+      content += appended.join(eol) + eol;
     }
     fs.writeFileSync(cfgPath, content, 'utf8');
     return true;

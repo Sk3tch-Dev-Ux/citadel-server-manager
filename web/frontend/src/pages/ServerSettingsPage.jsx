@@ -72,13 +72,34 @@ export default function ServerSettingsPage({ serverId }) {
   const save = async () => {
     setSaving(true);
     try {
-      await API.patch('/api/servers/' + serverId, srv);
+      const result = await API.patch('/api/servers/' + serverId, srv);
+      if (result?.error) {
+        window.addToast('Save failed: ' + result.error, 'error');
+        setSaving(false);
+        return;
+      }
       if (backupConfig) {
-        await API.put(`/api/servers/${serverId}/backup-config`, backupConfig);
+        const backupResult = await API.put(`/api/servers/${serverId}/backup-config`, backupConfig);
+        if (backupResult?.error) {
+          window.addToast('Backup config save failed: ' + backupResult.error, 'error');
+          setSaving(false);
+          return;
+        }
+      }
+      // Reload saved data to confirm persistence
+      const servers = await API.get('/api/servers');
+      const fresh = servers.find(x => x.id === serverId);
+      if (fresh) {
+        if (!fresh.launchParamsList && fresh.launchParams) {
+          fresh.launchParamsList = fresh.launchParams.split(' ').filter(Boolean);
+        } else if (!fresh.launchParamsList) {
+          fresh.launchParamsList = [];
+        }
+        setSrv(fresh);
       }
       window.addToast('Settings saved', 'success');
     } catch (e) {
-      window.addToast('Save failed: ' + e.message, 'error');
+      window.addToast('Save failed: ' + (e.message || 'Unknown error'), 'error');
     }
     setSaving(false);
   };

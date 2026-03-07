@@ -36,8 +36,18 @@ export default function ConfigPage({ serverId }) {
 
   const save = async () => {
     setSaving(true);
-    await API.patch(`/api/servers/${serverId}/config`, config);
-    window.addToast('Config saved', 'success');
+    try {
+      const result = await API.patch(`/api/servers/${serverId}/config`, config);
+      if (result.error) {
+        window.addToast('Save failed: ' + result.error, 'error');
+      } else {
+        // Reload persisted config to reflect what's actually on disk
+        setConfig(result);
+        window.addToast('Config saved', 'success');
+      }
+    } catch (e) {
+      window.addToast('Save failed: ' + (e.message || 'Unknown error'), 'error');
+    }
     setSaving(false);
   };
 
