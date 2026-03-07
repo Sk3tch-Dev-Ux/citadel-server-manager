@@ -11,7 +11,7 @@ module.exports = function(app) {
     try {
 
       const url = `https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?query_type=1&page=${page}&numperpage=20&appid=${DAYZ_APP_ID}&search_text=${encodeURIComponent(q.trim())}&return_short_description=true&return_metadata=true&return_previews=true&strip_description_bbcode=true&filetype=0&match_all_tags=false` + (process.env.STEAM_API_KEY ? `&key=${process.env.STEAM_API_KEY}` : '');
-      const response = await fetch(url, { timeout: 10000 });
+      const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
       const data = await response.json();
       if (data.response?.publishedfiledetails && data.response.publishedfiledetails.length > 0) {
         const results = data.response.publishedfiledetails.map(item => ({
@@ -43,7 +43,7 @@ module.exports = function(app) {
 
       const response = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `itemcount=1&publishedfileids[0]=${req.params.id}`, timeout: 10000,
+        body: `itemcount=1&publishedfileids[0]=${req.params.id}`, signal: AbortSignal.timeout(10000),
       });
       const data = await response.json();
       const item = data.response?.publishedfiledetails?.[0];
@@ -62,7 +62,7 @@ module.exports = function(app) {
 
       const { page = 1 } = req.query;
       const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&browsesort=trend&section=readytouseitems&p=${page}`;
-      const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, timeout: 15000 });
+      const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, signal: AbortSignal.timeout(15000) });
       const html = await response.text();
       const results = [];
       let match;

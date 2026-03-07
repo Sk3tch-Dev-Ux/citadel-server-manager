@@ -20,7 +20,7 @@ Citadel replaces that fragmented workflow with one integrated platform:
 
 ## Key Principles
 
-- **Zero third-party dependencies** — No CFTools, GameLabs, or external APIs required. Everything runs on your infrastructure.
+- **Zero third-party dependencies** — No external APIs or paid services required. Everything runs on your infrastructure.
 - **Provider architecture** — The modular provider system lets you choose how commands reach your server (InHouse via Sidecar, or raw RCON).
 - **File-based IPC** — The Sidecar ↔ Mod communication uses a simple JSON file queue in `$profile:Citadel/`, making it debuggable and transparent.
 - **Multi-server ready** — Manage multiple DayZ server instances from a single dashboard.

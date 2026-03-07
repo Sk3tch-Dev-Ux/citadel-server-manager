@@ -1,8 +1,8 @@
 /**
  * Live Map API routes — map data, configuration, and map-based actions.
  *
- * All admin actions delegate to the server-actions executor (no direct
- * CFTools SDK calls). Map data/config endpoints remain unchanged.
+ * All admin actions delegate to the server-actions executor.
+ * Map data/config endpoints remain unchanged.
  */
 const ctx = require('../lib/context');
 const { authForServer } = require('../middleware/auth');

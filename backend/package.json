@@ -26,8 +26,7 @@
     "pino": "^10.3.1",
     "socket.io": "^4.7.2",
     "stripe": "^20.4.0",
-    "uuid": "^13.0.0",
-    "ws": "^8.19.0"
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "eslint": "^8.57.1",

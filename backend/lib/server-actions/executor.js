@@ -1,7 +1,7 @@
 /**
  * Server Actions Executor — public API for all admin actions.
  *
- * Routes call this module instead of touching cftools-client directly.
+ * Routes call this module to execute player/world actions.
  * The executor resolves the best available provider for each server/action
  * combination and delegates the call.
  *
@@ -15,22 +15,22 @@ const InHouseProvider = require('./providers/inhouse');
 const RCONProvider = require('./providers/rcon');
 const { ActionType, ACTION_LABELS } = require('./types');
 
-// CFTools provider is optional — only available if cftools-sdk is installed
-let CFToolsProvider;
+// Legacy SDK provider — only available if optional SDK package is installed
+let LegacySDKProvider;
 try {
-  CFToolsProvider = require('./providers/cftools');
+  LegacySDKProvider = require('./providers/legacy-sdk');
 } catch {
-  CFToolsProvider = null;
+  LegacySDKProvider = null;
 }
 
 // ─── Provider Singletons ────────────────────────────────
 const inHouseProvider = new InHouseProvider();
-const cftoolsProvider = CFToolsProvider ? new CFToolsProvider() : null;
+const legacySdkProvider = LegacySDKProvider ? new LegacySDKProvider() : null;
 const rconProvider = new RCONProvider();
 
 // Provider resolution order — highest-capability first.
-// InHouse is preferred over CFTools when configured.
-const PROVIDERS = [inHouseProvider, cftoolsProvider, rconProvider].filter(Boolean);
+// InHouse is the preferred provider.
+const PROVIDERS = [inHouseProvider, legacySdkProvider, rconProvider].filter(Boolean);
 
 /**
  * Get the best provider that supports a given action for a given server.
@@ -48,7 +48,7 @@ function getProviderForAction(serverId, actionType) {
   }
 
   const label = ACTION_LABELS[actionType] || actionType;
-  throw new Error(`No provider available for "${label}". Ensure InHouse API, CFTools, or RCON is configured.`);
+  throw new Error(`No provider available for "${label}". Ensure InHouse API or RCON is configured.`);
 }
 
 /**
@@ -57,7 +57,7 @@ function getProviderForAction(serverId, actionType) {
  *
  * Checks multiple sources:
  *   1. InHouse player list (from sidecar polling)
- *   2. CFTools game sessions (legacy)
+ *   2. Legacy SDK game sessions
  *   3. RCON player list (fallback — returns a synthetic session)
  *
  * @param {string} serverId
@@ -74,10 +74,10 @@ function findSession(serverId, steamId) {
   );
   if (inhouseHit) return inhouseHit;
 
-  // 2. CFTools game sessions (legacy path)
-  const cftoolsSessions = state?.cftools?.gameSessions || [];
-  const cftoolsHit = cftoolsSessions.find(s => s.steamId?.id === steamId);
-  if (cftoolsHit) return cftoolsHit;
+  // 2. Legacy SDK game sessions
+  const legacySessions = state?.cftools?.gameSessions || [];
+  const legacyHit = legacySessions.find(s => s.steamId?.id === steamId);
+  if (legacyHit) return legacyHit;
 
   // 3. RCON player list — synthesise a minimal session so the InHouse
   //    provider (which only needs a steamId) can still work.

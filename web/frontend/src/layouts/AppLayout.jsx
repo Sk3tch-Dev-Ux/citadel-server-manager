@@ -191,7 +191,7 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, ShieldBan, Clock, Send, Wrench, AlertTriangle, Map } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Clock, Send, Wrench, AlertTriangle, Map } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const navItems = [
@@ -203,6 +203,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'mods', icon: <Package size={16} />, label: 'Mods' },
     { id: 'files', icon: <FolderOpen size={16} />, label: 'Files' },
     { id: 'config', icon: <Settings size={16} />, label: 'Configuration' },
+    { id: 'types', icon: <FileCode size={16} />, label: 'Types Editor' },
     { id: 'logs', icon: <FileText size={16} />, label: 'Logs' },
     { id: 'bans', icon: <ShieldBan size={16} />, label: 'Bans' },
     { id: 'scheduler', icon: <Clock size={16} />, label: 'Scheduler' },

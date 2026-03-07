@@ -17,7 +17,7 @@ const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');
 const { saveJSON } = require('./data-store');
-const { addEntry } = require('./cftools-priority');
+const { addEntry } = require('./priority-engine');
 const { addNotification, fireWebhooks } = require('./notifications');
 const { addAudit } = require('./audit');
 const { applyPerksForPurchase } = require('./lb-perks');
@@ -269,7 +269,7 @@ async function handleWebhook(rawBody, signature) {
   const playerName = meta.playerName || 'Unknown';
   const productId = meta.productId;
   const productName = meta.productName || 'Unknown Product';
-  const role = meta.role || 'VIP';
+  const role = meta.role && meta.role.trim() !== '' ? meta.role : undefined;
   const durationDays = meta.durationDays ? parseInt(meta.durationDays) : null;
 
   if (!steamId) {

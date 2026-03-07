@@ -1,6 +1,6 @@
 /**
  * InHouse Provider — talks to a self-hosted REST API / DayZ server mod
- * that exposes GameLabs-equivalent actions without CFTools dependency.
+ * that exposes server admin actions via a REST API.
  *
  * Expected API contract (all endpoints are POST):
  *
@@ -123,7 +123,7 @@ class InHouseProvider extends BaseProvider {
    * the steamId for the sidecar API which works with SteamIDs.
    */
   _steamIdFrom(session) {
-    // session may be a CFTools session object or a plain { steamId } map
+    // session may be a legacy session object or a plain { steamId } map
     if (typeof session === 'string') return session;
     return session?.steamId?.id || session?.steamId || session?.id || session;
   }

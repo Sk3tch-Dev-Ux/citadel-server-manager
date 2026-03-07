@@ -1,12 +1,12 @@
 /**
- * CFTools Provider — wraps cftools-sdk behind the provider interface.
+ * Legacy SDK Provider — wraps optional SDK package behind the provider interface.
  *
- * ALL vendor-specific action codes (CFCloud_*) live HERE and ONLY here.
+ * ALL vendor-specific action codes live HERE and ONLY here.
  * No other file in the project should reference these codes directly.
  */
 const BaseProvider = require('./base');
-const { getClient, isConfiguredForServer, getSdkTypes } = require('../../cftools-client');
-const { CFTOOLS_CAPABILITIES, ActionType } = require('../types');
+const { getClient, isConfiguredForServer, getSdkTypes } = require('../../legacy-sdk');
+const { LEGACY_SDK_CAPABILITIES, ActionType } = require('../types');
 
 // ─── CFCloud Action Code Mapping (PRIVATE) ──────────────
 const VEHICLE_CODES = Object.freeze({
@@ -21,21 +21,21 @@ const VEHICLE_CODES = Object.freeze({
 
 class CFToolsProvider extends BaseProvider {
   constructor() {
-    super('CFTools');
+    super('LegacySDK');
   }
 
   getCapabilities() {
-    return CFTOOLS_CAPABILITIES;
+    return LEGACY_SDK_CAPABILITIES;
   }
 
   isAvailable(serverId) {
     return isConfiguredForServer(serverId);
   }
 
-  /** Get or throw a live CFTools client */
+  /** Get or throw a live SDK client */
   _getClient(serverId) {
     const client = getClient(serverId);
-    if (!client) throw new Error('CFTools client unavailable');
+    if (!client) throw new Error('Legacy SDK client unavailable');
     return client;
   }
 
@@ -54,7 +54,7 @@ class CFToolsProvider extends BaseProvider {
   async teleportPlayer(serverId, session, coordinates) {
     const client = this._getClient(serverId);
     // DayZ coords: X=east-west, Z=north-south, Y=altitude
-    // CFTools SDK: x=X, y=altitude(Z), z=north-south(Y) — swapped
+    // SDK uses swapped axis: x=X, y=altitude(Z), z=north-south(Y)
     await client.teleport({
       session,
       coordinates: {
@@ -91,8 +91,7 @@ class CFToolsProvider extends BaseProvider {
   }
 
   async kickPlayer(serverId, playerId, reason) {
-    // CFTools also supports kick — delegate through RCON if available,
-    // but we can still do it via the SDK if needed.
+    // SDK also supports kick — can delegate through RCON if available.
     const client = this._getClient(serverId);
     await client.gameLabsAction({
       actionCode: 'CFCloud_KickPlayer',
@@ -105,7 +104,7 @@ class CFToolsProvider extends BaseProvider {
   async banPlayer(serverId, playerId, reason) {
     const client = this._getClient(serverId);
     const sdk = getSdkTypes();
-    if (!sdk) throw new Error('CFTools SDK types unavailable');
+    if (!sdk) throw new Error('SDK types unavailable');
     await client.putBan({
       format: 'steam64',
       identifier: playerId,
@@ -214,7 +213,7 @@ class CFToolsProvider extends BaseProvider {
   async getPlayerDetails(serverId, steamId) {
     const client = this._getClient(serverId);
     const sdk = getSdkTypes();
-    if (!sdk) throw new Error('CFTools SDK types unavailable');
+    if (!sdk) throw new Error('SDK types unavailable');
 
     const player = await client.getPlayerDetails(sdk.SteamId64.of(steamId));
     return {

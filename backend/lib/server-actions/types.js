@@ -51,7 +51,7 @@ const ActionType = Object.freeze({
 // ─── Capability Sets ────────────────────────────────────
 // Which actions each provider type can handle.
 
-const CFTOOLS_CAPABILITIES = new Set([
+const LEGACY_SDK_CAPABILITIES = new Set([
   ActionType.HEAL_PLAYER,
   ActionType.KILL_PLAYER,
   ActionType.TELEPORT_PLAYER,
@@ -148,7 +148,7 @@ const ACTION_LABELS = Object.freeze({
 });
 
 // ─── Audit Code Map ─────────────────────────────────────
-// Maps ActionType → audit log code (replaces old gamelabs.* codes)
+// Maps ActionType → audit log code
 const AUDIT_CODES = Object.freeze({
   [ActionType.HEAL_PLAYER]:        'action.heal',
   [ActionType.KILL_PLAYER]:        'action.kill',
@@ -214,7 +214,7 @@ const PLAYER_ACTION_MAP = Object.freeze({
 
 module.exports = {
   ActionType,
-  CFTOOLS_CAPABILITIES,
+  LEGACY_SDK_CAPABILITIES,
   INHOUSE_CAPABILITIES,
   RCON_CAPABILITIES,
   ACTION_LABELS,

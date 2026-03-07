@@ -1,13 +1,13 @@
 /**
  * RCON commands, player management, and per-server ban routes.
  *
- * Ban/unban actions now go through the global ban database (cftools-bans.js).
+ * Ban/unban actions now go through the global ban database.
  * The per-server /bans endpoint returns the global ban list (all bans apply to all servers).
  */
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
-const { banPlayer, listBans, removeBan } = require('../lib/cftools-bans');
+const { banPlayer, listBans, removeBan } = require('../lib/ban-engine');
 const auth = require('../middleware/auth');
 
 module.exports = function(app) {

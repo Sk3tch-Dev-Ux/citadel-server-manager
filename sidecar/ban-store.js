@@ -2,7 +2,7 @@
  * Citadel Sidecar — Ban Storage
  *
  * File-based ban list persisted alongside the DayZ server.
- * Replaces CFTools ban management with local JSON storage.
+ * Local JSON-based ban list persisted on disk.
  */
 const fs = require('fs');
 const { v4: uuid } = require('uuid');

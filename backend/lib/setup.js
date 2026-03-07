@@ -94,8 +94,7 @@ PANEL_API_URL=http://localhost:3001
 # INHOUSE_SIDECAR_PORT=9100
 # INHOUSE_API_KEY=${generateSecret(16)}
 
-# CFTools Cloud Integration (DEPRECATED — use InHouse sidecar instead)
-# Only needed if you still use CFTools for some servers.
+# Legacy Integration (optional, most users don't need this)
 # CFTOOLS_APPLICATION_ID=
 # CFTOOLS_SECRET=
 `;

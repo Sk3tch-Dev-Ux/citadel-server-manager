@@ -18,6 +18,7 @@ import PlayersPage from './pages/PlayersPage';
 import ModsPage from './pages/ModsPage/ModsPage';
 import FilesPage from './pages/FilesPage';
 import ConfigPage from './pages/ConfigPage';
+import TypesEditorPage from './pages/TypesEditorPage';
 import LogsPage from './pages/LogsPage';
 import BansPage from './pages/BansPage';
 import SchedulerPage from './pages/SchedulerPage';
@@ -130,6 +131,7 @@ export default function AppRouter() {
             <Route path="mods" element={<ErrorBoundary><ServerPage Component={ModsPage} /></ErrorBoundary>} />
             <Route path="files" element={<PermGuard permission="files.manage"><ErrorBoundary><ServerPage Component={FilesPage} /></ErrorBoundary></PermGuard>} />
             <Route path="config" element={<PermGuard permission="config.manage"><ErrorBoundary><ServerPage Component={ConfigPage} /></ErrorBoundary></PermGuard>} />
+            <Route path="types" element={<PermGuard permission="files.manage"><ErrorBoundary><ServerPage Component={TypesEditorPage} /></ErrorBoundary></PermGuard>} />
             <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
             <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />
             <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ErrorBoundary><ServerPage Component={SchedulerPage} /></ErrorBoundary></PermGuard>} />

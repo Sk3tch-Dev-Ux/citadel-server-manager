@@ -16,7 +16,7 @@ async function enrichWorkshopResults(items) {
     params.append('itemcount', items.length);
     items.forEach((item, i) => params.append(`publishedfileids[${i}]`, item.workshopId));
     const response = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
-      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString(), timeout: 10000,
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString(), signal: AbortSignal.timeout(10000),
     });
     const data = await response.json();
     const details = data.response?.publishedfiledetails || [];
@@ -44,7 +44,7 @@ async function enrichWorkshopResults(items) {
  */
 async function scrapeWorkshopSearch(query, page) {
   const url = `https://steamcommunity.com/workshop/browse/?appid=${DAYZ_APP_ID}&searchtext=${encodeURIComponent(query)}&browsesort=textsearch&section=readytouseitems&actualsort=textsearch&p=${page}`;
-  const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, timeout: 15000 });
+  const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, signal: AbortSignal.timeout(15000) });
   const html = await response.text();
   const results = [];
   let match;

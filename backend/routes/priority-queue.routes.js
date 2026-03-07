@@ -6,7 +6,7 @@ const ctx = require('../lib/context');
 const {
   listEntries, getEntryById, addEntry, updateEntry, removeEntry,
   importEntries, exportEntries, cleanExpired,
-} = require('../lib/cftools-priority');
+} = require('../lib/priority-engine');
 const auth = require('../middleware/auth');
 const { addAudit } = require('../lib/audit');
 const logger = require('../lib/logger');
