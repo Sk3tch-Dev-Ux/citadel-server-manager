@@ -141,12 +141,17 @@ async function executeAction(actionType, job, server, state) {
         logger.warn({ serverId: server.id, job: job.title }, 'Scheduler: rcon_command skipped — no RCON connection');
         break;
       }
-      const rconResult = await state.rcon.send(cmd.trim());
-      if (typeof rconResult === 'string' && (rconResult.startsWith('[Error]') || rconResult === '[No response]')) {
-        logger.warn({ serverId: server.id, job: job.title, rconCommand: cmd.trim(), result: rconResult }, 'Scheduler: rcon_command failed');
-        state.rcon.loggedIn = false;
-      } else {
-        logger.info({ serverId: server.id, job: job.title, rconCommand: cmd.trim() }, 'Scheduler: executed rcon_command');
+      try {
+        const rconResult = await state.rcon.send(cmd.trim());
+        if (typeof rconResult === 'string' && (rconResult.startsWith('[Error]') || rconResult === '[No response]' || rconResult === '[Disconnected]')) {
+          logger.warn({ serverId: server.id, job: job.title, rconCommand: cmd.trim(), result: rconResult }, 'Scheduler: rcon_command failed');
+          state.rcon.loggedIn = false;
+        } else {
+          logger.info({ serverId: server.id, job: job.title, rconCommand: cmd.trim() }, 'Scheduler: executed rcon_command');
+        }
+      } catch (err) {
+        logger.warn({ err: err.message, serverId: server.id, job: job.title }, 'Scheduler: rcon_command threw');
+        if (state.rcon) state.rcon.loggedIn = false;
       }
       break;
     }
@@ -231,13 +236,14 @@ async function processJob(job, server, state) {
     // Kick players
     if (job.kickPlayers && minutesUntil <= (job.kickMinutesBefore || 1) && !pending.kicked) {
       try {
-        for (const player of (state.players || [])) {
+        const playersToKick = [...(state.players || [])];
+        for (const player of playersToKick) {
           // Use BattlEye slot number for reliable RCON kick with reason display
           const rconId = player.rconSlot != null ? String(player.rconSlot) : (player.id || player.number);
-          await state.rcon.kick(rconId, 'Server restarting');
+          try { await state.rcon.kick(rconId, 'Server restarting'); } catch { /* player may have already left */ }
         }
         pending.kicked = true;
-        logger.info({ serverId: server.id, job: job.title, count: (state.players || []).length }, 'Scheduler: kicked players');
+        logger.info({ serverId: server.id, job: job.title, count: playersToKick.length }, 'Scheduler: kicked players');
       } catch (err) {
         logger.warn({ err }, 'Scheduler: failed to kick players');
       }
@@ -315,7 +321,7 @@ async function processMessenger(server, state) {
       text = text.replace(/\{max_players\}/g, String(server.maxPlayers || 60));
 
       const result = await state.rcon.say(text);
-      if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
+      if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]' || result === '[Disconnected]')) {
         logger.warn({ serverId: server.id, msgId: msg.id, result }, 'Messenger: broadcast failed — RCON stale');
         state.rcon.loggedIn = false; // Force reconnect on next attempt
         break; // Stop trying more messages this tick

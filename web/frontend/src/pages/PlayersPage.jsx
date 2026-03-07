@@ -50,12 +50,15 @@ export default function PlayersPage({ serverId }) {
   }, [serverId, socket]);
 
   // ─── Lazy-load Item List ─────────────────────────────────
+  const [itemsError, setItemsError] = useState(false);
   useEffect(() => {
     if (spawnTarget && !itemsLoaded) {
+      setItemsError(false);
       API.get(`/api/servers/${serverId}/items`).then(data => {
         if (Array.isArray(data)) setItems(data);
+        else setItemsError(true);
         setItemsLoaded(true);
-      }).catch(() => setItemsLoaded(true));
+      }).catch(() => { setItemsError(true); setItemsLoaded(true); });
     }
   }, [spawnTarget, itemsLoaded, serverId]);
 
@@ -67,13 +70,18 @@ export default function PlayersPage({ serverId }) {
   }, [items, itemSearch]);
 
   // ─── Player Actions ──────────────────────────────────────
+  const [actionInProgress, setActionInProgress] = useState(null);
   const doAction = async (steamId, action, label, extra = {}) => {
+    if (actionInProgress) return;
+    setActionInProgress(`${steamId}:${action}`);
     try {
-      await API.post(`/api/servers/${serverId}/actions/${action}`, { steamId, ...extra });
-      window.addToast?.(`${label} successful`, 'success');
+      const result = await API.post(`/api/servers/${serverId}/actions/${action}`, { steamId, ...extra });
+      if (result?.error) window.addToast?.(result.error, 'error');
+      else window.addToast?.(`${label} successful`, 'success');
     } catch (err) {
       window.addToast?.(`${label} failed: ${err.message}`, 'error');
     }
+    setActionInProgress(null);
   };
 
   const kick = async (steamId, name) => {

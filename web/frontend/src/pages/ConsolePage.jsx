@@ -25,17 +25,37 @@ export default function ConsolePage({ serverId }) {
     return () => { socket.off('consoleLog', consoleHandler); socket.off('rconMessage', rconHandler); };
   }, [serverId, socket]);
 
-  useEffect(() => { if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight; }, [logs]);
+  const autoScrollRef = useRef(true);
+  useEffect(() => {
+    const el = outputRef.current;
+    if (el && autoScrollRef.current) el.scrollTop = el.scrollHeight;
+  }, [logs]);
+  const handleScroll = () => {
+    const el = outputRef.current;
+    if (!el) return;
+    // Auto-scroll if user is within 80px of the bottom
+    autoScrollRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
 
+  const [sending, setSending] = useState(false);
   const sendCmd = async () => {
-    if (!cmd.trim()) return;
-    await API.post(`/api/servers/${serverId}/rcon`, { command: cmd });
-    setCmd('');
+    if (!cmd.trim() || sending) return;
+    setSending(true);
+    try {
+      const result = await API.post(`/api/servers/${serverId}/rcon`, { command: cmd });
+      if (result?.error) {
+        window.addToast?.(result.error, 'error');
+      }
+      setCmd('');
+    } catch (err) {
+      window.addToast?.(`RCON command failed: ${err.message}`, 'error');
+    }
+    setSending(false);
   };
 
   return (
     <div className="console-wrap">
-      <div className="console-output" ref={outputRef}>
+      <div className="console-output" ref={outputRef} onScroll={handleScroll}>
         {[...logs].reverse().map((log, i) => (
           <div key={i} className={`console-line ${log.level || ''}`}>
             <span className="console-time">{new Date(log.timestamp).toLocaleTimeString()}</span>
@@ -46,7 +66,7 @@ export default function ConsolePage({ serverId }) {
       </div>
       <div className="console-input">
         <input value={cmd} onChange={e => setCmd(e.target.value)} placeholder="Enter RCON command..." onKeyDown={e => e.key === 'Enter' && sendCmd()} />
-        <button onClick={sendCmd}>SEND</button>
+        <button onClick={sendCmd} disabled={sending}>{sending ? '...' : 'SEND'}</button>
       </div>
     </div>
   );

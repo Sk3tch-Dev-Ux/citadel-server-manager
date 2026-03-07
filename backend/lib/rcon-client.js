@@ -51,15 +51,22 @@ class RCONClient {
       if (this.connected && this.loggedIn) return resolve(true);
       this.disconnect();
       this.socket = dgram.createSocket('udp4');
-      const loginTimeout = setTimeout(() => reject(new Error('RCON login timed out')), 10000);
+      let settled = false;
+      const loginTimeout = setTimeout(() => {
+        if (!settled) { settled = true; reject(new Error('RCON login timed out')); }
+      }, 10000);
       this.socket.on('message', (msg) => {
         if (msg.length < 7 || msg[0] !== 0x42 || msg[1] !== 0x45) return;
         const type = msg[6]; const payload = msg.slice(7);
         switch (type) {
           case 0x00:
             clearTimeout(loginTimeout);
-            if (payload[0] === 0x01) { this.loggedIn = true; this._startKeepAlive(); resolve(true); }
-            else reject(new Error('RCON login failed: invalid password'));
+            if (payload.length >= 1 && payload[0] === 0x01) {
+              this.loggedIn = true; this._startKeepAlive();
+              if (!settled) { settled = true; resolve(true); }
+            } else {
+              if (!settled) { settled = true; reject(new Error('RCON login failed: invalid password')); }
+            }
             break;
           case 0x01:
             if (payload.length >= 1) {
@@ -71,30 +78,44 @@ class RCONClient {
           case 0x02:
             if (payload.length >= 1) {
               const seq = payload[0]; const message = payload.slice(1).toString('utf8');
-              const ack = this._buildAckPacket(seq);
-              this.socket.send(ack, 0, ack.length, this.port, this.ip);
+              try {
+                const ack = this._buildAckPacket(seq);
+                if (this.socket) this.socket.send(ack, 0, ack.length, this.port, this.ip);
+              } catch (err) { logger.debug({ err }, 'RCON ACK send failed'); }
               const fpsMatch = message.match(/Server\s*FPS:\s*(\d+(?:\.\d+)?)/i);
               if (fpsMatch) this.lastFPS = parseFloat(fpsMatch[1]);
-              if (ctx.io) ctx.io.emit('rconMessage', { serverId: this.serverId, timestamp: new Date().toISOString(), message });
+              try { if (ctx.io) ctx.io.emit('rconMessage', { serverId: this.serverId, timestamp: new Date().toISOString(), message }); } catch { /* ignore */ }
             }
             break;
         }
       });
-      this.socket.on('error', (err) => { logger.warn({ err }, 'RCON socket error'); this.connected = false; this.loggedIn = false; });
+      this.socket.on('error', (err) => {
+        logger.warn({ err }, 'RCON socket error');
+        this.connected = false; this.loggedIn = false;
+        if (!settled) { settled = true; reject(new Error(`RCON socket error: ${err.message}`)); }
+      });
       this.socket.on('close', () => { this.connected = false; this.loggedIn = false; this._stopKeepAlive(); });
       this.socket.bind(0, () => {
         this.connected = true;
-        const pkt = this._buildLoginPacket();
-        this.socket.send(pkt, 0, pkt.length, this.port, this.ip);
+        try {
+          const pkt = this._buildLoginPacket();
+          this.socket.send(pkt, 0, pkt.length, this.port, this.ip);
+        } catch (err) {
+          if (!settled) { settled = true; reject(new Error(`RCON bind send failed: ${err.message}`)); }
+        }
       });
     });
   }
 
   disconnect() {
     this._stopKeepAlive(); this.loggedIn = false; this.connected = false;
-    for (const [, p] of this.pendingCommands) { clearTimeout(p.timeout); p.reject(new Error('Disconnected')); }
+    for (const [, p] of this.pendingCommands) { clearTimeout(p.timeout); p.resolve('[Disconnected]'); }
     this.pendingCommands.clear();
-    if (this.socket) { try { this.socket.close(); } catch (err) { logger.debug({ err }, 'RCON socket close error'); } this.socket = null; }
+    if (this.socket) {
+      try { this.socket.removeAllListeners(); } catch { /* ignore */ }
+      try { this.socket.close(); } catch (err) { logger.debug({ err }, 'RCON socket close error'); }
+      this.socket = null;
+    }
   }
 
   _startKeepAlive() {
@@ -119,11 +140,19 @@ class RCONClient {
 
   async send(command) {
     if (!this.loggedIn) { try { await this.connect(); } catch (err) { return `[Error] ${err.message}`; } }
+    if (!this.socket || !this.connected) return '[Error] RCON not connected';
     return new Promise((resolve) => {
       const { packet, seq } = this._buildCommandPacket(command);
       const timeout = setTimeout(() => { this.pendingCommands.delete(seq); resolve('[No response]'); }, 5000);
       this.pendingCommands.set(seq, { resolve, reject: () => {}, timeout });
-      this.socket.send(packet, 0, packet.length, this.port, this.ip);
+      try {
+        this.socket.send(packet, 0, packet.length, this.port, this.ip);
+      } catch (err) {
+        clearTimeout(timeout);
+        this.pendingCommands.delete(seq);
+        logger.warn({ err, serverId: this.serverId }, 'RCON socket.send() failed');
+        resolve(`[Error] ${err.message}`);
+      }
     });
   }
 

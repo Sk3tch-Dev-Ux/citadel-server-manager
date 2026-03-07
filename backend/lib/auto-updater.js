@@ -338,13 +338,12 @@ async function stopAndUpdate(serverId) {
       try {
         // Kick all players — RCON "kick" with #-prefix triggers a mass-kick
         // Use individual kicks based on player list for reliability
-        if (state.players && state.players.length > 0) {
-          for (const player of state.players) {
-            // Use BattlEye slot number for reliable RCON kick with reason display
-            const rconId = player.rconSlot != null ? String(player.rconSlot) : (player.id || player.index);
-            if (rconId !== undefined) {
-              await state.rcon.kick(rconId, 'Server updating');
-            }
+        const playersCopy = [...(state.players || [])];
+        for (const player of playersCopy) {
+          // Use BattlEye slot number for reliable RCON kick with reason display
+          const rconId = player.rconSlot != null ? String(player.rconSlot) : (player.id || player.index);
+          if (rconId !== undefined) {
+            try { await state.rcon.kick(rconId, 'Server updating'); } catch { /* player may have already left */ }
           }
         }
         // Give RCON a moment to process kicks
