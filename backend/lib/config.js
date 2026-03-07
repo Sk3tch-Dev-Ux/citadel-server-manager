@@ -71,11 +71,40 @@ for (const [envKey, { section, key, def }] of Object.entries(envMap)) {
   }
 }
 
-// ─── 4. Auto-generate JWT_SECRET if still missing ───────
+// ─── 4. Auto-generate and persist JWT_SECRET if still missing ───────
 if (!structured.auth.jwtSecret) {
   if (!process.env.JWT_SECRET) {
-    process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
-    logger.warn('JWT_SECRET was not set — generated a temporary secret. Run "npm run setup" or complete the Setup Wizard to persist it.');
+    // Check if we have a persisted JWT secret file
+    const jwtSecretFile = path.join(ROOT, 'data', '.jwt-secret');
+    let persistedSecret = null;
+
+    if (fs.existsSync(jwtSecretFile)) {
+      try {
+        persistedSecret = fs.readFileSync(jwtSecretFile, 'utf-8').trim();
+        if (persistedSecret.length === 128) { // 64 bytes hex = 128 chars
+          process.env.JWT_SECRET = persistedSecret;
+          logger.info('Loaded persisted JWT_SECRET from data/.jwt-secret');
+        }
+      } catch (err) {
+        logger.warn({ err: err.message }, 'Failed to load persisted JWT_SECRET');
+      }
+    }
+
+    // If no persisted secret, generate a new one and save it
+    if (!process.env.JWT_SECRET) {
+      const newSecret = crypto.randomBytes(64).toString('hex'); // 64 bytes = 128 hex chars (stronger)
+      process.env.JWT_SECRET = newSecret;
+
+      // Persist it to a file (not checked into git)
+      try {
+        const dataDir = path.join(ROOT, 'data');
+        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+        fs.writeFileSync(jwtSecretFile, newSecret, 'utf-8');
+        logger.info('Auto-generated and persisted JWT_SECRET to data/.jwt-secret');
+      } catch (err) {
+        logger.warn({ err: err.message }, 'Failed to persist JWT_SECRET — using in-memory secret (will be lost on restart)');
+      }
+    }
   }
   structured.auth.jwtSecret = process.env.JWT_SECRET;
 }

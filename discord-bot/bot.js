@@ -22,13 +22,69 @@ const client = new Client({
 });
 
 // ─── Ready (BUG FIX: Events.ClientReady, not 'clientReady') ──
-client.once(Events.ClientReady, () => {
+client.once(Events.ClientReady, async () => {
   console.log(`Discord bot logged in as ${client.user.tag}`);
+
+  // Validate admin role on startup
+  if (CONFIG.adminRoleId) {
+    await validateAdminRole();
+  }
+
   client.user.setPresence({
     status: 'online',
     activities: [{ name: 'Citadel', type: 3 }],
   });
 });
+
+/**
+ * Validate ADMIN_ROLE_ID format and existence.
+ * Logs clear warnings if role doesn't exist.
+ */
+async function validateAdminRole() {
+  try {
+    // Validate format: Discord snowflakes are 17-20 digit numbers
+    if (!/^\d{17,20}$/.test(CONFIG.adminRoleId)) {
+      console.error(`[bot] DISCORD_ADMIN_ROLE_ID invalid format: "${CONFIG.adminRoleId}". Must be a numeric Discord snowflake (17-20 digits).`);
+      console.error('[bot] Admin commands will be disabled.');
+      return;
+    }
+
+    // Try to fetch the role from the guild
+    if (!CONFIG.guildId) {
+      console.warn('[bot] DISCORD_GUILD_ID not set. Skipping admin role verification.');
+      return;
+    }
+
+    try {
+      const guild = await client.guilds.fetch(CONFIG.guildId);
+      if (!guild) {
+        console.error(`[bot] Guild not found: ${CONFIG.guildId}. Admin role verification failed.`);
+        return;
+      }
+
+      const role = await guild.roles.fetch(CONFIG.adminRoleId);
+      if (!role) {
+        console.error(`[bot] Admin role not found in guild: ${CONFIG.adminRoleId}`);
+        console.error(`[bot] Available roles in ${guild.name}:`);
+        const roles = await guild.roles.fetch();
+        roles.forEach(r => {
+          if (!r.managed) {
+            console.error(`[bot]   - ${r.name} (${r.id})`);
+          }
+        });
+        console.error('[bot] Admin commands will be disabled until role is created or DISCORD_ADMIN_ROLE_ID is updated.');
+        return;
+      }
+
+      console.log(`[bot] Admin role verified: ${role.name} (${role.id})`);
+    } catch (err) {
+      console.error(`[bot] Failed to verify admin role: ${err.message}`);
+      console.error('[bot] Admin commands may not work correctly.');
+    }
+  } catch (err) {
+    console.error(`[bot] Unexpected error during admin role validation: ${err.message}`);
+  }
+}
 
 client.on('error', (err) => {
   console.error('[client] error', err);

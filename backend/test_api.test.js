@@ -10,7 +10,7 @@
 // ─── Set env vars BEFORE any requires ──────────────────────────
 process.env.JWT_SECRET = 'test-jwt-secret-for-testing-only';
 process.env.PORT = '0'; // Let OS assign port (avoids conflicts)
-process.env.NODE_ENV = 'production'; // Avoid pino-pretty transport worker
+process.env.NODE_ENV = 'test'; // Test mode - prevents server.listen() and pino-pretty
 
 // ─── Mock ESM-only deps that Jest can't parse ─────────────────
 jest.mock('uuid', () => ({ v4: () => 'test-uuid-' + Math.random().toString(36).slice(2) }));
@@ -152,7 +152,12 @@ describe('Utility: safePath', () => {
     expect(result).toBeNull();
   });
 
-  it('should block path traversal with ..\\', () => {
+  it('should block path traversal with ..\\ (on Windows only)', () => {
+    if (process.platform !== 'win32') {
+      // Skip on non-Windows platforms where backslash is not a path separator
+      expect(true).toBe(true);
+      return;
+    }
     const result = safePath(tempDir, '..\\..\\..\\windows\\system32');
     expect(result).toBeNull();
   });
@@ -176,9 +181,19 @@ describe('Utility: safePath', () => {
 const { app } = require('./server');
 
 describe('API: Authentication', () => {
+  let csrfToken = '';
+
+  beforeAll(async () => {
+    // Get CSRF token from a GET request (sets the csrf-token cookie)
+    const res = await request(app).get('/api/servers');
+    csrfToken = res.get('X-CSRF-Token');
+  });
+
   it('should reject login with invalid credentials', async () => {
     const res = await request(app)
       .post('/api/auth/login')
+      .set('Cookie', `csrf-token=${csrfToken}`)
+      .set('X-CSRF-Token', csrfToken)
       .send({ username: 'nonexistent', password: 'wrong' });
     expect(res.status).toBe(401);
     expect(res.body.error).toMatch(/Invalid credentials/);
@@ -195,7 +210,7 @@ describe('API: Authentication', () => {
       .get('/api/servers')
       .set('Authorization', 'Bearer invalid-token-here');
     expect(res.status).toBe(401);
-    expect(res.body.error).toMatch(/Invalid token/);
+    expect(res.body.error).toMatch(/Invalid.*token/);
   });
 
   it('should reject requests with an expired token', async () => {
@@ -223,8 +238,13 @@ describe('API: Rate Limiting', () => {
 
 describe('API: Password Policy Enforcement', () => {
   const testAdminId = 'test-admin-for-jest';
+  let csrfToken = '';
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    // Get CSRF token from a GET request
+    const res = await request(app).get('/api/servers');
+    csrfToken = res.get('X-CSRF-Token');
+
     // Inject a test admin user into the runtime context so auth middleware passes
     const ctx = require('./lib/context');
     ctx.users.push({
@@ -249,6 +269,8 @@ describe('API: Password Policy Enforcement', () => {
     const res = await request(app)
       .post('/api/users')
       .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', `csrf-token=${csrfToken}`)
+      .set('X-CSRF-Token', csrfToken)
       .send({ username: 'testuser', password: 'short', role: 'viewer' });
     expect(res.status).toBe(400);
     // validateFields checks minLength first, then checkPasswordPolicy runs

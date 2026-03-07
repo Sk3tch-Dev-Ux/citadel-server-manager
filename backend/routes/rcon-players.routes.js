@@ -3,19 +3,40 @@
  *
  * Ban/unban actions now go through the global ban database.
  * The per-server /bans endpoint returns the global ban list (all bans apply to all servers).
+ * All RCON commands are validated against a whitelist for security.
  */
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
 const { banPlayer, listBans, removeBan } = require('../lib/ban-engine');
+const { validateCommand, sanitizeCommand } = require('../lib/rcon-validator');
 const auth = require('../middleware/auth');
+const logger = require('../lib/logger');
 
 module.exports = function(app) {
   app.post('/api/servers/:id/rcon', auth('server.rcon'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
-    try { const result = await state.rcon.send(req.body.command); res.json({ result }); }
-    catch (err) { res.status(500).json({ error: err.message }); }
+
+    // Validate command against whitelist
+    const command = req.body.command || '';
+    const validation = validateCommand(command);
+    if (!validation.valid) {
+      logger.warn({ userId: req.user.id, command, reason: validation.reason }, 'RCON command rejected');
+      addAudit(req.user.id, req.user.username, 'rcon.rejected', `Blocked RCON command: ${validation.reason}`);
+      return res.status(400).json({ error: validation.reason });
+    }
+
+    // Sanitize before sending
+    const sanitized = sanitizeCommand(command);
+    try {
+      const result = await state.rcon.send(sanitized);
+      addAudit(req.user.id, req.user.username, 'rcon.execute', `Executed: ${sanitized}`);
+      res.json({ result });
+    } catch (err) {
+      logger.error({ err, command: sanitized }, 'RCON execution error');
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.post('/api/servers/:id/message', auth('chat.send'), async (req, res) => {

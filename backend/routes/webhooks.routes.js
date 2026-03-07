@@ -2,16 +2,95 @@
  * Webhook CRUD, test, and event listing routes.
  */
 const { v4: uuid } = require('uuid');
+const dns = require('dns').promises;
 const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { validateFields } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
-const { fireWebhooks, WEBHOOK_EVENTS } = require('../lib/notifications');
+const { fireWebhooks, WEBHOOK_EVENTS, isPrivateIP } = require('../lib/notifications');
 const auth = require('../middleware/auth');
 const requireLicense = require('../middleware/license');
+const logger = require('../lib/logger');
 
 /** Delivery record TTL: 7 days in milliseconds */
 const DELIVERY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Max payload size for Discord webhooks (characters) */
+const DISCORD_MAX_PAYLOAD_CHARS = 2000;
+
+/** Max payload size for generic webhooks (bytes) */
+const GENERIC_MAX_PAYLOAD_BYTES = 64 * 1024;
+
+/**
+ * Validate webhook payload template size at creation time.
+ * Returns { valid: boolean, error: string|null }
+ */
+function validatePayloadSize(url, template) {
+  const isDiscord = url.includes('discord.com/api/webhooks');
+
+  if (isDiscord) {
+    // For Discord, check the template content length
+    if (template && template.length > DISCORD_MAX_PAYLOAD_CHARS) {
+      return {
+        valid: false,
+        error: `Discord webhook payload template exceeds ${DISCORD_MAX_PAYLOAD_CHARS} characters (got ${template.length})`
+      };
+    }
+  } else {
+    // For generic webhooks, estimate the rendered payload size
+    const estimatedPayload = JSON.stringify({
+      event: 'test',
+      timestamp: new Date().toISOString(),
+      data: { serverName: 'Test Server', serverId: 'test', reason: 'Test message' }
+    });
+    const templateSize = template ? Buffer.byteLength(template, 'utf8') : 0;
+    const totalEstimate = templateSize + estimatedPayload.length;
+
+    if (totalEstimate > GENERIC_MAX_PAYLOAD_BYTES) {
+      return {
+        valid: false,
+        error: `Generic webhook payload exceeds ${GENERIC_MAX_PAYLOAD_BYTES} bytes (estimated ${totalEstimate})`
+      };
+    }
+  }
+
+  return { valid: true, error: null };
+}
+
+/**
+ * Validate webhook URL for SSRF at creation time.
+ * Resolves the hostname and checks against private IP ranges.
+ * Returns { valid: boolean, error: string|null }
+ */
+async function validateWebhookUrlSsrf(urlString) {
+  try {
+    const parsed = new URL(urlString);
+    const address = await dns.lookup(parsed.hostname).then(result => result.address);
+
+    if (isPrivateIP(address)) {
+      return {
+        valid: false,
+        error: `Webhook URL resolves to private IP (${address}). SSRF protection blocks internal addresses.`
+      };
+    }
+
+    // Also check for metadata service endpoints
+    if (address === '169.254.169.254') {
+      return {
+        valid: false,
+        error: 'Webhook URL resolves to metadata service endpoint. This is blocked for security.'
+      };
+    }
+
+    return { valid: true, error: null };
+  } catch (err) {
+    // DNS resolution failed — fail closed for safety
+    return {
+      valid: false,
+      error: `Failed to validate webhook URL: ${err.message}. SSRF check failed closed.`
+    };
+  }
+}
 
 /** Prune delivery records older than 7 days from all webhooks. */
 function pruneAllDeliveries() {
@@ -41,7 +120,7 @@ module.exports = function(app) {
     res.json(ctx.webhooks);
   });
 
-  app.post('/api/webhooks', auth('webhooks.manage'), (req, res) => {
+  app.post('/api/webhooks', auth('webhooks.manage'), async (req, res) => {
     const { event, url, template, retryEnabled, retryCount, timeout, headers, events, serverIds } = req.body;
     const error = validateFields(req.body, {
       event: { required: true, type: 'string', minLength: 2 },
@@ -60,6 +139,20 @@ module.exports = function(app) {
       const validEventTypes = Object.keys(WEBHOOK_EVENTS);
       const invalid = events.filter(e => !validEventTypes.includes(e));
       if (invalid.length > 0) return res.status(400).json({ error: `Invalid event types: ${invalid.join(', ')}` });
+    }
+
+    // Payload size validation at creation time
+    const payloadValidation = validatePayloadSize(url, template);
+    if (!payloadValidation.valid) {
+      logger.warn({ url, reason: payloadValidation.error }, 'Webhook creation blocked by payload size validation');
+      return res.status(400).json({ error: payloadValidation.error });
+    }
+
+    // SSRF validation at creation time
+    const ssrfValidation = await validateWebhookUrlSsrf(url);
+    if (!ssrfValidation.valid) {
+      logger.warn({ url, reason: ssrfValidation.error }, 'Webhook creation blocked by SSRF validation');
+      return res.status(400).json({ error: ssrfValidation.error });
     }
 
     // Validate retryCount range
@@ -85,7 +178,7 @@ module.exports = function(app) {
     res.json(wh);
   });
 
-  app.patch('/api/webhooks/:id', auth('webhooks.manage'), (req, res) => {
+  app.patch('/api/webhooks/:id', auth('webhooks.manage'), async (req, res) => {
     const wh = ctx.webhooks.find(w => w.id === req.params.id);
     if (!wh) return res.status(404).json({ error: 'Webhook not found' });
 
@@ -95,6 +188,24 @@ module.exports = function(app) {
       const validEventTypes = Object.keys(WEBHOOK_EVENTS);
       const invalid = req.body.events.filter(e => !validEventTypes.includes(e));
       if (invalid.length > 0) return res.status(400).json({ error: `Invalid event types: ${invalid.join(', ')}` });
+    }
+
+    // Payload size validation if template is being changed
+    const checkUrl = req.body.url || wh.url;
+    const checkTemplate = req.body.template !== undefined ? req.body.template : wh.template;
+    const payloadValidation = validatePayloadSize(checkUrl, checkTemplate);
+    if (!payloadValidation.valid) {
+      logger.warn({ url: checkUrl, reason: payloadValidation.error }, 'Webhook update blocked by payload size validation');
+      return res.status(400).json({ error: payloadValidation.error });
+    }
+
+    // SSRF validation if URL is being changed
+    if (req.body.url !== undefined && req.body.url !== wh.url) {
+      const ssrfValidation = await validateWebhookUrlSsrf(req.body.url);
+      if (!ssrfValidation.valid) {
+        logger.warn({ url: req.body.url, reason: ssrfValidation.error }, 'Webhook update blocked by SSRF validation');
+        return res.status(400).json({ error: ssrfValidation.error });
+      }
     }
 
     // Validate retryCount range if provided

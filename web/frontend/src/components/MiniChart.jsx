@@ -1,3 +1,4 @@
+/* global getComputedStyle */
 import { useRef, useEffect } from 'react';
 
 /**

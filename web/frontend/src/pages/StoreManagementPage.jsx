@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow-restricted-names */
 import { useState, useEffect, useCallback } from 'react';
 import API from '../api';
 import { timeAgo } from '../utils';

@@ -1,3 +1,4 @@
+/* global CustomEvent */
 const REQUEST_TIMEOUT_MS = 30000;
 
 class API {
@@ -42,7 +43,7 @@ class API {
       const r = await fetch(url, { ...options, signal: controller.signal });
       return r;
     } catch (err) {
-      if (err.name === 'AbortError') throw new Error('Request timed out');
+      if (err.name === 'AbortError') throw new Error('Request timed out', { cause: err });
       throw err;
     } finally {
       clearTimeout(timer);

@@ -6,9 +6,12 @@ const dns = require('dns');
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');
-const { saveJSON } = require('./data-store');
+const { saveJSON, loadJSON } = require('./data-store');
 const { sanitizeString } = require('./helpers');
 const { MAX_NOTIFICATION_COUNT, MAX_WEBHOOK_DELIVERIES } = require('./constants');
+
+/** Notifications older than this are pruned (7 days) */
+const NOTIFICATION_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Check if an IP address belongs to a private/internal range.
@@ -93,18 +96,50 @@ const NOTIFICATION_ICONS = {
 };
 
 /**
- * Add an in-app notification and emit via Socket.IO.
+ * Load notifications from persistent storage on startup.
+ * Prunes notifications older than 7 days.
+ */
+function loadNotifications() {
+  const stored = loadJSON(ctx.CONFIG.dataDir, 'notifications.json', []);
+  const now = Date.now();
+  const notificationsToKeep = stored.filter(n => {
+    const created = new Date(n.timestamp).getTime();
+    const age = now - created;
+    return age < NOTIFICATION_RETENTION_MS;
+  });
+  ctx.notifications = notificationsToKeep;
+  logger.info({ count: notificationsToKeep.length }, 'Loaded notifications from persistent storage');
+}
+
+/**
+ * Add an in-app notification, persist, and emit via Socket.IO.
  */
 function addNotification(serverId, type, title, message, severity) {
   severity = severity || 'info';
   const n = {
-    id: uuid(), serverId, type, title: sanitizeString(title), message: sanitizeString(message), severity,
+    id: uuid(),
+    serverId,
+    type,
+    title: sanitizeString(title),
+    message: sanitizeString(message),
+    severity,
     icon: NOTIFICATION_ICONS[type] || '🔔',
-    timestamp: new Date().toISOString(), read: false,
+    timestamp: new Date().toISOString(),
+    read: false,
   };
   ctx.notifications.unshift(n);
-  if (ctx.notifications.length > MAX_NOTIFICATION_COUNT) ctx.notifications.length = MAX_NOTIFICATION_COUNT;
+
+  // Enforce max notification count with FIFO eviction
+  if (ctx.notifications.length > MAX_NOTIFICATION_COUNT) {
+    ctx.notifications.length = MAX_NOTIFICATION_COUNT;
+  }
+
+  // Persist to disk
+  saveJSON(ctx.CONFIG.dataDir, 'notifications.json', ctx.notifications);
+
+  // Emit via Socket.IO
   if (ctx.io) ctx.io.emit('notification', n);
+
   return n;
 }
 
@@ -300,4 +335,4 @@ async function fireWebhooks(eventType, data) {
   }
 }
 
-module.exports = { addNotification, sendDiscordWebhook, fireWebhooks, NOTIFICATION_ICONS, WEBHOOK_EVENTS };
+module.exports = { addNotification, loadNotifications, sendDiscordWebhook, fireWebhooks, NOTIFICATION_ICONS, WEBHOOK_EVENTS, isPrivateIP };

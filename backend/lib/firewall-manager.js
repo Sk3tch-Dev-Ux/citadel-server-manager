@@ -130,7 +130,7 @@ function runElevatedPS(command) {
  * Strips everything except alphanumeric, spaces, dashes, underscores, dots.
  */
 function sanitizeName(name) {
-  return (name || 'Server').replace(/[^a-zA-Z0-9 _\-\.]/g, '').trim() || 'Server';
+  return (name || 'Server').replace(/[^a-zA-Z0-9 _\-.]/g, '').trim() || 'Server';
 }
 
 /**

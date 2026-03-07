@@ -19,11 +19,39 @@ const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notific
 const { executeHooks } = require('./lifecycle-hooks');
 const { checkPortAvailability } = require('./port-checker');
 const { ensureFirewallRules } = require('./firewall-manager');
-const { MAX_RESTART_ATTEMPTS, RESTART_DELAY_MS } = require('./constants');
+const { MAX_RESTART_ATTEMPTS, RESTART_BACKOFF_DELAYS_MS, RESTART_BACKOFF_COOLDOWN_MS } = require('./constants');
 const { stopTailing, startTailing } = require('./rpt-tailer');
 
 /** Guard: prevent concurrent restart operations on the same server */
 const _pendingRestarts = new Set();
+
+/** Track restart backoff state per server (serverId -> { backoffIndex, lastRestartTime }) */
+const _restartBackoffState = new Map();
+
+/**
+ * Get the next backoff delay for restart attempts. Advances the backoff index.
+ * If server has been running for >5 min since last restart, resets backoff to 0.
+ */
+function getNextRestartBackoffDelay(serverId, state) {
+  if (!_restartBackoffState.has(serverId)) {
+    _restartBackoffState.set(serverId, { backoffIndex: 0, lastRestartTime: Date.now() });
+  }
+
+  const backoff = _restartBackoffState.get(serverId);
+  const now = Date.now();
+  const timeSinceLastRestart = now - backoff.lastRestartTime;
+
+  // If server ran for >5 min since last restart, reset backoff to 0
+  if (timeSinceLastRestart > RESTART_BACKOFF_COOLDOWN_MS) {
+    backoff.backoffIndex = 0;
+  }
+
+  const delayMs = RESTART_BACKOFF_DELAYS_MS[backoff.backoffIndex] || RESTART_BACKOFF_DELAYS_MS[RESTART_BACKOFF_DELAYS_MS.length - 1];
+  backoff.backoffIndex = Math.min(backoff.backoffIndex + 1, RESTART_BACKOFF_DELAYS_MS.length - 1);
+  backoff.lastRestartTime = now;
+
+  return delayMs;
+}
 
 /**
  * Start a server through the full lifecycle: port check -> firewall -> hooks -> spawn -> verify.
@@ -237,7 +265,10 @@ async function restartServer(serverId, reason) {
         await executeHooks(serverId, 'stopped').catch(() => {});
       }
 
-      await new Promise(r => setTimeout(r, RESTART_DELAY_MS));
+      // Calculate exponential backoff delay for this attempt
+      const delayMs = getNextRestartBackoffDelay(serverId, state);
+      addLog(serverId, 'info', 'server', `Waiting ${Math.round(delayMs / 1000)}s before attempt ${attempt}`);
+      await new Promise(r => setTimeout(r, delayMs));
 
       // Execute pre-start hooks before each spawn attempt
       const preStartResult = await executeHooks(serverId, 'pre-start');
