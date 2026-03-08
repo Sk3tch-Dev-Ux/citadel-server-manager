@@ -15,6 +15,7 @@ import {
   Bomb, Wrench, Trash2, Navigation, Locate, RefreshCw, Eye, EyeOff,
   Sun, CloudRain, Wind, X, Zap, AlertTriangle, Info,
   Power, LogOut, Send, Clock, ArrowUp, ChevronDown, ChevronUp, Globe,
+  Flame, Package, TreePine, Target, MousePointerClick, Truck, Haze, CircleX,
 } from '../components/Icon';
 
 // ─── HTML Escaping (prevents XSS in Leaflet divIcon HTML) ─
@@ -202,6 +203,16 @@ export default function LiveMapPage({ serverId }) {
   const [worldHour, setWorldHour] = useState(12);
   const [worldMinute, setWorldMinute] = useState(0);
 
+  // Spawn mode
+  const [spawnMode, setSpawnMode] = useState(null); // null or { action, label, params }
+  const [spawnType, setSpawnType] = useState('zombie');
+  const [spawnCount, setSpawnCount] = useState(5);
+  const [spawnClass, setSpawnClass] = useState('');
+  const [spawnAnimal, setSpawnAnimal] = useState('Animal_CervusElaphus');
+  const [areaRadius, setAreaRadius] = useState(50);
+  const [fogDensity, setFogDensity] = useState(0.5);
+  const [windSpeed, setWindSpeed] = useState(10);
+
   const mapRef = useRef(null);
 
   // ─── Fetch map config ──────────────────────────────────
@@ -296,6 +307,33 @@ export default function LiveMapPage({ serverId }) {
     setActionLoading(false);
   }, [serverId]);
 
+  const doSpawnAction = useCallback(async (action, params, label) => {
+    setActionLoading(true);
+    try {
+      await API.post(`/api/servers/${serverId}/map/spawn-action`, { action, params });
+      window.addToast?.(`${label} successful`, 'success');
+    } catch (err) {
+      window.addToast?.(`${label} failed: ${err.message}`, 'error');
+    }
+    setActionLoading(false);
+  }, [serverId]);
+
+  // Activate spawn mode for a given entity type
+  const activateSpawnMode = useCallback((action, label, extraParams = {}) => {
+    setSpawnMode({ action, label, params: extraParams });
+    window.addToast?.(`Spawn mode: click map to place ${label}`, 'info');
+  }, []);
+
+  // Handle map click in spawn mode
+  const handleSpawnClick = useCallback((e) => {
+    if (!spawnMode) return;
+    const x = Math.round(e.latlng.lng);
+    const z = Math.round(e.latlng.lat);
+    const coords = { x, y: 0, z };
+    doSpawnAction(spawnMode.action, { ...spawnMode.params, coords }, `Spawn ${spawnMode.label} at [${x}, ${z}]`);
+    // Keep spawn mode active for repeated placement
+  }, [spawnMode, doSpawnAction]);
+
   // ─── Map right-click handler ───────────────────────────
   const handleMapContext = useCallback((e) => {
     if (!selectedPlayer) return;
@@ -383,8 +421,19 @@ export default function LiveMapPage({ serverId }) {
         </div>
       </div>
 
+      {/* ─── Spawn Mode Indicator ────────────────────── */}
+      {spawnMode && (
+        <div className="map-spawn-bar">
+          <MousePointerClick size={14} />
+          <span>Click map to place: <strong>{spawnMode.label}</strong></span>
+          <button className="map-spawn-bar__cancel" onClick={() => setSpawnMode(null)}>
+            <CircleX size={14} /> Cancel
+          </button>
+        </div>
+      )}
+
       {/* ─── Map Container ───────────────────────────── */}
-      <div className="map-container" onContextMenu={e => e.preventDefault()}>
+      <div className={`map-container${spawnMode ? ' map-container--spawn-mode' : ''}`} onContextMenu={e => e.preventDefault()}>
         <MapContainer
           ref={mapRef}
           center={center}
@@ -407,7 +456,7 @@ export default function LiveMapPage({ serverId }) {
             coordsRef.current = c;
             if (coordsElRef.current) coordsElRef.current.lastChild.textContent = ` ${c.x}, ${c.z}`;
           }} />
-          <MapEvents onContextMenu={handleMapContext} />
+          <MapEvents onContextMenu={handleMapContext} onClick={handleSpawnClick} />
 
           {/* Map Image Overlay */}
           {!imageError ? (
@@ -612,6 +661,7 @@ export default function LiveMapPage({ serverId }) {
           </button>
           {showWorldPanel && (
             <div className="map-world-panel__body">
+              {/* ── Time ── */}
               <div className="map-world-panel__section">
                 <div className="map-world-panel__label"><Clock size={12} /> Time</div>
                 <div className="map-world-panel__row">
@@ -624,6 +674,7 @@ export default function LiveMapPage({ serverId }) {
                 </div>
               </div>
 
+              {/* ── Weather ── */}
               <div className="map-world-panel__section">
                 <div className="map-world-panel__label"><Sun size={12} /> Weather</div>
                 <div className="map-world-panel__row">
@@ -639,6 +690,152 @@ export default function LiveMapPage({ serverId }) {
                 </div>
               </div>
 
+              {/* ── Atmosphere ── */}
+              <div className="map-world-panel__section">
+                <div className="map-world-panel__label"><Haze size={12} /> Atmosphere</div>
+                <div className="map-world-panel__row">
+                  <span className="map-world-panel__field-label">Fog</span>
+                  <input type="number" className="map-world-panel__input" min={0} max={1} step={0.1} value={fogDensity} onChange={e => setFogDensity(parseFloat(e.target.value) || 0)} />
+                  <button className="map-popup__btn" onClick={() => doWorldAction('set-fog', { density: fogDensity }, `Set fog ${fogDensity}`)}>
+                    Set
+                  </button>
+                </div>
+                <div className="map-world-panel__row">
+                  <span className="map-world-panel__field-label">Wind</span>
+                  <input type="number" className="map-world-panel__input" min={0} max={20} value={windSpeed} onChange={e => setWindSpeed(parseInt(e.target.value) || 0)} />
+                  <button className="map-popup__btn" onClick={() => doWorldAction('set-wind', { speed: windSpeed }, `Set wind ${windSpeed}`)}>
+                    Set
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Spawn Entities ── */}
+              <div className="map-world-panel__section">
+                <div className="map-world-panel__label"><Target size={12} /> Spawn Entities</div>
+                <div className="map-world-panel__row">
+                  <select className="map-world-panel__select" value={spawnType} onChange={e => setSpawnType(e.target.value)}>
+                    <option value="zombie">Zombie</option>
+                    <option value="animal">Animal</option>
+                    <option value="vehicle">Vehicle</option>
+                    <option value="building">Building</option>
+                    <option value="item">Item</option>
+                  </select>
+                </div>
+                {/* Type-specific inputs */}
+                {spawnType === 'zombie' && (
+                  <div className="map-world-panel__row">
+                    <span className="map-world-panel__field-label">Count</span>
+                    <input type="number" className="map-world-panel__input" min={1} max={50} value={spawnCount} onChange={e => setSpawnCount(parseInt(e.target.value) || 1)} />
+                  </div>
+                )}
+                {spawnType === 'animal' && (
+                  <>
+                    <div className="map-world-panel__row">
+                      <select className="map-world-panel__select" value={spawnAnimal} onChange={e => setSpawnAnimal(e.target.value)}>
+                        <option value="Animal_CervusElaphus">Deer</option>
+                        <option value="Animal_CanisLupus">Wolf</option>
+                        <option value="Animal_UrsusArctos">Bear</option>
+                        <option value="Animal_SusDomesticus">Boar</option>
+                        <option value="Animal_GallusGallus">Chicken</option>
+                        <option value="Animal_CapraHircus">Goat</option>
+                        <option value="Animal_CapreolusCapreolus">Roe Deer</option>
+                      </select>
+                    </div>
+                    <div className="map-world-panel__row">
+                      <span className="map-world-panel__field-label">Count</span>
+                      <input type="number" className="map-world-panel__input" min={1} max={20} value={spawnCount} onChange={e => setSpawnCount(parseInt(e.target.value) || 1)} />
+                    </div>
+                  </>
+                )}
+                {(spawnType === 'vehicle' || spawnType === 'building' || spawnType === 'item') && (
+                  <div className="map-world-panel__row">
+                    <input type="text" className="map-world-panel__input map-world-panel__input--wide" value={spawnClass} onChange={e => setSpawnClass(e.target.value)}
+                      placeholder={spawnType === 'vehicle' ? 'OffroadHatchback' : spawnType === 'building' ? 'Land_House_1W01' : 'M4A1'} />
+                  </div>
+                )}
+                <div className="map-world-panel__row">
+                  {!spawnMode ? (
+                    <button className="map-popup__btn map-popup__btn--success" onClick={() => {
+                      if (spawnType === 'zombie') {
+                        activateSpawnMode('zombie-at', `Zombie x${spawnCount}`, { count: spawnCount });
+                      } else if (spawnType === 'animal') {
+                        activateSpawnMode('animal-at', spawnAnimal.split('_').pop(), { animalType: spawnAnimal, count: spawnCount });
+                      } else if (spawnType === 'vehicle') {
+                        if (!spawnClass) { window.addToast?.('Enter a vehicle class name', 'error'); return; }
+                        activateSpawnMode('vehicle', spawnClass, { vehicleClass: spawnClass });
+                      } else if (spawnType === 'building') {
+                        if (!spawnClass) { window.addToast?.('Enter a building class name', 'error'); return; }
+                        activateSpawnMode('building', spawnClass, { buildingClass: spawnClass });
+                      } else if (spawnType === 'item') {
+                        if (!spawnClass) { window.addToast?.('Enter an item class name', 'error'); return; }
+                        activateSpawnMode('item-at', spawnClass, { itemClass: spawnClass });
+                      }
+                    }}>
+                      <MousePointerClick size={12} /> Click to Place
+                    </button>
+                  ) : (
+                    <button className="map-popup__btn map-popup__btn--danger" onClick={() => setSpawnMode(null)}>
+                      <CircleX size={12} /> Cancel Placement
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ── World Events ── */}
+              <div className="map-world-panel__section">
+                <div className="map-world-panel__label"><Flame size={12} /> World Events</div>
+                <div className="map-world-panel__row">
+                  <button className="map-popup__btn" onClick={() => activateSpawnMode('heli-crash', 'Heli Crash', {})}>
+                    <Zap size={12} /> Heli Crash
+                  </button>
+                  <button className="map-popup__btn" onClick={() => activateSpawnMode('gas-zone', 'Gas Zone', {})}>
+                    <Skull size={12} /> Gas Zone
+                  </button>
+                </div>
+                <div className="map-world-panel__row">
+                  <button className="map-popup__btn" onClick={() => activateSpawnMode('supply-crate', 'Supply Crate', { crateType: 'military' })}>
+                    <Package size={12} /> Supply Crate
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Area Effects ── */}
+              <div className="map-world-panel__section">
+                <div className="map-world-panel__label"><TreePine size={12} /> Area Effects</div>
+                <div className="map-world-panel__row">
+                  <span className="map-world-panel__field-label">Radius</span>
+                  <input type="number" className="map-world-panel__input" min={10} max={500} value={areaRadius} onChange={e => setAreaRadius(parseInt(e.target.value) || 50)} />
+                  <span className="map-world-panel__unit">m</span>
+                </div>
+                <div className="map-world-panel__row">
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => {
+                    const c = coordsRef.current;
+                    if (await confirm({ title: 'Flatten Trees', message: `Flatten trees within ${areaRadius}m of [${c.x}, ${c.z}]?`, confirmLabel: 'Flatten', variant: 'danger' }))
+                      doWorldAction('flatten-trees', { coords: { x: c.x, y: 0, z: c.z }, radius: areaRadius }, 'Flatten Trees');
+                  }}>
+                    <TreePine size={12} /> Flatten Trees
+                  </button>
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => {
+                    const c = coordsRef.current;
+                    if (await confirm({ title: 'Clear Zombies', message: `Clear zombies within ${areaRadius}m of [${c.x}, ${c.z}]?`, confirmLabel: 'Clear', variant: 'danger' }))
+                      doWorldAction('clear-zombies', { coords: { x: c.x, y: 0, z: c.z }, radius: areaRadius }, 'Clear Zombies');
+                  }}>
+                    <Skull size={12} /> Clear Zombies
+                  </button>
+                </div>
+                <div className="map-world-panel__row">
+                  <button className="map-popup__btn map-popup__btn--danger" onClick={async () => {
+                    const c = coordsRef.current;
+                    if (await confirm({ title: 'Delete Objects', message: `Delete ALL objects within ${areaRadius}m of [${c.x}, ${c.z}]? This cannot be undone.`, confirmLabel: 'Delete', variant: 'danger' }))
+                      doWorldAction('delete-objects-radius', { coords: { x: c.x, y: 0, z: c.z }, radius: areaRadius }, 'Delete Objects');
+                  }}>
+                    <Trash2 size={12} /> Delete Objects
+                  </button>
+                </div>
+                <div className="map-world-panel__hint">Uses cursor position on map</div>
+              </div>
+
+              {/* ── Danger Zone ── */}
               <div className="map-world-panel__section">
                 <div className="map-world-panel__label"><AlertTriangle size={12} /> Danger Zone</div>
                 <div className="map-world-panel__row">
@@ -691,9 +888,10 @@ export default function LiveMapPage({ serverId }) {
 }
 
 // ─── Map Events Hook Component ───────────────────────────
-function MapEvents({ onContextMenu }) {
+function MapEvents({ onContextMenu, onClick }) {
   useMapEvents({
     contextmenu: onContextMenu,
+    click: onClick,
   });
   return null;
 }

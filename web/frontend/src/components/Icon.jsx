@@ -119,4 +119,11 @@ export {
   ArrowUpFromLine,
   Backpack,
   Wand2,
+  TreePine,
+  Trees,
+  Target,
+  MousePointerClick,
+  Truck,
+  Haze,
+  CircleX,
 } from 'lucide-react';
