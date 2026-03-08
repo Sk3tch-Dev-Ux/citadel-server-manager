@@ -1,5 +1,53 @@
 [
   {
+    "id": "d412ab96-ec53-4b26-a65a-9ef0cea828be",
+    "timestamp": "2026-03-08T05:22:48.458Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Testing Branch"
+  },
+  {
+    "id": "bda01a69-1b10-4315-ac59-79a79ef95f8a",
+    "timestamp": "2026-03-08T05:21:59.810Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Testing Branch"
+  },
+  {
+    "id": "eff6faef-023f-41e3-8306-1574c3f5ea92",
+    "timestamp": "2026-03-08T05:20:39.000Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Testing Branch"
+  },
+  {
+    "id": "d7345661-35aa-4611-9922-84b524cb0607",
+    "timestamp": "2026-03-08T05:19:54.410Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Testing Branch"
+  },
+  {
+    "id": "d0c1058b-9690-44d1-85bb-f06c9144c9f0",
+    "timestamp": "2026-03-08T05:17:40.622Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Testing Branch"
+  },
+  {
+    "id": "e533e57f-ce86-4781-989f-6a3c7a280710",
+    "timestamp": "2026-03-08T05:17:22.727Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
     "id": "7b3bf895-1fe4-425f-a884-6427f83d81d6",
     "timestamp": "2026-03-07T03:58:46.320Z",
     "userId": "b6c6869b-751f-4eae-be8c-789bc3785d4c",

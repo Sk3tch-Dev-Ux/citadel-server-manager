@@ -67,8 +67,8 @@ static string CitJsonEscape(string input)
     {
         string ch = input.Get(i);
         int charCode = ch.ToAscii();
-        if (charCode == 34) result += "\\\"";
-        else if (charCode == 92) result += "\\\\";
+        if (charCode == 34) { result += "\\"; result += ch; }
+        else if (charCode == 92) { result += "\\"; result += ch; }
         else if (charCode == 10) result += "\\n";
         else if (charCode == 13) result += "\\r";
         else if (charCode == 9) result += "\\t";
