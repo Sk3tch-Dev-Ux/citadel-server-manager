@@ -79,7 +79,7 @@ static string CitJsonEscape(string input)
 }
 
 // Helper: Get player compass direction (0-359 degrees)
-static int CitGetPlayerDirection(PlayerBase player)
+static int CitGetPlayerDirection(Object player)
 {
     if (!player) return 0;
     vector dir = player.GetDirection();
