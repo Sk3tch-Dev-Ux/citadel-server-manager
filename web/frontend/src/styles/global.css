@@ -1020,6 +1020,43 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .map-world-panel__colon {
   color: var(--text-muted); font-weight: 600; font-size: 14px;
 }
+.map-world-panel__select {
+  flex: 1; padding: 4px 6px; border-radius: 4px;
+  background: var(--bg-main); border: 1px solid var(--border);
+  color: var(--text-primary); font-size: 12px; cursor: pointer;
+}
+.map-world-panel__select:focus { border-color: var(--accent); outline: none; }
+.map-world-panel__input--wide { width: 100%; flex: 1; text-align: left; }
+.map-world-panel__field-label {
+  font-size: 11px; color: var(--text-muted); min-width: 32px; white-space: nowrap;
+}
+.map-world-panel__unit {
+  font-size: 11px; color: var(--text-muted);
+}
+.map-world-panel__hint {
+  font-size: 10px; color: var(--text-muted); font-style: italic;
+}
+.map-world-panel__body { max-height: 60vh; overflow-y: auto; }
+
+/* ─── Spawn Mode Indicator Bar ───────────────────────── */
+.map-spawn-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 16px; background: var(--accent);
+  color: #fff; font-size: 13px; font-weight: 500;
+  z-index: 100;
+}
+.map-spawn-bar strong { font-weight: 700; }
+.map-spawn-bar__cancel {
+  display: flex; align-items: center; gap: 4px;
+  margin-left: auto; padding: 3px 10px; border-radius: 4px;
+  background: rgba(255,255,255,0.2); border: none;
+  color: #fff; font-size: 12px; cursor: pointer;
+}
+.map-spawn-bar__cancel:hover { background: rgba(255,255,255,0.3); }
+
+/* ─── Spawn Mode Cursor ──────────────────────────────── */
+.map-container--spawn-mode { cursor: crosshair; }
+.map-container--spawn-mode .leaflet-container { cursor: crosshair; }
 
 /* ─── Legend Panel ────────────────────────────────────── */
 .map-legend {

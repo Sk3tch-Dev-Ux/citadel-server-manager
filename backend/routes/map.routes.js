@@ -13,7 +13,7 @@ const {
   findSession,
   ActionType,
 } = require('../lib/server-actions/executor');
-const { AUDIT_CODES, VEHICLE_ACTION_MAP, WORLD_ACTION_MAP, PLAYER_ACTION_MAP } = require('../lib/server-actions/types');
+const { AUDIT_CODES, VEHICLE_ACTION_MAP, WORLD_ACTION_MAP, PLAYER_ACTION_MAP, SPAWN_ACTION_MAP } = require('../lib/server-actions/types');
 
 module.exports = function(app) {
 
@@ -103,6 +103,24 @@ module.exports = function(app) {
         case ActionType.WIPE_VEHICLES:
           await provider.wipeVehicles(req.params.id);
           break;
+        case ActionType.SET_FOG:
+          await provider.setFog(req.params.id, params?.density ?? 0.5);
+          break;
+        case ActionType.SET_WIND:
+          await provider.setWind(req.params.id, params?.speed ?? 10, params?.direction ?? 0);
+          break;
+        case ActionType.FLATTEN_TREES:
+          if (!params?.coords) return res.status(400).json({ error: 'coords required' });
+          await provider.flattenTrees(req.params.id, params.coords, params.radius || 50);
+          break;
+        case ActionType.CLEAR_ZOMBIES:
+          if (!params?.coords) return res.status(400).json({ error: 'coords required' });
+          await provider.clearZombies(req.params.id, params.coords, params.radius || 100);
+          break;
+        case ActionType.DELETE_OBJECTS_RADIUS:
+          if (!params?.coords) return res.status(400).json({ error: 'coords required' });
+          await provider.deleteObjectsRadius(req.params.id, params.coords, params.radius || 50, params.objectType || 'all');
+          break;
       }
 
       addAudit(req.user.id, req.user.username, `map.world.${action}`,
@@ -170,6 +188,60 @@ module.exports = function(app) {
       addAudit(req.user.id, req.user.username, `map.player.${action}`,
         `Player action '${action}' on ${playerName}`);
       res.json({ message: `${action} executed on ${playerName}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Spawn Action at World Coordinates ──────────────────
+  app.post('/api/servers/:id/map/spawn-action', authForServer('server.rcon'), async (req, res) => {
+    const { action, params } = req.body;
+    if (!action) return res.status(400).json({ error: 'action required' });
+    if (!params?.coords) return res.status(400).json({ error: 'coords required' });
+
+    const actionType = SPAWN_ACTION_MAP[action];
+    if (!actionType) return res.status(400).json({ error: `Unknown spawn action: ${action}` });
+
+    const coords = { x: params.coords.x, y: params.coords.y || 0, z: params.coords.z };
+
+    try {
+      const provider = getProviderForAction(req.params.id, actionType);
+
+      switch (actionType) {
+        case ActionType.SPAWN_ZOMBIE_AT:
+          await provider.spawnZombieAt(req.params.id, params.count || 1, coords);
+          break;
+        case ActionType.SPAWN_ANIMAL_AT:
+          await provider.spawnAnimalAt(req.params.id, params.animalType || 'Animal_CervusElaphus', coords);
+          break;
+        case ActionType.SPAWN_ITEM_AT:
+          if (!params.itemClass) return res.status(400).json({ error: 'itemClass required' });
+          await provider.spawnItemAt(req.params.id, params.itemClass, coords);
+          break;
+        case ActionType.SPAWN_HELI_CRASH:
+          await provider.spawnHeliCrash(req.params.id, params.heliType || 'default', coords);
+          break;
+        case ActionType.SPAWN_GAS_ZONE:
+          await provider.spawnGasZone(req.params.id, params.zoneType || 'default', coords);
+          break;
+        case ActionType.SPAWN_SUPPLY_CRATE:
+          await provider.spawnSupplyCrate(req.params.id, params.crateType || 'military', coords);
+          break;
+        case ActionType.SPAWN_VEHICLE:
+          if (!params.vehicleClass) return res.status(400).json({ error: 'vehicleClass required' });
+          await provider.spawnVehicle(req.params.id, null, params.vehicleClass, coords);
+          break;
+        case ActionType.SPAWN_BUILDING:
+          if (!params.buildingClass) return res.status(400).json({ error: 'buildingClass required' });
+          await provider.spawnBuilding(req.params.id, null, params.buildingClass, coords);
+          break;
+        default:
+          return res.status(400).json({ error: `Spawn action '${action}' not supported for map placement` });
+      }
+
+      addAudit(req.user.id, req.user.username, `map.spawn.${action}`,
+        `Spawned '${action}' at [${coords.x}, ${coords.z}]`);
+      res.json({ message: `Spawned ${action} at [${coords.x}, ${coords.z}]` });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
