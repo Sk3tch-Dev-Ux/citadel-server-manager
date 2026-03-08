@@ -1,5 +1,29 @@
 [
   {
+    "id": "a7a4283c-f2cf-4763-9d19-8ec6295b68d9",
+    "timestamp": "2026-03-08T05:31:32.385Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Testing Branch"
+  },
+  {
+    "id": "a4cc4858-b178-4090-ad73-a5f3890a2a74",
+    "timestamp": "2026-03-08T05:28:15.668Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Testing Branch"
+  },
+  {
+    "id": "2e9f5818-ec01-40dd-81c0-da86d4e12f9f",
+    "timestamp": "2026-03-08T05:28:07.410Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: Testing Branch"
+  },
+  {
     "id": "02ae36c8-4da8-4267-a371-1b1b5c160a7b",
     "timestamp": "2026-03-08T05:26:23.315Z",
     "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",

@@ -352,15 +352,16 @@ class CitadelPlayerActions
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player) { error = "Player not found: " + steamId; return false; }
 
+        // Blood type values: 0=O+, 1=O-, 2=A+, 3=A-, 4=B+, 5=B-, 6=AB+, 7=AB-
         int bt = 0;
-        if (bloodType == "O+") bt = BloodTypes.O_P;
-        else if (bloodType == "O-") bt = BloodTypes.O_N;
-        else if (bloodType == "A+") bt = BloodTypes.A_P;
-        else if (bloodType == "A-") bt = BloodTypes.A_N;
-        else if (bloodType == "B+") bt = BloodTypes.B_P;
-        else if (bloodType == "B-") bt = BloodTypes.B_N;
-        else if (bloodType == "AB+") bt = BloodTypes.AB_P;
-        else if (bloodType == "AB-") bt = BloodTypes.AB_N;
+        if (bloodType == "O+") bt = 0;
+        else if (bloodType == "O-") bt = 1;
+        else if (bloodType == "A+") bt = 2;
+        else if (bloodType == "A-") bt = 3;
+        else if (bloodType == "B+") bt = 4;
+        else if (bloodType == "B-") bt = 5;
+        else if (bloodType == "AB+") bt = 6;
+        else if (bloodType == "AB-") bt = 7;
 
         player.SetBloodType(bt);
         Print("[Citadel] Set blood type of " + steamId + " to " + bloodType);
