@@ -54,8 +54,9 @@ data/.jwt-secret
 # Claude worktrees
 /.claude/
 
-# License private key (NEVER commit this)
+# Cryptographic keys (NEVER commit these)
 tools/license-private.pem
+*.pem
 
 # License server (Vercel)
 tools/license-server/.env

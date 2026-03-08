@@ -127,12 +127,13 @@ app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 app.use('/api/discord/', discordLimiter);
 
-// Health check endpoint (for load balancers / orchestrators)
+// Health check endpoints (for load balancers / orchestrators / uptime monitors)
 app.get('/healthz', (req, res) => res.status(200).json({ status: 'ok', uptime: process.uptime() }));
 app.get('/readyz', (req, res) => {
   const ready = ctx.servers.length > 0 || ctx.users.length > 0;
   res.status(ready ? 200 : 503).json({ ready });
 });
+require('./routes/health.routes')(app); // Comprehensive /api/health — no auth required
 
 app.use(express.static(path.join(__dirname, '../web/dist')));
 
