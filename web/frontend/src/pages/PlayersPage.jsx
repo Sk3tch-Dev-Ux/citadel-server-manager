@@ -10,7 +10,9 @@ import {
 import {
   Users, MoreVertical, Heart, Package, Send, LogOut,
   Trash2, Bomb, Skull, ShieldBan, Search, Locate, Lock,
-  Navigation, Eye, Loader,
+  Navigation, Eye, Loader, Droplets, Pill, Coffee,
+  UtensilsCrossed, ZapOff, Eraser, ArrowUpFromLine,
+  Shield, Zap, Infinity, Backpack, Wand2,
 } from '../components/Icon';
 
 export default function PlayersPage({ serverId }) {
@@ -256,6 +258,49 @@ export default function PlayersPage({ serverId }) {
                           doAction(p.steamId || p.id, 'kill', `Kill ${p.name}`);
                       }}
                       onBan={() => ban(p.steamId || p.id, p.name)}
+                      /* ─── New Health/Status Actions ──────────── */
+                      onDry={() => doAction(p.steamId || p.id, 'dry', `Dry ${p.name}`)}
+                      onCure={() => doAction(p.steamId || p.id, 'cure', `Cure ${p.name}`)}
+                      onForceDrink={() => doAction(p.steamId || p.id, 'force-drink', `Force drink ${p.name}`)}
+                      onForceEat={() => doAction(p.steamId || p.id, 'force-eat', `Force eat ${p.name}`)}
+                      onStopBleeding={() => doAction(p.steamId || p.id, 'stop-bleeding', `Stop bleeding ${p.name}`)}
+                      onKnockout={async () => {
+                        if (await confirm({ title: 'Knockout', message: `Knock out ${p.name}?`, confirmLabel: 'Knockout', variant: 'danger' }))
+                          doAction(p.steamId || p.id, 'knockout', `Knockout ${p.name}`);
+                      }}
+                      onWake={() => doAction(p.steamId || p.id, 'wake', `Wake ${p.name}`)}
+                      onBreakLegs={async () => {
+                        if (await confirm({ title: 'Break Legs', message: `Break ${p.name}'s legs?`, confirmLabel: 'Break Legs', variant: 'danger' }))
+                          doAction(p.steamId || p.id, 'break-legs', `Break legs ${p.name}`);
+                      }}
+                      onMakeSick={async () => {
+                        if (await confirm({ title: 'Make Sick', message: `Make ${p.name} sick (cholera)?`, confirmLabel: 'Make Sick', variant: 'danger' }))
+                          doAction(p.steamId || p.id, 'make-sick', `Make sick ${p.name}`, { diseaseType: 'cholera' });
+                      }}
+                      /* ─── New Ability/State Actions ──────────── */
+                      onSetGodmode={() => doAction(p.steamId || p.id, 'set-godmode', `God mode ON ${p.name}`)}
+                      onRemoveGodmode={() => doAction(p.steamId || p.id, 'remove-godmode', `God mode OFF ${p.name}`)}
+                      onSetInvisible={() => doAction(p.steamId || p.id, 'set-invisible', `Invisible ON ${p.name}`)}
+                      onRemoveInvisible={() => doAction(p.steamId || p.id, 'remove-invisible', `Invisible OFF ${p.name}`)}
+                      onSetStaminaInfinite={() => doAction(p.steamId || p.id, 'set-stamina-infinite', `Infinite stamina ON ${p.name}`)}
+                      onRemoveStaminaInfinite={() => doAction(p.steamId || p.id, 'remove-stamina-infinite', `Infinite stamina OFF ${p.name}`)}
+                      onFillMagazines={() => doAction(p.steamId || p.id, 'fill-magazines', `Fill magazines ${p.name}`)}
+                      onClearInventory={async () => {
+                        if (await confirm({ title: 'Clear Inventory', message: `Delete all items from ${p.name}?`, confirmLabel: 'Clear', variant: 'danger' }))
+                          doAction(p.steamId || p.id, 'clear-inventory', `Clear inventory ${p.name}`);
+                      }}
+                      onDropGear={async () => {
+                        if (await confirm({ title: 'Drop Gear', message: `Force ${p.name} to drop all gear on the ground?`, confirmLabel: 'Drop', variant: 'danger' }))
+                          doAction(p.steamId || p.id, 'drop-gear', `Drop gear ${p.name}`);
+                      }}
+                      onLaunch={async () => {
+                        if (await confirm({ title: 'Launch Player', message: `Launch ${p.name} into the sky?`, confirmLabel: 'Launch', variant: 'danger' }))
+                          doAction(p.steamId || p.id, 'launch', `Launch ${p.name}`, { power: 50, angle: 75 });
+                      }}
+                      onRespawn={async () => {
+                        if (await confirm({ title: 'Respawn', message: `Force ${p.name} to respawn? This will kill them.`, confirmLabel: 'Respawn', variant: 'danger' }))
+                          doAction(p.steamId || p.id, 'respawn', `Respawn ${p.name}`);
+                      }}
                     />
                   </td>
                 </tr>
@@ -447,6 +492,11 @@ export default function PlayersPage({ serverId }) {
 function PlayerActionsMenu({
   player, onHeal, onSpawnItem, onMessage, onUnstuck, onFreeze, onUnfreeze,
   onTeleportTo, onLoadout, onKick, onStrip, onExplode, onKill, onBan,
+  onDry, onCure, onForceDrink, onForceEat, onStopBleeding, onKnockout, onWake,
+  onBreakLegs, onMakeSick,
+  onSetGodmode, onRemoveGodmode, onSetInvisible, onRemoveInvisible,
+  onSetStaminaInfinite, onRemoveStaminaInfinite, onFillMagazines,
+  onClearInventory, onDropGear, onLaunch, onRespawn,
 }) {
   return (
     <DropdownMenu>
@@ -455,48 +505,127 @@ function PlayerActionsMenu({
           <MoreVertical size={14} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent style={{ maxHeight: 480, overflowY: 'auto' }}>
+        {/* ─── Healing & Care ─── */}
+        <div className="dropdown-label">Healing</div>
         <DropdownMenuItem onSelect={onHeal}>
-          <Heart size={14} /> Heal
+          <Heart size={14} /> Full Heal
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onCure}>
+          <Pill size={14} /> Cure Diseases
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onStopBleeding}>
+          <Droplets size={14} /> Stop Bleeding
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onDry}>
+          <Droplets size={14} /> Dry Player
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onForceDrink}>
+          <Coffee size={14} /> Max Hydration
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onForceEat}>
+          <UtensilsCrossed size={14} /> Max Nutrition
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onWake}>
+          <Zap size={14} /> Wake Up
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onUnstuck}>
           <Locate size={14} /> Unstuck
         </DropdownMenuItem>
+
+        {/* ─── Admin Abilities ─── */}
+        <DropdownMenuSeparator />
+        <div className="dropdown-label">Admin Powers</div>
+        <DropdownMenuItem onSelect={onSetGodmode}>
+          <Shield size={14} /> God Mode On
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onRemoveGodmode}>
+          <Shield size={14} /> God Mode Off
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onSetInvisible}>
+          <Eye size={14} /> Invisible On
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onRemoveInvisible}>
+          <Eye size={14} /> Invisible Off
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onSetStaminaInfinite}>
+          <Infinity size={14} /> Infinite Stamina On
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onRemoveStaminaInfinite}>
+          <Infinity size={14} /> Infinite Stamina Off
+        </DropdownMenuItem>
+
+        {/* ─── Inventory & Items ─── */}
+        <DropdownMenuSeparator />
+        <div className="dropdown-label">Inventory</div>
+        <DropdownMenuItem onSelect={onLoadout}>
+          <Eye size={14} /> View Loadout
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onSpawnItem}>
           <Package size={14} /> Spawn Item
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onFillMagazines}>
+          <Wand2 size={14} /> Fill Magazines
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onStrip}>
+          <Trash2 size={14} /> Strip Gear
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onDropGear}>
+          <Backpack size={14} /> Drop All Gear
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onClearInventory}>
+          <Eraser size={14} /> Clear Inventory
+        </DropdownMenuItem>
+
+        {/* ─── Communication & Movement ─── */}
+        <DropdownMenuSeparator />
+        <div className="dropdown-label">Movement</div>
         <DropdownMenuItem onSelect={onMessage}>
           <Send size={14} /> Message
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onLoadout}>
-          <Eye size={14} /> View Loadout
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onTeleportTo}>
           <Navigation size={14} /> Teleport To Player
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onFreeze}>
           <Lock size={14} /> Freeze
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onUnfreeze}>
           <Locate size={14} /> Unfreeze
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onStrip}>
-          <Trash2 size={14} /> Strip Gear
-        </DropdownMenuItem>
+
+        {/* ─── Moderation ─── */}
+        <DropdownMenuSeparator />
+        <div className="dropdown-label">Moderation</div>
         <DropdownMenuItem onSelect={onKick}>
           <LogOut size={14} /> Kick
         </DropdownMenuItem>
+        <DropdownMenuItem danger onSelect={onBan}>
+          <ShieldBan size={14} /> Ban
+        </DropdownMenuItem>
+
+        {/* ─── Harmful / Danger ─── */}
         <DropdownMenuSeparator />
+        <div className="dropdown-label">Harmful</div>
+        <DropdownMenuItem danger onSelect={onKnockout}>
+          <ZapOff size={14} /> Knockout
+        </DropdownMenuItem>
+        <DropdownMenuItem danger onSelect={onBreakLegs}>
+          <Skull size={14} /> Break Legs
+        </DropdownMenuItem>
+        <DropdownMenuItem danger onSelect={onMakeSick}>
+          <Pill size={14} /> Make Sick
+        </DropdownMenuItem>
+        <DropdownMenuItem danger onSelect={onLaunch}>
+          <ArrowUpFromLine size={14} /> Launch
+        </DropdownMenuItem>
         <DropdownMenuItem danger onSelect={onExplode}>
           <Bomb size={14} /> Explode
         </DropdownMenuItem>
         <DropdownMenuItem danger onSelect={onKill}>
           <Skull size={14} /> Kill
         </DropdownMenuItem>
-        <DropdownMenuItem danger onSelect={onBan}>
-          <ShieldBan size={14} /> Ban
+        <DropdownMenuItem danger onSelect={onRespawn}>
+          <Skull size={14} /> Force Respawn
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

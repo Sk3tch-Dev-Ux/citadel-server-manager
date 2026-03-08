@@ -207,6 +207,160 @@ class InHouseProvider extends BaseProvider {
     return this._get(serverId, `/player/loadout?steamId=${encodeURIComponent(steamId)}`);
   }
 
+  // ─── Player Actions — Health/Status ─────────────────────
+
+  async dryPlayer(serverId, session) {
+    await this._post(serverId, '/player/dry', { steamId: this._steamIdFrom(session) });
+  }
+
+  async breakLegs(serverId, session) {
+    await this._post(serverId, '/player/breakLegs', { steamId: this._steamIdFrom(session) });
+  }
+
+  async makeSick(serverId, session, diseaseType) {
+    await this._post(serverId, '/player/makeSick', {
+      steamId: this._steamIdFrom(session),
+      diseaseType: diseaseType || 'cholera',
+    });
+  }
+
+  async curePlayer(serverId, session) {
+    await this._post(serverId, '/player/cure', { steamId: this._steamIdFrom(session) });
+  }
+
+  async setBloodType(serverId, session, bloodType) {
+    await this._post(serverId, '/player/setBloodType', {
+      steamId: this._steamIdFrom(session),
+      bloodType,
+    });
+  }
+
+  async forceDrink(serverId, session) {
+    await this._post(serverId, '/player/forceDrink', { steamId: this._steamIdFrom(session) });
+  }
+
+  async forceEat(serverId, session) {
+    await this._post(serverId, '/player/forceEat', { steamId: this._steamIdFrom(session) });
+  }
+
+  async knockoutPlayer(serverId, session) {
+    await this._post(serverId, '/player/knockout', { steamId: this._steamIdFrom(session) });
+  }
+
+  async wakePlayer(serverId, session) {
+    await this._post(serverId, '/player/wake', { steamId: this._steamIdFrom(session) });
+  }
+
+  async setBleeding(serverId, session, sourceCount) {
+    await this._post(serverId, '/player/setBleeding', {
+      steamId: this._steamIdFrom(session),
+      sourceCount: parseInt(sourceCount) || 1,
+    });
+  }
+
+  async stopBleeding(serverId, session) {
+    await this._post(serverId, '/player/stopBleeding', { steamId: this._steamIdFrom(session) });
+  }
+
+  // ─── Player Actions — Ability/State ─────────────────────
+
+  async dropGear(serverId, session) {
+    await this._post(serverId, '/player/dropGear', { steamId: this._steamIdFrom(session) });
+  }
+
+  async launchPlayer(serverId, session, power, angle) {
+    await this._post(serverId, '/player/launch', {
+      steamId: this._steamIdFrom(session),
+      power: parseFloat(power) || 50,
+      angle: parseFloat(angle) || 75,
+    });
+  }
+
+  async setStat(serverId, session, stat, value) {
+    await this._post(serverId, '/player/setStat', {
+      steamId: this._steamIdFrom(session),
+      stat,
+      value: value || '0',
+    });
+  }
+
+  async ragdollPlayer(serverId, session, duration) {
+    await this._post(serverId, '/player/ragdoll', {
+      steamId: this._steamIdFrom(session),
+      duration: duration || '5',
+    });
+  }
+
+  async setGodmode(serverId, session) {
+    await this._post(serverId, '/player/setGodmode', { steamId: this._steamIdFrom(session) });
+  }
+
+  async removeGodmode(serverId, session) {
+    await this._post(serverId, '/player/removeGodmode', { steamId: this._steamIdFrom(session) });
+  }
+
+  async setInvisible(serverId, session) {
+    await this._post(serverId, '/player/setInvisible', { steamId: this._steamIdFrom(session) });
+  }
+
+  async removeInvisible(serverId, session) {
+    await this._post(serverId, '/player/removeInvisible', { steamId: this._steamIdFrom(session) });
+  }
+
+  async setStaminaInfinite(serverId, session) {
+    await this._post(serverId, '/player/setStaminaInfinite', { steamId: this._steamIdFrom(session) });
+  }
+
+  async removeStaminaInfinite(serverId, session) {
+    await this._post(serverId, '/player/removeStaminaInfinite', { steamId: this._steamIdFrom(session) });
+  }
+
+  async respawnPlayer(serverId, session) {
+    await this._post(serverId, '/player/respawn', { steamId: this._steamIdFrom(session) });
+  }
+
+  async clearInventory(serverId, session) {
+    await this._post(serverId, '/player/clearInventory', { steamId: this._steamIdFrom(session) });
+  }
+
+  async fillMagazines(serverId, session) {
+    await this._post(serverId, '/player/fillMagazines', { steamId: this._steamIdFrom(session) });
+  }
+
+  // ─── Player Query Actions ──────────────────────────────
+
+  async getPlayerPosition(serverId, steamId) {
+    return this._get(serverId, `/player/position?steamId=${encodeURIComponent(steamId)}`);
+  }
+
+  async getPlayerInfo(serverId, steamId) {
+    return this._get(serverId, `/player/info?steamId=${encodeURIComponent(steamId)}`);
+  }
+
+  async getPlayerGear(serverId, steamId) {
+    return this._get(serverId, `/player/gear?steamId=${encodeURIComponent(steamId)}`);
+  }
+
+  async getPlayerInventory(serverId, steamId) {
+    return this._get(serverId, `/player/inventory?steamId=${encodeURIComponent(steamId)}`);
+  }
+
+  async getPlayerStats(serverId, steamId) {
+    return this._get(serverId, `/player/stats?steamId=${encodeURIComponent(steamId)}`);
+  }
+
+  async getPlayerFull(serverId, steamId) {
+    return this._get(serverId, `/player/full?steamId=${encodeURIComponent(steamId)}`);
+  }
+
+  async getPlayerGearFull(serverId, steamId) {
+    return this._get(serverId, `/player/gearFull?steamId=${encodeURIComponent(steamId)}`);
+  }
+
+  async getPlayerHandsData(serverId, steamId) {
+    return this._get(serverId, `/player/handsData?steamId=${encodeURIComponent(steamId)}`);
+  }
+
   // ─── Vehicle Actions ────────────────────────────────────
 
   async vehicleAction(serverId, vehicleId, actionType) {
@@ -264,6 +418,253 @@ class InHouseProvider extends BaseProvider {
       y: parseFloat(position?.y || 0),
       z: parseFloat(position?.z || 0),
     });
+  }
+
+  // ─── World Actions — Extended ──────────────────────────
+
+  async setFog(serverId, density) {
+    await this._post(serverId, '/world/set-fog', { density: parseFloat(density) || 0 });
+  }
+
+  async setWind(serverId, speed, direction) {
+    await this._post(serverId, '/world/set-wind', {
+      speed: parseFloat(speed) || 0,
+      direction: parseFloat(direction) || 0,
+    });
+  }
+
+  async flattenTrees(serverId, session, radius) {
+    await this._post(serverId, '/world/flatten-trees', {
+      steamId: this._steamIdFrom(session),
+      radius: parseFloat(radius) || 50,
+    });
+  }
+
+  async clearZombies(serverId, session, radius) {
+    await this._post(serverId, '/world/clear-zombies', {
+      steamId: this._steamIdFrom(session),
+      radius: parseFloat(radius) || 100,
+    });
+  }
+
+  async deleteObjectsRadius(serverId, session, radius, objectType) {
+    await this._post(serverId, '/world/delete-objects-radius', {
+      steamId: this._steamIdFrom(session),
+      radius: parseFloat(radius) || 50,
+      objectType: objectType || 'all',
+    });
+  }
+
+  // ─── Spawn Actions ───────────────────────────────────────
+
+  async spawnZombie(serverId, session, count, coords) {
+    await this._post(serverId, '/spawn/zombie', {
+      steamId: this._steamIdFrom(session),
+      count: parseInt(count) || 1,
+      coords,
+    });
+  }
+
+  async spawnAnimal(serverId, session, animalType, coords) {
+    await this._post(serverId, '/spawn/animal', {
+      steamId: this._steamIdFrom(session),
+      animalType: animalType || 'Animal_CervusElaphus',
+      coords,
+    });
+  }
+
+  async spawnVehicle(serverId, session, vehicleClass, coords) {
+    await this._post(serverId, '/spawn/vehicle', {
+      steamId: this._steamIdFrom(session),
+      vehicleClass,
+      coords,
+    });
+  }
+
+  async spawnBuilding(serverId, session, buildingClass, coords) {
+    await this._post(serverId, '/spawn/building', {
+      steamId: this._steamIdFrom(session),
+      buildingClass,
+      coords,
+    });
+  }
+
+  async spawnHorde(serverId, session, count) {
+    await this._post(serverId, '/spawn/horde', {
+      steamId: this._steamIdFrom(session),
+      count: parseInt(count) || 20,
+    });
+  }
+
+  async spawnSupplyCrate(serverId, crateType, coords) {
+    await this._post(serverId, '/spawn/supply-crate', {
+      crateType: crateType || 'military',
+      coords,
+    });
+  }
+
+  async spawnLootPile(serverId, session, lootType, coords) {
+    await this._post(serverId, '/spawn/loot-pile', {
+      steamId: this._steamIdFrom(session),
+      lootType: lootType || 'military',
+      coords,
+    });
+  }
+
+  async spawnItemAttached(serverId, session, itemClass, attachments) {
+    await this._post(serverId, '/spawn/item-attached', {
+      steamId: this._steamIdFrom(session),
+      itemClass,
+      attachments: attachments || '',
+    });
+  }
+
+  async spawnItemAt(serverId, itemClass, coords) {
+    await this._post(serverId, '/spawn/item-at', { itemClass, coords });
+  }
+
+  async spawnZombieAt(serverId, count, coords) {
+    await this._post(serverId, '/spawn/zombie-at', { count: parseInt(count) || 1, coords });
+  }
+
+  async spawnAnimalAt(serverId, animalType, coords) {
+    await this._post(serverId, '/spawn/animal-at', {
+      animalType: animalType || 'Animal_CervusElaphus',
+      coords,
+    });
+  }
+
+  async spawnFire(serverId, session, fireType, coords) {
+    await this._post(serverId, '/spawn/fire', {
+      steamId: this._steamIdFrom(session),
+      fireType: fireType || 'small',
+      coords,
+    });
+  }
+
+  async spawnSmoke(serverId, session, color, coords) {
+    await this._post(serverId, '/spawn/smoke', {
+      steamId: this._steamIdFrom(session),
+      color: color || 'white',
+      coords,
+    });
+  }
+
+  async spawnHeliCrash(serverId, heliType, coords) {
+    await this._post(serverId, '/spawn/heli-crash', {
+      heliType: heliType || 'default',
+      coords,
+    });
+  }
+
+  async spawnGasZone(serverId, zoneType, coords) {
+    await this._post(serverId, '/spawn/gas-zone', {
+      zoneType: zoneType || 'default',
+      coords,
+    });
+  }
+
+  // ─── Structure Actions ───────────────────────────────────
+
+  async openDoors(serverId, session, radius) {
+    await this._post(serverId, '/structure/open-doors', {
+      steamId: this._steamIdFrom(session),
+      radius: parseFloat(radius) || 50,
+    });
+  }
+
+  async closeDoors(serverId, session, radius) {
+    await this._post(serverId, '/structure/close-doors', {
+      steamId: this._steamIdFrom(session),
+      radius: parseFloat(radius) || 50,
+    });
+  }
+
+  async lootMagnet(serverId, session, radius) {
+    await this._post(serverId, '/structure/loot-magnet', {
+      steamId: this._steamIdFrom(session),
+      radius: parseFloat(radius) || 50,
+    });
+  }
+
+  // ─── Item Actions ────────────────────────────────────────
+
+  async deleteItem(serverId, persistentId) {
+    await this._post(serverId, '/item/delete', { persistentId });
+  }
+
+  async repairItem(serverId, persistentId) {
+    await this._post(serverId, '/item/repair', { persistentId });
+  }
+
+  // ─── Data / Query Actions ────────────────────────────────
+
+  async getOnlinePlayers(serverId) {
+    return this._get(serverId, '/data/online-players');
+  }
+
+  async getAllPlayers(serverId) {
+    return this._get(serverId, '/data/all-players');
+  }
+
+  async getServerInfo(serverId) {
+    return this._get(serverId, '/data/server-info');
+  }
+
+  async getNearbyVehicles(serverId, steamId, radius) {
+    return this._get(serverId, `/data/nearby-vehicles?steamId=${encodeURIComponent(steamId)}&radius=${radius || 100}`);
+  }
+
+  async getVehicleInfo(serverId, steamId, radius) {
+    return this._get(serverId, `/data/vehicle-info?steamId=${encodeURIComponent(steamId)}&radius=${radius || 50}`);
+  }
+
+  async getItemDetails(serverId, persistentId) {
+    return this._get(serverId, `/data/item-details?persistentId=${encodeURIComponent(persistentId)}`);
+  }
+
+  async getBaseObjects(serverId, steamId, radius) {
+    return this._get(serverId, `/data/base-objects?steamId=${encodeURIComponent(steamId)}&radius=${radius || 100}`);
+  }
+
+  async getStorageContents(serverId, persistentId, steamId, position) {
+    const params = new URLSearchParams();
+    if (persistentId) params.set('persistentId', persistentId);
+    if (steamId) params.set('steamId', steamId);
+    if (position) params.set('position', position);
+    return this._get(serverId, `/data/storage-contents?${params.toString()}`);
+  }
+
+  async getAllStorageObjects(serverId) {
+    return this._get(serverId, '/data/all-storage-objects');
+  }
+
+  async getNearbyPlayers(serverId, steamId, radius) {
+    return this._get(serverId, `/data/nearby-players?steamId=${encodeURIComponent(steamId)}&radius=${radius || 100}`);
+  }
+
+  async getNearbyLoot(serverId, steamId, radius, limit) {
+    return this._get(serverId, `/data/nearby-loot?steamId=${encodeURIComponent(steamId)}&radius=${radius || 50}&limit=${limit || 100}`);
+  }
+
+  async getNearbyEntities(serverId, steamId, radius) {
+    return this._get(serverId, `/data/nearby-entities?steamId=${encodeURIComponent(steamId)}&radius=${radius || 100}`);
+  }
+
+  async getNearbyEntitiesAt(serverId, coords, radius) {
+    return this._get(serverId, `/data/nearby-entities-at?coords=${encodeURIComponent(coords)}&radius=${radius || 100}`);
+  }
+
+  async getNearbyLootAt(serverId, coords, radius) {
+    return this._get(serverId, `/data/nearby-loot-at?coords=${encodeURIComponent(coords)}&radius=${radius || 50}`);
+  }
+
+  async unbanPlayer(serverId, steamId) {
+    await this._post(serverId, '/bans/unban', { steamId });
+  }
+
+  async getBans(serverId) {
+    return this._get(serverId, '/bans');
   }
 
   // ─── Config Actions ─────────────────────────────────────

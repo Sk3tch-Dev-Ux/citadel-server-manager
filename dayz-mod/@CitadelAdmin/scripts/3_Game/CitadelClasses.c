@@ -13,6 +13,81 @@ static string CitGetNetworkIDString(EntityAI entity)
     return hi.ToString() + ":" + lo.ToString();
 }
 
+// Helper: Format a float to string with specified decimal places (for JSON output)
+static string CitFloatToStr(float value, int places)
+{
+    string sign = "";
+    if (value < 0)
+    {
+        sign = "-";
+        value = -value;
+    }
+    int whole = (int)value;
+    float remainder = value - whole;
+    int multiplier = 1;
+    for (int i = 0; i < places; i++)
+        multiplier = multiplier * 10;
+    int frac = (int)(remainder * multiplier + 0.5);
+    if (frac >= multiplier)
+    {
+        frac = 0;
+        whole = whole + 1;
+    }
+    string fracStr = frac.ToString();
+    while (fracStr.Length() < places)
+        fracStr = "0" + fracStr;
+    return sign + whole.ToString() + "." + fracStr;
+}
+
+// Helper: Format vector as JSON object {"x":..,"y":..,"z":..}
+static string CitVectorToJson(vector pos)
+{
+    return "{\"x\":" + CitFloatToStr(pos[0], 2) + ",\"y\":" + CitFloatToStr(pos[1], 2) + ",\"z\":" + CitFloatToStr(pos[2], 2) + "}";
+}
+
+// Helper: Escape string for safe JSON output (handles quotes, backslashes, control chars)
+static string CitJsonEscape(string input)
+{
+    if (input == "") return "";
+    int len = input.Length();
+    bool needsEscape = false;
+    int i;
+    for (i = 0; i < len; i++)
+    {
+        int cc = input.Get(i).ToAscii();
+        if (cc == 34 || cc == 92 || cc < 32)
+        {
+            needsEscape = true;
+            break;
+        }
+    }
+    if (!needsEscape) return input;
+    string result = "";
+    for (i = 0; i < len; i++)
+    {
+        string ch = input.Get(i);
+        int charCode = ch.ToAscii();
+        if (charCode == 34) result += "\\\"";
+        else if (charCode == 92) result += "\\\\";
+        else if (charCode == 10) result += "\\n";
+        else if (charCode == 13) result += "\\r";
+        else if (charCode == 9) result += "\\t";
+        else if (charCode < 32) result += "";
+        else result += ch;
+    }
+    return result;
+}
+
+// Helper: Get player compass direction (0-359 degrees)
+static int CitGetPlayerDirection(PlayerBase player)
+{
+    if (!player) return 0;
+    vector dir = player.GetDirection();
+    float angle = Math.Atan2(dir[0], dir[2]) * Math.RAD2DEG;
+    if (angle < 0) angle += 360;
+    return (int)angle;
+}
+
 class CitadelPlayerStats
 {
     int shotsFired          = 0;

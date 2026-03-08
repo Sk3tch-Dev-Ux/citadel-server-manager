@@ -110,4 +110,13 @@ export {
   ShoppingCart,
   CreditCard,
   Tag,
+  Droplets,
+  Pill,
+  Coffee,
+  UtensilsCrossed,
+  ZapOff,
+  Eraser,
+  ArrowUpFromLine,
+  Backpack,
+  Wand2,
 } from 'lucide-react';

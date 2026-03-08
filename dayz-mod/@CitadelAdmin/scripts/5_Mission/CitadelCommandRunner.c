@@ -109,6 +109,60 @@ class CitadelCommandRunner
         else if (action == "player.getLoadout")
             success = CitadelPlayerActions.GetLoadout(content, error, responseData);
 
+        // ─── Player Actions — Health/Status ────────
+
+        else if (action == "player.dry")
+            success = CitadelPlayerActions.DryPlayer(content, error);
+        else if (action == "player.breakLegs")
+            success = CitadelPlayerActions.BreakLegs(content, error);
+        else if (action == "player.makeSick")
+            success = CitadelPlayerActions.MakeSick(content, error);
+        else if (action == "player.cure")
+            success = CitadelPlayerActions.CurePlayer(content, error);
+        else if (action == "player.setBloodType")
+            success = CitadelPlayerActions.SetBloodType(content, error);
+        else if (action == "player.forceDrink")
+            success = CitadelPlayerActions.ForceDrink(content, error);
+        else if (action == "player.forceEat")
+            success = CitadelPlayerActions.ForceEat(content, error);
+        else if (action == "player.knockout")
+            success = CitadelPlayerActions.KnockoutPlayer(content, error);
+        else if (action == "player.wake")
+            success = CitadelPlayerActions.WakePlayer(content, error);
+        else if (action == "player.setBleeding")
+            success = CitadelPlayerActions.SetBleeding(content, error);
+        else if (action == "player.stopBleeding")
+            success = CitadelPlayerActions.StopBleeding(content, error);
+
+        // ─── Player Actions — Ability/State ────────
+
+        else if (action == "player.dropGear")
+            success = CitadelPlayerActions.DropGear(content, error);
+        else if (action == "player.launch")
+            success = CitadelPlayerActions.LaunchPlayer(content, error);
+        else if (action == "player.setStat")
+            success = CitadelPlayerActions.SetStat(content, error);
+        else if (action == "player.ragdoll")
+            success = CitadelPlayerActions.RagdollPlayer(content, error);
+        else if (action == "player.setGodmode")
+            success = CitadelPlayerActions.SetGodmode(content, error);
+        else if (action == "player.removeGodmode")
+            success = CitadelPlayerActions.RemoveGodmode(content, error);
+        else if (action == "player.setInvisible")
+            success = CitadelPlayerActions.SetInvisible(content, error);
+        else if (action == "player.removeInvisible")
+            success = CitadelPlayerActions.RemoveInvisible(content, error);
+        else if (action == "player.setStaminaInfinite")
+            success = CitadelPlayerActions.SetStaminaInfinite(content, error);
+        else if (action == "player.removeStaminaInfinite")
+            success = CitadelPlayerActions.RemoveStaminaInfinite(content, error);
+        else if (action == "player.respawn")
+            success = CitadelPlayerActions.RespawnPlayer(content, error);
+        else if (action == "player.clearInventory")
+            success = CitadelPlayerActions.ClearInventory(content, error);
+        else if (action == "player.fillMagazines")
+            success = CitadelPlayerActions.FillMagazines(content, error);
+
         // ─── Vehicle Actions ────────────────────────
 
         else if (action == "vehicle.delete")
@@ -144,6 +198,70 @@ class CitadelCommandRunner
             success = CitadelWorldActions.SpawnItemWorld(content, error);
         else if (action == "world.broadcast")
             success = CitadelWorldActions.BroadcastMessage(content, error);
+        // ─── World Actions — Extended ─────────────────
+
+        else if (action == "world.setFog")
+            success = CitadelWorldActions.SetFog(content, error);
+        else if (action == "world.setWind")
+            success = CitadelWorldActions.SetWind(content, error);
+        else if (action == "world.flattenTrees")
+            success = CitadelWorldActions.FlattenTrees(content, error);
+        else if (action == "world.clearZombies")
+            success = CitadelWorldActions.ClearZombies(content, error);
+        else if (action == "world.deleteObjectsRadius")
+            success = CitadelWorldActions.DeleteObjectsRadius(content, error);
+
+        // ─── Spawn Actions ────────────────────────────
+
+        else if (action == "spawn.zombie")
+            success = CitadelWorldActions.SpawnZombie(content, error);
+        else if (action == "spawn.animal")
+            success = CitadelWorldActions.SpawnAnimal(content, error);
+        else if (action == "spawn.vehicle")
+            success = CitadelWorldActions.SpawnVehicle(content, error);
+        else if (action == "spawn.building")
+            success = CitadelWorldActions.SpawnBuilding(content, error);
+        else if (action == "spawn.horde")
+            success = CitadelWorldActions.SpawnHorde(content, error);
+        else if (action == "spawn.supplyCrate")
+            success = CitadelWorldActions.SpawnSupplyCrate(content, error);
+        else if (action == "spawn.lootPile")
+            success = CitadelWorldActions.SpawnLootPile(content, error);
+        else if (action == "spawn.itemAttached")
+            success = CitadelPlayerActions.SpawnItemAttached(content, error);
+        else if (action == "spawn.itemAt")
+            success = CitadelWorldActions.SpawnItemAt(content, error);
+        else if (action == "spawn.zombieAt")
+            success = CitadelWorldActions.SpawnZombieAt(content, error);
+        else if (action == "spawn.animalAt")
+            success = CitadelWorldActions.SpawnAnimalAt(content, error);
+        else if (action == "spawn.fire")
+            success = CitadelWorldActions.SpawnFire(content, error);
+        else if (action == "spawn.smoke")
+            success = CitadelWorldActions.SpawnSmoke(content, error);
+        else if (action == "spawn.heliCrash")
+            success = CitadelWorldActions.SpawnHeliCrash(content, error);
+        else if (action == "spawn.gasZone")
+            success = CitadelWorldActions.SpawnGasZone(content, error);
+
+        // ─── Structure Actions ────────────────────────
+
+        else if (action == "structure.openDoors")
+            success = CitadelWorldActions.OpenDoors(content, error);
+        else if (action == "structure.closeDoors")
+            success = CitadelWorldActions.CloseDoors(content, error);
+        else if (action == "structure.lootMagnet")
+            success = CitadelWorldActions.LootMagnet(content, error);
+
+        // ─── Item Actions ─────────────────────────────
+
+        else if (action == "item.delete")
+            success = CitadelWorldActions.DeleteItem(content, error);
+        else if (action == "item.repair")
+            success = CitadelWorldActions.RepairItem(content, error);
+
+        // ─── Config ───────────────────────────────────
+
         else if (action == "config.reload")
         {
             GetCitadel().GetConfiguration().LoadFromDisk();
@@ -159,6 +277,56 @@ class CitadelCommandRunner
             success = LockServer(error);
         else if (action == "server.unlock")
             success = UnlockServer(error);
+
+        // ─── Player Queries ─────────────────────────
+
+        else if (action == "player.getPosition")
+            success = CitadelQueryActions.GetPlayerPosition(content, error, responseData);
+        else if (action == "player.getInfo")
+            success = CitadelQueryActions.GetPlayerInfo(content, error, responseData);
+        else if (action == "player.getGear")
+            success = CitadelQueryActions.GetPlayerGear(content, error, responseData);
+        else if (action == "player.getInventory")
+            success = CitadelQueryActions.GetPlayerInventory(content, error, responseData);
+        else if (action == "player.getStats")
+            success = CitadelQueryActions.GetPlayerStats(content, error, responseData);
+        else if (action == "player.getFull")
+            success = CitadelQueryActions.GetPlayerFull(content, error, responseData);
+        else if (action == "player.getGearFull")
+            success = CitadelQueryActions.GetPlayerGearFull(content, error, responseData);
+        else if (action == "player.getHandsData")
+            success = CitadelQueryActions.GetPlayerHandsData(content, error, responseData);
+
+        // ─── Data Queries ───────────────────────────
+
+        else if (action == "data.onlinePlayers")
+            success = CitadelQueryActions.GetOnlinePlayers(error, responseData);
+        else if (action == "data.allPlayers")
+            success = CitadelQueryActions.GetAllPlayers(error, responseData);
+        else if (action == "data.serverInfo")
+            success = CitadelQueryActions.GetServerInfo(error, responseData);
+        else if (action == "data.nearbyVehicles")
+            success = CitadelQueryActions.GetNearbyVehicles(content, error, responseData);
+        else if (action == "data.vehicleInfo")
+            success = CitadelQueryActions.GetVehicleInfo(content, error, responseData);
+        else if (action == "data.itemDetails")
+            success = CitadelQueryActions.GetItemDetails(content, error, responseData);
+        else if (action == "data.baseObjects")
+            success = CitadelQueryActions.GetBaseObjects(content, error, responseData);
+        else if (action == "data.storageContents")
+            success = CitadelQueryActions.GetStorageContents(content, error, responseData);
+        else if (action == "data.allStorageObjects")
+            success = CitadelQueryActions.GetAllStorageObjects(error, responseData);
+        else if (action == "data.nearbyPlayers")
+            success = CitadelQueryActions.GetNearbyPlayers(content, error, responseData);
+        else if (action == "data.nearbyLoot")
+            success = CitadelQueryActions.GetNearbyLoot(content, error, responseData);
+        else if (action == "data.nearbyEntities")
+            success = CitadelQueryActions.GetNearbyEntities(content, error, responseData);
+        else if (action == "data.nearbyEntitiesAt")
+            success = CitadelQueryActions.GetNearbyEntitiesAt(content, error, responseData);
+        else if (action == "data.nearbyLootAt")
+            success = CitadelQueryActions.GetNearbyLootAt(content, error, responseData);
 
         else
         {

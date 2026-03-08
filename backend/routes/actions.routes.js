@@ -12,7 +12,7 @@ const {
   getCapabilities,
   ActionType,
 } = require('../lib/server-actions/executor');
-const { AUDIT_CODES, VEHICLE_ACTION_MAP, WORLD_ACTION_MAP } = require('../lib/server-actions/types');
+const { AUDIT_CODES, VEHICLE_ACTION_MAP, WORLD_ACTION_MAP, SPAWN_ACTION_MAP } = require('../lib/server-actions/types');
 
 module.exports = function(app) {
 
@@ -430,6 +430,803 @@ module.exports = function(app) {
       addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.RELOAD_CONFIG],
         'Reloaded server config');
       res.json({ message: 'Config reloaded' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // NEW ACTIONS — from CommandRelay integration
+  // ═══════════════════════════════════════════════════════
+
+  // ─── Helper: simple player action (steamId only) ──────
+  function playerRoute(app, slug, actionType, providerMethod, label) {
+    app.post(`/api/servers/:id/actions/${slug}`, auth('server.rcon'), async (req, res) => {
+      const { steamId } = req.body;
+      if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+      const session = findSession(req.params.id, steamId);
+      if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+      try {
+        const provider = getProviderForAction(req.params.id, actionType);
+        await provider[providerMethod](req.params.id, session);
+        addAudit(req.user.id, req.user.username, AUDIT_CODES[actionType],
+          `${label} ${session.playerName || session.name}`);
+        res.json({ message: `${label} ${session.playerName || session.name}` });
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+  }
+
+  // Player — Health/Status (simple)
+  playerRoute(app, 'dry',            ActionType.DRY_PLAYER,         'dryPlayer',        'Dried');
+  playerRoute(app, 'break-legs',     ActionType.BREAK_LEGS,         'breakLegs',        'Broke legs of');
+  playerRoute(app, 'cure',           ActionType.CURE_PLAYER,        'curePlayer',       'Cured');
+  playerRoute(app, 'force-drink',    ActionType.FORCE_DRINK,        'forceDrink',       'Force-fed drink to');
+  playerRoute(app, 'force-eat',      ActionType.FORCE_EAT,          'forceEat',         'Force-fed food to');
+  playerRoute(app, 'knockout',       ActionType.KNOCKOUT_PLAYER,    'knockoutPlayer',   'Knocked out');
+  playerRoute(app, 'wake',           ActionType.WAKE_PLAYER,        'wakePlayer',       'Woke up');
+  playerRoute(app, 'stop-bleeding',  ActionType.STOP_BLEEDING,      'stopBleeding',     'Stopped bleeding on');
+
+  // Player — Ability/State (simple)
+  playerRoute(app, 'drop-gear',      ActionType.DROP_GEAR,          'dropGear',         'Dropped gear of');
+  playerRoute(app, 'set-godmode',    ActionType.SET_GODMODE,        'setGodmode',       'Enabled god mode on');
+  playerRoute(app, 'remove-godmode', ActionType.REMOVE_GODMODE,     'removeGodmode',    'Disabled god mode on');
+  playerRoute(app, 'set-invisible',  ActionType.SET_INVISIBLE,      'setInvisible',     'Made invisible');
+  playerRoute(app, 'remove-invisible', ActionType.REMOVE_INVISIBLE, 'removeInvisible',  'Made visible');
+  playerRoute(app, 'set-stamina-infinite', ActionType.SET_STAMINA_INFINITE, 'setStaminaInfinite', 'Set infinite stamina on');
+  playerRoute(app, 'remove-stamina-infinite', ActionType.REMOVE_STAMINA_INFINITE, 'removeStaminaInfinite', 'Removed infinite stamina from');
+  playerRoute(app, 'respawn',        ActionType.RESPAWN_PLAYER,     'respawnPlayer',    'Respawned');
+  playerRoute(app, 'clear-inventory', ActionType.CLEAR_INVENTORY,   'clearInventory',   'Cleared inventory of');
+  playerRoute(app, 'fill-magazines', ActionType.FILL_MAGAZINES,     'fillMagazines',    'Filled magazines of');
+
+  // ─── Make Sick (with disease type param) ───────────────
+  app.post('/api/servers/:id/actions/make-sick', auth('server.rcon'), async (req, res) => {
+    const { steamId, diseaseType } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.MAKE_SICK);
+      await provider.makeSick(req.params.id, session, diseaseType);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.MAKE_SICK],
+        `Made ${session.playerName || session.name} sick (${diseaseType || 'cholera'})`);
+      res.json({ message: `Made ${session.playerName || session.name} sick` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Set Blood Type ────────────────────────────────────
+  app.post('/api/servers/:id/actions/set-blood-type', auth('server.rcon'), async (req, res) => {
+    const { steamId, bloodType } = req.body;
+    if (!steamId || !bloodType) return res.status(400).json({ error: 'steamId and bloodType required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SET_BLOOD_TYPE);
+      await provider.setBloodType(req.params.id, session, bloodType);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SET_BLOOD_TYPE],
+        `Set blood type of ${session.playerName || session.name} to ${bloodType}`);
+      res.json({ message: `Blood type set to ${bloodType}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Set Bleeding (with source count) ──────────────────
+  app.post('/api/servers/:id/actions/set-bleeding', auth('server.rcon'), async (req, res) => {
+    const { steamId, sourceCount } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SET_BLEEDING);
+      await provider.setBleeding(req.params.id, session, sourceCount);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SET_BLEEDING],
+        `Set bleeding on ${session.playerName || session.name}`);
+      res.json({ message: `Set bleeding on ${session.playerName || session.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Launch Player (power + angle) ─────────────────────
+  app.post('/api/servers/:id/actions/launch', auth('server.rcon'), async (req, res) => {
+    const { steamId, power, angle } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.LAUNCH_PLAYER);
+      await provider.launchPlayer(req.params.id, session, power, angle);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.LAUNCH_PLAYER],
+        `Launched ${session.playerName || session.name}`);
+      res.json({ message: `Launched ${session.playerName || session.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Set Player Stat ───────────────────────────────────
+  app.post('/api/servers/:id/actions/set-stat', auth('server.rcon'), async (req, res) => {
+    const { steamId, stat, value } = req.body;
+    if (!steamId || !stat) return res.status(400).json({ error: 'steamId and stat required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SET_STAT);
+      await provider.setStat(req.params.id, session, stat, value);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SET_STAT],
+        `Set ${stat}=${value} on ${session.playerName || session.name}`);
+      res.json({ message: `Set ${stat} to ${value}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Ragdoll Player (with duration) ────────────────────
+  app.post('/api/servers/:id/actions/ragdoll', auth('server.rcon'), async (req, res) => {
+    const { steamId, duration } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
+
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.RAGDOLL_PLAYER);
+      await provider.ragdollPlayer(req.params.id, session, duration);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.RAGDOLL_PLAYER],
+        `Ragdolled ${session.playerName || session.name}`);
+      res.json({ message: `Ragdolled ${session.playerName || session.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── World: Extended Actions ───────────────────────────
+
+  app.post('/api/servers/:id/actions/world/set-fog', auth('server.rcon'), async (req, res) => {
+    const { density } = req.body;
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SET_FOG);
+      await provider.setFog(req.params.id, density);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SET_FOG],
+        `Set fog density to ${density || 0}`);
+      res.json({ message: `Fog set to ${density || 0}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/world/set-wind', auth('server.rcon'), async (req, res) => {
+    const { speed, direction } = req.body;
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SET_WIND);
+      await provider.setWind(req.params.id, speed, direction);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SET_WIND],
+        `Set wind speed=${speed || 0}, direction=${direction || 0}`);
+      res.json({ message: 'Wind updated' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/world/flatten-trees', auth('server.rcon'), async (req, res) => {
+    const { steamId, radius } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.FLATTEN_TREES);
+      await provider.flattenTrees(req.params.id, session, radius);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.FLATTEN_TREES],
+        `Flattened trees near ${session.playerName || session.name} (radius: ${radius || 50})`);
+      res.json({ message: 'Trees flattened' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/world/clear-zombies', auth('server.rcon'), async (req, res) => {
+    const { steamId, radius } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.CLEAR_ZOMBIES);
+      await provider.clearZombies(req.params.id, session, radius);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.CLEAR_ZOMBIES],
+        `Cleared zombies near ${session.playerName || session.name} (radius: ${radius || 100})`);
+      res.json({ message: 'Zombies cleared' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/world/delete-objects-radius', auth('server.rcon'), async (req, res) => {
+    const { steamId, radius, objectType } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.DELETE_OBJECTS_RADIUS);
+      await provider.deleteObjectsRadius(req.params.id, session, radius, objectType);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.DELETE_OBJECTS_RADIUS],
+        `Deleted ${objectType || 'all'} objects near ${session.playerName || session.name} (radius: ${radius || 50})`);
+      res.json({ message: 'Objects deleted' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Spawn Actions ────────────────────────────────────
+
+  app.post('/api/servers/:id/actions/spawn/zombie', auth('server.rcon'), async (req, res) => {
+    const { steamId, count, coords } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_ZOMBIE);
+      await provider.spawnZombie(req.params.id, session, count, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_ZOMBIE],
+        `Spawned ${count || 1} zombie(s) near ${session.playerName || session.name}`);
+      res.json({ message: `Spawned ${count || 1} zombie(s)` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/animal', auth('server.rcon'), async (req, res) => {
+    const { steamId, animalType, coords } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_ANIMAL);
+      await provider.spawnAnimal(req.params.id, session, animalType, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_ANIMAL],
+        `Spawned ${animalType || 'deer'} near ${session.playerName || session.name}`);
+      res.json({ message: `Spawned ${animalType || 'deer'}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/vehicle', auth('server.rcon'), async (req, res) => {
+    const { steamId, vehicleClass, coords } = req.body;
+    if (!steamId || !vehicleClass) return res.status(400).json({ error: 'steamId and vehicleClass required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_VEHICLE);
+      await provider.spawnVehicle(req.params.id, session, vehicleClass, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_VEHICLE],
+        `Spawned vehicle ${vehicleClass} near ${session.playerName || session.name}`);
+      res.json({ message: `Spawned ${vehicleClass}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/building', auth('server.rcon'), async (req, res) => {
+    const { steamId, buildingClass, coords } = req.body;
+    if (!steamId || !buildingClass) return res.status(400).json({ error: 'steamId and buildingClass required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_BUILDING);
+      await provider.spawnBuilding(req.params.id, session, buildingClass, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_BUILDING],
+        `Spawned building ${buildingClass}`);
+      res.json({ message: `Spawned ${buildingClass}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/horde', auth('server.rcon'), async (req, res) => {
+    const { steamId, count } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_HORDE);
+      await provider.spawnHorde(req.params.id, session, count);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_HORDE],
+        `Spawned horde (${count || 20}) near ${session.playerName || session.name}`);
+      res.json({ message: `Spawned horde of ${count || 20}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/supply-crate', auth('server.rcon'), async (req, res) => {
+    const { crateType, coords } = req.body;
+    if (!coords) return res.status(400).json({ error: 'coords required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_SUPPLY_CRATE);
+      await provider.spawnSupplyCrate(req.params.id, crateType, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_SUPPLY_CRATE],
+        `Spawned supply crate (${crateType || 'military'})`);
+      res.json({ message: 'Supply crate spawned' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/loot-pile', auth('server.rcon'), async (req, res) => {
+    const { steamId, lootType, coords } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_LOOT_PILE);
+      await provider.spawnLootPile(req.params.id, session, lootType, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_LOOT_PILE],
+        `Spawned loot pile (${lootType || 'military'}) near ${session.playerName || session.name}`);
+      res.json({ message: 'Loot pile spawned' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/item-attached', auth('server.rcon'), async (req, res) => {
+    const { steamId, itemClass, attachments } = req.body;
+    if (!steamId || !itemClass) return res.status(400).json({ error: 'steamId and itemClass required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_ITEM_ATTACHED);
+      await provider.spawnItemAttached(req.params.id, session, itemClass, attachments);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_ITEM_ATTACHED],
+        `Spawned ${itemClass} with attachments on ${session.playerName || session.name}`);
+      res.json({ message: `Spawned ${itemClass} with attachments` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/item-at', auth('server.rcon'), async (req, res) => {
+    const { itemClass, coords } = req.body;
+    if (!itemClass || !coords) return res.status(400).json({ error: 'itemClass and coords required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_ITEM_AT);
+      await provider.spawnItemAt(req.params.id, itemClass, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_ITEM_AT],
+        `Spawned ${itemClass} at ${coords}`);
+      res.json({ message: `Spawned ${itemClass}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/zombie-at', auth('server.rcon'), async (req, res) => {
+    const { count, coords } = req.body;
+    if (!coords) return res.status(400).json({ error: 'coords required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_ZOMBIE_AT);
+      await provider.spawnZombieAt(req.params.id, count, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_ZOMBIE_AT],
+        `Spawned ${count || 1} zombie(s) at ${coords}`);
+      res.json({ message: `Spawned ${count || 1} zombie(s)` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/animal-at', auth('server.rcon'), async (req, res) => {
+    const { animalType, coords } = req.body;
+    if (!coords) return res.status(400).json({ error: 'coords required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_ANIMAL_AT);
+      await provider.spawnAnimalAt(req.params.id, animalType, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_ANIMAL_AT],
+        `Spawned ${animalType || 'deer'} at ${coords}`);
+      res.json({ message: `Spawned ${animalType || 'deer'}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/fire', auth('server.rcon'), async (req, res) => {
+    const { steamId, fireType, coords } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_FIRE);
+      await provider.spawnFire(req.params.id, session, fireType, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_FIRE],
+        `Spawned fire near ${session.playerName || session.name}`);
+      res.json({ message: 'Fire spawned' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/smoke', auth('server.rcon'), async (req, res) => {
+    const { steamId, color, coords } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_SMOKE);
+      await provider.spawnSmoke(req.params.id, session, color, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_SMOKE],
+        `Spawned smoke near ${session.playerName || session.name}`);
+      res.json({ message: 'Smoke spawned' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/heli-crash', auth('server.rcon'), async (req, res) => {
+    const { heliType, coords } = req.body;
+    if (!coords) return res.status(400).json({ error: 'coords required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_HELI_CRASH);
+      await provider.spawnHeliCrash(req.params.id, heliType, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_HELI_CRASH],
+        `Spawned heli crash at ${coords}`);
+      res.json({ message: 'Heli crash spawned' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/spawn/gas-zone', auth('server.rcon'), async (req, res) => {
+    const { zoneType, coords } = req.body;
+    if (!coords) return res.status(400).json({ error: 'coords required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.SPAWN_GAS_ZONE);
+      await provider.spawnGasZone(req.params.id, zoneType, coords);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.SPAWN_GAS_ZONE],
+        `Spawned gas zone at ${coords}`);
+      res.json({ message: 'Gas zone spawned' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Structure Actions ────────────────────────────────
+
+  app.post('/api/servers/:id/actions/structure/open-doors', auth('server.rcon'), async (req, res) => {
+    const { steamId, radius } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.OPEN_DOORS);
+      await provider.openDoors(req.params.id, session, radius);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.OPEN_DOORS],
+        `Opened doors near ${session.playerName || session.name}`);
+      res.json({ message: 'Doors opened' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/structure/close-doors', auth('server.rcon'), async (req, res) => {
+    const { steamId, radius } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.CLOSE_DOORS);
+      await provider.closeDoors(req.params.id, session, radius);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.CLOSE_DOORS],
+        `Closed doors near ${session.playerName || session.name}`);
+      res.json({ message: 'Doors closed' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/structure/loot-magnet', auth('server.rcon'), async (req, res) => {
+    const { steamId, radius } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    const session = findSession(req.params.id, steamId);
+    if (!session) return res.status(404).json({ error: 'Player not found' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.LOOT_MAGNET);
+      await provider.lootMagnet(req.params.id, session, radius);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.LOOT_MAGNET],
+        `Loot magnet near ${session.playerName || session.name}`);
+      res.json({ message: 'Loot magnet activated' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Item Actions ─────────────────────────────────────
+
+  app.post('/api/servers/:id/actions/item/delete', auth('server.rcon'), async (req, res) => {
+    const { persistentId } = req.body;
+    if (!persistentId) return res.status(400).json({ error: 'persistentId required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.DELETE_ITEM);
+      await provider.deleteItem(req.params.id, persistentId);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.DELETE_ITEM],
+        `Deleted item ${persistentId}`);
+      res.json({ message: 'Item deleted' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/item/repair', auth('server.rcon'), async (req, res) => {
+    const { persistentId } = req.body;
+    if (!persistentId) return res.status(400).json({ error: 'persistentId required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.REPAIR_ITEM);
+      await provider.repairItem(req.params.id, persistentId);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.REPAIR_ITEM],
+        `Repaired item ${persistentId}`);
+      res.json({ message: 'Item repaired' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Data / Query Actions ─────────────────────────────
+
+  app.get('/api/servers/:id/actions/data/online-players', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_ONLINE_PLAYERS);
+      const data = await provider.getOnlinePlayers(req.params.id);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/all-players', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_ALL_PLAYERS);
+      const data = await provider.getAllPlayers(req.params.id);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/server-info', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_SERVER_INFO);
+      const data = await provider.getServerInfo(req.params.id);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/player-position/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_POSITION);
+      const data = await provider.getPlayerPosition(req.params.id, req.params.steamId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/player-info/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_INFO);
+      const data = await provider.getPlayerInfo(req.params.id, req.params.steamId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/player-gear/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_GEAR);
+      const data = await provider.getPlayerGear(req.params.id, req.params.steamId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/player-inventory/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_INVENTORY);
+      const data = await provider.getPlayerInventory(req.params.id, req.params.steamId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/player-stats/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_STATS);
+      const data = await provider.getPlayerStats(req.params.id, req.params.steamId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/player-full/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_FULL);
+      const data = await provider.getPlayerFull(req.params.id, req.params.steamId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/player-gear-full/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_GEAR_FULL);
+      const data = await provider.getPlayerGearFull(req.params.id, req.params.steamId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/player-hands/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_HANDS_DATA);
+      const data = await provider.getPlayerHandsData(req.params.id, req.params.steamId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/nearby-vehicles/:steamId', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_VEHICLES);
+      const data = await provider.getNearbyVehicles(req.params.id, req.params.steamId, req.query.radius);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/vehicle-info/:steamId', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_VEHICLE_INFO);
+      const data = await provider.getVehicleInfo(req.params.id, req.params.steamId, req.query.radius);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/item-details/:persistentId', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_ITEM_DETAILS);
+      const data = await provider.getItemDetails(req.params.id, req.params.persistentId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/base-objects/:steamId', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_BASE_OBJECTS);
+      const data = await provider.getBaseObjects(req.params.id, req.params.steamId, req.query.radius);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/storage-contents', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_STORAGE_CONTENTS);
+      const data = await provider.getStorageContents(req.params.id, req.query.persistentId, req.query.steamId, req.query.position);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/all-storage-objects', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_ALL_STORAGE_OBJECTS);
+      const data = await provider.getAllStorageObjects(req.params.id);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/nearby-players/:steamId', auth('players.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_PLAYERS);
+      const data = await provider.getNearbyPlayers(req.params.id, req.params.steamId, req.query.radius);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/nearby-loot/:steamId', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_LOOT);
+      const data = await provider.getNearbyLoot(req.params.id, req.params.steamId, req.query.radius, req.query.limit);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/nearby-entities/:steamId', auth('server.view'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_ENTITIES);
+      const data = await provider.getNearbyEntities(req.params.id, req.params.steamId, req.query.radius);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/nearby-entities-at', auth('server.view'), async (req, res) => {
+    const { coords, radius } = req.query;
+    if (!coords) return res.status(400).json({ error: 'coords required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_ENTITIES_AT);
+      const data = await provider.getNearbyEntitiesAt(req.params.id, coords, radius);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/nearby-loot-at', auth('server.view'), async (req, res) => {
+    const { coords, radius } = req.query;
+    if (!coords) return res.status(400).json({ error: 'coords required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_LOOT_AT);
+      const data = await provider.getNearbyLootAt(req.params.id, coords, radius);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/servers/:id/actions/data/bans', auth('players.ban'), async (req, res) => {
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.GET_BANS);
+      const data = await provider.getBans(req.params.id);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/servers/:id/actions/unban', auth('players.ban'), async (req, res) => {
+    const { steamId } = req.body;
+    if (!steamId) return res.status(400).json({ error: 'steamId required' });
+    try {
+      const provider = getProviderForAction(req.params.id, ActionType.UNBAN_PLAYER);
+      await provider.unbanPlayer(req.params.id, steamId);
+      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.UNBAN_PLAYER],
+        `Unbanned ${steamId}`);
+      res.json({ message: `Unbanned ${steamId}` });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
