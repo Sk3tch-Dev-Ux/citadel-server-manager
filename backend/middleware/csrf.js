@@ -6,8 +6,8 @@
  * 2. Client reads the token from the cookie and includes it in X-CSRF-Token header
  * 3. Server verifies: token in header matches token in cookie
  *
- * This pattern is safe against XSS (header is not readable by JS if httpOnly is set)
- * and CSRF (attacker can't read or set the token from a different domain).
+ * The cookie is NOT httpOnly because the frontend needs to read it to send
+ * it back as a header. SameSite=strict prevents cross-origin cookie access.
  */
 
 const crypto = require('crypto');
@@ -28,9 +28,10 @@ function csrfProtection(req, res, next) {
   // Generate or reuse token
   const token = generateToken();
 
-  // Set token in HttpOnly, Secure, SameSite cookie
+  // Set token in a JS-readable cookie (NOT httpOnly — frontend must read it
+  // to send back as X-CSRF-Token header for double-submit pattern)
   res.cookie('csrf-token', token, {
-    httpOnly: true,
+    httpOnly: false,
     secure: process.env.NODE_ENV === 'production' || process.env.USE_HTTPS === '1',
     sameSite: 'strict',
     maxAge: 60 * 60 * 1000 // 1 hour
@@ -52,8 +53,14 @@ function verifyCsrfToken(req, res, next) {
     return next();
   }
 
+  // Skip CSRF for unauthenticated routes (no session/token yet)
+  const exemptPaths = ['/api/auth/login', '/api/setup/', '/api/health'];
+  if (exemptPaths.some(p => req.url.startsWith(p))) {
+    return next();
+  }
+
   const tokenFromCookie = req.cookies['csrf-token'];
-  const tokenFromHeader = req.headers['x-csrf-token'] || req.headers['x-csrf-token'];
+  const tokenFromHeader = req.headers['x-csrf-token'];
 
   if (!tokenFromCookie) {
     logger.warn({ method: req.method, url: req.url }, 'Missing CSRF token cookie');

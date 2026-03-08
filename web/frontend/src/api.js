@@ -5,7 +5,11 @@ class API {
   static token = localStorage.getItem('token') || '';
 
   static headers() {
-    return { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+    const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+    // Read CSRF token from cookie for double-submit pattern
+    const csrf = document.cookie.split('; ').find(c => c.startsWith('csrf-token='));
+    if (csrf) h['X-CSRF-Token'] = csrf.split('=')[1];
+    return h;
   }
 
   static _handle401(r) {

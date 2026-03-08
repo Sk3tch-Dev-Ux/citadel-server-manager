@@ -159,7 +159,8 @@
       "Bash(git config --global user.name)",
       "Bash(git config --global user.email)",
       "Bash(grep -n \"inHouseApiUrl\\\\|inHouseApiKey\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib/*.js)",
-      "Bash(node node_modules/vite/bin/vite.js build)"
+      "Bash(node node_modules/vite/bin/vite.js build)",
+      "Bash(find dayz-mod/@CitadelAdmin/scripts -name \"*.c\" -exec wc -l {} +)"
     ]
   }
 }
