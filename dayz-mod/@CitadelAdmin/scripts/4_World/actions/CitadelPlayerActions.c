@@ -284,6 +284,377 @@ class CitadelPlayerActions
         return true;
     }
 
+    // ─── Health/Status Actions ─────────────────────────
+
+    static bool DryPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.GetStatWet().Set(0);
+        Print("[Citadel] Dried player: " + steamId);
+        return true;
+    }
+
+    static bool BreakLegs(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.SetHealth("LeftLeg", "Health", 0);
+        player.SetHealth("RightLeg", "Health", 0);
+        Print("[Citadel] Broke legs of: " + steamId);
+        return true;
+    }
+
+    static bool MakeSick(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string diseaseType = CitadelJson.ExtractString(params, "diseaseType");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        if (diseaseType == "cholera")
+            player.InsertAgent(eAgents.CHOLERA, 1);
+        else if (diseaseType == "influenza")
+            player.InsertAgent(eAgents.INFLUENZA, 1);
+        else if (diseaseType == "salmonella")
+            player.InsertAgent(eAgents.SALMONELLA, 1);
+        else
+            player.InsertAgent(eAgents.CHOLERA, 1);
+
+        Print("[Citadel] Made " + steamId + " sick: " + diseaseType);
+        return true;
+    }
+
+    static bool CurePlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.RemoveAllAgents();
+        Print("[Citadel] Cured player: " + steamId);
+        return true;
+    }
+
+    static bool SetBloodType(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string bloodType = CitadelJson.ExtractString(params, "bloodType");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        int bt = 0;
+        if (bloodType == "O+") bt = BloodTypes.O_P;
+        else if (bloodType == "O-") bt = BloodTypes.O_N;
+        else if (bloodType == "A+") bt = BloodTypes.A_P;
+        else if (bloodType == "A-") bt = BloodTypes.A_N;
+        else if (bloodType == "B+") bt = BloodTypes.B_P;
+        else if (bloodType == "B-") bt = BloodTypes.B_N;
+        else if (bloodType == "AB+") bt = BloodTypes.AB_P;
+        else if (bloodType == "AB-") bt = BloodTypes.AB_N;
+
+        player.SetBloodType(bt);
+        Print("[Citadel] Set blood type of " + steamId + " to " + bloodType);
+        return true;
+    }
+
+    static bool ForceDrink(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.GetStatWater().Set(player.GetStatWater().GetMax());
+        Print("[Citadel] Force drink: " + steamId);
+        return true;
+    }
+
+    static bool ForceEat(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.GetStatEnergy().Set(player.GetStatEnergy().GetMax());
+        Print("[Citadel] Force eat: " + steamId);
+        return true;
+    }
+
+    static bool KnockoutPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.SetHealth("","Shock", 0);
+        Print("[Citadel] Knocked out: " + steamId);
+        return true;
+    }
+
+    static bool WakePlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.SetHealth("","Shock", 100);
+        Print("[Citadel] Woke up: " + steamId);
+        return true;
+    }
+
+    static bool SetBleeding(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        int sourceCount = CitadelJson.ExtractInt(params, "sourceCount");
+        if (sourceCount <= 0) sourceCount = 1;
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        for (int i = 0; i < sourceCount; i++)
+            player.GetBleedingManagerServer().AttemptAddBleedingSourceBySelection("Torso");
+
+        Print("[Citadel] Set bleeding on: " + steamId);
+        return true;
+    }
+
+    static bool StopBleeding(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.GetBleedingManagerServer().RemoveAllSources();
+        Print("[Citadel] Stopped bleeding on: " + steamId);
+        return true;
+    }
+
+    // ─── Ability/State Actions ───────────────────────
+
+    static bool DropGear(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        array<EntityAI> items = new array<EntityAI>();
+        player.GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
+        foreach (EntityAI item : items)
+        {
+            if (item && item != player)
+                player.ServerDropEntity(item);
+        }
+
+        Print("[Citadel] Dropped gear of: " + steamId);
+        return true;
+    }
+
+    static bool LaunchPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        float power = CitadelJson.ExtractFloat(params, "power");
+        float angle = CitadelJson.ExtractFloat(params, "angle");
+        if (power <= 0) power = 50;
+        if (angle <= 0) angle = 75;
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        float radAngle = angle * Math.DEG2RAD;
+        vector vel = Vector(0, Math.Sin(radAngle) * power, Math.Cos(radAngle) * power);
+        player.SetVelocity(player, vel);
+
+        Print("[Citadel] Launched " + steamId + " power=" + power.ToString());
+        return true;
+    }
+
+    static bool SetStat(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string stat = CitadelJson.ExtractString(params, "stat");
+        string value = CitadelJson.ExtractString(params, "value");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        float fVal = value.ToFloat();
+        if (stat == "health") player.SetHealth(fVal);
+        else if (stat == "blood") player.SetHealth("","Blood", fVal);
+        else if (stat == "shock") player.SetHealth("","Shock", fVal);
+        else if (stat == "water") player.GetStatWater().Set(fVal);
+        else if (stat == "energy") player.GetStatEnergy().Set(fVal);
+        else { error = "Unknown stat: " + stat; return false; }
+
+        Print("[Citadel] Set " + stat + "=" + value + " on " + steamId);
+        return true;
+    }
+
+    static bool RagdollPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        // Temporary shock to trigger ragdoll
+        player.SetHealth("","Shock", 0);
+        Print("[Citadel] Ragdolled: " + steamId);
+        return true;
+    }
+
+    static bool SetGodmode(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.SetAllowDamage(false);
+        Print("[Citadel] God mode ON: " + steamId);
+        return true;
+    }
+
+    static bool RemoveGodmode(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.SetAllowDamage(true);
+        Print("[Citadel] God mode OFF: " + steamId);
+        return true;
+    }
+
+    static bool SetInvisible(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.SetInvisible(true);
+        Print("[Citadel] Invisible ON: " + steamId);
+        return true;
+    }
+
+    static bool RemoveInvisible(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.SetInvisible(false);
+        Print("[Citadel] Invisible OFF: " + steamId);
+        return true;
+    }
+
+    static bool SetStaminaInfinite(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.GetStaminaHandler().SetStamina(player.GetStaminaHandler().GetStaminaCap());
+        Print("[Citadel] Infinite stamina ON: " + steamId);
+        return true;
+    }
+
+    static bool RemoveStaminaInfinite(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        Print("[Citadel] Infinite stamina OFF: " + steamId);
+        return true;
+    }
+
+    static bool RespawnPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        // Kill and let DayZ handle respawn naturally
+        player.SetHealth(0);
+        Print("[Citadel] Respawned: " + steamId);
+        return true;
+    }
+
+    static bool ClearInventory(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        player.RemoveAllItems();
+        Print("[Citadel] Cleared inventory: " + steamId);
+        return true;
+    }
+
+    static bool FillMagazines(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        array<EntityAI> items = new array<EntityAI>();
+        player.GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
+        foreach (EntityAI item : items)
+        {
+            Magazine mag = Magazine.Cast(item);
+            if (mag)
+                mag.ServerSetAmmoCount(mag.GetAmmoMax());
+        }
+
+        Print("[Citadel] Filled magazines: " + steamId);
+        return true;
+    }
+
+    static bool SpawnItemAttached(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string itemClass = CitadelJson.ExtractString(params, "itemClass");
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        EntityAI item = player.GetInventory().CreateInInventory(itemClass);
+        if (!item)
+        {
+            vector pos = player.GetPosition();
+            item = GetGame().CreateObjectEx(itemClass, pos, ECE_PLACE_ON_SURFACE);
+        }
+        if (!item) { error = "Failed to spawn: " + itemClass; return false; }
+
+        Print("[Citadel] Spawned attached " + itemClass + " on " + steamId);
+        return true;
+    }
+
+    // ─── Loadout Query ───────────────────────────────
+
     static bool GetLoadout(string cmdJson, out string error, out string responseData)
     {
         string params = CitadelJson.ExtractParams(cmdJson);

@@ -144,7 +144,22 @@
       "Bash(git mv backend/lib/cftools-priority.js backend/lib/priority-engine.js)",
       "Bash(git mv backend/lib/cftools-leaderboard.js backend/lib/leaderboard-engine.js)",
       "Bash(git mv backend/lib/cftools-client.js backend/lib/legacy-sdk.js)",
-      "Bash(git mv backend/lib/server-actions/providers/cftools.js backend/lib/server-actions/providers/legacy-sdk.js)"
+      "Bash(git mv backend/lib/server-actions/providers/cftools.js backend/lib/server-actions/providers/legacy-sdk.js)",
+      "Bash(xxd \"C:\\\\Users\\\\KurtE\\\\OneDrive\\\\Pictures\\\\New DayZ Tools\\\\DayZCommandRelay.pbo\")",
+      "Bash(python extract_pbo.py \"DayZCommandRelay.pbo\" \"DayZCommandRelay_extracted\")",
+      "Bash(python -c \":*)",
+      "Bash(python analyze_pbo.py)",
+      "Bash(python deob_pbo.py)",
+      "Bash(python deob_smart.py)",
+      "Bash(python decompress_pbo.py)",
+      "Bash(python final_extract.py)",
+      "Bash(xargs wc -l)",
+      "Bash(find . -type f -exec wc -l {} +)",
+      "Bash(gh auth status)",
+      "Bash(git config --global user.name)",
+      "Bash(git config --global user.email)",
+      "Bash(grep -n \"inHouseApiUrl\\\\|inHouseApiKey\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib/*.js)",
+      "Bash(node node_modules/vite/bin/vite.js build)"
     ]
   }
 }
