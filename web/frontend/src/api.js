@@ -59,8 +59,14 @@ class API {
     return this._parseResponse(r);
   }
 
-  static async post(url, data, { timeout } = {}) {
+  static async post(url, data, { timeout, skipAuth } = {}) {
     const r = await this._fetch(url, { method: 'POST', headers: this.headers(), body: JSON.stringify(data), ...(timeout && { timeout }) });
+    // skipAuth: parse response without triggering the 401 session-expiry handler
+    // (used by login endpoint where 401 means "wrong credentials", not "expired session")
+    if (skipAuth) {
+      const text = await r.text();
+      try { return JSON.parse(text); } catch { return { error: `Server error (${r.status}): ${text.substring(0, 200)}` }; }
+    }
     return this._parseResponse(r);
   }
 
