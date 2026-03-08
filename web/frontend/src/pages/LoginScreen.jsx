@@ -18,7 +18,7 @@ export default function LoginScreen() {
     setLoading(true);
     setError('');
     try {
-      const data = await API.post('/api/auth/login', { username: username.trim(), password });
+      const data = await API.post('/api/auth/login', { username: username.trim(), password }, { skipAuth: true });
       if (data.token) {
         login(data.user, data.token);
       } else {
