@@ -433,26 +433,40 @@ class InHouseProvider extends BaseProvider {
     });
   }
 
-  async flattenTrees(serverId, session, radius) {
-    await this._post(serverId, '/world/flatten-trees', {
-      steamId: this._steamIdFrom(session),
-      radius: parseFloat(radius) || 50,
-    });
+  async flattenTrees(serverId, coords, radius) {
+    const body = { radius: parseFloat(radius) || 50 };
+    if (coords && typeof coords === 'object' && 'x' in coords) {
+      body.x = parseFloat(coords.x);
+      body.y = parseFloat(coords.y || 0);
+      body.z = parseFloat(coords.z);
+    } else {
+      body.steamId = this._steamIdFrom(coords);
+    }
+    await this._post(serverId, '/world/flatten-trees', body);
   }
 
-  async clearZombies(serverId, session, radius) {
-    await this._post(serverId, '/world/clear-zombies', {
-      steamId: this._steamIdFrom(session),
-      radius: parseFloat(radius) || 100,
-    });
+  async clearZombies(serverId, coords, radius) {
+    const body = { radius: parseFloat(radius) || 100 };
+    if (coords && typeof coords === 'object' && 'x' in coords) {
+      body.x = parseFloat(coords.x);
+      body.y = parseFloat(coords.y || 0);
+      body.z = parseFloat(coords.z);
+    } else {
+      body.steamId = this._steamIdFrom(coords);
+    }
+    await this._post(serverId, '/world/clear-zombies', body);
   }
 
-  async deleteObjectsRadius(serverId, session, radius, objectType) {
-    await this._post(serverId, '/world/delete-objects-radius', {
-      steamId: this._steamIdFrom(session),
-      radius: parseFloat(radius) || 50,
-      objectType: objectType || 'all',
-    });
+  async deleteObjectsRadius(serverId, coords, radius, objectType) {
+    const body = { radius: parseFloat(radius) || 50, objectType: objectType || 'all' };
+    if (coords && typeof coords === 'object' && 'x' in coords) {
+      body.x = parseFloat(coords.x);
+      body.y = parseFloat(coords.y || 0);
+      body.z = parseFloat(coords.z);
+    } else {
+      body.steamId = this._steamIdFrom(coords);
+    }
+    await this._post(serverId, '/world/delete-objects-radius', body);
   }
 
   // ─── Spawn Actions ───────────────────────────────────────

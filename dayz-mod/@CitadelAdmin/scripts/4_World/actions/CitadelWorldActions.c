@@ -207,14 +207,25 @@ class CitadelWorldActions
     static bool FlattenTrees(string cmdJson, out string error)
     {
         string params = CitadelJson.ExtractParams(cmdJson);
-        string steamId = CitadelJson.ExtractString(params, "steamId");
         float radius = CitadelJson.ExtractFloat(params, "radius");
         if (radius <= 0) radius = 50;
 
-        PlayerBase player = CitadelPlayerActions.FindPlayerBySteamId(steamId);
-        if (!player) { error = "Player not found: " + steamId; return false; }
-
-        vector center = player.GetPosition();
+        vector center;
+        float cx = CitadelJson.ExtractFloat(params, "x");
+        float cz = CitadelJson.ExtractFloat(params, "z");
+        if (cx != 0 || cz != 0)
+        {
+            float cy = CitadelJson.ExtractFloat(params, "y");
+            if (cy <= 0) cy = GetGame().SurfaceY(cx, cz);
+            center = Vector(cx, cy, cz);
+        }
+        else
+        {
+            string steamId = CitadelJson.ExtractString(params, "steamId");
+            PlayerBase player = CitadelPlayerActions.FindPlayerBySteamId(steamId);
+            if (!player) { error = "Player not found: " + steamId; return false; }
+            center = player.GetPosition();
+        }
         ref array<Object> objects = new array<Object>();
         ref array<CargoBase> proxyCargos = new array<CargoBase>();
         GetGame().GetObjectsAtPosition(center, radius, objects, proxyCargos);
@@ -236,14 +247,25 @@ class CitadelWorldActions
     static bool ClearZombies(string cmdJson, out string error)
     {
         string params = CitadelJson.ExtractParams(cmdJson);
-        string steamId = CitadelJson.ExtractString(params, "steamId");
         float radius = CitadelJson.ExtractFloat(params, "radius");
         if (radius <= 0) radius = 100;
 
-        PlayerBase player = CitadelPlayerActions.FindPlayerBySteamId(steamId);
-        if (!player) { error = "Player not found: " + steamId; return false; }
-
-        vector center = player.GetPosition();
+        vector center;
+        float cx = CitadelJson.ExtractFloat(params, "x");
+        float cz = CitadelJson.ExtractFloat(params, "z");
+        if (cx != 0 || cz != 0)
+        {
+            float cy = CitadelJson.ExtractFloat(params, "y");
+            if (cy <= 0) cy = GetGame().SurfaceY(cx, cz);
+            center = Vector(cx, cy, cz);
+        }
+        else
+        {
+            string steamId = CitadelJson.ExtractString(params, "steamId");
+            PlayerBase player = CitadelPlayerActions.FindPlayerBySteamId(steamId);
+            if (!player) { error = "Player not found: " + steamId; return false; }
+            center = player.GetPosition();
+        }
         ref array<Object> objects = new array<Object>();
         ref array<CargoBase> proxyCargos = new array<CargoBase>();
         GetGame().GetObjectsAtPosition(center, radius, objects, proxyCargos);
@@ -266,15 +288,27 @@ class CitadelWorldActions
     static bool DeleteObjectsRadius(string cmdJson, out string error)
     {
         string params = CitadelJson.ExtractParams(cmdJson);
-        string steamId = CitadelJson.ExtractString(params, "steamId");
         float radius = CitadelJson.ExtractFloat(params, "radius");
         string objectType = CitadelJson.ExtractString(params, "objectType");
         if (radius <= 0) radius = 50;
 
-        PlayerBase player = CitadelPlayerActions.FindPlayerBySteamId(steamId);
-        if (!player) { error = "Player not found: " + steamId; return false; }
-
-        vector center = player.GetPosition();
+        vector center;
+        PlayerBase excludePlayer = null;
+        float cx = CitadelJson.ExtractFloat(params, "x");
+        float cz = CitadelJson.ExtractFloat(params, "z");
+        if (cx != 0 || cz != 0)
+        {
+            float cy = CitadelJson.ExtractFloat(params, "y");
+            if (cy <= 0) cy = GetGame().SurfaceY(cx, cz);
+            center = Vector(cx, cy, cz);
+        }
+        else
+        {
+            string steamId = CitadelJson.ExtractString(params, "steamId");
+            excludePlayer = CitadelPlayerActions.FindPlayerBySteamId(steamId);
+            if (!excludePlayer) { error = "Player not found: " + steamId; return false; }
+            center = excludePlayer.GetPosition();
+        }
         ref array<Object> objects = new array<Object>();
         ref array<CargoBase> proxyCargos = new array<CargoBase>();
         GetGame().GetObjectsAtPosition(center, radius, objects, proxyCargos);
@@ -283,8 +317,12 @@ class CitadelWorldActions
         foreach (Object obj : objects)
         {
             EntityAI entity = EntityAI.Cast(obj);
-            if (entity && entity != player)
+            if (entity && entity != excludePlayer)
             {
+                // Never delete players
+                PlayerBase asPlayer = PlayerBase.Cast(entity);
+                if (asPlayer) continue;
+
                 if (objectType == "all" || objectType == "")
                 {
                     GetGame().ObjectDelete(entity);

@@ -30,6 +30,9 @@ class CitadelCommandRunner
 
     void ProcessQueue()
     {
+        // Periodic stamina refill for infinite stamina players
+        CitadelPlayerActions.RefillInfiniteStamina();
+
         string fileName;
         FileAttr fileAttr;
         FindFileHandle findHandle = FindFile(CMD_DIR + "/*.cmd.json", fileName, fileAttr, FindFileFlags.ALL);
