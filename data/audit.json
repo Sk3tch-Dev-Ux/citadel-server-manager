@@ -1,5 +1,173 @@
 [
   {
+    "id": "1dd917ab-85a9-4412-bbc0-d5c5309d1dfc",
+    "timestamp": "2026-03-08T05:53:34.281Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "map.world.set-weather",
+    "details": "World action 'set-weather' executed"
+  },
+  {
+    "id": "980f0cdf-51d4-4b7a-8b7a-b71cbce747e5",
+    "timestamp": "2026-03-08T05:50:52.779Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.setInvisible",
+    "details": "Made invisible Sk3tch"
+  },
+  {
+    "id": "9dbff79b-bac1-4031-8d54-75c2d42f4e23",
+    "timestamp": "2026-03-08T05:50:35.779Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.breakLegs",
+    "details": "Broke legs of Sk3tch"
+  },
+  {
+    "id": "c6d38c11-b027-4068-b7cb-ddd949f01b05",
+    "timestamp": "2026-03-08T05:50:25.280Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.wake",
+    "details": "Woke up Sk3tch"
+  },
+  {
+    "id": "60521cdc-c869-41ca-895d-ba3cb69ee1f7",
+    "timestamp": "2026-03-08T05:50:20.280Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.knockout",
+    "details": "Knocked out Sk3tch"
+  },
+  {
+    "id": "1a2d6ba7-3f70-4322-b859-e59e3a990553",
+    "timestamp": "2026-03-08T05:49:55.779Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.makeSick",
+    "details": "Made Sk3tch sick (cholera)"
+  },
+  {
+    "id": "d9b3d38c-ce15-4633-82ab-6815baf257e0",
+    "timestamp": "2026-03-08T05:49:28.779Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.setStaminaInfinite",
+    "details": "Set infinite stamina on Sk3tch"
+  },
+  {
+    "id": "bc277ab0-82f0-4907-9ea2-7601c2082aaa",
+    "timestamp": "2026-03-08T05:49:24.279Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.forceEat",
+    "details": "Force-fed food to Sk3tch"
+  },
+  {
+    "id": "15ffc5d0-c14b-404d-8f9b-73fd500e9d3b",
+    "timestamp": "2026-03-08T05:49:17.279Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.forceDrink",
+    "details": "Force-fed drink to Sk3tch"
+  },
+  {
+    "id": "973bdd97-37c9-433a-9ac0-823625c3a441",
+    "timestamp": "2026-03-08T05:48:28.779Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.launch",
+    "details": "Launched Sk3tch"
+  },
+  {
+    "id": "b3ac9fbb-d9ee-48f7-86aa-f50255b003e0",
+    "timestamp": "2026-03-08T05:47:41.779Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.kill",
+    "details": "Killed undefined"
+  },
+  {
+    "id": "2e0728ea-a22c-4d26-94ce-4c909fc0c7c9",
+    "timestamp": "2026-03-08T05:47:32.279Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.removeGodmode",
+    "details": "Disabled god mode on Sk3tch"
+  },
+  {
+    "id": "9651d97e-337e-4638-8260-270c0d30315e",
+    "timestamp": "2026-03-08T05:47:14.779Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.spawn",
+    "details": "Spawned Mag_AKM_Drum75Rnd x1 on undefined"
+  },
+  {
+    "id": "885c6cbb-2765-4091-9c71-01bf9228b4d4",
+    "timestamp": "2026-03-08T05:47:00.780Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.spawn",
+    "details": "Spawned AKM x1 on undefined"
+  },
+  {
+    "id": "5e75a910-c5bc-4ae7-bf3f-fcc58789d175",
+    "timestamp": "2026-03-08T05:46:30.277Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.setGodmode",
+    "details": "Enabled god mode on Sk3tch"
+  },
+  {
+    "id": "4debfff4-d99a-4b8b-acb5-0fc17250bbcb",
+    "timestamp": "2026-03-08T05:45:56.778Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.setStaminaInfinite",
+    "details": "Set infinite stamina on Sk3tch"
+  },
+  {
+    "id": "6fc66e2a-5447-469c-9b88-5ceacf27fce0",
+    "timestamp": "2026-03-08T05:45:47.778Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "action.heal",
+    "details": "Healed undefined"
+  },
+  {
+    "id": "04d02228-b2d1-4b43-a9c0-ab5bc727bbb9",
+    "timestamp": "2026-03-08T05:43:11.427Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Testing Branch"
+  },
+  {
+    "id": "eff4d052-b0d8-49ca-acb1-19d5d9e85295",
+    "timestamp": "2026-03-08T05:43:09.090Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "11ff32d8-dbcf-4c70-8fbf-a938a209b787",
+    "timestamp": "2026-03-08T05:35:49.098Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "dc6dd089-c6bc-46a6-9509-d7c1c8244949",
+    "timestamp": "2026-03-08T05:34:30.761Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Testing Branch"
+  },
+  {
     "id": "a7a4283c-f2cf-4763-9d19-8ec6295b68d9",
     "timestamp": "2026-03-08T05:31:32.385Z",
     "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",

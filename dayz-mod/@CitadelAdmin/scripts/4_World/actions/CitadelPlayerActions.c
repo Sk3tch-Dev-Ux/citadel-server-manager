@@ -6,6 +6,9 @@
  */
 class CitadelPlayerActions
 {
+    // Track players with infinite stamina for periodic refill
+    static ref map<string, bool> s_InfiniteStaminaPlayers = new map<string, bool>();
+
     static PlayerBase FindPlayerBySteamId(string steamId)
     {
         // Use CitadelCore registry — GetGame().GetPlayers() can return empty
@@ -307,6 +310,8 @@ class CitadelPlayerActions
 
         player.SetHealth("LeftLeg", "Health", 0);
         player.SetHealth("RightLeg", "Health", 0);
+        // Apply shock damage to trigger ragdoll/fall
+        player.SetHealth("", "Shock", 25);
         Print("[Citadel] Broke legs of: " + steamId);
         return true;
     }
@@ -319,14 +324,15 @@ class CitadelPlayerActions
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player) { error = "Player not found: " + steamId; return false; }
 
+        // Use high agent count (500) for immediate visible symptoms
         if (diseaseType == "cholera")
-            player.InsertAgent(eAgents.CHOLERA, 1);
+            player.InsertAgent(eAgents.CHOLERA, 500);
         else if (diseaseType == "influenza")
-            player.InsertAgent(eAgents.INFLUENZA, 1);
+            player.InsertAgent(eAgents.INFLUENZA, 500);
         else if (diseaseType == "salmonella")
-            player.InsertAgent(eAgents.SALMONELLA, 1);
+            player.InsertAgent(eAgents.SALMONELLA, 500);
         else
-            player.InsertAgent(eAgents.CHOLERA, 1);
+            player.InsertAgent(eAgents.CHOLERA, 500);
 
         Print("[Citadel] Made " + steamId + " sick: " + diseaseType);
         return true;
@@ -476,9 +482,14 @@ class CitadelPlayerActions
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player) { error = "Player not found: " + steamId; return false; }
 
+        // Lift player off ground so physics engine doesn't cancel the velocity
+        vector pos = player.GetPosition();
+        pos[1] = pos[1] + 1.0;
+        player.SetPosition(pos);
+
         float radAngle = angle * Math.DEG2RAD;
         vector vel = Vector(0, Math.Sin(radAngle) * power, Math.Cos(radAngle) * power);
-        player.SetVelocity(player, vel);
+        SetVelocity(player, vel);
 
         Print("[Citadel] Launched " + steamId + " power=" + power.ToString());
         return true;
@@ -550,6 +561,7 @@ class CitadelPlayerActions
         if (!player) { error = "Player not found: " + steamId; return false; }
 
         player.SetInvisible(true);
+        player.ClearFlags(EntityFlags.VISIBLE, false);
         Print("[Citadel] Invisible ON: " + steamId);
         return true;
     }
@@ -562,6 +574,7 @@ class CitadelPlayerActions
         if (!player) { error = "Player not found: " + steamId; return false; }
 
         player.SetInvisible(false);
+        player.SetFlags(EntityFlags.VISIBLE, false);
         Print("[Citadel] Invisible OFF: " + steamId);
         return true;
     }
@@ -573,6 +586,7 @@ class CitadelPlayerActions
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player) { error = "Player not found: " + steamId; return false; }
 
+        s_InfiniteStaminaPlayers.Set(steamId, true);
         player.GetStaminaHandler().SetStamina(player.GetStaminaHandler().GetStaminaCap());
         Print("[Citadel] Infinite stamina ON: " + steamId);
         return true;
@@ -585,8 +599,24 @@ class CitadelPlayerActions
         PlayerBase player = FindPlayerBySteamId(steamId);
         if (!player) { error = "Player not found: " + steamId; return false; }
 
+        s_InfiniteStaminaPlayers.Remove(steamId);
         Print("[Citadel] Infinite stamina OFF: " + steamId);
         return true;
+    }
+
+    /**
+     * Called periodically by CitadelCommandRunner to refill stamina
+     * for players with infinite stamina enabled.
+     */
+    static void RefillInfiniteStamina()
+    {
+        for (int i = 0; i < s_InfiniteStaminaPlayers.Count(); i++)
+        {
+            string steamId = s_InfiniteStaminaPlayers.GetKey(i);
+            PlayerBase player = FindPlayerBySteamId(steamId);
+            if (player && player.GetStaminaHandler())
+                player.GetStaminaHandler().SetStamina(player.GetStaminaHandler().GetStaminaCap());
+        }
     }
 
     static bool RespawnPlayer(string cmdJson, out string error)

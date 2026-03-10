@@ -27,6 +27,12 @@ const app = express();
 app.use(express.json());
 app.use(auth);
 
+// Convert coords object { x, y, z } to DayZ vector string "x y z"
+function coordsToString(coords) {
+  if (typeof coords === 'string') return coords;
+  return `${coords.x || 0} ${coords.y || 0} ${coords.z || 0}`;
+}
+
 // ─── Health Check ────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
@@ -184,7 +190,7 @@ app.post('/player/message', async (req, res) => {
   }
 
   try {
-    const data = await sendCommand('player.message', { steamId, message });
+    const data = await sendCommand('player.message', { steamId, text: message });
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -761,10 +767,18 @@ app.post('/world/set-wind', async (req, res) => {
 });
 
 app.post('/world/flatten-trees', async (req, res) => {
-  const { steamId, radius } = req.body;
-  if (!steamId) return res.status(400).json({ ok: false, error: 'steamId required' });
+  const { steamId, radius, x, y, z } = req.body;
+  if (!steamId && x == null) return res.status(400).json({ ok: false, error: 'steamId or coordinates required' });
   try {
-    const data = await sendCommand('world.flattenTrees', { steamId, radius: parseFloat(radius) || 50 });
+    const params = { radius: parseFloat(radius) || 50 };
+    if (x != null) {
+      params.x = parseFloat(x);
+      params.y = parseFloat(y || 0);
+      params.z = parseFloat(z);
+    } else {
+      params.steamId = steamId;
+    }
+    const data = await sendCommand('world.flattenTrees', params);
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -772,10 +786,18 @@ app.post('/world/flatten-trees', async (req, res) => {
 });
 
 app.post('/world/clear-zombies', async (req, res) => {
-  const { steamId, radius } = req.body;
-  if (!steamId) return res.status(400).json({ ok: false, error: 'steamId required' });
+  const { steamId, radius, x, y, z } = req.body;
+  if (!steamId && x == null) return res.status(400).json({ ok: false, error: 'steamId or coordinates required' });
   try {
-    const data = await sendCommand('world.clearZombies', { steamId, radius: parseFloat(radius) || 100 });
+    const params = { radius: parseFloat(radius) || 100 };
+    if (x != null) {
+      params.x = parseFloat(x);
+      params.y = parseFloat(y || 0);
+      params.z = parseFloat(z);
+    } else {
+      params.steamId = steamId;
+    }
+    const data = await sendCommand('world.clearZombies', params);
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -783,14 +805,18 @@ app.post('/world/clear-zombies', async (req, res) => {
 });
 
 app.post('/world/delete-objects-radius', async (req, res) => {
-  const { steamId, radius, objectType } = req.body;
-  if (!steamId) return res.status(400).json({ ok: false, error: 'steamId required' });
+  const { steamId, radius, objectType, x, y, z } = req.body;
+  if (!steamId && x == null) return res.status(400).json({ ok: false, error: 'steamId or coordinates required' });
   try {
-    const data = await sendCommand('world.deleteObjectsRadius', {
-      steamId,
-      radius: parseFloat(radius) || 50,
-      objectType: objectType || 'all',
-    });
+    const params = { radius: parseFloat(radius) || 50, objectType: objectType || 'all' };
+    if (x != null) {
+      params.x = parseFloat(x);
+      params.y = parseFloat(y || 0);
+      params.z = parseFloat(z);
+    } else {
+      params.steamId = steamId;
+    }
+    const data = await sendCommand('world.deleteObjectsRadius', params);
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -858,7 +884,7 @@ app.post('/spawn/supply-crate', async (req, res) => {
   const { crateType, coords } = req.body;
   if (!coords) return res.status(400).json({ ok: false, error: 'coords required' });
   try {
-    const data = await sendCommand('spawn.supplyCrate', { crateType: crateType || 'military', coords });
+    const data = await sendCommand('spawn.supplyCrate', { crateType: crateType || 'military', coords: coordsToString(coords) });
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -891,7 +917,7 @@ app.post('/spawn/item-at', async (req, res) => {
   const { itemClass, coords } = req.body;
   if (!itemClass || !coords) return res.status(400).json({ ok: false, error: 'itemClass and coords required' });
   try {
-    const data = await sendCommand('spawn.itemAt', { itemClass, coords });
+    const data = await sendCommand('spawn.itemAt', { itemClass, coords: coordsToString(coords) });
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -902,7 +928,7 @@ app.post('/spawn/zombie-at', async (req, res) => {
   const { count, coords } = req.body;
   if (!coords) return res.status(400).json({ ok: false, error: 'coords required' });
   try {
-    const data = await sendCommand('spawn.zombieAt', { count: parseInt(count) || 1, coords });
+    const data = await sendCommand('spawn.zombieAt', { count: parseInt(count) || 1, coords: coordsToString(coords) });
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -913,7 +939,7 @@ app.post('/spawn/animal-at', async (req, res) => {
   const { animalType, coords } = req.body;
   if (!coords) return res.status(400).json({ ok: false, error: 'coords required' });
   try {
-    const data = await sendCommand('spawn.animalAt', { animalType: animalType || 'Animal_CervusElaphus', coords });
+    const data = await sendCommand('spawn.animalAt', { animalType: animalType || 'Animal_CervusElaphus', coords: coordsToString(coords) });
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -946,7 +972,7 @@ app.post('/spawn/heli-crash', async (req, res) => {
   const { heliType, coords } = req.body;
   if (!coords) return res.status(400).json({ ok: false, error: 'coords required' });
   try {
-    const data = await sendCommand('spawn.heliCrash', { heliType: heliType || 'default', coords });
+    const data = await sendCommand('spawn.heliCrash', { heliType: heliType || 'default', coords: coordsToString(coords) });
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -957,7 +983,7 @@ app.post('/spawn/gas-zone', async (req, res) => {
   const { zoneType, coords } = req.body;
   if (!coords) return res.status(400).json({ ok: false, error: 'coords required' });
   try {
-    const data = await sendCommand('spawn.gasZone', { zoneType: zoneType || 'default', coords });
+    const data = await sendCommand('spawn.gasZone', { zoneType: zoneType || 'default', coords: coordsToString(coords) });
     res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
