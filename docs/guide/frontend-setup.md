@@ -13,7 +13,7 @@ npm run dev
 The dev server starts at `http://localhost:5173` with hot module replacement.
 
 ::: info API Proxy
-The Vite dev server is configured to proxy `/api` requests to `http://localhost:3000` (the backend). See `vite.config.js` for proxy settings.
+The Vite dev server is configured to proxy `/api` requests to `http://localhost:3001` (the backend). See `vite.config.js` for proxy settings.
 :::
 
 ## Production Build

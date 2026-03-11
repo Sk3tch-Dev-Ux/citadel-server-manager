@@ -291,7 +291,7 @@ async function handlePurchase() {
   <h2>FAQ</h2>
   <details>
     <summary>What do I need to run Citadel?</summary>
-    <p>A Windows or Linux server with Node.js 18+, a DayZ server, and optionally a Discord bot token. See the <a href="/DayzServerController/guide/prerequisites">prerequisites guide</a>.</p>
+    <p>A Windows server (Windows 10 or later) with Node.js 18+, a DayZ dedicated server, and optionally a Discord bot token. See the <a href="/DayzServerController/guide/prerequisites">prerequisites guide</a>.</p>
   </details>
   <details>
     <summary>Is this a subscription?</summary>

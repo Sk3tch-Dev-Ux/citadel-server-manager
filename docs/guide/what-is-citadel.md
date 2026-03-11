@@ -27,8 +27,8 @@ Citadel replaces that fragmented workflow with one integrated platform:
 
 ## Tech Stack
 
-- **Backend:** Node.js 20+, Express, Socket.IO, BattlEye RCON
-- **Frontend:** React 18, Vite 6, CSS Modules
+- **Backend:** Node.js 18+, Express, Socket.IO, BattlEye RCON
+- **Frontend:** React 18, Vite 6, plain CSS with custom properties
 - **Sidecar:** Node.js, Express, Chokidar (file watcher)
 - **DayZ Mod:** EnScript (DayZ scripting language)
 - **Discord Bot:** discord.js v14

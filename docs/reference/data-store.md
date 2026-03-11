@@ -20,8 +20,8 @@ Citadel uses a JSON file-based data store — no database required. All data liv
 
 Copy the entire `data/` directory:
 
-```bash
-cp -r data/ data-backup-$(date +%Y%m%d)/
+```powershell
+Copy-Item -Recurse data\ data-backup-$(Get-Date -Format yyyyMMdd)\
 ```
 
 ### API Backup
@@ -31,13 +31,13 @@ Download individual config files via the REST API:
 ```bash
 # Download server configs
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3000/api/backup/servers > servers-backup.json
+  http://localhost:3001/api/backup/servers > servers-backup.json
 
 # Restore
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d @servers-backup.json \
-  http://localhost:3000/api/restore/servers
+  http://localhost:3001/api/restore/servers
 ```
 
 Available backup types: `servers`, `users`, `roles`, `webhooks`
@@ -49,13 +49,13 @@ The global ban database can be exported and imported via dedicated API endpoints
 ```bash
 # Export bans
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3000/api/bans/export > bans-backup.json
+  http://localhost:3001/api/bans/export > bans-backup.json
 
 # Import bans (merges with existing, deduplicates by Steam ID)
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d @bans-backup.json \
-  http://localhost:3000/api/bans/import
+  http://localhost:3001/api/bans/import
 ```
 
 Each ban has a UUID that can be shared with other server owners for cross-community ban sharing.
