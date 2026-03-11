@@ -412,6 +412,11 @@ function gracefulShutdown(httpServer, signal) {
     stopSidecar(srv.id);
     stopTailing(srv.id);
   }
+  // Stop Cloud Agent connections
+  try {
+    const cloudAgent = require('./cloud-agent');
+    cloudAgent.stopCloudAgent();
+  } catch { /* cloud-agent not loaded */ }
   // Close WebSocket server
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
   // Flush pending data writes
