@@ -20,22 +20,40 @@ hero:
       link: https://github.com/Sk3tch-Dev-Ux/DayzServerController
 
 features:
-  - icon: 🖥️
+  - icon:
+      src: /icons/monitor.svg
+      width: 48
+      height: 48
     title: Web Dashboard
     details: Real-time server monitoring, player management, RCON console, file editor, and scheduler — all from a modern React UI.
-  - icon: 🤖
+  - icon:
+      src: /icons/bot.svg
+      width: 48
+      height: 48
     title: Discord Bot
     details: Control your servers directly from Discord with button-based commands, live status embeds, and kill feed notifications.
-  - icon: 🎮
+  - icon:
+      src: /icons/gamepad-2.svg
+      width: 48
+      height: 48
     title: In-Game Mod
     details: The @CitadelAdmin DayZ mod enables server-side command execution, player tracking, event logging, and vehicle management — no third-party dependencies.
-  - icon: 🔗
+  - icon:
+      src: /icons/link-2.svg
+      width: 48
+      height: 48
     title: Sidecar Architecture
     details: The Citadel Sidecar bridges your backend to the DayZ server via a file-based queue, enabling real-time command dispatch and response collection.
-  - icon: 🛡️
+  - icon:
+      src: /icons/shield-check.svg
+      width: 48
+      height: 48
     title: Provider System
     details: Modular action providers (InHouse, RCON) let you choose how commands reach your server. Swap or stack providers without code changes.
-  - icon: 📦
+  - icon:
+      src: /icons/package.svg
+      width: 48
+      height: 48
     title: Mod & Workshop Manager
     details: Install, update, and manage Steam Workshop mods with dependency resolution and automatic server restarts.
 ---
