@@ -26,6 +26,13 @@ const AUTH_TIMEOUT_MS = 10_000;
 const RECONNECT_INITIAL_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
 const STALE_THRESHOLD_MS = 90_000;
+const MAX_MESSAGE_SIZE = 64 * 1024; // 64 KB
+const MAX_AUTH_FAILURES = 3;
+const COMMAND_RATE_LIMIT = 10; // max commands per minute per server
+const COMMAND_RATE_WINDOW_MS = 60_000;
+
+// Whitelisted fields for config_sync updates
+const CONFIG_SYNC_WHITELIST = new Set(['pushIntervalMs', 'pingIntervalMs']);
 
 // ─── Cloud command → local ActionType mapping ──────────
 // Maps the cloud protocol's action names to Citadel's ActionType constants.
@@ -130,6 +137,8 @@ function connectServer(srv) {
     reconnectDelay: RECONNECT_INITIAL_MS,
     lastPing: null,
     intentionalClose: false,
+    authFailures: 0,
+    commandTimestamps: [], // for rate limiting
   };
   connections.set(srv.id, conn);
 
@@ -368,6 +377,12 @@ function _connect(srv, conn) {
   });
 
   conn.ws.on('message', (raw) => {
+    // Reject oversized messages to prevent DoS / memory exhaustion
+    if (raw.length > MAX_MESSAGE_SIZE) {
+      logger.warn({ serverId: srv.id, size: raw.length }, 'Cloud: rejected oversized message');
+      return;
+    }
+
     let msg;
     try {
       msg = JSON.parse(raw.toString());
@@ -396,10 +411,18 @@ function _connect(srv, conn) {
 
       case 'auth_error':
         clearTimeout(authTimeout);
-        logger.error({ serverId: srv.id, error: msg.message }, 'Cloud auth failed — check API key');
-        addLog(srv.id, 'error', 'cloud', `Cloud auth failed: ${msg.message || 'Invalid API key'}`);
-        // Don't reconnect on auth failure — bad key won't fix itself
-        conn.intentionalClose = true;
+        conn.authFailures++;
+        logger.error({ serverId: srv.id, error: msg.message, failures: conn.authFailures }, 'Cloud auth failed — check API key');
+        addLog(srv.id, 'error', 'cloud', `Cloud auth failed: ${msg.message || 'Invalid API key'} (attempt ${conn.authFailures}/${MAX_AUTH_FAILURES})`);
+
+        if (conn.authFailures >= MAX_AUTH_FAILURES) {
+          // Stop reconnecting after repeated auth failures — requires manual reconnect
+          conn.intentionalClose = true;
+          logger.error({ serverId: srv.id }, 'Cloud auth failed too many times — stopping reconnection. Use manual reconnect.');
+          addLog(srv.id, 'error', 'cloud', 'Cloud connection disabled after repeated auth failures. Check API key and reconnect manually.');
+        } else {
+          conn.intentionalClose = true;
+        }
         if (conn.ws?.readyState === WebSocket.OPEN) conn.ws.close(4003, 'Auth failed');
         break;
 
@@ -412,7 +435,7 @@ function _connect(srv, conn) {
         break;
 
       case 'config_sync':
-        logger.debug({ serverId: srv.id, configType: msg.config_type }, 'Cloud config_sync received (not yet implemented)');
+        _handleConfigSync(srv, msg);
         break;
 
       default:
@@ -447,9 +470,14 @@ function _scheduleReconnect(srv, conn) {
 
   logger.debug({ serverId: srv.id, delayMs: delay }, 'Cloud Agent scheduling reconnect');
   conn.reconnectTimer = setTimeout(() => {
-    // Re-read server config in case cloudApiKey was changed
+    // Re-read server config in case cloudApiKey was changed or removed
     const freshSrv = ctx.servers.find(s => s.id === srv.id);
-    if (freshSrv?.cloudApiKey && ctx.CONFIG?.cloud?.enabled) {
+    if (!freshSrv?.cloudApiKey) {
+      logger.info({ serverId: srv.id }, 'Cloud API key removed — stopping reconnection');
+      connections.delete(srv.id);
+      return;
+    }
+    if (ctx.CONFIG?.cloud?.enabled) {
       _connect(freshSrv, conn);
     }
   }, delay);
@@ -459,11 +487,50 @@ function _scheduleReconnect(srv, conn) {
  * Handle an incoming command from Citadel Cloud.
  * Maps cloud action → local ActionType, dispatches through the provider system.
  */
+/**
+ * Check if a command is within the rate limit.
+ * @returns {boolean} true if allowed
+ */
+function _checkCommandRate(conn) {
+  const now = Date.now();
+  // Remove timestamps outside the window
+  conn.commandTimestamps = conn.commandTimestamps.filter(ts => now - ts < COMMAND_RATE_WINDOW_MS);
+  if (conn.commandTimestamps.length >= COMMAND_RATE_LIMIT) {
+    return false;
+  }
+  conn.commandTimestamps.push(now);
+  return true;
+}
+
+/**
+ * Validate string param: max length, returns truncated value.
+ */
+function _validateString(value, maxLen, fallback = '') {
+  if (typeof value !== 'string') return fallback;
+  return value.slice(0, maxLen);
+}
+
+/**
+ * Validate numeric param: within range.
+ */
+function _validateNumber(value, min, max, fallback) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(min, Math.min(max, num));
+}
+
 async function _handleCommand(srv, conn, msg) {
   const { id: commandId, action, params } = msg;
 
   logger.info({ serverId: srv.id, commandId, action }, 'Cloud command received');
   addLog(srv.id, 'info', 'cloud', `Cloud command: ${action} (${commandId})`);
+
+  // Rate limit commands
+  if (!_checkCommandRate(conn)) {
+    logger.warn({ serverId: srv.id, action }, 'Cloud command rate limited');
+    _sendCommandResult(conn, commandId, false, 'Rate limited — too many commands');
+    return;
+  }
 
   try {
     const localAction = CLOUD_ACTION_MAP[action];
@@ -473,9 +540,12 @@ async function _handleCommand(srv, conn, msg) {
 
     // Handle broadcast specially — it goes through RCON
     if (action === 'broadcast') {
+      const text = _validateString(params.text, 500);
+      if (!text) throw new Error('Broadcast text is required');
+
       const state = ctx.serverStates[srv.id];
       if (state?.rcon?.loggedIn) {
-        await state.rcon.say(params.text || 'Server message');
+        await state.rcon.say(text);
         _sendCommandResult(conn, commandId, true, 'Broadcast sent');
       } else {
         throw new Error('RCON not connected — cannot broadcast');
@@ -495,13 +565,13 @@ async function _handleCommand(srv, conn, msg) {
         throw new Error(`Player ${params.steam_id} not found on server`);
       }
 
-      // Map cloud params to provider params
+      // Map cloud params to provider params (with validation)
       switch (action) {
         case 'kick':
-          await provider.kickPlayer(srv.id, session, params.reason || 'Kicked by admin');
+          await provider.kickPlayer(srv.id, session, _validateString(params.reason, 200, 'Kicked by admin'));
           break;
         case 'ban':
-          await provider.kickPlayer(srv.id, session, params.reason || 'Banned by admin');
+          await provider.kickPlayer(srv.id, session, _validateString(params.reason, 200, 'Banned by admin'));
           break;
         case 'heal':
           await provider.healPlayer(srv.id, session);
@@ -509,24 +579,43 @@ async function _handleCommand(srv, conn, msg) {
         case 'kill':
           await provider.killPlayer(srv.id, session);
           break;
-        case 'teleport':
-          await provider.teleportPlayer(srv.id, session, { x: params.x, y: params.y, z: params.z });
+        case 'teleport': {
+          const x = _validateNumber(params.x, -20000, 20000, 0);
+          const y = _validateNumber(params.y, 0, 1000, 0);
+          const z = _validateNumber(params.z, -20000, 20000, 0);
+          await provider.teleportPlayer(srv.id, session, { x, y, z });
           break;
-        case 'spawn_item':
-          await provider.spawnItem(srv.id, session, params.item_class, params.quantity || 1);
+        }
+        case 'spawn_item': {
+          const className = _validateString(params.item_class, 100);
+          if (!className) throw new Error('item_class is required');
+          const quantity = _validateNumber(params.quantity, 1, 100, 1);
+          await provider.spawnItem(srv.id, session, className, quantity);
           break;
-        case 'message':
-          await provider.messagePlayer(srv.id, session, params.text || '');
+        }
+        case 'message': {
+          const text = _validateString(params.text, 500);
+          if (!text) throw new Error('Message text is required');
+          await provider.messagePlayer(srv.id, session, text);
           break;
+        }
       }
     } else {
       // World actions
       switch (action) {
-        case 'set_time':
-          await provider.setTime(srv.id, params.hour, params.minute);
+        case 'set_time': {
+          const hour = _validateNumber(params.hour, 0, 23, 12);
+          const minute = _validateNumber(params.minute, 0, 59, 0);
+          await provider.setTime(srv.id, hour, minute);
           break;
+        }
         case 'set_weather':
-          await provider.setWeather(srv.id, params);
+          await provider.setWeather(srv.id, {
+            overcast: params.overcast != null ? _validateNumber(params.overcast, 0, 1, 0) : undefined,
+            fog: params.fog != null ? _validateNumber(params.fog, 0, 1, 0) : undefined,
+            rain: params.rain != null ? _validateNumber(params.rain, 0, 1, 0) : undefined,
+            wind: params.wind != null ? _validateNumber(params.wind, 0, 1, 0) : undefined,
+          });
           break;
         case 'wipe_ai':
           await provider.wipeAI(srv.id);
@@ -544,6 +633,42 @@ async function _handleCommand(srv, conn, msg) {
     logger.warn({ err: err.message, serverId: srv.id, commandId, action }, 'Cloud command failed');
     _sendCommandResult(conn, commandId, false, err.message);
     addLog(srv.id, 'warn', 'cloud', `Cloud command ${action} failed: ${err.message}`);
+  }
+}
+
+/**
+ * Handle config_sync messages from cloud.
+ * Only applies whitelisted fields to prevent arbitrary config injection.
+ */
+function _handleConfigSync(srv, msg) {
+  const { config_type, data } = msg;
+  logger.info({ serverId: srv.id, configType: config_type }, 'Cloud config_sync received');
+
+  if (config_type !== 'agent_settings' || !data || typeof data !== 'object') {
+    logger.debug({ serverId: srv.id, configType: config_type }, 'Ignoring unsupported config_sync type');
+    return;
+  }
+
+  const cloudConfig = ctx.CONFIG?.cloud;
+  if (!cloudConfig) return;
+
+  let applied = 0;
+  for (const [key, value] of Object.entries(data)) {
+    if (!CONFIG_SYNC_WHITELIST.has(key)) {
+      logger.debug({ serverId: srv.id, key }, 'config_sync: rejected non-whitelisted field');
+      continue;
+    }
+    if (typeof value !== 'number' || value < 5000 || value > 60000) {
+      logger.debug({ serverId: srv.id, key, value }, 'config_sync: rejected invalid value');
+      continue;
+    }
+    cloudConfig[key] = value;
+    applied++;
+  }
+
+  if (applied > 0) {
+    logger.info({ serverId: srv.id, applied }, 'config_sync: applied settings');
+    addLog(srv.id, 'info', 'cloud', `Applied ${applied} config_sync setting(s)`);
   }
 }
 
