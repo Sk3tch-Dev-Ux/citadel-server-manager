@@ -72,6 +72,22 @@ function getProcessMetrics(pid) {
 
 // Delta-based CPU sampling using PowerShell Get-Process
 let _lastCpuSamples = {};
+
+// Periodic cleanup of stale PID entries to prevent unbounded memory growth
+setInterval(() => {
+  const ctx = require('./context');
+  const activePids = new Set();
+  for (const srv of (ctx.servers || [])) {
+    const state = ctx.serverStates?.[srv.id];
+    if (state?.pid) activePids.add(parseInt(state.pid, 10));
+  }
+  for (const pidStr of Object.keys(_lastCpuSamples)) {
+    if (!activePids.has(parseInt(pidStr, 10))) {
+      delete _lastCpuSamples[pidStr];
+    }
+  }
+}, 5 * 60 * 1000).unref(); // Every 5 minutes, unref so it doesn't prevent shutdown
+
 function getProcessCPU(pid) {
   return new Promise((resolve) => {
     if (!pid) return resolve(0);

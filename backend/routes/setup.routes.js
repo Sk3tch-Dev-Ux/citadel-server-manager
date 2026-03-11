@@ -15,6 +15,7 @@ const { saveJSON } = require('../lib/data-store');
 const { ensureSteamCMD, validateSteamLogin } = require('../lib/steamcmd');
 const { ensurePanelFirewallRule } = require('../lib/firewall-manager');
 const { encryptForEnv } = require('../lib/credential-encryption');
+const { checkPasswordPolicy } = require('../lib/helpers');
 
 /**
  * Determine setup state:
@@ -67,8 +68,8 @@ module.exports = function(app) {
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (!checkPasswordPolicy(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character' });
     }
 
     try {

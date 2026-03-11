@@ -71,10 +71,18 @@ module.exports = function(app) {
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
 
+  // Safe write extensions — must match files.routes.js to prevent writing dangerous file types
+  const SAFE_WRITE_EXTENSIONS = ['.cfg','.xml','.json','.txt','.ini','.c','.hpp','.bat','.ps1','.py','.sh','.log','.md','.csv','.html','.css','.js','.yaml','.yml','.toml','.conf','.properties','.env','.map'];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
   app.put('/api/files/write', auth('files.edit'), (req, res) => {
     const srv = ctx.servers[0]; if (!srv) return res.status(400).json({ error: 'No server' });
     const { file, content } = req.body;
     if (!file) return res.status(400).json({ error: 'File path required' });
+    if (!content || typeof content !== 'string') return res.status(400).json({ error: 'Content must be a string' });
+    if (content.length > MAX_FILE_SIZE) return res.status(400).json({ error: 'File content exceeds maximum size (10 MB)' });
+    const ext = path.extname(file).toLowerCase();
+    if (!SAFE_WRITE_EXTENSIONS.includes(ext)) return res.status(403).json({ error: `Writing ${ext} files is not allowed` });
     const fp = safePath(srv.installDir, file); if (!fp) return res.status(403).json({ error: 'Access denied' });
     try {
       const bd = path.join(srv.installDir, '.backups');

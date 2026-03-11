@@ -56,6 +56,10 @@ ctx.leaderboard = loadJSON(CONFIG.dataDir, 'leaderboard.json', []);
 ctx.storeProducts = loadJSON(CONFIG.dataDir, 'store_products.json', []);
 ctx.storePurchases = loadJSON(CONFIG.dataDir, 'store_purchases.json', []);
 
+// Load notifications from disk (persisted across restarts)
+const { loadNotifications } = require('./lib/notifications');
+loadNotifications();
+
 // ─── Runtime state from env ──────────────────────────────
 const { resolveCredential } = require('./lib/credential-encryption');
 

@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useSocket } from '../contexts/SocketContext';
+import { useState, useEffect } from 'react';
 import API from '../api';
 import { formatBytes } from '../utils';
 import Accordion from '../components/Accordion';
@@ -10,7 +9,6 @@ import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { X, Info, Download, Trash2, HardDrive, RotateCcw } from '../components/Icon';
 
 export default function ServerSettingsPage({ serverId }) {
-  const socket = useSocket();
   const { confirm, DialogComponent } = useConfirmDialog();
   const [srv, setSrv] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -29,6 +27,13 @@ export default function ServerSettingsPage({ serverId }) {
   // Ctrl+S to save settings (must be before any conditional returns)
   useKeyboardShortcuts({ 'ctrl+s': () => saveRef.current?.() });
 
+  // Default notification configs (must match backend DEFAULT_NOTIFICATIONS)
+  const defaultNotifications = {
+    shutdown:   { enabled: true, duration: 120, interval: 5, message: 'Server is restarting in {{countdown}} seconds', kickOnCountdown: false, lockOnCountdown: false },
+    gameUpdate: { enabled: true, duration: 120, interval: 5, message: 'Server is restarting in {{countdown}} seconds', kickOnCountdown: false, lockOnCountdown: false },
+    modUpdate:  { enabled: true, duration: 120, interval: 5, message: 'Server is restarting in {{countdown}} seconds', kickOnCountdown: false, lockOnCountdown: false },
+  };
+
   useEffect(() => {
     API.get('/api/servers').then(servers => {
       const s = servers.find(x => x.id === serverId);
@@ -37,6 +42,15 @@ export default function ServerSettingsPage({ serverId }) {
           s.launchParamsList = s.launchParams.split(' ').filter(Boolean);
         } else if (!s.launchParamsList) {
           s.launchParamsList = [];
+        }
+        // Initialize notification configs with defaults for any missing fields
+        if (!s.notifications) s.notifications = {};
+        for (const type of ['shutdown', 'gameUpdate', 'modUpdate']) {
+          s.notifications[type] = { ...defaultNotifications[type], ...(s.notifications[type] || {}) };
+        }
+        // Migrate old field name
+        if (s.ignoreServerModUpdates !== undefined && s.ignoreModUpdates === undefined) {
+          s.ignoreModUpdates = s.ignoreServerModUpdates;
         }
         setSrv(s);
       }
@@ -54,6 +68,13 @@ export default function ServerSettingsPage({ serverId }) {
 
   const update = (key, val) => setSrv(s => ({ ...s, [key]: val }));
   const updateBackup = (key, val) => setBackupConfig(c => ({ ...c, [key]: val }));
+  const updateNotification = (type, key, val) => setSrv(s => ({
+    ...s,
+    notifications: {
+      ...s.notifications,
+      [type]: { ...s.notifications[type], [key]: val },
+    },
+  }));
 
   const addParam = () => {
     if (!newParam.trim()) return;
@@ -305,10 +326,93 @@ export default function ServerSettingsPage({ serverId }) {
         )}
       </Accordion>
 
-      <Accordion title="Update Behaviour" icon="">
+      <Accordion title="Notifications" icon="" defaultOpen={true}>
+        <SettingsToggle label="Auto-Update Enabled" checked={!!srv.autoUpdateEnabled} onChange={v => update('autoUpdateEnabled', v)} />
+        <div className="settings-hint" style={{ marginBottom: 16, marginTop: -4 }}>
+          When enabled, detected game and mod updates will automatically trigger the shutdown/update/restart pipeline.
+        </div>
+
         <SettingsToggle label="Shutdown for mod updates" checked={srv.shutdownForModUpdates !== false} onChange={v => update('shutdownForModUpdates', v)} />
         <SettingsToggle label="Shutdown for title updates" checked={srv.shutdownForTitleUpdates !== false} onChange={v => update('shutdownForTitleUpdates', v)} />
-        <SettingsToggle label="Ignore server-side mod updates" checked={!!srv.ignoreServerModUpdates} onChange={v => update('ignoreServerModUpdates', v)} />
+        <SettingsToggle label="Ignore server-side mod updates" checked={!!srv.ignoreModUpdates} onChange={v => update('ignoreModUpdates', v)} />
+
+        {/* ── Shutdown Notification ─────────────────────── */}
+        <div style={{ marginTop: 20, padding: 16, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+          <SettingsToggle label="Shutdown Notification" checked={srv.notifications.shutdown.enabled} onChange={v => updateNotification('shutdown', 'enabled', v)} />
+          <div className="settings-row">
+            <span className="settings-row-label">Duration (seconds):</span>
+            <div className="settings-row-value">
+              <input className="input" type="number" min={0} value={srv.notifications.shutdown.duration} onChange={e => updateNotification('shutdown', 'duration', parseInt(e.target.value) || 0)} />
+            </div>
+          </div>
+          <div className="settings-row">
+            <span className="settings-row-label">Interval (seconds):</span>
+            <div className="settings-row-value">
+              <input className="input" type="number" min={1} value={srv.notifications.shutdown.interval} onChange={e => updateNotification('shutdown', 'interval', parseInt(e.target.value) || 5)} />
+            </div>
+          </div>
+          <div className="settings-row">
+            <span className="settings-row-label">Message:</span>
+            <div className="settings-row-value">
+              <input className="input" value={srv.notifications.shutdown.message} onChange={e => updateNotification('shutdown', 'message', e.target.value)} />
+              <div className="settings-hint">Available placeholders: {'{{countdown}}'}</div>
+            </div>
+          </div>
+          <SettingsToggle label="Kick on countdown" checked={!!srv.notifications.shutdown.kickOnCountdown} onChange={v => updateNotification('shutdown', 'kickOnCountdown', v)} />
+          <SettingsToggle label="Lock server on countdown" checked={!!srv.notifications.shutdown.lockOnCountdown} onChange={v => updateNotification('shutdown', 'lockOnCountdown', v)} />
+        </div>
+
+        {/* ── Update Game Notification ─────────────────── */}
+        <div style={{ marginTop: 12, padding: 16, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+          <SettingsToggle label="Update Game Notification" checked={srv.notifications.gameUpdate.enabled} onChange={v => updateNotification('gameUpdate', 'enabled', v)} />
+          <div className="settings-row">
+            <span className="settings-row-label">Duration (seconds):</span>
+            <div className="settings-row-value">
+              <input className="input" type="number" min={0} value={srv.notifications.gameUpdate.duration} onChange={e => updateNotification('gameUpdate', 'duration', parseInt(e.target.value) || 0)} />
+            </div>
+          </div>
+          <div className="settings-row">
+            <span className="settings-row-label">Interval (seconds):</span>
+            <div className="settings-row-value">
+              <input className="input" type="number" min={1} value={srv.notifications.gameUpdate.interval} onChange={e => updateNotification('gameUpdate', 'interval', parseInt(e.target.value) || 5)} />
+            </div>
+          </div>
+          <div className="settings-row">
+            <span className="settings-row-label">Message:</span>
+            <div className="settings-row-value">
+              <input className="input" value={srv.notifications.gameUpdate.message} onChange={e => updateNotification('gameUpdate', 'message', e.target.value)} />
+              <div className="settings-hint">Available placeholders: {'{{countdown}}'}</div>
+            </div>
+          </div>
+          <SettingsToggle label="Kick on countdown" checked={!!srv.notifications.gameUpdate.kickOnCountdown} onChange={v => updateNotification('gameUpdate', 'kickOnCountdown', v)} />
+          <SettingsToggle label="Lock server on countdown" checked={!!srv.notifications.gameUpdate.lockOnCountdown} onChange={v => updateNotification('gameUpdate', 'lockOnCountdown', v)} />
+        </div>
+
+        {/* ── Update Mod Notification ──────────────────── */}
+        <div style={{ marginTop: 12, padding: 16, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+          <SettingsToggle label="Update Mod Notification" checked={srv.notifications.modUpdate.enabled} onChange={v => updateNotification('modUpdate', 'enabled', v)} />
+          <div className="settings-row">
+            <span className="settings-row-label">Duration (seconds):</span>
+            <div className="settings-row-value">
+              <input className="input" type="number" min={0} value={srv.notifications.modUpdate.duration} onChange={e => updateNotification('modUpdate', 'duration', parseInt(e.target.value) || 0)} />
+            </div>
+          </div>
+          <div className="settings-row">
+            <span className="settings-row-label">Interval (seconds):</span>
+            <div className="settings-row-value">
+              <input className="input" type="number" min={1} value={srv.notifications.modUpdate.interval} onChange={e => updateNotification('modUpdate', 'interval', parseInt(e.target.value) || 5)} />
+            </div>
+          </div>
+          <div className="settings-row">
+            <span className="settings-row-label">Message:</span>
+            <div className="settings-row-value">
+              <input className="input" value={srv.notifications.modUpdate.message} onChange={e => updateNotification('modUpdate', 'message', e.target.value)} />
+              <div className="settings-hint">Available placeholders: {'{{countdown}}'}, {'{{mod}}'}</div>
+            </div>
+          </div>
+          <SettingsToggle label="Kick on countdown" checked={!!srv.notifications.modUpdate.kickOnCountdown} onChange={v => updateNotification('modUpdate', 'kickOnCountdown', v)} />
+          <SettingsToggle label="Lock server on countdown" checked={!!srv.notifications.modUpdate.lockOnCountdown} onChange={v => updateNotification('modUpdate', 'lockOnCountdown', v)} />
+        </div>
       </Accordion>
 
       {/* ─── Backup Settings ─────────────────────────────── */}

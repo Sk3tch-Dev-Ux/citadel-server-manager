@@ -123,12 +123,32 @@ function migrateInHouseApiUrl() {
 }
 
 /**
+ * Migrate notification-related field names on existing servers.
+ * - Renames ignoreServerModUpdates → ignoreModUpdates (canonical name)
+ */
+function migrateNotificationFields() {
+  let changed = false;
+  for (const srv of ctx.servers) {
+    if (srv.ignoreServerModUpdates !== undefined && srv.ignoreModUpdates === undefined) {
+      srv.ignoreModUpdates = srv.ignoreServerModUpdates;
+      delete srv.ignoreServerModUpdates;
+      logger.info({ server: srv.name }, 'Migrated server: renamed ignoreServerModUpdates → ignoreModUpdates');
+      changed = true;
+    }
+  }
+  if (changed) {
+    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+  }
+}
+
+/**
  * Run the full startup sequence:
  * 1. Validate critical configuration
  * 2. Migrate default server if needed
  * 3. Migrate inHouseApiUrl for existing servers
- * 4. Initialize all server states
- * 5. Create default admin
+ * 4. Migrate notification field names
+ * 5. Initialize all server states
+ * 6. Create default admin
  */
 async function startup() {
   // Fatal guard: JWT secret must be configured for auth to work
@@ -140,6 +160,7 @@ async function startup() {
 
   migrateDefaultServer();
   migrateInHouseApiUrl();
+  migrateNotificationFields();
   ctx.servers.forEach(s => initServerState(s.id));
   await createDefaultAdmin();
 }

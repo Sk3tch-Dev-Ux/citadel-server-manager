@@ -23,6 +23,63 @@ const { updateServerApp, updateWorkshopMod } = require('./steamcmd');
 const { createBackup } = require('./backup-engine');
 // polling.js is lazy-required below to avoid circular dependency (polling → auto-updater → polling)
 
+// ─── Default Notification Configs ─────────────────────────
+const DEFAULT_NOTIFICATIONS = {
+  shutdown: {
+    enabled: true, duration: 120, interval: 5,
+    message: 'Server is restarting in {{countdown}} seconds',
+    kickOnCountdown: false, lockOnCountdown: false,
+  },
+  gameUpdate: {
+    enabled: true, duration: 120, interval: 5,
+    message: 'Server is restarting in {{countdown}} seconds',
+    kickOnCountdown: false, lockOnCountdown: false,
+  },
+  modUpdate: {
+    enabled: true, duration: 120, interval: 5,
+    message: 'Server is restarting in {{countdown}} seconds',
+    kickOnCountdown: false, lockOnCountdown: false,
+  },
+};
+
+/**
+ * Resolve notification config for a given update type.
+ * Falls back to legacy fields for backward compatibility.
+ */
+function getNotificationConfig(srv, updateType) {
+  const configKey = updateType === 'game' ? 'gameUpdate'
+                  : updateType === 'mod'  ? 'modUpdate'
+                  : 'shutdown';
+  const defaults = DEFAULT_NOTIFICATIONS[configKey];
+
+  if (srv.notifications && srv.notifications[configKey]) {
+    return { ...defaults, ...srv.notifications[configKey] };
+  }
+
+  // Legacy fallback: derive from old flat fields
+  return {
+    ...defaults,
+    duration: srv.updateCountdownSeconds || defaults.duration,
+    interval: Array.isArray(srv.updateWarningIntervals) && srv.updateWarningIntervals.length > 1
+      ? (srv.updateWarningIntervals[0] - srv.updateWarningIntervals[1]) * 60
+      : defaults.interval,
+  };
+}
+
+/**
+ * Format a countdown message by substituting placeholders.
+ * {{countdown}} → human-readable time remaining
+ * {{mod}} → mod name (for mod updates)
+ */
+function formatCountdownMessage(template, secondsRemaining, modName) {
+  const countdown = secondsRemaining >= 60
+    ? `${Math.ceil(secondsRemaining / 60)} minute${Math.ceil(secondsRemaining / 60) === 1 ? '' : 's'}`
+    : `${secondsRemaining} second${secondsRemaining === 1 ? '' : 's'}`;
+  return template
+    .replace(/\{\{countdown\}\}/g, countdown)
+    .replace(/\{\{mod\}\}/g, modName || '');
+}
+
 // ─── In-memory update state per server ───────────────────
 const updateStates = new Map();
 
@@ -31,19 +88,22 @@ const updateStates = new Map();
 const fs = require('fs');
 const path = require('path');
 
-const STATE_JOURNAL_DIR = path.join(process.env.CITADEL_DATA_DIR || 'C:\\Citadel\\data', 'state-journals');
+// Lazily resolved to use ctx.CONFIG.dataDir when available, with env fallback
+function getStateJournalDir() {
+  return path.join(ctx.CONFIG?.dataDir || process.env.CITADEL_DATA_DIR || 'data', 'state-journals');
+}
 
 /**
  * Ensure state journal directory exists.
  */
 function ensureStateJournalDir() {
   try {
-    if (!fs.existsSync(STATE_JOURNAL_DIR)) {
-      fs.mkdirSync(STATE_JOURNAL_DIR, { recursive: true });
-      logger.debug({ dir: STATE_JOURNAL_DIR }, 'Created state journal directory');
+    if (!fs.existsSync(getStateJournalDir())) {
+      fs.mkdirSync(getStateJournalDir(), { recursive: true });
+      logger.debug({ dir: getStateJournalDir() }, 'Created state journal directory');
     }
   } catch (err) {
-    logger.warn({ err, dir: STATE_JOURNAL_DIR }, 'Failed to create state journal directory');
+    logger.warn({ err, dir: getStateJournalDir() }, 'Failed to create state journal directory');
   }
 }
 
@@ -51,7 +111,7 @@ function ensureStateJournalDir() {
  * Get the state journal file path for a server.
  */
 function getStateJournalPath(serverId) {
-  return path.join(STATE_JOURNAL_DIR, `${serverId}.journal.json`);
+  return path.join(getStateJournalDir(), `${serverId}.journal.json`);
 }
 
 /**
@@ -129,7 +189,7 @@ function clearStateJournal(serverId) {
 function recoverInterruptedUpdates() {
   try {
     ensureStateJournalDir();
-    const files = fs.readdirSync(STATE_JOURNAL_DIR).filter(f => f.endsWith('.journal.json'));
+    const files = fs.readdirSync(getStateJournalDir()).filter(f => f.endsWith('.journal.json'));
     for (const file of files) {
       const serverId = file.replace('.journal.json', '');
       const entry = readStateJournal(serverId);
@@ -167,6 +227,8 @@ function ensureState(serverId) {
       warningTimers: [],
       startedAt: null,
       error: null,
+      lockedDuringCountdown: false,
+      kickedDuringCountdown: false,
     });
   }
   return updateStates.get(serverId);
@@ -205,6 +267,8 @@ function resetState(serverId) {
   us.warningTimers = [];
   us.startedAt = null;
   us.error = null;
+  us.lockedDuringCountdown = false;
+  us.kickedDuringCountdown = false;
 
   // Clear state journal on transition back to idle
   clearStateJournal(serverId);
@@ -331,113 +395,148 @@ function cancelUpdate(serverId) {
     return { success: false, error: `Cannot cancel in state: ${us.state}` };
   }
 
+  // Capture lock state before reset clears it
+  const wasLocked = us.lockedDuringCountdown;
+
   logger.info({ serverId }, 'Update cancelled');
   addLog(serverId, 'info', 'updates', 'Update cancelled by user');
 
   resetState(serverId);
   emitProgress(serverId);
+
+  // Unlock server if it was locked for the countdown
+  if (wasLocked) {
+    const state = ctx.serverStates[serverId];
+    if (state?.rcon?.loggedIn) {
+      state.rcon.unlock().catch(() => {});
+      addLog(serverId, 'info', 'updates', 'Server unlocked after update cancellation');
+    }
+  }
+
   return { success: true };
 }
 
 // ─── Internal Phase Handlers ─────────────────────────────
 
 /**
+ * Send an RCON message, reconnecting if needed. Returns true on success.
+ */
+async function rconSay(state, serverId, msg) {
+  try {
+    if (!state?.rcon) return false;
+    if (!state.rcon.loggedIn) {
+      try { await state.rcon.connect(); } catch { return false; }
+    }
+    const result = await state.rcon.say(msg);
+    if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
+      state.rcon.loggedIn = false;
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Kick all connected players via RCON. Returns number of kicks attempted.
+ */
+async function kickAllPlayers(state, serverId, reason) {
+  if (!state?.rcon?.loggedIn) return 0;
+  const playersCopy = [...(state.players || [])];
+  let kicked = 0;
+  for (const player of playersCopy) {
+    const rconId = player.rconSlot != null ? String(player.rconSlot) : (player.id || player.index);
+    if (rconId !== undefined) {
+      try { await state.rcon.kick(rconId, reason || 'Server updating'); kicked++; } catch { /* player may have left */ }
+    }
+  }
+  if (kicked > 0) await new Promise(r => setTimeout(r, 2000)); // give RCON time to process
+  return kicked;
+}
+
+/**
  * Start the countdown phase: broadcast RCON warnings at configured intervals,
- * then proceed to the stopping phase when countdown reaches zero.
+ * optionally lock the server and kick players, then proceed to stopping phase.
  */
 function startCountdown(serverId) {
   const srv = ctx.servers.find(s => s.id === serverId);
   if (!srv) return;
 
   const us = ensureState(serverId);
-  const countdownSeconds = srv.updateCountdownSeconds || 300;
-  const warningIntervals = Array.isArray(srv.updateWarningIntervals)
-    ? srv.updateWarningIntervals
-    : [5, 3, 1];
+  const notifConfig = getNotificationConfig(srv, us.updateType);
+  const countdownSeconds = notifConfig.duration || 120;
+  const broadcastInterval = notifConfig.interval || 5;
+  const messageTemplate = notifConfig.message || DEFAULT_NOTIFICATIONS.shutdown.message;
+  const modName = us.updateInfo?.modName || '';
 
   us.state = 'countdown';
   us.countdown = countdownSeconds;
   emitProgress(serverId);
 
-  addLog(serverId, 'info', 'updates', `Update countdown started: ${countdownSeconds}s`);
+  addLog(serverId, 'info', 'updates', `Update countdown started: ${countdownSeconds}s (broadcast every ${broadcastInterval}s)`);
 
-  // Schedule RCON warning broadcasts
   const state = ctx.serverStates[serverId];
-  for (const minutesBefore of warningIntervals) {
-    const secondsBefore = minutesBefore * 60;
-    if (secondsBefore >= countdownSeconds) continue; // skip if warning would be before countdown starts
 
-    const delayMs = (countdownSeconds - secondsBefore) * 1000;
-    const timer = setTimeout(async () => {
-      try {
-        if (!state?.rcon) return;
-        // Attempt reconnect if RCON is stale
-        if (!state.rcon.loggedIn) {
-          try { await state.rcon.connect(); } catch { return; }
-        }
-        const msg = `Server restarting for update in ${minutesBefore} minute${minutesBefore === 1 ? '' : 's'}`;
-        const result = await state.rcon.say(msg);
-        if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
-          logger.warn({ serverId, minutesBefore, result }, 'Update RCON warning failed — connection stale');
-          state.rcon.loggedIn = false;
-        } else {
-          addLog(serverId, 'info', 'updates', `RCON broadcast: ${msg}`);
-        }
-      } catch (err) {
-        logger.debug({ err, serverId }, 'RCON warning broadcast failed');
-      }
-    }, delayMs);
-    us.warningTimers.push(timer);
-  }
-
-  // Also send an immediate warning if countdown is long enough
-  if (countdownSeconds >= 60) {
-    const minutes = Math.ceil(countdownSeconds / 60);
+  // Lock server if configured
+  if (notifConfig.lockOnCountdown && state?.rcon) {
     (async () => {
       try {
-        if (!state?.rcon) return;
         if (!state.rcon.loggedIn) {
           try { await state.rcon.connect(); } catch { return; }
         }
-        const msg = `Server restarting for update in ${minutes} minute${minutes === 1 ? '' : 's'}`;
-        const result = await state.rcon.say(msg);
-        if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
-          logger.warn({ serverId, result }, 'Update initial RCON warning failed — connection stale');
-          state.rcon.loggedIn = false;
-        } else {
-          addLog(serverId, 'info', 'updates', `RCON broadcast: ${msg}`);
-        }
+        await state.rcon.lock();
+        us.lockedDuringCountdown = true;
+        addLog(serverId, 'info', 'updates', 'Server locked for update countdown');
       } catch (err) {
-        logger.debug({ err, serverId }, 'RCON initial warning broadcast failed');
+        logger.debug({ err, serverId }, 'Failed to lock server during countdown');
       }
     })();
+  }
+
+  // Send immediate first broadcast
+  if (countdownSeconds > 0) {
+    const msg = formatCountdownMessage(messageTemplate, countdownSeconds, modName);
+    rconSay(state, serverId, msg).then(ok => {
+      if (ok) addLog(serverId, 'info', 'updates', `RCON broadcast: ${msg}`);
+    });
   }
 
   // Tick the countdown every second
   us.countdownTimer = setInterval(() => {
     us.countdown -= 1;
-    // Emit progress every 10 seconds to avoid flooding (and always at 0)
+
+    // Broadcast at regular intervals
+    if (us.countdown > 0 && us.countdown % broadcastInterval === 0) {
+      const msg = formatCountdownMessage(messageTemplate, us.countdown, modName);
+      rconSay(state, serverId, msg).then(ok => {
+        if (ok) addLog(serverId, 'info', 'updates', `RCON broadcast: ${msg}`);
+      });
+    }
+
+    // Emit progress every 10 seconds to avoid flooding (and always at <= 10)
     if (us.countdown % 10 === 0 || us.countdown <= 10) {
       emitProgress(serverId);
     }
+
     if (us.countdown <= 0) {
       clearInterval(us.countdownTimer);
       us.countdownTimer = null;
-      // Final RCON warning
+      // Final actions at countdown end
       (async () => {
-        try {
-          if (state?.rcon) {
-            if (!state.rcon.loggedIn) {
-              try { await state.rcon.connect(); } catch { /* best effort */ }
-            }
-            if (state.rcon.loggedIn) {
-              const result = await state.rcon.say('Server restarting NOW for update');
-              if (typeof result === 'string' && (result.startsWith('[Error]') || result === '[No response]')) {
-                state.rcon.loggedIn = false;
-              }
-            }
+        // Final RCON broadcast
+        const finalMsg = formatCountdownMessage(messageTemplate, 0, modName);
+        await rconSay(state, serverId, finalMsg);
+
+        // Kick all players if configured
+        if (notifConfig.kickOnCountdown) {
+          const kicked = await kickAllPlayers(state, serverId, 'Server updating');
+          if (kicked > 0) {
+            us.kickedDuringCountdown = true;
+            addLog(serverId, 'info', 'updates', `Kicked ${kicked} player(s) at countdown end`);
           }
-        } catch { /* best effort */ }
+        }
+
         // Proceed to stopping phase
         stopAndUpdate(serverId);
       })();
@@ -462,27 +561,13 @@ async function stopAndUpdate(serverId) {
   emitProgress(serverId);
   addLog(serverId, 'info', 'updates', 'Stopping server for update...');
   state.status = 'stopping';
-  ctx.io.emit('serverStatus', { serverId, status: 'stopping' });
+  if (ctx.io) ctx.io.emit('serverStatus', { serverId, status: 'stopping' });
 
   try {
-    // Kick all connected players via RCON
-    if (state.rcon?.loggedIn) {
-      try {
-        // Kick all players — RCON "kick" with #-prefix triggers a mass-kick
-        // Use individual kicks based on player list for reliability
-        const playersCopy = [...(state.players || [])];
-        for (const player of playersCopy) {
-          // Use BattlEye slot number for reliable RCON kick with reason display
-          const rconId = player.rconSlot != null ? String(player.rconSlot) : (player.id || player.index);
-          if (rconId !== undefined) {
-            try { await state.rcon.kick(rconId, 'Server updating'); } catch { /* player may have already left */ }
-          }
-        }
-        // Give RCON a moment to process kicks
-        await new Promise(r => setTimeout(r, 2000));
-      } catch (err) {
-        logger.debug({ err, serverId }, 'RCON kick-all failed during update stop');
-      }
+    // Kick all connected players via RCON (skip if already kicked during countdown)
+    if (!us.kickedDuringCountdown && state.rcon?.loggedIn) {
+      const kicked = await kickAllPlayers(state, serverId, 'Server updating');
+      if (kicked > 0) addLog(serverId, 'info', 'updates', `Kicked ${kicked} player(s) before stopping`);
     }
 
     // Kill the process
@@ -495,8 +580,8 @@ async function stopAndUpdate(serverId) {
     state.players = [];
     state.startedAt = null;
     state.status = 'stopped';
-    ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
-    ctx.io.emit('players', { serverId, players: [] });
+    if (ctx.io) ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
+    if (ctx.io) ctx.io.emit('players', { serverId, players: [] });
 
     // Execute stopped lifecycle hooks
     await executeHooks(serverId, 'stopped').catch(() => {});
@@ -514,7 +599,7 @@ async function stopAndUpdate(serverId) {
     state.process = null;
     state.players = [];
     state.status = 'stopped';
-    ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
+    if (ctx.io) ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
   }
 
   // Proceed to update phase
@@ -559,6 +644,10 @@ async function runUpdatePhase(serverId) {
     us.error = backupErr.message;
     emitProgress(serverId);
     journalStateTransition(serverId, 'backup_failed', us.updateType, us.updateInfo);
+
+    // Reset to idle so auto-updates can trigger again on the next poll cycle
+    resetState(serverId);
+    emitProgress(serverId);
     return;
   }
 
@@ -781,4 +870,6 @@ module.exports = {
   cancelUpdate,
   initAutoUpdater,
   recoverInterruptedUpdates,
+  getNotificationConfig,
+  DEFAULT_NOTIFICATIONS,
 };

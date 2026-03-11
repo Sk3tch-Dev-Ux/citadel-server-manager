@@ -1,5 +1,101 @@
 [
   {
+    "id": "354400fe-2c5b-4ada-8f3e-74490fec68d8",
+    "timestamp": "2026-03-11T03:18:11.661Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "d3a84470-dbb8-49a0-973c-35318228bbd7",
+    "timestamp": "2026-03-11T03:16:42.615Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "backup.config",
+    "details": "Updated backup config for server 9a0b9edd-a090-4995-8569-f172859d010c"
+  },
+  {
+    "id": "c6fd3a96-9f2b-47b8-96d2-0f0ee5a652c4",
+    "timestamp": "2026-03-11T03:16:42.455Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.update",
+    "details": "Updated server: Testing Branch"
+  },
+  {
+    "id": "ad003f31-b3eb-43af-ab13-4011a1c7db98",
+    "timestamp": "2026-03-11T03:14:23.230Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "c9763782-593a-4c82-a422-721e2033280e",
+    "timestamp": "2026-03-11T03:13:41.845Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "cdf8a70b-49f8-48af-815b-c421b278d638",
+    "timestamp": "2026-03-11T03:13:06.794Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "7d50709c-3dc7-447f-a1a2-75c7db68311f",
+    "timestamp": "2026-03-10T22:01:09.506Z",
+    "userId": "system",
+    "username": "scheduler",
+    "action": "scheduler.execute",
+    "details": "Evening Restart [restart] on Testing Branch"
+  },
+  {
+    "id": "9afed6f9-9622-4932-a33d-022b4fcc08cc",
+    "timestamp": "2026-03-10T22:00:36.463Z",
+    "userId": "system",
+    "username": "scheduler",
+    "action": "scheduler.execute",
+    "details": "Evening Restart [restart] on Testing Branch"
+  },
+  {
+    "id": "3fec0bd8-0d12-4213-be2b-2c0b7892dd0c",
+    "timestamp": "2026-03-10T21:58:41.365Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "job.create",
+    "details": "Created \"Evening Restart\" on server 9a0b9edd-a090-4995-8569-f172859d010c"
+  },
+  {
+    "id": "7389ace0-cf43-4e41-a149-418269e0eab6",
+    "timestamp": "2026-03-10T21:58:22.504Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "message.create",
+    "details": "Created message on server 9a0b9edd-a090-4995-8569-f172859d010c"
+  },
+  {
+    "id": "dea82cee-d5be-4156-a273-42a324473b24",
+    "timestamp": "2026-03-10T21:46:10.876Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: Testing Branch"
+  },
+  {
+    "id": "f24d4016-55eb-469c-9900-469a5705e827",
+    "timestamp": "2026-03-10T21:46:08.307Z",
+    "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
     "id": "1dd917ab-85a9-4412-bbc0-d5c5309d1dfc",
     "timestamp": "2026-03-08T05:53:34.281Z",
     "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",

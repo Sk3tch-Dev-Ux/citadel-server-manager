@@ -11,10 +11,11 @@ const { addNotification, fireWebhooks } = require('../lib/notifications');
 const { banPlayer, listBans, removeBan } = require('../lib/ban-engine');
 const { validateCommand, sanitizeCommand } = require('../lib/rcon-validator');
 const auth = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 const logger = require('../lib/logger');
 
 module.exports = function(app) {
-  app.post('/api/servers/:id/rcon', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/rcon', authForServer('server.rcon'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
 
@@ -39,7 +40,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/message', auth('chat.send'), async (req, res) => {
+  app.post('/api/servers/:id/message', authForServer('chat.send'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
     try {
@@ -48,11 +49,11 @@ module.exports = function(app) {
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
 
-  app.get('/api/servers/:id/players', auth('players.view'), (req, res) => {
+  app.get('/api/servers/:id/players', authForServer('players.view'), (req, res) => {
     res.json(ctx.serverStates[req.params.id]?.players || []);
   });
 
-  app.post('/api/servers/:id/players/:playerId/kick', auth('players.kick'), async (req, res) => {
+  app.post('/api/servers/:id/players/:playerId/kick', authForServer('players.kick'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
     const kickReason = req.body.reason || 'Kicked';
@@ -74,7 +75,7 @@ module.exports = function(app) {
     res.json({ message: 'Kicked' });
   });
 
-  app.post('/api/servers/:id/players/:playerId/ban', auth('players.ban'), async (req, res) => {
+  app.post('/api/servers/:id/players/:playerId/ban', authForServer('players.ban'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(400).json({ error: 'Server not found' });
     // Use global ban database — includes RCON enforce + kick + player list update
@@ -87,12 +88,12 @@ module.exports = function(app) {
   });
 
   // Per-server ban list — returns global bans (all bans apply to all servers)
-  app.get('/api/servers/:id/bans', auth(), async (req, res) => {
+  app.get('/api/servers/:id/bans', authForServer(), async (req, res) => {
     res.json(listBans());
   });
 
   // Unban via global ban database by ban UUID
-  app.delete('/api/servers/:id/bans/:banId', auth('players.ban'), async (req, res) => {
+  app.delete('/api/servers/:id/bans/:banId', authForServer('players.ban'), async (req, res) => {
     const ban = removeBan(req.params.banId);
     if (!ban) return res.status(404).json({ error: 'Ban not found' });
     addAudit(req.user.id, req.user.username, 'player.unban', `Unbanned ${ban.steamId} (${ban.playerName})`);
