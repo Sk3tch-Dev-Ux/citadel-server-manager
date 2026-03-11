@@ -13,9 +13,19 @@ module.exports = function (app) {
    * GET /api/cloud/status — Get cloud connection status for all servers.
    */
   app.get('/api/cloud/status', auth('server.view'), (req, res) => {
+    // Redact relayUrl to only show hostname (not full URL with path)
+    const rawUrl = ctx.CONFIG?.cloud?.relayUrl || '';
+    let redactedUrl = '';
+    try {
+      if (rawUrl) {
+        const parsed = new URL(rawUrl);
+        redactedUrl = `${parsed.protocol}//${parsed.hostname}`;
+      }
+    } catch { redactedUrl = '(invalid)'; }
+
     res.json({
       enabled: cloudAgent.isEnabled(),
-      relayUrl: ctx.CONFIG?.cloud?.relayUrl || '',
+      relayUrl: redactedUrl,
       connections: cloudAgent.getStatus(),
     });
   });
@@ -30,6 +40,12 @@ module.exports = function (app) {
 
     if (!apiKey || typeof apiKey !== 'string') {
       return res.status(400).json({ error: 'apiKey is required' });
+    }
+    if (apiKey.length < 32) {
+      return res.status(400).json({ error: 'apiKey must be at least 32 characters' });
+    }
+    if (!/^[a-zA-Z0-9_\-]+$/.test(apiKey)) {
+      return res.status(400).json({ error: 'apiKey contains invalid characters' });
     }
 
     if (!ctx.CONFIG?.cloud?.enabled || !ctx.CONFIG?.cloud?.relayUrl) {
