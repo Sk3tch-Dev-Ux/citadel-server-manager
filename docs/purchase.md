@@ -5,6 +5,7 @@ title: Purchase Citadel
 
 <script setup>
 import { ref } from 'vue';
+import { withBase } from 'vitepress';
 
 // Your Vercel license server URL (set after deploying)
 const API_BASE = 'https://citadel-license-generator.vercel.app';
@@ -238,32 +239,32 @@ async function handlePurchase() {
 
 <div class="features-grid">
   <div class="feat">
-    <div class="feat-icon"><img src="/DayzServerController/icons/monitor.svg" alt="Web Dashboard" /></div>
+    <div class="feat-icon"><img :src="withBase('/icons/monitor.svg')" alt="Web Dashboard" /></div>
     <h3>Web Dashboard</h3>
     <p>Real-time monitoring, RCON console, file editor, player management, and scheduler.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon"><img src="/DayzServerController/icons/bot.svg" alt="Discord Bot" /></div>
+    <div class="feat-icon"><img :src="withBase('/icons/bot.svg')" alt="Discord Bot" /></div>
     <h3>Discord Bot</h3>
     <p>Control servers from Discord with button commands, live embeds, and kill feed.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon"><img src="/DayzServerController/icons/gamepad-2.svg" alt="In-Game Admin Mod" /></div>
+    <div class="feat-icon"><img :src="withBase('/icons/gamepad-2.svg')" alt="In-Game Admin Mod" /></div>
     <h3>In-Game Admin Mod</h3>
     <p>@CitadelAdmin DayZ mod for server-side commands, tracking, and vehicle management.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon"><img src="/DayzServerController/icons/package.svg" alt="Mod Manager" /></div>
+    <div class="feat-icon"><img :src="withBase('/icons/package.svg')" alt="Mod Manager" /></div>
     <h3>Mod Manager</h3>
     <p>Install, update, and manage Steam Workshop mods with dependency resolution.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon"><img src="/DayzServerController/icons/refresh-cw.svg" alt="Automated Backups" /></div>
+    <div class="feat-icon"><img :src="withBase('/icons/refresh-cw.svg')" alt="Automated Backups" /></div>
     <h3>Automated Backups</h3>
     <p>Scheduled backups with retention policies, one-click restore, and offsite support.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon"><img src="/DayzServerController/icons/zap.svg" alt="Lifetime Updates" /></div>
+    <div class="feat-icon"><img :src="withBase('/icons/zap.svg')" alt="Lifetime Updates" /></div>
     <h3>Lifetime Updates</h3>
     <p>Every future update, feature, and improvement — included forever.</p>
   </div>
