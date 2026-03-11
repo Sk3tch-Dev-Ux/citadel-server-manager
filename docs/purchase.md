@@ -128,8 +128,12 @@ async function handlePurchase() {
   padding: 20px;
 }
 .features-grid .feat .feat-icon {
-  font-size: 1.4rem;
   margin-bottom: 8px;
+  line-height: 1;
+}
+.features-grid .feat .feat-icon img {
+  width: 28px;
+  height: 28px;
 }
 .features-grid .feat h3 {
   font-size: 0.95rem;
@@ -234,32 +238,32 @@ async function handlePurchase() {
 
 <div class="features-grid">
   <div class="feat">
-    <div class="feat-icon">🖥️</div>
+    <div class="feat-icon"><img src="/DayzServerController/icons/monitor.svg" alt="Web Dashboard" /></div>
     <h3>Web Dashboard</h3>
     <p>Real-time monitoring, RCON console, file editor, player management, and scheduler.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon">🤖</div>
+    <div class="feat-icon"><img src="/DayzServerController/icons/bot.svg" alt="Discord Bot" /></div>
     <h3>Discord Bot</h3>
     <p>Control servers from Discord with button commands, live embeds, and kill feed.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon">🎮</div>
+    <div class="feat-icon"><img src="/DayzServerController/icons/gamepad-2.svg" alt="In-Game Admin Mod" /></div>
     <h3>In-Game Admin Mod</h3>
     <p>@CitadelAdmin DayZ mod for server-side commands, tracking, and vehicle management.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon">📦</div>
+    <div class="feat-icon"><img src="/DayzServerController/icons/package.svg" alt="Mod Manager" /></div>
     <h3>Mod Manager</h3>
     <p>Install, update, and manage Steam Workshop mods with dependency resolution.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon">🔄</div>
+    <div class="feat-icon"><img src="/DayzServerController/icons/refresh-cw.svg" alt="Automated Backups" /></div>
     <h3>Automated Backups</h3>
     <p>Scheduled backups with retention policies, one-click restore, and offsite support.</p>
   </div>
   <div class="feat">
-    <div class="feat-icon">⚡</div>
+    <div class="feat-icon"><img src="/DayzServerController/icons/zap.svg" alt="Lifetime Updates" /></div>
     <h3>Lifetime Updates</h3>
     <p>Every future update, feature, and improvement — included forever.</p>
   </div>
