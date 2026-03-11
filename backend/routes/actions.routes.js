@@ -5,7 +5,7 @@
  * Uses the provider pattern to delegate to the best available backend.
  */
 const { addAudit } = require('../lib/audit');
-const auth = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 const {
   getProviderForAction,
   findSession,
@@ -18,12 +18,12 @@ module.exports = function(app) {
 
   // ─── Capabilities Endpoint (NEW) ──────────────────────
   // Frontend uses this to show/hide action buttons per-server
-  app.get('/api/servers/:id/actions/capabilities', auth('server.view'), (req, res) => {
+  app.get('/api/servers/:id/actions/capabilities', authForServer('server.view'), (req, res) => {
     res.json(getCapabilities(req.params.id));
   });
 
   // ─── Spawn Item on Player ─────────────────────────────
-  app.post('/api/servers/:id/actions/spawn-item', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn-item', authForServer('server.rcon'), async (req, res) => {
     const { steamId, itemClass, quantity } = req.body;
     if (!steamId || !itemClass) return res.status(400).json({ error: 'steamId and itemClass required' });
 
@@ -42,7 +42,7 @@ module.exports = function(app) {
   });
 
   // ─── Heal Player ──────────────────────────────────────
-  app.post('/api/servers/:id/actions/heal', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/heal', authForServer('server.rcon'), async (req, res) => {
     const { steamId } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -61,7 +61,7 @@ module.exports = function(app) {
   });
 
   // ─── Kill Player ──────────────────────────────────────
-  app.post('/api/servers/:id/actions/kill', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/kill', authForServer('server.rcon'), async (req, res) => {
     const { steamId } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -80,7 +80,7 @@ module.exports = function(app) {
   });
 
   // ─── Teleport Player ─────────────────────────────────
-  app.post('/api/servers/:id/actions/teleport', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/teleport', authForServer('server.rcon'), async (req, res) => {
     const { steamId, x, y, z } = req.body;
     if (!steamId || x == null || y == null) return res.status(400).json({ error: 'steamId, x, and y required' });
 
@@ -99,7 +99,7 @@ module.exports = function(app) {
   });
 
   // ─── Message Player ─────────────────────────────────
-  app.post('/api/servers/:id/actions/message', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/message', authForServer('server.rcon'), async (req, res) => {
     const { steamId, message } = req.body;
     if (!steamId || !message) return res.status(400).json({ error: 'steamId and message required' });
 
@@ -118,7 +118,7 @@ module.exports = function(app) {
   });
 
   // ─── Unstuck Player ─────────────────────────────────
-  app.post('/api/servers/:id/actions/unstuck', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/unstuck', authForServer('server.rcon'), async (req, res) => {
     const { steamId } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -137,7 +137,7 @@ module.exports = function(app) {
   });
 
   // ─── Freeze Player ─────────────────────────────────
-  app.post('/api/servers/:id/actions/freeze', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/freeze', authForServer('server.rcon'), async (req, res) => {
     const { steamId, frozen } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -159,7 +159,7 @@ module.exports = function(app) {
   });
 
   // ─── Kick Player ──────────────────────────────────
-  app.post('/api/servers/:id/actions/kick', auth('players.kick'), async (req, res) => {
+  app.post('/api/servers/:id/actions/kick', authForServer('players.kick'), async (req, res) => {
     const { steamId, reason } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -207,7 +207,7 @@ module.exports = function(app) {
   // ─── Ban Player ───────────────────────────────────
   // Routes through the global ban database: persists to bans.json, writes ban.txt,
   // RCON ban + kick for immediate enforcement, and updates the player list.
-  app.post('/api/servers/:id/actions/ban', auth('players.ban'), async (req, res) => {
+  app.post('/api/servers/:id/actions/ban', authForServer('players.ban'), async (req, res) => {
     const { steamId, reason } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -230,7 +230,7 @@ module.exports = function(app) {
   });
 
   // ─── Teleport To Player ────────────────────────────
-  app.post('/api/servers/:id/actions/teleport-to-player', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/teleport-to-player', authForServer('server.rcon'), async (req, res) => {
     const { steamId, targetSteamId } = req.body;
     if (!steamId || !targetSteamId) return res.status(400).json({ error: 'steamId and targetSteamId required' });
 
@@ -252,7 +252,7 @@ module.exports = function(app) {
   });
 
   // ─── Get Player Loadout ────────────────────────────
-  app.get('/api/servers/:id/actions/loadout/:steamId', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/loadout/:steamId', authForServer('server.view'), async (req, res) => {
     const { steamId } = req.params;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -266,7 +266,7 @@ module.exports = function(app) {
   });
 
   // ─── Strip Player Inventory ───────────────────────────
-  app.post('/api/servers/:id/actions/strip', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/strip', authForServer('server.rcon'), async (req, res) => {
     const { steamId } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -285,7 +285,7 @@ module.exports = function(app) {
   });
 
   // ─── Explode Player ───────────────────────────────────
-  app.post('/api/servers/:id/actions/explode', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/explode', authForServer('server.rcon'), async (req, res) => {
     const { steamId } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -304,7 +304,7 @@ module.exports = function(app) {
   });
 
   // ─── Vehicle Teleport (special — needs coordinates) ──
-  app.post('/api/servers/:id/actions/vehicle/teleport', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/vehicle/teleport', authForServer('server.rcon'), async (req, res) => {
     const { vehicleId, x, y, z } = req.body;
     if (!vehicleId || x == null || z == null) {
       return res.status(400).json({ error: 'vehicleId, x, and z required' });
@@ -322,7 +322,7 @@ module.exports = function(app) {
   });
 
   // ─── Vehicle Actions (parameterized) ──────────────────
-  app.post('/api/servers/:id/actions/vehicle/:action', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/vehicle/:action', authForServer('server.rcon'), async (req, res) => {
     const { vehicleId } = req.body;
     const action = req.params.action;
     if (!vehicleId) return res.status(400).json({ error: 'vehicleId required' });
@@ -342,7 +342,7 @@ module.exports = function(app) {
   });
 
   // ─── World: Set Time ──────────────────────────────────
-  app.post('/api/servers/:id/actions/world/time', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/time', authForServer('server.rcon'), async (req, res) => {
     const { hour, minute } = req.body;
     if (hour == null) return res.status(400).json({ error: 'hour required' });
 
@@ -358,7 +358,7 @@ module.exports = function(app) {
   });
 
   // ─── World: Set Weather ───────────────────────────────
-  app.post('/api/servers/:id/actions/world/weather', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/weather', authForServer('server.rcon'), async (req, res) => {
     const { overcast, rain, fog, snow, wind } = req.body;
 
     try {
@@ -373,7 +373,7 @@ module.exports = function(app) {
   });
 
   // ─── World: Clear Weather (Sunny) ─────────────────────
-  app.post('/api/servers/:id/actions/world/sunny', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/sunny', authForServer('server.rcon'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.CLEAR_WEATHER);
       await provider.clearWeather(req.params.id);
@@ -386,7 +386,7 @@ module.exports = function(app) {
   });
 
   // ─── World: Wipe AI ───────────────────────────────────
-  app.post('/api/servers/:id/actions/world/wipe-ai', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/wipe-ai', authForServer('server.rcon'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.WIPE_AI);
       await provider.wipeAI(req.params.id);
@@ -399,7 +399,7 @@ module.exports = function(app) {
   });
 
   // ─── World: Wipe Vehicles ─────────────────────────────
-  app.post('/api/servers/:id/actions/world/wipe-vehicles', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/wipe-vehicles', authForServer('server.rcon'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.WIPE_VEHICLES);
       await provider.wipeVehicles(req.params.id);
@@ -412,7 +412,7 @@ module.exports = function(app) {
   });
 
   // ─── Get Player Details ───────────────────────────────
-  app.get('/api/servers/:id/actions/player/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/player/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_DETAILS);
       const details = await provider.getPlayerDetails(req.params.id, req.params.steamId);
@@ -423,7 +423,7 @@ module.exports = function(app) {
   });
 
   // ─── Config: Reload ──────────────────────────────────
-  app.post('/api/servers/:id/actions/config/reload', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/config/reload', authForServer('server.rcon'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.RELOAD_CONFIG);
       await provider.reloadConfig(req.params.id);
@@ -441,7 +441,7 @@ module.exports = function(app) {
 
   // ─── Helper: simple player action (steamId only) ──────
   function playerRoute(app, slug, actionType, providerMethod, label) {
-    app.post(`/api/servers/:id/actions/${slug}`, auth('server.rcon'), async (req, res) => {
+    app.post(`/api/servers/:id/actions/${slug}`, authForServer('server.rcon'), async (req, res) => {
       const { steamId } = req.body;
       if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -483,7 +483,7 @@ module.exports = function(app) {
   playerRoute(app, 'fill-magazines', ActionType.FILL_MAGAZINES,     'fillMagazines',    'Filled magazines of');
 
   // ─── Make Sick (with disease type param) ───────────────
-  app.post('/api/servers/:id/actions/make-sick', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/make-sick', authForServer('server.rcon'), async (req, res) => {
     const { steamId, diseaseType } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -502,7 +502,7 @@ module.exports = function(app) {
   });
 
   // ─── Set Blood Type ────────────────────────────────────
-  app.post('/api/servers/:id/actions/set-blood-type', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/set-blood-type', authForServer('server.rcon'), async (req, res) => {
     const { steamId, bloodType } = req.body;
     if (!steamId || !bloodType) return res.status(400).json({ error: 'steamId and bloodType required' });
 
@@ -521,7 +521,7 @@ module.exports = function(app) {
   });
 
   // ─── Set Bleeding (with source count) ──────────────────
-  app.post('/api/servers/:id/actions/set-bleeding', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/set-bleeding', authForServer('server.rcon'), async (req, res) => {
     const { steamId, sourceCount } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -540,7 +540,7 @@ module.exports = function(app) {
   });
 
   // ─── Launch Player (power + angle) ─────────────────────
-  app.post('/api/servers/:id/actions/launch', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/launch', authForServer('server.rcon'), async (req, res) => {
     const { steamId, power, angle } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -559,7 +559,7 @@ module.exports = function(app) {
   });
 
   // ─── Set Player Stat ───────────────────────────────────
-  app.post('/api/servers/:id/actions/set-stat', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/set-stat', authForServer('server.rcon'), async (req, res) => {
     const { steamId, stat, value } = req.body;
     if (!steamId || !stat) return res.status(400).json({ error: 'steamId and stat required' });
 
@@ -578,7 +578,7 @@ module.exports = function(app) {
   });
 
   // ─── Ragdoll Player (with duration) ────────────────────
-  app.post('/api/servers/:id/actions/ragdoll', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/ragdoll', authForServer('server.rcon'), async (req, res) => {
     const { steamId, duration } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
 
@@ -598,7 +598,7 @@ module.exports = function(app) {
 
   // ─── World: Extended Actions ───────────────────────────
 
-  app.post('/api/servers/:id/actions/world/set-fog', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/set-fog', authForServer('server.rcon'), async (req, res) => {
     const { density } = req.body;
     try {
       const provider = getProviderForAction(req.params.id, ActionType.SET_FOG);
@@ -611,7 +611,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/world/set-wind', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/set-wind', authForServer('server.rcon'), async (req, res) => {
     const { speed, direction } = req.body;
     try {
       const provider = getProviderForAction(req.params.id, ActionType.SET_WIND);
@@ -624,7 +624,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/world/flatten-trees', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/flatten-trees', authForServer('server.rcon'), async (req, res) => {
     const { steamId, radius } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -640,7 +640,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/world/clear-zombies', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/clear-zombies', authForServer('server.rcon'), async (req, res) => {
     const { steamId, radius } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -656,7 +656,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/world/delete-objects-radius', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/world/delete-objects-radius', authForServer('server.rcon'), async (req, res) => {
     const { steamId, radius, objectType } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -674,7 +674,7 @@ module.exports = function(app) {
 
   // ─── Spawn Actions ────────────────────────────────────
 
-  app.post('/api/servers/:id/actions/spawn/zombie', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/zombie', authForServer('server.rcon'), async (req, res) => {
     const { steamId, count, coords } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -690,7 +690,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/animal', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/animal', authForServer('server.rcon'), async (req, res) => {
     const { steamId, animalType, coords } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -706,7 +706,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/vehicle', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/vehicle', authForServer('server.rcon'), async (req, res) => {
     const { steamId, vehicleClass, coords } = req.body;
     if (!steamId || !vehicleClass) return res.status(400).json({ error: 'steamId and vehicleClass required' });
     const session = findSession(req.params.id, steamId);
@@ -722,7 +722,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/building', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/building', authForServer('server.rcon'), async (req, res) => {
     const { steamId, buildingClass, coords } = req.body;
     if (!steamId || !buildingClass) return res.status(400).json({ error: 'steamId and buildingClass required' });
     const session = findSession(req.params.id, steamId);
@@ -738,7 +738,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/horde', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/horde', authForServer('server.rcon'), async (req, res) => {
     const { steamId, count } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -754,7 +754,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/supply-crate', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/supply-crate', authForServer('server.rcon'), async (req, res) => {
     const { crateType, coords } = req.body;
     if (!coords) return res.status(400).json({ error: 'coords required' });
     try {
@@ -768,7 +768,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/loot-pile', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/loot-pile', authForServer('server.rcon'), async (req, res) => {
     const { steamId, lootType, coords } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -784,7 +784,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/item-attached', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/item-attached', authForServer('server.rcon'), async (req, res) => {
     const { steamId, itemClass, attachments } = req.body;
     if (!steamId || !itemClass) return res.status(400).json({ error: 'steamId and itemClass required' });
     const session = findSession(req.params.id, steamId);
@@ -800,7 +800,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/item-at', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/item-at', authForServer('server.rcon'), async (req, res) => {
     const { itemClass, coords } = req.body;
     if (!itemClass || !coords) return res.status(400).json({ error: 'itemClass and coords required' });
     try {
@@ -814,7 +814,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/zombie-at', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/zombie-at', authForServer('server.rcon'), async (req, res) => {
     const { count, coords } = req.body;
     if (!coords) return res.status(400).json({ error: 'coords required' });
     try {
@@ -828,7 +828,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/animal-at', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/animal-at', authForServer('server.rcon'), async (req, res) => {
     const { animalType, coords } = req.body;
     if (!coords) return res.status(400).json({ error: 'coords required' });
     try {
@@ -842,7 +842,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/fire', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/fire', authForServer('server.rcon'), async (req, res) => {
     const { steamId, fireType, coords } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -858,7 +858,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/smoke', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/smoke', authForServer('server.rcon'), async (req, res) => {
     const { steamId, color, coords } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -874,7 +874,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/heli-crash', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/heli-crash', authForServer('server.rcon'), async (req, res) => {
     const { heliType, coords } = req.body;
     if (!coords) return res.status(400).json({ error: 'coords required' });
     try {
@@ -888,7 +888,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/spawn/gas-zone', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/spawn/gas-zone', authForServer('server.rcon'), async (req, res) => {
     const { zoneType, coords } = req.body;
     if (!coords) return res.status(400).json({ error: 'coords required' });
     try {
@@ -904,7 +904,7 @@ module.exports = function(app) {
 
   // ─── Structure Actions ────────────────────────────────
 
-  app.post('/api/servers/:id/actions/structure/open-doors', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/structure/open-doors', authForServer('server.rcon'), async (req, res) => {
     const { steamId, radius } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -920,7 +920,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/structure/close-doors', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/structure/close-doors', authForServer('server.rcon'), async (req, res) => {
     const { steamId, radius } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -936,7 +936,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/structure/loot-magnet', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/structure/loot-magnet', authForServer('server.rcon'), async (req, res) => {
     const { steamId, radius } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     const session = findSession(req.params.id, steamId);
@@ -954,7 +954,7 @@ module.exports = function(app) {
 
   // ─── Item Actions ─────────────────────────────────────
 
-  app.post('/api/servers/:id/actions/item/delete', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/item/delete', authForServer('server.rcon'), async (req, res) => {
     const { persistentId } = req.body;
     if (!persistentId) return res.status(400).json({ error: 'persistentId required' });
     try {
@@ -968,7 +968,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/item/repair', auth('server.rcon'), async (req, res) => {
+  app.post('/api/servers/:id/actions/item/repair', authForServer('server.rcon'), async (req, res) => {
     const { persistentId } = req.body;
     if (!persistentId) return res.status(400).json({ error: 'persistentId required' });
     try {
@@ -984,7 +984,7 @@ module.exports = function(app) {
 
   // ─── Data / Query Actions ─────────────────────────────
 
-  app.get('/api/servers/:id/actions/data/online-players', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/online-players', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_ONLINE_PLAYERS);
       const data = await provider.getOnlinePlayers(req.params.id);
@@ -994,7 +994,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/all-players', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/all-players', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_ALL_PLAYERS);
       const data = await provider.getAllPlayers(req.params.id);
@@ -1004,7 +1004,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/server-info', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/server-info', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_SERVER_INFO);
       const data = await provider.getServerInfo(req.params.id);
@@ -1014,7 +1014,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-position/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/player-position/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_POSITION);
       const data = await provider.getPlayerPosition(req.params.id, req.params.steamId);
@@ -1024,7 +1024,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-info/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/player-info/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_INFO);
       const data = await provider.getPlayerInfo(req.params.id, req.params.steamId);
@@ -1034,7 +1034,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-gear/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/player-gear/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_GEAR);
       const data = await provider.getPlayerGear(req.params.id, req.params.steamId);
@@ -1044,7 +1044,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-inventory/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/player-inventory/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_INVENTORY);
       const data = await provider.getPlayerInventory(req.params.id, req.params.steamId);
@@ -1054,7 +1054,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-stats/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/player-stats/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_STATS);
       const data = await provider.getPlayerStats(req.params.id, req.params.steamId);
@@ -1064,7 +1064,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-full/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/player-full/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_FULL);
       const data = await provider.getPlayerFull(req.params.id, req.params.steamId);
@@ -1074,7 +1074,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-gear-full/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/player-gear-full/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_GEAR_FULL);
       const data = await provider.getPlayerGearFull(req.params.id, req.params.steamId);
@@ -1084,7 +1084,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-hands/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/player-hands/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_HANDS_DATA);
       const data = await provider.getPlayerHandsData(req.params.id, req.params.steamId);
@@ -1094,7 +1094,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/nearby-vehicles/:steamId', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/nearby-vehicles/:steamId', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_VEHICLES);
       const data = await provider.getNearbyVehicles(req.params.id, req.params.steamId, req.query.radius);
@@ -1104,7 +1104,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/vehicle-info/:steamId', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/vehicle-info/:steamId', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_VEHICLE_INFO);
       const data = await provider.getVehicleInfo(req.params.id, req.params.steamId, req.query.radius);
@@ -1114,7 +1114,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/item-details/:persistentId', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/item-details/:persistentId', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_ITEM_DETAILS);
       const data = await provider.getItemDetails(req.params.id, req.params.persistentId);
@@ -1124,7 +1124,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/base-objects/:steamId', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/base-objects/:steamId', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_BASE_OBJECTS);
       const data = await provider.getBaseObjects(req.params.id, req.params.steamId, req.query.radius);
@@ -1134,7 +1134,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/storage-contents', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/storage-contents', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_STORAGE_CONTENTS);
       const data = await provider.getStorageContents(req.params.id, req.query.persistentId, req.query.steamId, req.query.position);
@@ -1144,7 +1144,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/all-storage-objects', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/all-storage-objects', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_ALL_STORAGE_OBJECTS);
       const data = await provider.getAllStorageObjects(req.params.id);
@@ -1154,7 +1154,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/nearby-players/:steamId', auth('players.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/nearby-players/:steamId', authForServer('players.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_PLAYERS);
       const data = await provider.getNearbyPlayers(req.params.id, req.params.steamId, req.query.radius);
@@ -1164,7 +1164,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/nearby-loot/:steamId', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/nearby-loot/:steamId', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_LOOT);
       const data = await provider.getNearbyLoot(req.params.id, req.params.steamId, req.query.radius, req.query.limit);
@@ -1174,7 +1174,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/nearby-entities/:steamId', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/nearby-entities/:steamId', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_ENTITIES);
       const data = await provider.getNearbyEntities(req.params.id, req.params.steamId, req.query.radius);
@@ -1184,7 +1184,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/nearby-entities-at', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/nearby-entities-at', authForServer('server.view'), async (req, res) => {
     const { coords, radius } = req.query;
     if (!coords) return res.status(400).json({ error: 'coords required' });
     try {
@@ -1196,7 +1196,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/nearby-loot-at', auth('server.view'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/nearby-loot-at', authForServer('server.view'), async (req, res) => {
     const { coords, radius } = req.query;
     if (!coords) return res.status(400).json({ error: 'coords required' });
     try {
@@ -1208,7 +1208,7 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/bans', auth('players.ban'), async (req, res) => {
+  app.get('/api/servers/:id/actions/data/bans', authForServer('players.ban'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_BANS);
       const data = await provider.getBans(req.params.id);
@@ -1218,7 +1218,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/actions/unban', auth('players.ban'), async (req, res) => {
+  app.post('/api/servers/:id/actions/unban', authForServer('players.ban'), async (req, res) => {
     const { steamId } = req.body;
     if (!steamId) return res.status(400).json({ error: 'steamId required' });
     try {

@@ -256,7 +256,7 @@ function JobModal({ open, onClose, onSave, editingJob, servers, currentServerId 
   };
 
   return (
-    <Modal open={open} onOpenChange={onClose} title={isEdit ? 'Edit Scheduled Job' : 'New Scheduled Job'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Scheduled Job' : 'New Scheduled Job'}>
       <div className="scheduler-modal-form">
         <FormField label="Job Title">
           <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Morning Restart" />

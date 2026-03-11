@@ -124,8 +124,29 @@ module.exports = function(app) {
   app.patch('/api/servers/:id', auth('server.deploy'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
-    const allowed = ['name','installDir','executable','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreServerModUpdates','cftoolsServerApiId','cftoolsBanlistId','inHouseApiUrl','inHouseApiKey','autoUpdateEnabled','updateCountdownSeconds','updateWarningIntervals'];
+    const allowed = ['name','installDir','executable','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreModUpdates','notifications','cftoolsServerApiId','cftoolsBanlistId','inHouseApiUrl','inHouseApiKey','autoUpdateEnabled','updateCountdownSeconds','updateWarningIntervals'];
+    // Migrate old field name: ignoreServerModUpdates → ignoreModUpdates
+    if (req.body.ignoreServerModUpdates !== undefined && req.body.ignoreModUpdates === undefined) {
+      req.body.ignoreModUpdates = req.body.ignoreServerModUpdates;
+    }
+    // Validate notifications object structure if provided
+    if (req.body.notifications && typeof req.body.notifications === 'object') {
+      const validTypes = ['shutdown', 'gameUpdate', 'modUpdate'];
+      for (const type of validTypes) {
+        const n = req.body.notifications[type];
+        if (n && typeof n === 'object') {
+          if (n.duration !== undefined) n.duration = Math.max(0, parseInt(n.duration) || 0);
+          if (n.interval !== undefined) n.interval = Math.max(1, parseInt(n.interval) || 5);
+          if (n.message !== undefined) n.message = String(n.message);
+          if (n.enabled !== undefined) n.enabled = !!n.enabled;
+          if (n.kickOnCountdown !== undefined) n.kickOnCountdown = !!n.kickOnCountdown;
+          if (n.lockOnCountdown !== undefined) n.lockOnCountdown = !!n.lockOnCountdown;
+        }
+      }
+    }
     for (const key of allowed) { if (req.body[key] !== undefined) srv[key] = req.body[key]; }
+    // Clean up legacy field if canonical name is now set
+    if (srv.ignoreModUpdates !== undefined) delete srv.ignoreServerModUpdates;
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
     // Update firewall rules if ports or name changed
     if (req.body.gamePort || req.body.queryPort || req.body.rconPort || req.body.name) {

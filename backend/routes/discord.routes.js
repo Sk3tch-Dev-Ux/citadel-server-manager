@@ -231,8 +231,8 @@ module.exports = function(app) {
         return res.json({ messages: state?.chatMessages || [] });
 
       case 'banWhitelist': {
-        const bans = await listBans(targetSrv?.id);
-        return res.json({ entries: bans.map(b => ({ player: b.name || b.id, status: 'Banned', reason: b.reason || '' })) });
+        const bans = listBans();
+        return res.json({ entries: bans.map(b => ({ player: b.playerName || b.steamId, status: 'Banned', reason: b.reason || '' })) });
       }
 
       case 'killfeed':

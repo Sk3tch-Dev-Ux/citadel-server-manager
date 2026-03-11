@@ -71,7 +71,8 @@ function detectMissionFolder(installDir) {
 function getScanDirs(srv) {
   const dirs = [path.resolve(srv.installDir)];
   if (srv.profileDir) {
-    const profileResolved = path.resolve(srv.profileDir);
+    // Resolve profileDir relative to installDir (profileDir is typically "profiles")
+    const profileResolved = path.resolve(srv.installDir, srv.profileDir);
     if (profileResolved !== dirs[0] && fs.existsSync(profileResolved)) {
       dirs.push(profileResolved);
     }

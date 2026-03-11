@@ -567,10 +567,10 @@ export default function StoreManagementPage() {
   };
 
   const handleDeleteProduct = async (product) => {
-    const yes = await confirm(`Delete "${product.name}"?`, 'This product will be permanently removed. Existing purchases are not affected.');
+    const yes = await confirm({ title: `Delete "${product.name}"?`, message: 'This product will be permanently removed. Existing purchases are not affected.', confirmLabel: 'Delete', variant: 'danger' });
     if (!yes) return;
     try {
-      await API.delete(`/api/store/admin/products/${product.id}`);
+      await API.del(`/api/store/admin/products/${product.id}`);
       setProducts(prev => prev.filter(p => p.id !== product.id));
       window.addToast?.(`Product "${product.name}" deleted`, 'success');
     } catch (err) {

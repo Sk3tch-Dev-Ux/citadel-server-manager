@@ -356,7 +356,7 @@ function MessageModal({ open, onClose, onSave, editingMsg, templateDefaults, ser
   };
 
   return (
-    <Modal open={open} onOpenChange={onClose} title={isEdit ? 'Edit Broadcast Message' : 'New Broadcast Message'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Broadcast Message' : 'New Broadcast Message'}>
       <div className="scheduler-modal-form">
         <FormField label="Message Text">
           <textarea

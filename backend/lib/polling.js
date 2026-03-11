@@ -269,7 +269,8 @@ function startSteamUpdatePolling() {
       const state = ctx.serverStates[srv.id];
       if (!state) continue;
       // Mod update polling
-      if (!srv.ignoreModUpdates && Array.isArray(state.modList)) {
+      const ignoreModUpdates = srv.ignoreModUpdates ?? srv.ignoreServerModUpdates ?? false;
+      if (!ignoreModUpdates && Array.isArray(state.modList)) {
         for (const mod of state.modList) {
           if (!mod.workshopId) continue;
           const remoteVersion = await getWorkshopModVersion(mod.workshopId);
@@ -280,8 +281,8 @@ function startSteamUpdatePolling() {
             ctx.io.emit('modUpdate', { serverId: srv.id, mod: mod.name, workshopId: mod.workshopId });
             // Track as pending update for frontend badges
             pendingModUpdates[mod.workshopId] = { name: mod.name, detectedAt: new Date().toISOString(), remoteVersion };
-            // Auto-updater integration: trigger update pipeline when enabled
-            if (srv.autoUpdateEnabled) {
+            // Auto-updater integration: trigger update pipeline when enabled and shutdown for mods is allowed
+            if (srv.autoUpdateEnabled && srv.shutdownForModUpdates !== false) {
               triggerAutoUpdate(srv.id, 'mod', { modId: mod.workshopId, modName: mod.name });
             }
           }
@@ -296,8 +297,8 @@ function startSteamUpdatePolling() {
         addNotification(srv.id, 'game.update', 'Game Update Available', `DayZ game build ${remoteBuild} is available.`, 'warning');
         fireWebhooks('title.updated', { serverId: srv.id, serverName: srv.name, build: remoteBuild });
         ctx.io.emit('gameUpdate', { serverId: srv.id, build: remoteBuild });
-        // Auto-updater integration: trigger update pipeline when enabled
-        if (srv.autoUpdateEnabled) {
+        // Auto-updater integration: trigger update pipeline when enabled and shutdown for title is allowed
+        if (srv.autoUpdateEnabled && srv.shutdownForTitleUpdates !== false) {
           triggerAutoUpdate(srv.id, 'game', { build: remoteBuild });
         }
       }

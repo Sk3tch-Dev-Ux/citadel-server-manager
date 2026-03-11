@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import { formatBytes } from '../utils';
 import { Folder, FolderOpen, FileCode, FileCog, FileJson, FileText, Zap, Globe, File, Save, RefreshCw, ChevronDown, ChevronRight, Loader } from '../components/Icon';
 
 export default function FilesPage({ serverId }) {
-  const socket = useSocket();
 
   // Tree state: { [dirPath]: entries[] }
   const [tree, setTree] = useState({});

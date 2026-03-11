@@ -160,7 +160,14 @@
       "Bash(git config --global user.email)",
       "Bash(grep -n \"inHouseApiUrl\\\\|inHouseApiKey\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib/*.js)",
       "Bash(node node_modules/vite/bin/vite.js build)",
-      "Bash(find dayz-mod/@CitadelAdmin/scripts -name \"*.c\" -exec wc -l {} +)"
+      "Bash(find dayz-mod/@CitadelAdmin/scripts -name \"*.c\" -exec wc -l {} +)",
+      "Bash(wc -c \"/c/Users/KurtE/OneDrive/Pictures/New DayZ Tools/DayZCommandRelay_deob/Raid_Token \\(1\\).pbo\")",
+      "Bash(python debug_short.py)",
+      "Bash(python debug_remaining.py)",
+      "Bash(python pbo_deob.py \"Raid_Token \\(1\\).pbo\" \"Raid_Token_v3_out\")",
+      "Bash(python pbo_deob.py \"_AR_Notifications.pbo\" \"AR_Notifications_v3_out\")",
+      "Bash(grep -l \"backup-config\\\\|backupConfig\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/routes/*.js /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib/*.js)",
+      "Bash(timeout 8 node server.js)"
     ]
   }
 }

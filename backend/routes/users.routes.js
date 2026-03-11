@@ -42,6 +42,11 @@ module.exports = function(app) {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.isRoot) return res.status(403).json({ error: 'Cannot modify root user' });
 
+    // Prevent non-admin users from modifying other users (MUST be checked before mutations)
+    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You can only modify your own account' });
+    }
+
     // Validate input fields
     if (req.body.username !== undefined) {
       if (typeof req.body.username !== 'string') return res.status(400).json({ error: 'Username must be a string' });
@@ -79,11 +84,6 @@ module.exports = function(app) {
         return res.status(400).json({ error: 'Password does not meet policy requirements (min 8 chars, uppercase, lowercase, number, special char).' });
       }
       user.passwordHash = await bcrypt.hash(req.body.password, 10);
-    }
-
-    // Prevent non-admin users from modifying other users
-    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'You can only modify your own account' });
     }
 
     saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users.map(u => ({ ...u })));
