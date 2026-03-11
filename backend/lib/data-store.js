@@ -126,4 +126,25 @@ function forceFlush(dataDir, filename) {
   writeQueue.delete(filename);
 }
 
-module.exports = { loadJSON, saveJSON, flushAll, forceFlush };
+/**
+ * Remove orphaned .tmp.* files left behind by crashes during atomic writes.
+ * Called once at startup to prevent stale temp files from accumulating.
+ */
+function cleanupStaleTempFiles(dataDir) {
+  try {
+    const files = fs.readdirSync(dataDir);
+    const stale = files.filter(f => f.includes('.tmp.'));
+    for (const f of stale) {
+      try {
+        fs.unlinkSync(path.join(dataDir, f));
+      } catch { /* best effort */ }
+    }
+    if (stale.length > 0) {
+      logger.info({ count: stale.length }, 'Cleaned up stale temp files from data directory');
+    }
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Failed to scan for stale temp files');
+  }
+}
+
+module.exports = { loadJSON, saveJSON, flushAll, forceFlush, cleanupStaleTempFiles };

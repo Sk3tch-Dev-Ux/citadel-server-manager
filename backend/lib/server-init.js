@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');
-const { loadJSON, saveJSON } = require('./data-store');
+const { loadJSON, saveJSON, cleanupStaleTempFiles } = require('./data-store');
 const { readServerConfig } = require('./dayz-config');
 const { autoDetectMods } = require('./mod-manager');
 const { getSidecarPort } = require('./sidecar-manager');
@@ -158,6 +158,7 @@ async function startup() {
     throw new Error(msg);
   }
 
+  cleanupStaleTempFiles(ctx.CONFIG.dataDir);
   migrateDefaultServer();
   migrateInHouseApiUrl();
   migrateNotificationFields();

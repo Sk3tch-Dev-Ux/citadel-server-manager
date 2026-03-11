@@ -167,7 +167,11 @@
       "Bash(python pbo_deob.py \"Raid_Token \\(1\\).pbo\" \"Raid_Token_v3_out\")",
       "Bash(python pbo_deob.py \"_AR_Notifications.pbo\" \"AR_Notifications_v3_out\")",
       "Bash(grep -l \"backup-config\\\\|backupConfig\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/routes/*.js /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib/*.js)",
-      "Bash(timeout 8 node server.js)"
+      "Bash(timeout 8 node server.js)",
+      "Bash(grep -r \"404\\\\|Not Found\\\\|empty state\\\\|no results\\\\|no servers\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)",
+      "Bash(grep -r \"loading\\\\|Loading\\\\|LOADING\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)",
+      "Bash(grep -r \"useEffect\\\\|useState\\\\|useMemo\\\\|useCallback\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)",
+      "Bash(grep -r \"aria-\\\\|role=\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)"
     ]
   }
 }
