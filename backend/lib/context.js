@@ -28,4 +28,7 @@ module.exports = {
   // ─── Set during bootstrap ─────────────────────────────
   CONFIG: null,
   io: null,
+
+  // ─── Cloud Agent (set when cloud.enabled = true) ─────
+  cloudAgent: null,
 };
