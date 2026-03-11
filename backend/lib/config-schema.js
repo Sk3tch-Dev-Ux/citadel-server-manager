@@ -58,7 +58,7 @@ const CONFIG_SCHEMA = {
   },
   cloud: {
     enabled: { type: 'boolean', default: false, envKey: 'CLOUD_ENABLED', description: 'Enable Citadel Cloud integration for remote dashboard access' },
-    relayUrl: { type: 'string', default: '', envKey: 'CLOUD_RELAY_URL', description: 'Citadel Cloud WebSocket relay URL (e.g. wss://cloud.citadel.gg)' },
+    relayUrl: { type: 'string', default: '', envKey: 'CLOUD_RELAY_URL', description: 'Citadel Cloud WebSocket relay URL (e.g. wss://cloud.citadels.cc)' },
     pushIntervalMs: { type: 'number', default: 15000, min: 5000, max: 60000, description: 'How often to push metrics to Citadel Cloud (ms)' },
     pingIntervalMs: { type: 'number', default: 30000, min: 10000, max: 60000, description: 'WebSocket keepalive ping interval (ms)' },
   },
