@@ -38,7 +38,7 @@ function isPrivateIP(ip) {
 
 /**
  * SSRF protection: validate that a webhook URL does not resolve to a
- * private/internal IP address. Returns true if safe, false if blocked.
+ * private/internal IP address. Returns true if private/blocked, false if safe.
  */
 async function isPrivateUrl(urlString) {
   try {

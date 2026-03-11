@@ -1,38 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import PageLoader from './components/PageLoader';
 import AppLayout from './layouts/AppLayout';
 import ServerLayout from './layouts/ServerLayout';
 import LoginScreen from './pages/LoginScreen';
 import SetupWizardPage from './pages/SetupWizardPage';
 import ServerHubPage from './pages/ServerHubPage';
 import SystemDashboardPage from './pages/SystemDashboardPage';
-import DeployPage from './pages/DeployPage';
-import UsersPage from './pages/UsersPage';
-import WebhooksPage from './pages/WebhooksPage';
 import ServerOverviewPage from './pages/ServerOverviewPage';
-import ServerMetricsPage from './pages/ServerMetricsPage';
-import ConsolePage from './pages/ConsolePage';
 import PlayersPage from './pages/PlayersPage';
-import ModsPage from './pages/ModsPage/ModsPage';
-import FilesPage from './pages/FilesPage';
-import ConfigPage from './pages/ConfigPage';
-import TypesEditorPage from './pages/TypesEditorPage';
+import ConsolePage from './pages/ConsolePage';
 import LogsPage from './pages/LogsPage';
 import BansPage from './pages/BansPage';
-import SchedulerPage from './pages/SchedulerPage';
-import MessengerPage from './pages/MessengerPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
-import DangerzonePage from './pages/DangerzonePage';
-import LiveMapPage from './pages/LiveMapPage';
-import LicensePage from './pages/LicensePage';
-import SettingsPage from './pages/SettingsPage';
-import PriorityQueuePage from './pages/PriorityQueuePage';
-import StorePage from './pages/StorePage';
-import StoreManagementPage from './pages/StoreManagementPage';
+import NotFoundPage from './pages/NotFoundPage';
+import AccessDeniedPage from './pages/AccessDeniedPage';
 import ToastContainer from './components/ToastContainer';
 import API from './api';
+
+// ── Lazy-loaded pages (heavy dependencies, not needed on initial load) ──
+const DeployPage = lazy(() => import('./pages/DeployPage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const WebhooksPage = lazy(() => import('./pages/WebhooksPage'));
+const ServerMetricsPage = lazy(() => import('./pages/ServerMetricsPage'));
+const ModsPage = lazy(() => import('./pages/ModsPage/ModsPage'));
+const FilesPage = lazy(() => import('./pages/FilesPage'));
+const ConfigPage = lazy(() => import('./pages/ConfigPage'));
+const TypesEditorPage = lazy(() => import('./pages/TypesEditorPage'));
+const SchedulerPage = lazy(() => import('./pages/SchedulerPage'));
+const MessengerPage = lazy(() => import('./pages/MessengerPage'));
+const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
+const LiveMapPage = lazy(() => import('./pages/LiveMapPage'));
+const LicensePage = lazy(() => import('./pages/LicensePage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
+const StorePage = lazy(() => import('./pages/StorePage'));
+const StoreManagementPage = lazy(() => import('./pages/StoreManagementPage'));
 
 function AuthGuard({ children }) {
   const { user } = useAuth();
@@ -56,7 +61,7 @@ function PermGuard({ permission, children }) {
   };
   const perms = rolePerms[user.role] || [];
   if (permission && !perms.includes(permission)) {
-    return <Navigate to="/" replace />;
+    return <AccessDeniedPage />;
   }
   return children;
 }
@@ -65,6 +70,11 @@ function PermGuard({ permission, children }) {
 function ServerPage({ Component }) {
   const { serverId } = useParams();
   return <Component serverId={serverId} />;
+}
+
+/** Suspense wrapper for lazy-loaded pages */
+function Lazy({ children }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
 
 /**
@@ -111,37 +121,37 @@ export default function AppRouter() {
       <Routes>
         <Route path="/login" element={<SmartLogin />} />
         <Route path="/setup" element={<><SetupWizardPage /><ToastContainer /></>} />
-        <Route path="/store" element={<><StorePage /><ToastContainer /></>} />
+        <Route path="/store" element={<Lazy><StorePage /><ToastContainer /></Lazy>} />
         <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route index element={<ErrorBoundary><ServerHubPage /></ErrorBoundary>} />
           <Route path="dashboard" element={<ErrorBoundary><SystemDashboardPage /></ErrorBoundary>} />
-          <Route path="deploy" element={<PermGuard permission="server.deploy"><ErrorBoundary><DeployPage /></ErrorBoundary></PermGuard>} />
-          <Route path="users" element={<PermGuard permission="users.manage"><ErrorBoundary><UsersPage /></ErrorBoundary></PermGuard>} />
-          <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><WebhooksPage /></ErrorBoundary></PermGuard>} />
-          <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><SettingsPage /></ErrorBoundary></PermGuard>} />
-          <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><PriorityQueuePage /></ErrorBoundary></PermGuard>} />
-          <Route path="store-management" element={<PermGuard permission="priority.manage"><ErrorBoundary><StoreManagementPage /></ErrorBoundary></PermGuard>} />
-          <Route path="license" element={<PermGuard permission="license.manage"><ErrorBoundary><LicensePage /></ErrorBoundary></PermGuard>} />
+          <Route path="deploy" element={<PermGuard permission="server.deploy"><ErrorBoundary><Lazy><DeployPage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="users" element={<PermGuard permission="users.manage"><ErrorBoundary><Lazy><UsersPage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><Lazy><WebhooksPage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><SettingsPage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><PriorityQueuePage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="store-management" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><StoreManagementPage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="license" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><LicensePage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ErrorBoundary><ServerPage Component={ServerOverviewPage} /></ErrorBoundary>} />
-            <Route path="metrics" element={<ErrorBoundary><ServerPage Component={ServerMetricsPage} /></ErrorBoundary>} />
+            <Route path="metrics" element={<ErrorBoundary><Lazy><ServerPage Component={ServerMetricsPage} /></Lazy></ErrorBoundary>} />
             <Route path="console" element={<PermGuard permission="chat.send"><ErrorBoundary><ServerPage Component={ConsolePage} /></ErrorBoundary></PermGuard>} />
             <Route path="players" element={<ErrorBoundary><ServerPage Component={PlayersPage} /></ErrorBoundary>} />
-            <Route path="mods" element={<ErrorBoundary><ServerPage Component={ModsPage} /></ErrorBoundary>} />
-            <Route path="files" element={<PermGuard permission="files.manage"><ErrorBoundary><ServerPage Component={FilesPage} /></ErrorBoundary></PermGuard>} />
-            <Route path="config" element={<PermGuard permission="config.manage"><ErrorBoundary><ServerPage Component={ConfigPage} /></ErrorBoundary></PermGuard>} />
-            <Route path="types" element={<PermGuard permission="files.manage"><ErrorBoundary><ServerPage Component={TypesEditorPage} /></ErrorBoundary></PermGuard>} />
+            <Route path="mods" element={<ErrorBoundary><Lazy><ServerPage Component={ModsPage} /></Lazy></ErrorBoundary>} />
+            <Route path="files" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={FilesPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="config" element={<PermGuard permission="config.manage"><ErrorBoundary><Lazy><ServerPage Component={ConfigPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="types" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={TypesEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
             <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />
-            <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ErrorBoundary><ServerPage Component={SchedulerPage} /></ErrorBoundary></PermGuard>} />
-            <Route path="messenger" element={<PermGuard permission="chat.send"><ErrorBoundary><ServerPage Component={MessengerPage} /></ErrorBoundary></PermGuard>} />
-            <Route path="map" element={<ErrorBoundary><ServerPage Component={LiveMapPage} /></ErrorBoundary>} />
+            <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ErrorBoundary><Lazy><ServerPage Component={SchedulerPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="messenger" element={<PermGuard permission="chat.send"><ErrorBoundary><Lazy><ServerPage Component={MessengerPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="map" element={<ErrorBoundary><Lazy><ServerPage Component={LiveMapPage} /></Lazy></ErrorBoundary>} />
             <Route path="settings" element={<PermGuard permission="server.settings"><ErrorBoundary><ServerPage Component={ServerSettingsPage} /></ErrorBoundary></PermGuard>} />
-            <Route path="dangerzone" element={<PermGuard permission="server.dangerzone"><ErrorBoundary><ServerPage Component={DangerzonePage} /></ErrorBoundary></PermGuard>} />
+            <Route path="dangerzone" element={<PermGuard permission="server.dangerzone"><ErrorBoundary><Lazy><ServerPage Component={DangerzonePage} /></Lazy></ErrorBoundary></PermGuard>} />
           </Route>
-          {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Catch-all — unknown routes */}
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </>
