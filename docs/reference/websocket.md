@@ -9,7 +9,7 @@ The frontend connects to the backend's Socket.IO server on the same port as the 
 ```javascript
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:3000', {
+const socket = io('http://localhost:3001', {
   auth: { token: 'your-jwt-token' }
 });
 ```
@@ -20,48 +20,70 @@ const socket = io('http://localhost:3000', {
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `server:status` | `{ serverId, status, players, cpu, ram }` | Periodic server status update |
-| `server:started` | `{ serverId }` | Server process started |
-| `server:stopped` | `{ serverId }` | Server process stopped |
-| `server:restarting` | `{ serverId }` | Server restart initiated |
+| `serverStatus` | `{ serverId, status }` | Server status change (`running`, `stopped`, `crashed`, `starting`, `stopping`) |
 
 ### Players
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `players:update` | `{ serverId, players: [] }` | Player list updated |
-| `player:connected` | `{ serverId, player }` | Player joined the server |
-| `player:disconnected` | `{ serverId, player }` | Player left the server |
+| `players` | `{ serverId, players: [] }` | Full player list update (sent periodically and after kicks/bans) |
 
-### Kill Feed
+### Metrics
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `killfeed:entry` | `{ serverId, killer, victim, weapon, distance, timestamp }` | New kill event |
+| `metrics` | `{ serverId, cpu, ram, players, fps, timestamp }` | Periodic performance metrics snapshot |
 
-### RCON
+### Logs
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `rcon:output` | `{ serverId, message }` | RCON console output |
+| `log` | `{ serverId, level, source, message, timestamp }` | New log entry (RPT, RCON, or system) |
+
+### Map Data
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `mapData` | `{ serverId, players, vehicles }` | Live map position data for players and vehicles |
 
 ### Mods
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `mod:install:progress` | `{ serverId, workshopId, progress, status }` | Mod installation progress |
-| `mod:install:complete` | `{ serverId, workshopId }` | Mod installation complete |
-| `mod:install:error` | `{ serverId, workshopId, error }` | Mod installation failed |
+| `mods` | `{ serverId, mods: [] }` | Mod list updated (after install/uninstall/toggle) |
+| `modInstallProgress` | `{ serverId, workshopId, progress, status, message }` | Mod installation progress |
+
+### Auto-Updates
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `updateProgress` | `{ serverId, stage, progress, message, ... }` | Auto-update pipeline progress (countdown, stopping, updating, starting) |
+
+### Backups
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `backupCreated` | `{ serverId, filename, type, size, createdAt }` | A backup was created |
+| `backupRestore` | `{ serverId, status, filename, error? }` | Backup restore progress (`starting`, `complete`, `error`) |
+
+### Dangerzone
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `dangerzoneProgress` | `{ serverId, status, message, preset? }` | Wipe/rebuild/reinstall progress |
 
 ### Notifications
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `notification` | `{ type, title, message, severity }` | System notification |
+| `notification` | `{ serverId, type, title, message, severity }` | System notification (server events, warnings, errors) |
 
-## Events (Client → Server)
+### Lifecycle Hooks
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `subscribe:server` | `{ serverId }` | Subscribe to a server's real-time events |
-| `unsubscribe:server` | `{ serverId }` | Unsubscribe from a server's events |
+| `hookResult` | `{ serverId, hook, phase, exitCode, stdout?, error? }` | Lifecycle hook execution result |
+
+## Events (Client → Server)
+
+Socket.IO connections are authenticated via the `auth.token` option. There are no client-to-server events — all actions go through the REST API.

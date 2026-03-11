@@ -1,62 +1,67 @@
 # Environment Variables
 
-Complete reference for all Citadel configuration variables. Set these in the `.env` file in the project root.
+Complete reference for all Citadel configuration variables. Set these in the `.env` file in the project root, or use `citadel.config.json` for non-sensitive settings.
+
+::: tip Auto-generated
+The setup wizard generates a `.env` file with a secure `JWT_SECRET` on first run. You only need to create one manually if you skip the wizard.
+:::
 
 ## Core
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `PORT` | No | `3000` | Backend API server port |
-| `NODE_ENV` | No | `development` | Environment (`production` or `development`) |
-| `JWT_SECRET` | **Yes** | — | Secret key for signing JWT tokens. Use a long random string |
-| `SESSION_TIMEOUT` | No | `24h` | JWT token expiration |
+| `PORT` | No | `3001` | Backend API server port |
+| `JWT_SECRET` | Auto | — | Secret key for signing JWT tokens. Auto-generated and persisted to `data/.jwt-secret` on first run |
 
 ## Admin Account
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `ADMIN_USERNAME` | **Yes** | — | Initial admin username |
-| `ADMIN_PASSWORD` | **Yes** | — | Initial admin password |
+| `ADMIN_USERNAME` | Yes | — | Initial admin username (set during setup wizard) |
+| `ADMIN_PASSWORD` | Yes | — | Initial admin password (must be changed on first login) |
 
-## InHouse Sidecar
+## DayZ Server Defaults
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `INHOUSE_SIDECAR_URL` | No | `http://localhost:9100` | Sidecar API base URL |
-| `INHOUSE_API_KEY` | No | — | API key for sidecar authentication |
-
-## RCON
-
-RCON is configured per-server in the server profile, but defaults can be set:
+These set the default values for the first server profile. Per-server config is managed via the web UI after setup.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `RCON_HOST` | No | `127.0.0.1` | Default RCON host |
-| `RCON_PORT` | No | `2302` | Default RCON port |
-| `RCON_PASSWORD` | No | — | Default RCON password |
+| `DAYZ_SERVER_IP` | No | `127.0.0.1` | DayZ server IP address |
+| `DAYZ_RCON_PORT` | No | `2305` | BattlEye RCON port |
+| `RCON_PASSWORD` | No | — | BattlEye RCON password |
+| `DAYZ_INSTALL_DIR` | No | `C:\DayZServer` | Path to DayZ server installation |
+| `DAYZ_PROFILE_DIR` | No | — | Server profile directory (e.g. `profiles`) |
+| `DAYZ_EXECUTABLE` | No | `DayZServer_x64.exe` | Server executable name |
+| `DAYZ_LAUNCH_PARAMS` | No | `-config=serverDZ.cfg -port=2302 -profiles=profiles -dologs -adminlog -netlog -freezecheck` | Server launch parameters |
 
 ## Discord Bot
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DISCORD_BOT_TOKEN` | No | — | Discord bot token |
-| `DISCORD_CHANNEL_ID` | No | — | Channel for status messages |
-| `DISCORD_KILLFEED_CHANNEL_ID` | No | — | Channel for kill feed |
-| `DISCORD_ADMIN_ROLE_ID` | No | — | Role allowed to use bot controls |
+| `DISCORD_BOT_TOKEN` | For bot | — | Discord bot token |
+| `DISCORD_CLIENT_ID` | For bot | — | Discord application client ID |
+| `DISCORD_GUILD_ID` | For bot | — | Your Discord server (guild) ID |
+| `DISCORD_ADMIN_ROLE_ID` | For bot | — | Role ID allowed to use admin bot commands |
+| `DISCORD_BOT_API_KEY` | For bot | — | Random key for bot-to-API authentication |
+| `DISCORD_WEBHOOK_URL` | No | — | Default Discord webhook URL for notifications |
+| `PANEL_API_URL` | No | `http://localhost:3001` | URL for the Discord bot to call back to the panel API |
 
 ## SteamCMD
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `STEAMCMD_PATH` | No | — | Path to SteamCMD executable |
+| `STEAMCMD_PATH` | No | — | Path to SteamCMD executable (e.g. `C:\SteamCMD\steamcmd.exe`) |
 | `STEAM_USERNAME` | No | — | Steam account for Workshop downloads |
 | `STEAM_PASSWORD` | No | — | Steam account password |
 
-## Notifications
+## InHouse Sidecar
+
+The sidecar runs alongside your DayZ server and bridges commands to the `@CitadelAdmin` mod. Configured per-server in the web panel.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `WEBHOOK_URL` | No | — | Default Discord webhook URL for notifications |
+| `INHOUSE_SIDECAR_PORT` | No | `9100` | Sidecar API port |
+| `INHOUSE_API_KEY` | No | — | API key for sidecar authentication |
 
 ## Bans
 
@@ -69,29 +74,35 @@ RCON is configured per-server in the server profile, but defaults can be set:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `RATE_LIMIT_WINDOW` | No | `15m` | Rate limiting window |
-| `RATE_LIMIT_MAX` | No | `100` | Max requests per window |
-| `CORS_ORIGIN` | No | `*` | Allowed CORS origins |
+| `CORS_ORIGINS` | No | `http://localhost:3001,http://127.0.0.1:3001` | Comma-separated list of allowed CORS origins |
 
 ## Example `.env`
 
 ```ini
 # ── Citadel Configuration ─────────────────────────
-PORT=3000
-NODE_ENV=production
+PORT=3001
 JWT_SECRET=change-me-to-a-random-64-char-string
 
 # Admin
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=secure-password-here
 
-# InHouse Sidecar
-INHOUSE_SIDECAR_URL=http://localhost:9100
-INHOUSE_API_KEY=your-sidecar-api-key
+# DayZ Server
+DAYZ_SERVER_IP=127.0.0.1
+DAYZ_RCON_PORT=2305
+RCON_PASSWORD=your-rcon-password
+DAYZ_INSTALL_DIR=C:\DayZ\Server
 
 # Discord (optional)
 DISCORD_BOT_TOKEN=your-bot-token
-DISCORD_CHANNEL_ID=1234567890
+DISCORD_CLIENT_ID=your-client-id
+DISCORD_GUILD_ID=your-guild-id
+DISCORD_ADMIN_ROLE_ID=your-admin-role-id
+DISCORD_BOT_API_KEY=generate-a-random-32-byte-hex-string
+
+# SteamCMD
+STEAMCMD_PATH=C:\SteamCMD\steamcmd.exe
+STEAM_USERNAME=your-steam-username
 
 # Ban messages (optional)
 BAN_APPEAL_URL=https://discord.gg/your-server

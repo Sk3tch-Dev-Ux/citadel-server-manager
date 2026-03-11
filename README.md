@@ -229,7 +229,7 @@ The setup wizard generates a `.env` file automatically. You can also create it m
 Citadel/
 ├── backend/
 │   ├── server.js              # Express + Socket.IO entry point
-│   ├── lib/                   # Core libraries (26 modules)
+│   ├── lib/                   # Core libraries (47 modules)
 │   │   ├── config.js          # Environment configuration
 │   │   ├── context.js         # Global runtime state
 │   │   ├── process-manager.js # Windows process management
@@ -244,7 +244,7 @@ Citadel/
 │   │   ├── steamcmd.js        # SteamCMD wrapper
 │   │   └── ...
 │   ├── middleware/            # Auth, rate-limit, security
-│   └── routes/                # 29 API route files
+│   └── routes/                # 37 API route files
 ├── web/frontend/              # React 18 + Vite 6 SPA
 │   └── src/
 │       ├── pages/             # Dashboard page components
