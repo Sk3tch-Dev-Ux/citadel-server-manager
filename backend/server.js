@@ -182,6 +182,7 @@ require('./routes/compat.routes')(app);
 require('./routes/store.routes')(app);
 require('./routes/lb-perks.routes')(app);
 require('./routes/system.routes')(app);
+require('./routes/cloud.routes')(app);
 
 // ─── License status ──────────────────────────────────────
 const { isLicensed } = require('./lib/license');
@@ -273,6 +274,17 @@ if (process.env.NODE_ENV !== 'test') {
 
     // Start all polling loops (metrics, mod detection, leaderboard, steam updates, RCON)
     await startAllPolling();
+
+    // Start Cloud Agent (connects to Citadel Cloud if enabled)
+    try {
+      const cloudAgent = require('./lib/cloud-agent');
+      ctx.cloudAgent = cloudAgent;
+      if (cloudAgent.isEnabled()) {
+        cloudAgent.startCloudAgent();
+      }
+    } catch (err) {
+      logger.warn({ err: err.message }, 'Cloud Agent failed to initialize');
+    }
 
     // Priority queue expiration cleanup (every 60s — lightweight array filter)
     setInterval(() => {
