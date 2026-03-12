@@ -105,14 +105,19 @@ class CitadelEventLogger
         return "\"" + key + "\":" + val;
     }
 
+    private static string JPosObj(vector pos)
+    {
+        return "{\"x\":" + pos[0].ToString() + ",\"y\":" + pos[1].ToString() + ",\"z\":" + pos[2].ToString() + "}";
+    }
+
     private static string JPos(vector pos)
     {
-        return "\"position\":{\"x\":" + pos[0].ToString() + ",\"y\":" + pos[1].ToString() + ",\"z\":" + pos[2].ToString() + "}";
+        return "\"position\":" + JPosObj(pos);
     }
 
     // ─── Player Events ──────────────────────────────────
 
-    static void LogKill(string killerSteamId, string killerName, string victimSteamId, string victimName, float distance, string weapon)
+    static void LogKill(string killerSteamId, string killerName, string victimSteamId, string victimName, float distance, string weapon, string zone, vector killerPos, vector victimPos)
     {
         string l = "{" + JStr("type", "kill");
         l += "," + JStr("steamId", killerSteamId);
@@ -121,25 +126,33 @@ class CitadelEventLogger
         l += "," + JStr("victimName", EscapeJson(victimName));
         l += "," + JNum("distance", distance.ToString());
         l += "," + JStr("weapon", EscapeJson(weapon));
+        l += "," + JStr("zone", EscapeJson(zone));
+        l += ",\"killerPos\":" + JPosObj(killerPos);
+        l += ",\"victimPos\":" + JPosObj(victimPos);
         l += "," + JStr("timestamp", GetTimestamp()) + "}";
         AppendLine(l);
     }
 
-    static void LogSuicide(string steamId, string name)
+    static void LogSuicide(string steamId, string name, vector pos)
     {
         string l = "{" + JStr("type", "suicide");
         l += "," + JStr("steamId", steamId);
         l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("deathType", "suicide");
+        l += "," + JPos(pos);
         l += "," + JStr("timestamp", GetTimestamp()) + "}";
         AppendLine(l);
     }
 
-    static void LogDeath(string steamId, string name, string cause)
+    static void LogDeath(string steamId, string name, string deathType, string cause, string weapon, vector pos)
     {
         string l = "{" + JStr("type", "death");
         l += "," + JStr("steamId", steamId);
         l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("deathType", EscapeJson(deathType));
         l += "," + JStr("cause", EscapeJson(cause));
+        l += "," + JStr("weapon", EscapeJson(weapon));
+        l += "," + JPos(pos);
         l += "," + JStr("timestamp", GetTimestamp()) + "}";
         AppendLine(l);
     }

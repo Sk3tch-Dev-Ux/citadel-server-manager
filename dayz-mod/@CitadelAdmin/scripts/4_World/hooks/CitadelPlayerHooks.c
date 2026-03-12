@@ -20,6 +20,7 @@ modded class PlayerBase extends ManBase
     private string m_CitLastDamageAmmo;
     private EntityAI m_CitLastDamagingEntity;
     private string m_CitLastWeaponType = "";
+    private string m_CitLastDmgZone = "";
 
     // Speed hack detection
     private int m_CitSpeedHackTriggers = 0;
@@ -93,6 +94,7 @@ modded class PlayerBase extends ManBase
         m_CitLastDamageAmmo = ammo;
         m_CitLastDamageType = damageType;
         m_CitLastDamagingEntity = source;
+        m_CitLastDmgZone = dmgZone;
 
         super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
 
@@ -207,6 +209,8 @@ modded class PlayerBase extends ManBase
         string victimName = GetCitName();
         if (victimSteamId == "") return;
 
+        vector victimPos = GetPosition();
+
         // Resolve killer through weapon hierarchy (GameLabs pattern)
         // When killer is a weapon/melee, resolve to the player holding it
         PlayerBase killerPlayer;
@@ -220,15 +224,22 @@ modded class PlayerBase extends ManBase
 
         if (killerPlayer && killerPlayer != this)
         {
+            // ── PvP Kill ──
             string killerSteamId = killerPlayer.GetCitSteamId();
             string killerName = killerPlayer.GetCitName();
-            float distance = vector.Distance(GetPosition(), killerPlayer.GetPosition());
+            vector killerPos = killerPlayer.GetPosition();
+            float distance = vector.Distance(victimPos, killerPos);
 
             string weaponType = "";
             if (killer)
                 weaponType = killer.GetType();
 
-            CitadelEventLogger.LogKill(killerSteamId, killerName, victimSteamId, victimName, distance, weaponType);
+            // Normalize DayZ damage zone names to our hit_zone enum values
+            // DayZ sends: "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg", "Brain"
+            string zone = m_CitLastDmgZone;
+            zone.ToLower();
+
+            CitadelEventLogger.LogKill(killerSteamId, killerName, victimSteamId, victimName, distance, weaponType, zone, killerPos, victimPos);
 
             // Update killer stats
             CitadelPlayerStats killerStats = GetCitadel().GetPlayerStats(killerSteamId);
@@ -238,13 +249,9 @@ modded class PlayerBase extends ManBase
         else if (killer == this)
         {
             // Suicide / self-inflicted — check for environmental causes
-            if (weapon)
+            if (weapon || CommitedSuicide())
             {
-                CitadelEventLogger.LogSuicide(victimSteamId, victimName);
-            }
-            else if (CommitedSuicide())
-            {
-                CitadelEventLogger.LogSuicide(victimSteamId, victimName);
+                CitadelEventLogger.LogSuicide(victimSteamId, victimName, victimPos);
             }
             else
             {
@@ -254,22 +261,22 @@ modded class PlayerBase extends ManBase
                     refType = m_CitLastDamagingEntity.GetType();
 
                 if (m_CitLastDamageType == DT_EXPLOSION)
-                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Explosion:" + refType);
+                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "explosion", refType, "", victimPos);
                 else if (m_CitLastDamageAmmo == "FallDamage")
-                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "__FallDamage:" + refType);
+                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "fall", refType, "", victimPos);
                 else
-                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Environment:" + refType);
+                    CitadelEventLogger.LogDeath(victimSteamId, victimName, "environment", refType, "", victimPos);
             }
         }
         else
         {
             // Non-player AI kill
             if (killer.IsInherited(ZombieBase))
-                CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Infected:" + killer.GetType());
+                CitadelEventLogger.LogDeath(victimSteamId, victimName, "infected", killer.GetType(), "", victimPos);
             else if (killer.IsInherited(AnimalBase))
-                CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Animal:" + killer.GetType());
+                CitadelEventLogger.LogDeath(victimSteamId, victimName, "animal", killer.GetType(), "", victimPos);
             else
-                CitadelEventLogger.LogDeath(victimSteamId, victimName, "__Object:" + killer.GetType());
+                CitadelEventLogger.LogDeath(victimSteamId, victimName, "unknown", killer.GetType(), "", victimPos);
         }
     }
 
