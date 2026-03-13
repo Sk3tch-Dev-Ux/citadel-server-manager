@@ -37,7 +37,7 @@ module.exports = function (app) {
   });
 
   // ─── Toggle messenger enabled/disabled ──────────────────
-  app.patch('/api/servers/:id/messenger/toggle', authForServer('server.restart'), (req, res) => {
+  app.patch('/api/servers/:id/messenger/toggle', authForServer('messenger.manage'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
     const messenger = getMessenger(req.params.id);
@@ -47,7 +47,7 @@ module.exports = function (app) {
   });
 
   // ─── Create a new message ──────────────────────────────
-  app.post('/api/servers/:id/messenger', authForServer('server.restart'), (req, res) => {
+  app.post('/api/servers/:id/messenger', authForServer('messenger.manage'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
@@ -74,7 +74,7 @@ module.exports = function (app) {
   });
 
   // ─── Update a message ──────────────────────────────────
-  app.put('/api/servers/:id/messenger/:msgId', authForServer('server.restart'), (req, res) => {
+  app.put('/api/servers/:id/messenger/:msgId', authForServer('messenger.manage'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
@@ -95,7 +95,7 @@ module.exports = function (app) {
   });
 
   // ─── Toggle a message ──────────────────────────────────
-  app.patch('/api/servers/:id/messenger/:msgId/toggle', authForServer('server.restart'), (req, res) => {
+  app.patch('/api/servers/:id/messenger/:msgId/toggle', authForServer('messenger.manage'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
@@ -109,7 +109,7 @@ module.exports = function (app) {
   });
 
   // ─── Delete a message ──────────────────────────────────
-  app.delete('/api/servers/:id/messenger/:msgId', authForServer('server.restart'), (req, res) => {
+  app.delete('/api/servers/:id/messenger/:msgId', authForServer('messenger.manage'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 
@@ -125,7 +125,7 @@ module.exports = function (app) {
   });
 
   // ─── Reorder messages ──────────────────────────────────
-  app.put('/api/servers/:id/messenger/reorder', authForServer('server.restart'), (req, res) => {
+  app.put('/api/servers/:id/messenger/reorder', authForServer('messenger.manage'), (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(404).json({ error: 'Server not found' });
 

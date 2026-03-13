@@ -267,7 +267,11 @@ async function processJob(job, server, state) {
       addAudit('system', 'scheduler', 'scheduler.execute', `${job.title} [${actionLabel}] on ${server.name}`);
 
       // Fire scheduler.executed webhook for all action types
-      try { fireWebhooks('scheduler.executed', { serverId: server.id, serverName: server.name, trigger: 'scheduler', job: job.title, action: actionType }); } catch (_) { /* ignore */ }
+      try {
+        fireWebhooks('scheduler.executed', { serverId: server.id, serverName: server.name, trigger: 'scheduler', job: job.title, action: actionType });
+      } catch (webhookErr) {
+        logger.warn({ err: webhookErr.message, serverId: server.id, job: job.title }, 'Scheduler: failed to fire scheduler.executed webhook');
+      }
 
       // Emit socket event
       if (ctx.io) {

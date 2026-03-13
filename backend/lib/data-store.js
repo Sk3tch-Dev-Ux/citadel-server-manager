@@ -14,11 +14,11 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('./logger');
+const { DATA_STORE_DEBOUNCE_MS: DEBOUNCE_MS } = require('./constants');
 
 const pendingWrites = new Map(); // filename -> { timeout, data, filePath }
 const writeQueue = new Map(); // filename -> [{ data, timestamp }]
-const DEBOUNCE_MS = 1000;
-const activeWrites = new Set(); // Prevent concurrent writes to same file
+const writeInFlight = new Map(); // filename -> Promise<void> (replaces busy-wait Set)
 
 function loadJSON(dataDir, filename, defaultVal) {
   const p = path.join(dataDir, filename);
@@ -57,12 +57,15 @@ function saveJSON(dataDir, filename, data) {
     const latestData = latestWrite.data;
     writeQueue.delete(filename);
 
-    // Serialize writes: wait if another write is in progress for this file
-    while (activeWrites.has(filename)) {
-      await new Promise(r => setTimeout(r, 10));
+    // Serialize writes: await in-flight write for this file (Promise-based, no polling)
+    if (writeInFlight.has(filename)) {
+      await writeInFlight.get(filename);
     }
 
-    activeWrites.add(filename);
+    let resolveInFlight;
+    const inFlightPromise = new Promise(r => { resolveInFlight = r; });
+    writeInFlight.set(filename, inFlightPromise);
+
     const tmpPath = filePath + '.tmp.' + crypto.randomBytes(4).toString('hex');
 
     try {
@@ -77,7 +80,8 @@ function saveJSON(dataDir, filename, data) {
         /* cleanup best effort */
       }
     } finally {
-      activeWrites.delete(filename);
+      writeInFlight.delete(filename);
+      resolveInFlight();
     }
   }, DEBOUNCE_MS);
 

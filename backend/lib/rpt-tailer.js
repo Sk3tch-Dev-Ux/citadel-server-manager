@@ -13,13 +13,13 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
 const ctx = require('./context');
+const { MAX_CONSOLE_LINES } = require('./constants');
 
 /** Active tailers keyed by serverId */
 const tailers = {};
 
 /** Per-server console log buffer (ring buffer for API fetch) */
 const consoleBuffers = {};
-const MAX_CONSOLE_LINES = 500;
 
 /** Lines matching these patterns are filtered out (noise reduction) */
 const NOISE_PATTERNS = [
