@@ -5,6 +5,7 @@ const dgram = require('dgram');
 const { Buffer } = require('buffer');
 const logger = require('./logger');
 const ctx = require('./context');
+const { RCON_LOGIN_TIMEOUT_MS, RCON_COMMAND_TIMEOUT_MS, RCON_KEEPALIVE_INTERVAL_MS } = require('./constants');
 
 // CRC32 lookup table (BattlEye protocol requirement)
 const crc32Table = (() => {
@@ -54,7 +55,7 @@ class RCONClient {
       let settled = false;
       const loginTimeout = setTimeout(() => {
         if (!settled) { settled = true; reject(new Error('RCON login timed out')); }
-      }, 10000);
+      }, RCON_LOGIN_TIMEOUT_MS);
       this.socket.on('message', (msg) => {
         if (msg.length < 7 || msg[0] !== 0x42 || msg[1] !== 0x45) return;
         const type = msg[6]; const payload = msg.slice(7);
@@ -133,7 +134,7 @@ class RCONClient {
           this.loggedIn = false;
         }
       }
-    }, 30000);
+    }, RCON_KEEPALIVE_INTERVAL_MS);
   }
 
   _stopKeepAlive() { if (this.keepAliveInterval) { clearInterval(this.keepAliveInterval); this.keepAliveInterval = null; } }
@@ -143,7 +144,7 @@ class RCONClient {
     if (!this.socket || !this.connected) return '[Error] RCON not connected';
     return new Promise((resolve) => {
       const { packet, seq } = this._buildCommandPacket(command);
-      const timeout = setTimeout(() => { this.pendingCommands.delete(seq); resolve('[No response]'); }, 5000);
+      const timeout = setTimeout(() => { this.pendingCommands.delete(seq); resolve('[No response]'); }, RCON_COMMAND_TIMEOUT_MS);
       this.pendingCommands.set(seq, { resolve, reject: () => {}, timeout });
       try {
         this.socket.send(packet, 0, packet.length, this.port, this.ip);

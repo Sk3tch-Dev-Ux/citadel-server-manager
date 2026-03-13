@@ -20,26 +20,21 @@ const { addLog } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { executeHooks } = require('./lifecycle-hooks');
 const { restartServer } = require('./server-lifecycle');
+const { getNextBackoffDelay } = require('./backoff');
+const {
+  CRASH_BACKOFF_DELAYS_MS,
+  CRASH_COOLDOWN_WINDOW_MS,
+  MAX_CRASH_RESTARTS_PER_HOUR,
+} = require('./constants');
+
+/** Hour in milliseconds */
+const HOUR_MS = 60 * 60 * 1000;
 
 /** Track restart history for circuit breaker (serverId -> [timestamps]) */
 const _crashRestartHistory = new Map();
 
-/** Track backoff state per server (serverId -> { backoffIndex, lastRestartTime }) */
+/** Track backoff state per server */
 const _crashBackoffState = new Map();
-
-/**
- * Exponential backoff schedule: 5s, 10s, 20s, 40s, 80s, max 5 min
- */
-const CRASH_BACKOFF_DELAYS_MS = [5000, 10000, 20000, 40000, 80000, 300000];
-
-/** Cool down window: if server runs for >10 min after restart, reset backoff */
-const CRASH_COOLDOWN_WINDOW_MS = 10 * 60 * 1000;
-
-/** Max restart attempts per hour */
-const MAX_CRASH_RESTARTS_PER_HOUR = 10;
-
-/** Hour in milliseconds */
-const HOUR_MS = 60 * 60 * 1000;
 
 /**
  * Check if we can attempt another auto-restart (circuit breaker).
@@ -70,31 +65,6 @@ function recordCrashRestart(serverId) {
     _crashRestartHistory.set(serverId, []);
   }
   _crashRestartHistory.get(serverId).push(Date.now());
-}
-
-/**
- * Get the next backoff delay for this server. Advances the backoff index.
- * If server has been running for >10 min, resets backoff to 0.
- */
-function getNextCrashBackoffDelay(serverId, state) {
-  if (!_crashBackoffState.has(serverId)) {
-    _crashBackoffState.set(serverId, { backoffIndex: 0, lastRestartTime: Date.now() });
-  }
-
-  const backoff = _crashBackoffState.get(serverId);
-  const now = Date.now();
-  const timeSinceLastRestart = now - backoff.lastRestartTime;
-
-  // If server ran for >10 min since last restart, reset backoff to 0
-  if (timeSinceLastRestart > CRASH_COOLDOWN_WINDOW_MS) {
-    backoff.backoffIndex = 0;
-  }
-
-  const delayMs = CRASH_BACKOFF_DELAYS_MS[backoff.backoffIndex] || CRASH_BACKOFF_DELAYS_MS[CRASH_BACKOFF_DELAYS_MS.length - 1];
-  backoff.backoffIndex = Math.min(backoff.backoffIndex + 1, CRASH_BACKOFF_DELAYS_MS.length - 1);
-  backoff.lastRestartTime = now;
-
-  return delayMs;
 }
 
 /**
@@ -137,7 +107,7 @@ async function handleCrash(srv, state) {
     }
 
     recordCrashRestart(srv.id);
-    const delayMs = getNextCrashBackoffDelay(srv.id, state);
+    const delayMs = getNextBackoffDelay(_crashBackoffState, srv.id, CRASH_BACKOFF_DELAYS_MS, CRASH_COOLDOWN_WINDOW_MS);
     const delaySec = Math.round(delayMs / 1000);
 
     addLog(srv.id, 'info', 'server', `Scheduling auto-restart in ${delaySec}s (exponential backoff)`);

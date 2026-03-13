@@ -19,20 +19,25 @@ const ctx = require('./context');
 const { getProviderForAction, findSession } = require('./server-actions/executor');
 const { ActionType } = require('./server-actions/types');
 const { addLog } = require('./audit');
+const {
+  CLOUD_AUTH_TIMEOUT_MS: AUTH_TIMEOUT_MS,
+  CLOUD_RECONNECT_INITIAL_MS: RECONNECT_INITIAL_MS,
+  CLOUD_RECONNECT_MAX_MS: RECONNECT_MAX_MS,
+  CLOUD_STALE_THRESHOLD_MS: STALE_THRESHOLD_MS,
+  CLOUD_MAX_MESSAGE_SIZE: MAX_MESSAGE_SIZE,
+  CLOUD_MAX_AUTH_FAILURES: MAX_AUTH_FAILURES,
+  CLOUD_COMMAND_RATE_LIMIT: COMMAND_RATE_LIMIT,
+  CLOUD_COMMAND_RATE_WINDOW_MS: COMMAND_RATE_WINDOW_MS,
+} = require('./constants');
 
 // ─── Constants ─────────────────────────────────────────
 const AGENT_VERSION = '1.0.0';
-const AUTH_TIMEOUT_MS = 10_000;
-const RECONNECT_INITIAL_MS = 1_000;
-const RECONNECT_MAX_MS = 30_000;
-const STALE_THRESHOLD_MS = 90_000;
-const MAX_MESSAGE_SIZE = 64 * 1024; // 64 KB
-const MAX_AUTH_FAILURES = 3;
-const COMMAND_RATE_LIMIT = 10; // max commands per minute per server
-const COMMAND_RATE_WINDOW_MS = 60_000;
 
-// Whitelisted fields for config_sync updates
-const CONFIG_SYNC_WHITELIST = new Set(['pushIntervalMs', 'pingIntervalMs']);
+// Whitelisted fields for config_sync with per-field validation ranges
+const CONFIG_SYNC_FIELDS = {
+  pushIntervalMs: { min: 5000, max: 60000 },
+  pingIntervalMs: { min: 10000, max: 60000 },
+};
 
 // ─── Cloud command → local ActionType mapping ──────────
 // Maps the cloud protocol's action names to Citadel's ActionType constants.
@@ -654,12 +659,13 @@ function _handleConfigSync(srv, msg) {
 
   let applied = 0;
   for (const [key, value] of Object.entries(data)) {
-    if (!CONFIG_SYNC_WHITELIST.has(key)) {
+    const fieldSpec = CONFIG_SYNC_FIELDS[key];
+    if (!fieldSpec) {
       logger.debug({ serverId: srv.id, key }, 'config_sync: rejected non-whitelisted field');
       continue;
     }
-    if (typeof value !== 'number' || value < 5000 || value > 60000) {
-      logger.debug({ serverId: srv.id, key, value }, 'config_sync: rejected invalid value');
+    if (typeof value !== 'number' || value < fieldSpec.min || value > fieldSpec.max) {
+      logger.debug({ serverId: srv.id, key, value, min: fieldSpec.min, max: fieldSpec.max }, 'config_sync: rejected out-of-range value');
       continue;
     }
     cloudConfig[key] = value;

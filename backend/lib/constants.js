@@ -85,4 +85,46 @@ module.exports = {
   // ─── Health Monitoring ──────────────────────────────────
   /** Cooldown between health alerts per server (ms) — 5 minutes */
   HEALTH_ALERT_COOLDOWN_MS: 5 * 60 * 1000,
+
+  // ─── Cloud Agent ──────────────────────────────────────
+  /** Auth handshake timeout after WebSocket connect (ms) */
+  CLOUD_AUTH_TIMEOUT_MS: 10_000,
+  /** Initial reconnect delay (ms), doubles on each retry */
+  CLOUD_RECONNECT_INITIAL_MS: 1_000,
+  /** Maximum reconnect delay (ms) */
+  CLOUD_RECONNECT_MAX_MS: 30_000,
+  /** Connection considered stale if no ping response in this window (ms) */
+  CLOUD_STALE_THRESHOLD_MS: 90_000,
+  /** Maximum inbound message size (bytes) */
+  CLOUD_MAX_MESSAGE_SIZE: 64 * 1024,
+  /** Max consecutive auth failures before giving up */
+  CLOUD_MAX_AUTH_FAILURES: 3,
+  /** Max commands per server per rate window */
+  CLOUD_COMMAND_RATE_LIMIT: 10,
+  /** Rate limiting window (ms) */
+  CLOUD_COMMAND_RATE_WINDOW_MS: 60_000,
+
+  // ─── Data Store ───────────────────────────────────────
+  /** Debounce interval for JSON file writes (ms) */
+  DATA_STORE_DEBOUNCE_MS: 1_000,
+
+  // ─── RCON ─────────────────────────────────────────────
+  /** RCON login handshake timeout (ms) */
+  RCON_LOGIN_TIMEOUT_MS: 10_000,
+  /** RCON command response timeout (ms) */
+  RCON_COMMAND_TIMEOUT_MS: 5_000,
+  /** RCON keep-alive ping interval (ms) */
+  RCON_KEEPALIVE_INTERVAL_MS: 30_000,
+
+  // ─── Crash Detector ───────────────────────────────────
+  /** Crash backoff schedule (ms): 5s → 10s → 20s → 40s → 80s → 5 min */
+  CRASH_BACKOFF_DELAYS_MS: [5000, 10000, 20000, 40000, 80000, 300000],
+  /** Reset crash backoff if server stable for this long (ms) — 10 min */
+  CRASH_COOLDOWN_WINDOW_MS: 10 * 60 * 1000,
+  /** Circuit breaker: max auto-restarts per hour */
+  MAX_CRASH_RESTARTS_PER_HOUR: 10,
+
+  // ─── RPT Tailer ───────────────────────────────────────
+  /** Max console output lines buffered per server */
+  MAX_CONSOLE_LINES: 500,
 };

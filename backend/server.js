@@ -44,7 +44,7 @@ ctx.servers = loadJSON(CONFIG.dataDir, 'servers.json', []);
 ctx.users = loadJSON(CONFIG.dataDir, 'users.json', []);
 ctx.roles = loadJSON(CONFIG.dataDir, 'roles.json', [
   { id: 'admin', name: 'Admin', permissions: ['*'], color: '#ff3b3b', builtIn: true },
-  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','bans.manage','priority.manage','mods.view','logs.view','metrics.view','chat.send'], color: '#3b82f6', builtIn: true },
+  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','bans.manage','priority.manage','mods.view','logs.view','metrics.view','chat.send','messenger.manage'], color: '#3b82f6', builtIn: true },
   { id: 'viewer', name: 'Viewer', permissions: ['server.view','players.view','mods.view','logs.view','metrics.view'], color: '#00ff6a', builtIn: true },
 ]);
 ctx.webhooks = loadJSON(CONFIG.dataDir, 'webhooks.json', []);
