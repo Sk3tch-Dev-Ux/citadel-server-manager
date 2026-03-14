@@ -96,8 +96,16 @@ function saveJSON(dataDir, filename, data) {
 function flushAll() {
   for (const [filename, entry] of pendingWrites) {
     clearTimeout(entry.timeout);
+
+    // Use the latest data from the writeQueue if available (more recent than pendingWrites)
+    let dataToWrite = entry.data;
+    const queue = writeQueue.get(filename);
+    if (queue && queue.length > 0) {
+      dataToWrite = queue[queue.length - 1].data;
+    }
+
     try {
-      fs.writeFileSync(entry.filePath, JSON.stringify(entry.data, null, 2));
+      fs.writeFileSync(entry.filePath, JSON.stringify(dataToWrite, null, 2));
       logger.info({ file: filename }, 'Flushed pending write on shutdown');
     } catch (err) {
       logger.error({ err, file: filename }, 'Failed to flush pending write on shutdown');

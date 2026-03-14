@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { panelAction } = require('../api');
 const { isAdmin } = require('../utils/permissions');
+const { checkCooldown, setCooldown } = require('../utils/cooldowns');
 const { sanitizeBroadcast } = require('../utils/sanitize');
 const { buildSuccessEmbed, buildErrorEmbed } = require('../ui/embeds');
 
@@ -16,6 +17,12 @@ module.exports = {
     if (!isAdmin(interaction)) {
       return await interaction.reply({ content: 'Admin role required.', flags: MessageFlags.Ephemeral });
     }
+
+    const remaining = checkCooldown(interaction.user.id, 'broadcast');
+    if (remaining > 0) {
+      return await interaction.reply({ content: `Please wait **${remaining}s** before using this again.`, flags: MessageFlags.Ephemeral });
+    }
+
     await interaction.deferReply();
 
     const raw = interaction.options.getString('message');
@@ -32,6 +39,7 @@ module.exports = {
       });
     }
 
+    setCooldown(interaction.user.id, 'broadcast');
     await interaction.editReply({
       embeds: [buildSuccessEmbed('Message Broadcast', `\`\`\`${message}\`\`\``, `Sent by ${interaction.user.tag}`)],
     });

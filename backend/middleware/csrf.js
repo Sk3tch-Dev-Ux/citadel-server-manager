@@ -25,8 +25,9 @@ function generateToken() {
  * Applies to all routes.
  */
 function csrfProtection(req, res, next) {
-  // Generate or reuse token
-  const token = generateToken();
+  // Reuse existing token from cookie if present; only generate a new one if missing
+  const existing = req.cookies && req.cookies['csrf-token'];
+  const token = existing || generateToken();
 
   // Set token in a JS-readable cookie (NOT httpOnly — frontend must read it
   // to send back as X-CSRF-Token header for double-submit pattern)
@@ -54,7 +55,7 @@ function verifyCsrfToken(req, res, next) {
   }
 
   // Skip CSRF for unauthenticated routes (no session/token yet)
-  const exemptPaths = ['/api/auth/login', '/api/setup/', '/api/health'];
+  const exemptPaths = ['/api/auth/login', '/api/setup/', '/api/health', '/api/store/webhook'];
   if (exemptPaths.some(p => req.url.startsWith(p))) {
     return next();
   }

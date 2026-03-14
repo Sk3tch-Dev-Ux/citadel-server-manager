@@ -211,6 +211,13 @@ modded class PlayerBase extends ManBase
 
         vector victimPos = GetPosition();
 
+        // Null guard: starvation, dehydration, bleedout deaths have no killer object
+        if (!killer)
+        {
+            CitadelEventLogger.LogDeath(victimSteamId, victimName, "environment", "", "", victimPos);
+            return;
+        }
+
         // Resolve killer through weapon hierarchy (GameLabs pattern)
         // When killer is a weapon/melee, resolve to the player holding it
         PlayerBase killerPlayer;

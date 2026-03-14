@@ -425,9 +425,8 @@ function _connect(srv, conn) {
           conn.intentionalClose = true;
           logger.error({ serverId: srv.id }, 'Cloud auth failed too many times — stopping reconnection. Use manual reconnect.');
           addLog(srv.id, 'error', 'cloud', 'Cloud connection disabled after repeated auth failures. Check API key and reconnect manually.');
-        } else {
-          conn.intentionalClose = true;
         }
+        // Allow reconnection for transient auth failures (intentionalClose stays false)
         if (conn.ws?.readyState === WebSocket.OPEN) conn.ws.close(4003, 'Auth failed');
         break;
 

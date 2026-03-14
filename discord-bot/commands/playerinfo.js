@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { panelAction } = require('../api');
+const { checkCooldown, setCooldown } = require('../utils/cooldowns');
 const { buildPlayerInfoEmbed, buildErrorEmbed } = require('../ui/embeds');
 const { isValidSteam64 } = require('../utils/sanitize');
 
@@ -12,6 +13,11 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    const remaining = checkCooldown(interaction.user.id, 'playerinfo');
+    if (remaining > 0) {
+      return await interaction.reply({ content: `Please wait **${remaining}s** before using this again.`, flags: MessageFlags.Ephemeral });
+    }
+
     const steamId = interaction.options.getString('steamid');
     if (!isValidSteam64(steamId)) {
       return await interaction.reply({
@@ -23,6 +29,7 @@ module.exports = {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const data = await panelAction('playerInfo', { steamId }, interaction.guildId, interaction);
     const embed = buildPlayerInfoEmbed(data);
+    setCooldown(interaction.user.id, 'playerinfo');
     await interaction.editReply({ embeds: [embed] });
   },
 };
