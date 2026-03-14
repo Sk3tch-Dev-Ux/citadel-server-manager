@@ -55,8 +55,9 @@ function verifyCsrfToken(req, res, next) {
   }
 
   // Skip CSRF for unauthenticated routes (no session/token yet)
+  // Use req.originalUrl because this middleware is mounted at /api/ which strips the prefix from req.url
   const exemptPaths = ['/api/auth/login', '/api/setup/', '/api/health', '/api/store/webhook'];
-  if (exemptPaths.some(p => req.url.startsWith(p))) {
+  if (exemptPaths.some(p => req.originalUrl.startsWith(p))) {
     return next();
   }
 
