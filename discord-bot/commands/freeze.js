@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { panelAction } = require('../api');
 const { isAdmin } = require('../utils/permissions');
+const { checkCooldown, setCooldown } = require('../utils/cooldowns');
 const { isValidSteam64 } = require('../utils/sanitize');
 const { buildErrorEmbed } = require('../ui/embeds');
 const COLORS = require('../ui/colors');
@@ -19,6 +20,11 @@ module.exports = {
   async execute(interaction) {
     if (!isAdmin(interaction)) {
       return await interaction.reply({ content: 'Admin role required.', flags: MessageFlags.Ephemeral });
+    }
+
+    const remaining = checkCooldown(interaction.user.id, 'freeze');
+    if (remaining > 0) {
+      return await interaction.reply({ content: `Please wait **${remaining}s** before using this again.`, flags: MessageFlags.Ephemeral });
     }
 
     const steamId = interaction.options.getString('steamid');
@@ -41,6 +47,7 @@ module.exports = {
       .setDescription(result.error ? `Error: ${result.error}` : (result.message || 'Action completed'))
       .setFooter({ text: `By ${interaction.user.tag}` })
       .setTimestamp();
+    setCooldown(interaction.user.id, 'freeze', 'admin');
     await interaction.editReply({ embeds: [embed] });
   },
 };

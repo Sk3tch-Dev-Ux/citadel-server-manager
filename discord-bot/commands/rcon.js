@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { panelAction } = require('../api');
 const { isAdmin } = require('../utils/permissions');
+const { checkCooldown, setCooldown } = require('../utils/cooldowns');
 const COLORS = require('../ui/colors');
 const logger = require('../logger');
 
@@ -16,6 +17,12 @@ module.exports = {
     if (!isAdmin(interaction)) {
       return await interaction.reply({ content: 'Admin role required.', flags: MessageFlags.Ephemeral });
     }
+
+    const remaining = checkCooldown(interaction.user.id, 'rcon');
+    if (remaining > 0) {
+      return await interaction.reply({ content: `Please wait **${remaining}s** before using this again.`, flags: MessageFlags.Ephemeral });
+    }
+
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const command = interaction.options.getString('command');
@@ -46,6 +53,7 @@ module.exports = {
           { name: 'Response', value: `\`\`\`${result.result || result.error || 'Done'}\`\`\`` }
         )
         .setTimestamp();
+      setCooldown(interaction.user.id, 'rcon');
       await interaction.editReply({ embeds: [embed] });
     } catch (err) {
       logger.error({ err }, 'Discord RCON command failed');
