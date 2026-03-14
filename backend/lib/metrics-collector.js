@@ -16,11 +16,10 @@ const logger = require('./logger');
 const ctx = require('./context');
 const { getProcessMetrics, getProcessCPU } = require('./process-manager');
 const { scrapeRPTForFPS } = require('./rpt-scraper');
-const { fetchPlayers, fetchModMetrics, fetchModVehicles, fetchModWorldEvents } = require('./player-data');
+const { fetchPlayers, fetchModMetrics, fetchModVehicles } = require('./player-data');
 const { addLog } = require('./audit');
 const { pushMetrics } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
-const { scrapeRPTForEvents, getMapData, updateWorldEventsFromMod } = require('./map-data');
 const { restartServer } = require('./server-lifecycle');
 const { HEALTH_ALERT_COOLDOWN_MS } = require('./constants');
 const cloudAgent = require('./cloud-agent');
@@ -77,26 +76,6 @@ async function collectMetrics(srv, state, pid) {
   } catch (err) {
     logger.debug({ err, serverId: srv.id }, 'Vehicle poll failed');
   }
-
-  // ─── World events: prefer sidecar, fallback to RPT scraping ──
-  try {
-    const modEvents = await fetchModWorldEvents(srv.id);
-    if (modEvents.length > 0) {
-      updateWorldEventsFromMod(srv.id, modEvents);
-    } else {
-      scrapeRPTForEvents(srv);
-    }
-  } catch {
-    try { scrapeRPTForEvents(srv); } catch { /* ignore */ }
-  }
-
-  // ─── Emit combined map data for live map page ──────────
-  try {
-    const mapData = getMapData(srv.id);
-    if (mapData.players.length > 0 || mapData.vehicles.length > 0 || mapData.events.length > 0) {
-      ctx.io.emit('mapData', { serverId: srv.id, ...mapData });
-    }
-  } catch { /* ignore */ }
 
   // ─── Push to Citadel Cloud (if enabled) ───────────────
   if (cloudAgent.isEnabled()) {

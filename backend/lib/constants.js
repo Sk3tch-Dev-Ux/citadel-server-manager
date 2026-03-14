@@ -17,9 +17,6 @@ module.exports = {
   /** Mod auto-detection scan interval (ms) — 5 minutes */
   MOD_DETECT_INTERVAL_MS: 5 * 60 * 1000,
 
-  /** Leaderboard refresh interval (ms) — 5 minutes */
-  LEADERBOARD_INTERVAL_MS: 5 * 60 * 1000,
-
   /** Delay before initial RCON connection attempt after startup (ms) */
   RCON_STARTUP_DELAY_MS: 5_000,
 

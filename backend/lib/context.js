@@ -13,7 +13,6 @@ module.exports = {
   watchList: [],
   priorityQueue: [],
   banDatabase: [],
-  leaderboard: [],
   notifications: [],
   storeProducts: [],
   storePurchases: [],

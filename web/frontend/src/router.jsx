@@ -29,10 +29,7 @@ const ModsPage = lazy(() => import('./pages/ModsPage/ModsPage'));
 const FilesPage = lazy(() => import('./pages/FilesPage'));
 const ConfigPage = lazy(() => import('./pages/ConfigPage'));
 const TypesEditorPage = lazy(() => import('./pages/TypesEditorPage'));
-const SchedulerPage = lazy(() => import('./pages/SchedulerPage'));
-const MessengerPage = lazy(() => import('./pages/MessengerPage'));
 const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
-const LiveMapPage = lazy(() => import('./pages/LiveMapPage'));
 const LicensePage = lazy(() => import('./pages/LicensePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
@@ -144,9 +141,6 @@ export default function AppRouter() {
             <Route path="types" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={TypesEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
             <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />
-            <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ErrorBoundary><Lazy><ServerPage Component={SchedulerPage} /></Lazy></ErrorBoundary></PermGuard>} />
-            <Route path="messenger" element={<PermGuard permission="chat.send"><ErrorBoundary><Lazy><ServerPage Component={MessengerPage} /></Lazy></ErrorBoundary></PermGuard>} />
-            <Route path="map" element={<ErrorBoundary><Lazy><ServerPage Component={LiveMapPage} /></Lazy></ErrorBoundary>} />
             <Route path="settings" element={<PermGuard permission="server.settings"><ErrorBoundary><ServerPage Component={ServerSettingsPage} /></ErrorBoundary></PermGuard>} />
             <Route path="dangerzone" element={<PermGuard permission="server.dangerzone"><ErrorBoundary><Lazy><ServerPage Component={DangerzonePage} /></Lazy></ErrorBoundary></PermGuard>} />
           </Route>

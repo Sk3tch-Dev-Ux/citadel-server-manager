@@ -52,7 +52,6 @@ ctx.auditLog = loadJSON(CONFIG.dataDir, 'audit.json', []);
 ctx.watchList = loadJSON(CONFIG.dataDir, 'watchlist.json', []);
 ctx.priorityQueue = loadJSON(CONFIG.dataDir, 'priority_queue.json', []);
 ctx.banDatabase = loadJSON(CONFIG.dataDir, 'bans.json', []);
-ctx.leaderboard = loadJSON(CONFIG.dataDir, 'leaderboard.json', []);
 ctx.storeProducts = loadJSON(CONFIG.dataDir, 'store_products.json', []);
 ctx.storePurchases = loadJSON(CONFIG.dataDir, 'store_purchases.json', []);
 
@@ -156,8 +155,6 @@ require('./routes/logs-metrics.routes')(app);
 require('./routes/config.routes')(app);
 require('./routes/mods.routes')(app);
 require('./routes/files.routes')(app);
-require('./routes/schedule.routes')(app);
-require('./routes/messenger.routes')(app);
 require('./routes/users.routes')(app);
 require('./routes/roles.routes')(app);
 require('./routes/audit.routes')(app);
@@ -171,13 +168,10 @@ require('./routes/backup.routes')(app);
 require('./routes/dangerzone.routes')(app);
 require('./routes/watchlist.routes')(app);
 require('./routes/priority-queue.routes')(app);
-require('./routes/killfeed.routes')(app);
-require('./routes/leaderboard.routes')(app);
 require('./routes/bans.routes')(app);
 require('./routes/actions.routes')(app);
 require('./routes/items.routes')(app);
 require('./routes/types-editor.routes')(app);
-require('./routes/map.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/store.routes')(app);
 require('./routes/lb-perks.routes')(app);
@@ -189,8 +183,6 @@ const { isLicensed } = require('./lib/license');
 if (!isLicensed()) logger.info('Running unlicensed — purchase at citadel.gg for $34.99 to unlock all features');
 
 // ─── WebSocket (authenticated) ───────────────────────────
-const { getMapData: getMapDataForSocket } = require('./lib/map-data');
-
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('Authentication required'));
@@ -228,9 +220,6 @@ io.on('connection', (socket) => {
     if (state) {
       socket.emit('serverStatus', { serverId: srv.id, status: state.status });
       socket.emit('players', { serverId: srv.id, players: state.players });
-      // Send initial map data for live map
-      const mapData = getMapDataForSocket(srv.id);
-      if (mapData) socket.emit('mapData', { serverId: srv.id, ...mapData });
     }
   }
   socket.on('disconnect', () => {
