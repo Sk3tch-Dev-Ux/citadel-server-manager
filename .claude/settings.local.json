@@ -171,7 +171,10 @@
       "Bash(grep -r \"404\\\\|Not Found\\\\|empty state\\\\|no results\\\\|no servers\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)",
       "Bash(grep -r \"loading\\\\|Loading\\\\|LOADING\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)",
       "Bash(grep -r \"useEffect\\\\|useState\\\\|useMemo\\\\|useCallback\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)",
-      "Bash(grep -r \"aria-\\\\|role=\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)"
+      "Bash(grep -r \"aria-\\\\|role=\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)",
+      "Bash(xargs grep -l \"LiveMapPage\\\\|SchedulerPage\\\\|MessengerPage\\\\|Killfeed\\\\|Leaderboard\")",
+      "Bash(xargs grep -l \"scheduler\\\\|messenger\\\\|map\\\\|killfeed\\\\|leaderboard\")",
+      "Bash(xargs grep -l \"map\\\\|schedule\\\\|messenger\\\\|killfeed\\\\|leaderboard\")"
     ]
   }
 }

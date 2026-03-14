@@ -191,12 +191,11 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Clock, Send, Wrench, AlertTriangle, Map } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const navItems = [
     { id: 'overview', icon: <LayoutDashboard size={16} />, label: 'Overview' },
-    { id: 'map', icon: <Map size={16} />, label: 'Live Map' },
     { id: 'metrics', icon: <BarChart3 size={16} />, label: 'Metrics' },
     { id: 'console', icon: <Terminal size={16} />, label: 'Console' },
     { id: 'players', icon: <Users size={16} />, label: 'Players' },
@@ -206,8 +205,6 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'types', icon: <FileCode size={16} />, label: 'Types Editor' },
     { id: 'logs', icon: <FileText size={16} />, label: 'Logs' },
     { id: 'bans', icon: <ShieldBan size={16} />, label: 'Bans' },
-    { id: 'scheduler', icon: <Clock size={16} />, label: 'Scheduler' },
-    { id: 'messenger', icon: <Send size={16} />, label: 'Messenger' },
     { id: 'settings', icon: <Wrench size={16} />, label: 'Settings' },
     { id: 'dangerzone', icon: <AlertTriangle size={16} />, label: 'Dangerzone' },
   ];

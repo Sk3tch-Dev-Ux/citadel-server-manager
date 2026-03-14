@@ -11,7 +11,6 @@ const ctx = require('../lib/context');
 const { sanitizeString } = require('../lib/helpers');
 const { downloadWorkshopMod } = require('../lib/steamcmd');
 const { installModToServer, updateLaunchParamsMods } = require('../lib/mod-manager');
-const { scrapeRPTForKills } = require('../lib/rpt-scraper');
 const { listBans } = require('../lib/ban-engine');
 const { getProviderForAction, findSession, ActionType } = require('../lib/server-actions/executor');
 const { startServer, stopServer, restartServer } = require('../lib/server-lifecycle');
@@ -21,7 +20,7 @@ const { addNotification, fireWebhooks } = require('../lib/notifications');
 const ALLOWED_ACTIONS = [
   'status', 'start', 'stop', 'restart', 'players', 'lock', 'unlock', 'rcon', 'message', 'kick',
   'mods', 'modStatus', 'modInstall', 'modUninstall', 'modEnable', 'modDisable',
-  'chatFeed', 'banWhitelist', 'killfeed', 'watchList', 'priorityQueue', 'timeWeather', 'leaderboard',
+  'chatFeed', 'banWhitelist', 'watchList', 'priorityQueue', 'timeWeather',
   'playerInfo', 'actionHeal', 'actionKill', 'actionTeleport', 'actionSpawnItem',
   'actionUnstuck', 'actionFreeze', 'actionStrip', 'actionExplode', 'actionMessage',
   'servers',
@@ -235,9 +234,6 @@ module.exports = function(app) {
         return res.json({ entries: bans.map(b => ({ player: b.playerName || b.steamId, status: 'Banned', reason: b.reason || '' })) });
       }
 
-      case 'killfeed':
-        return res.json({ kills: scrapeRPTForKills(targetSrv, 20) });
-
       case 'watchList':
         return res.json({ players: ctx.watchList });
 
@@ -254,9 +250,6 @@ module.exports = function(app) {
         ].filter(Boolean);
         return res.json({ info: lines.length ? lines.join('\n') : null });
       }
-
-      case 'leaderboard':
-        return res.json({ entries: ctx.leaderboard.slice(0, 10) });
 
       case 'playerInfo': {
         const { steamId } = params || {};

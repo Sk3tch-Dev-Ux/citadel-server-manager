@@ -21,9 +21,7 @@ function initServerState(serverId) {
   if (ctx.serverStates[serverId]) return;
   const srv = ctx.servers.find(s => s.id === serverId);
   if (!srv) return;
-  // Load persisted scheduler/messenger/backup data
-  const schedulerData = loadJSON(ctx.CONFIG.dataDir, `scheduler-${serverId}.json`, { jobs: [] });
-  const messengerData = loadJSON(ctx.CONFIG.dataDir, `messenger-${serverId}.json`, { enabled: true, messages: [] });
+  // Load persisted backup data
   const backupData = loadJSON(ctx.CONFIG.dataDir, `backup-${serverId}.json`, {
     enabled: false, backupAtStartup: false, intervalMinutes: 60, maxKeepDays: 7, paths: ['mpmissions', 'profiles'], lastBackupAt: null,
   });
@@ -36,8 +34,6 @@ function initServerState(serverId) {
     startedAt: null,
     cftools: { lastSessionPoll: null, gameSessions: [] }, // legacy SDK sessions
     inhouse: { sessions: [], lastPoll: null },
-    scheduler: { jobs: schedulerData.jobs || [], pendingActions: new Map() },
-    messenger: { enabled: messengerData.enabled !== false, messages: messengerData.messages || [], lastSent: new Map() },
     backup: { config: backupData, lastBackupAt: backupData.lastBackupAt || null, inProgress: false },
   };
   if (fs.existsSync(srv.installDir)) {

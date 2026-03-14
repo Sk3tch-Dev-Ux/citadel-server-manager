@@ -20,18 +20,15 @@ const {
   METRICS_POLL_INTERVAL_MS,
   STEAM_UPDATE_POLL_INTERVAL_MS,
   MOD_DETECT_INTERVAL_MS,
-  LEADERBOARD_INTERVAL_MS,
   RCON_STARTUP_DELAY_MS,
   SHUTDOWN_FORCE_TIMEOUT_MS,
 } = require('./constants');
 const { loadJSON, saveJSON, flushAll } = require('./data-store');
 const { detectRunningProcess, detectProcessByPid, spawnDayZServer, applyProcessSettings } = require('./process-manager');
-const { updateLeaderboard } = require('./leaderboard-engine');
 const { fetchPlayers } = require('./player-data');
 const { autoDetectMods } = require('./mod-manager');
 const { addLog } = require('./audit');
 const { addNotification, fireWebhooks } = require('./notifications');
-const { startSchedulerEngine } = require('./scheduler-engine');
 const { startBackupEngine, runStartupBackups } = require('./backup-engine');
 const { startSidecar, stopSidecar } = require('./sidecar-manager');
 const { triggerAutoUpdate } = require('./auto-updater');
@@ -360,9 +357,8 @@ async function startAllPolling() {
   // Run startup backups for servers with backupAtStartup enabled
   await runStartupBackups();
 
-  // Initial mod detection + leaderboard build + player fetch
+  // Initial mod detection + player fetch
   ctx.servers.forEach(s => autoDetectMods(s.id));
-  ctx.servers.forEach(s => updateLeaderboard(s.id));
   for (const srv of ctx.servers) {
     const state = ctx.serverStates[srv.id];
     if (state?.status === 'running') {
@@ -376,9 +372,7 @@ async function startAllPolling() {
   // Periodic intervals
   intervals.push(startMetricsPolling());
   intervals.push(setInterval(() => ctx.servers.forEach(s => autoDetectMods(s.id)), MOD_DETECT_INTERVAL_MS));
-  intervals.push(setInterval(() => ctx.servers.forEach(s => updateLeaderboard(s.id)), LEADERBOARD_INTERVAL_MS));
   intervals.push(startSteamUpdatePolling());
-  intervals.push(startSchedulerEngine());
   intervals.push(startBackupEngine());
 
   // Delayed RCON connect after startup
