@@ -36,7 +36,7 @@ module.exports = {
     const result = await panelAction('actionExplode', { steamId }, interaction.guildId, interaction);
     const embed = new EmbedBuilder()
       .setTitle('Admin: Explode')
-      .setColor(result.error ? COLORS.error : COLORS.error)
+      .setColor(result.error ? COLORS.error : COLORS.warning)
       .setDescription(result.error ? `Error: ${result.error}` : (result.message || 'Action completed'))
       .setFooter({ text: `By ${interaction.user.tag}` })
       .setTimestamp();

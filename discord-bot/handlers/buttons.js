@@ -424,7 +424,12 @@ const BUTTON_HANDLERS = {
 
 async function handleButton(interaction) {
   const handler = BUTTON_HANDLERS[interaction.customId];
-  if (handler) await handler(interaction);
+  if (handler) {
+    await handler(interaction);
+  } else {
+    console.warn(`[buttons] No handler for customId: ${interaction.customId}`);
+    await safeReply(interaction, { content: 'This action is not available.', flags: MessageFlags.Ephemeral });
+  }
 }
 
 module.exports = { handleButton };

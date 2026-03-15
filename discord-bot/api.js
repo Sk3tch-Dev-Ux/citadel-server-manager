@@ -151,12 +151,15 @@ async function panelAction(action, params = {}, guildId = null, interaction = nu
     });
 
     if (!result.ok) {
-      return { success: false, data: null, error: result.error };
+      return { success: false, error: result.error };
     }
 
-    return { success: true, data: result.data, error: null };
+    // Spread backend response data at top level so callers can access fields directly
+    // e.g. { success: true, error: null, servers: [...], status: 'running', ... }
+    const payload = (typeof result.data === 'object' && result.data !== null) ? result.data : {};
+    return { success: true, error: null, ...payload };
   } catch (err) {
-    return { success: false, data: null, error: `API connection failed: ${err.message}` };
+    return { success: false, error: `API connection failed: ${err.message}` };
   }
 }
 

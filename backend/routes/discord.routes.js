@@ -20,7 +20,7 @@ const { addNotification, fireWebhooks } = require('../lib/notifications');
 const ALLOWED_ACTIONS = [
   'status', 'start', 'stop', 'restart', 'players', 'lock', 'unlock', 'rcon', 'message', 'kick',
   'mods', 'modStatus', 'modInstall', 'modUninstall', 'modEnable', 'modDisable',
-  'chatFeed', 'banWhitelist', 'watchList', 'priorityQueue', 'timeWeather',
+  'chatFeed', 'banWhitelist', 'watchList', 'priorityQueue', 'timeWeather', 'killfeed', 'leaderboard',
   'playerInfo', 'actionHeal', 'actionKill', 'actionTeleport', 'actionSpawnItem',
   'actionUnstuck', 'actionFreeze', 'actionStrip', 'actionExplode', 'actionMessage',
   'servers',
@@ -32,7 +32,9 @@ module.exports = function(app) {
     const expectedKey = process.env.DISCORD_BOT_API_KEY;
     if (!expectedKey) return res.status(500).json({ error: 'DISCORD_BOT_API_KEY not configured on server' });
     if (!apiKey || typeof apiKey !== 'string') return res.status(400).json({ error: 'API key required' });
-    if (apiKey.length !== expectedKey.length || !crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(expectedKey))) {
+    const apiKeyBuf = Buffer.from(apiKey);
+    const expectedKeyBuf = Buffer.from(expectedKey);
+    if (apiKeyBuf.length !== expectedKeyBuf.length || !crypto.timingSafeEqual(apiKeyBuf, expectedKeyBuf)) {
       return res.status(403).json({ error: 'Invalid API key' });
     }
     if (!action || !ALLOWED_ACTIONS.includes(action)) {
@@ -249,6 +251,18 @@ module.exports = function(app) {
           cfg.weather              ? `🌤️ Weather: \`${cfg.weather}\``                               : null,
         ].filter(Boolean);
         return res.json({ info: lines.length ? lines.join('\n') : null });
+      }
+
+      case 'killfeed':
+        return res.json({ kills: state?.killFeed || state?.recentKills || [] });
+
+      case 'leaderboard': {
+        const playerStats = state?.playerStats || {};
+        const entries = Object.entries(playerStats)
+          .map(([id, s]) => ({ name: s.name || id, kills: s.kills || 0, deaths: s.deaths || 0 }))
+          .sort((a, b) => b.kills - a.kills)
+          .slice(0, 20);
+        return res.json({ entries });
       }
 
       case 'playerInfo': {

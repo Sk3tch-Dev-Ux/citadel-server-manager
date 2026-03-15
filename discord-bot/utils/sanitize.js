@@ -2,10 +2,13 @@
  * Input sanitization for Discord bot inputs.
  */
 
-/** Escape Discord markdown characters in text */
+/** Escape Discord markdown characters and mention syntax in text */
 function escapeMarkdown(text) {
   if (typeof text !== 'string') return String(text || '');
-  return text.replace(/([*_~`|\\>])/g, '\\$1');
+  return text
+    .replace(/([*_~`|\\>[\]])/g, '\\$1')  // Markdown chars + brackets
+    .replace(/@(everyone|here)/gi, '@\u200B$1')  // Block @everyone/@here
+    .replace(/<(@[!&]?|#)\d+>/g, '');  // Strip <@userId>, <@!userId>, <@&roleId>, <#channelId>
 }
 
 /** Sanitize broadcast messages: strip control chars, limit length */
