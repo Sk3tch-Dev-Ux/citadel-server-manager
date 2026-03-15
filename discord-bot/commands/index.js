@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { REST, Routes } = require('discord.js');
+const logger = require('../lib/logger');
 
 const commands = new Map();
 
@@ -14,23 +15,23 @@ for (const file of commandFiles) {
   if (cmd.data && cmd.execute) {
     commands.set(cmd.data.name, cmd);
   } else {
-    console.warn(`[commands] Skipping ${file} — missing 'data' or 'execute'`);
+    logger.warn(`Skipping ${file} — missing 'data' or 'execute'`);
   }
 }
 
 async function registerCommands(token, clientId, guildId) {
   const rest = new REST({ version: '10' }).setToken(token);
   const body = Array.from(commands.values()).map(c => c.data.toJSON());
-  console.log(`Registering ${body.length} slash commands...`);
+  logger.info(`Registering ${body.length} slash commands...`);
   try {
     if (guildId) {
       await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
     } else {
       await rest.put(Routes.applicationCommands(clientId), { body });
     }
-    console.log('Slash commands registered');
+    logger.info('Slash commands registered');
   } catch (err) {
-    console.error('Failed to register commands:', err);
+    logger.error({ err: err.message }, 'Failed to register commands');
   }
 }
 

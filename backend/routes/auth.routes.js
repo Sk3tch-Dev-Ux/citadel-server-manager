@@ -7,21 +7,39 @@ const { authenticator } = require('otplib');
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
 const logger = require('../lib/logger');
+const { loadJSON, saveJSON } = require('../lib/data-store');
 const { fail2ban, recordLoginFailure, recordLoginSuccess } = require('../middleware/rate-limit');
 
-const loginAttempts = {};
 const MAX_ATTEMPTS = 5;
 const LOCK_TIME = 10 * 60 * 1000; // 10 minutes
 
-// Periodic cleanup of stale loginAttempts entries to prevent memory leaks.
+// Persist lockout state to disk so it survives restarts.
+// Structure: { [username]: { count, last, lockedUntil } }
+let loginAttempts = loadJSON(ctx.CONFIG.dataDir, 'lockouts.json', {});
+
+// Prune expired entries on load
+const _loadNow = Date.now();
+for (const key of Object.keys(loginAttempts)) {
+  const entry = loginAttempts[key];
+  if (entry.lockedUntil < _loadNow && (_loadNow - entry.last) > LOCK_TIME * 2) {
+    delete loginAttempts[key];
+  }
+}
+
+// Periodic cleanup of stale loginAttempts entries.
 // Removes entries older than LOCK_TIME * 2 (20 minutes of inactivity).
 const _loginAttemptsCleanup = setInterval(() => {
   const cutoff = Date.now() - (LOCK_TIME * 2);
+  let changed = false;
   for (const key of Object.keys(loginAttempts)) {
     const entry = loginAttempts[key];
     if (entry.last < cutoff && entry.lockedUntil < Date.now()) {
       delete loginAttempts[key];
+      changed = true;
     }
+  }
+  if (changed) {
+    saveJSON(ctx.CONFIG.dataDir, 'lockouts.json', loginAttempts);
   }
 }, 10 * 60 * 1000); // Every 10 minutes
 _loginAttemptsCleanup.unref(); // Don't prevent process exit
@@ -54,11 +72,13 @@ module.exports = function(app) {
         loginAttempts[key].lockedUntil = now + LOCK_TIME;
         logger.warn({ username: key }, 'Account locked due to failed login attempts');
       }
+      saveJSON(ctx.CONFIG.dataDir, 'lockouts.json', loginAttempts);
       // Record IP-level failure for fail2ban
       recordLoginFailure(clientIp);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     loginAttempts[key] = { count: 0, last: now, lockedUntil: 0 };
+    saveJSON(ctx.CONFIG.dataDir, 'lockouts.json', loginAttempts);
     // Reset IP-level failure tracking on success
     recordLoginSuccess(clientIp);
 

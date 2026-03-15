@@ -2,6 +2,7 @@
  * Modal submission handlers.
  */
 const { EmbedBuilder, MessageFlags } = require('discord.js');
+const logger = require('../lib/logger');
 const { panelAction } = require('../api');
 const { setCooldown } = require('../utils/cooldowns');
 const { sanitizeBroadcast, isValidSteam64, isValidCoordinate, isValidWorkshopId } = require('../utils/sanitize');
@@ -182,7 +183,7 @@ async function handleModal(interaction) {
   }
 
   // Fallback for unknown modal IDs
-  console.warn(`[modals] No handler for modalId: ${modalId}`);
+  logger.warn(`No handler for modalId: ${modalId}`);
   await interaction.editReply({ content: 'This action is not available.' });
 }
 
