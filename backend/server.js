@@ -255,6 +255,7 @@ app.use((err, req, res, next) => {
 const { startup } = require('./lib/server-init');
 const { startAllPolling, gracefulShutdown } = require('./lib/polling');
 const { fireWebhooks } = require('./lib/notifications');
+const botManager = require('./lib/bot-manager');
 
 // Only start the server if not in test mode
 if (process.env.NODE_ENV !== 'test') {
@@ -282,8 +283,27 @@ if (process.env.NODE_ENV !== 'test') {
 
     // Listen
     server.listen(CONFIG.port, () => {
-      logger.info(`Citadel v2.0 (All-In-One) running on ${useHttps ? 'https' : 'http'}://localhost:${CONFIG.port}`);
-      logger.info(`${ctx.servers.length} server(s) configured, ${ctx.users.length} user(s)`);
+      // Start Discord bot (non-blocking, after Express is ready to accept API calls)
+      botManager.startBot();
+
+      const proto = useHttps ? 'https' : 'http';
+      const botConfigured = !!process.env.DISCORD_BOT_TOKEN;
+      const cloudEnabled = ctx.cloudAgent?.isEnabled?.() || false;
+
+      // Startup banner
+      /* eslint-disable no-console */
+      console.log('');
+      console.log('┌─────────────────────────────────────────────┐');
+      console.log('│           Citadel Server Manager             │');
+      console.log('├───────────────┬─────────────────────────────┤');
+      console.log(`│ Dashboard     │ ${(proto + '://localhost:' + CONFIG.port).padEnd(28)}│`);
+      console.log(`│ Discord Bot   │ ${(botConfigured ? '✅ Starting' : '❌ Not configured').padEnd(28)}│`);
+      console.log(`│ Cloud Agent   │ ${(cloudEnabled ? '✅ Connected' : '⚪ Disabled').padEnd(28)}│`);
+      console.log(`│ Sidecar       │ ${'Managed per-server'.padEnd(28)}│`);
+      console.log(`│ Servers       │ ${(ctx.servers.length + ' configured').padEnd(28)}│`);
+      console.log('└───────────────┴─────────────────────────────┘');
+      console.log('');
+      /* eslint-enable no-console */
 
       // Fire agent.ready webhook on successful startup
       fireWebhooks('agent.ready', {

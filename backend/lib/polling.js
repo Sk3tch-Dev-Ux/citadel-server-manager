@@ -411,6 +411,11 @@ function gracefulShutdown(httpServer, signal) {
     const cloudAgent = require('./cloud-agent');
     cloudAgent.stopCloudAgent();
   } catch { /* cloud-agent not loaded */ }
+  // Stop Discord bot
+  try {
+    const botManager = require('./bot-manager');
+    botManager.stopBot();
+  } catch { /* bot-manager not loaded */ }
   // Close WebSocket server
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
   // Flush pending data writes
