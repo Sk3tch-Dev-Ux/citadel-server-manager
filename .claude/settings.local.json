@@ -214,7 +214,13 @@
       "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
       "Bash(find /Users/sk3tch/Documents/GitHub/DayzServerController -type f \\\\\\(-name *.js -o -name *.tsx -o -name *.ts \\\\\\))",
       "Bash(find /Users/sk3tch/Documents/GitHub/DayzServerController/backend -name setup.routes.js -o -name setup*.js)",
-      "Bash(ssh vps:*)"
+      "Bash(ssh vps:*)",
+      "Bash(find /Users/sk3tch/Documents/GitHub/citadel-cloud -type f \\\\\\(-name *stripe* -o -name *billing* -o -name *product* \\\\\\) ! -path */node_modules/* ! -path */.git/*)",
+      "Bash(grep -r STRIPE_PRICE /Users/sk3tch/Documents/GitHub/citadel-cloud --include=*.md)",
+      "Bash(grep -r \"STRIPE_PRICE\\\\|Stripe\\\\|stripe\" /Users/sk3tch/Documents/GitHub/citadel-cloud/packages/api --include=*.ts --include=*.js -l)",
+      "Bash(grep -r \"STRIPE_PRICE\\\\|price_\" /Users/sk3tch/Documents/GitHub/citadel-cloud/packages/web --include=*.ts --include=*.tsx --include=*.js -l)",
+      "Bash(grep -l \"stripe\\\\|STRIPE\" \"/Users/sk3tch/Documents/GitHub/citadel-cloud/packages/api/src/db/migrations/\"*)",
+      "Bash(grep -r \"type PlanTier\\\\|enum PlanTier\" /Users/sk3tch/Documents/GitHub/citadel-cloud --include=*.ts --include=*.tsx)"
     ]
   }
 }
