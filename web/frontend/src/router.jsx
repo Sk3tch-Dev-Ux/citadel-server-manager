@@ -35,6 +35,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
 const StorePage = lazy(() => import('./pages/StorePage'));
 const StoreManagementPage = lazy(() => import('./pages/StoreManagementPage'));
+const CloudPage = lazy(() => import('./pages/CloudPage'));
 
 function AuthGuard({ children }) {
   const { user } = useAuth();
@@ -129,6 +130,7 @@ export default function AppRouter() {
           <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><PriorityQueuePage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="store-management" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><StoreManagementPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="license" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><LicensePage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="cloud" element={<PermGuard permission="settings.manage"><ErrorBoundary><Lazy><CloudPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ErrorBoundary><ServerPage Component={ServerOverviewPage} /></ErrorBoundary>} />

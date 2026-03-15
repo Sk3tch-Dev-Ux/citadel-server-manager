@@ -8,7 +8,53 @@ const cloudAgent = require('../lib/cloud-agent');
 const { saveJSON } = require('../lib/data-store');
 const logger = require('../lib/logger');
 
+const DEFAULT_RELAY_URL = 'wss://relay.citadel.gg/ws/plugin';
+
 module.exports = function (app) {
+
+  /**
+   * POST /api/cloud/enable — Enable Citadel Cloud integration (admin only)
+   */
+  app.post('/api/cloud/enable', auth('admin'), (req, res) => {
+    const structured = ctx.CONFIG._structured;
+    if (!structured) return res.status(500).json({ error: 'Config not available' });
+
+    structured.cloud.enabled = true;
+    if (!structured.cloud.relayUrl) {
+      structured.cloud.relayUrl = DEFAULT_RELAY_URL;
+    }
+
+    // Persist + update runtime
+    const fs = require('fs');
+    try { fs.writeFileSync(ctx.CONFIG._configFilePath, JSON.stringify(structured, null, 2)); } catch { /* ok */ }
+    ctx.CONFIG.cloud = structured.cloud;
+
+    // Start cloud agent for servers with API keys
+    cloudAgent.startCloudAgent(ctx.CONFIG, ctx.servers);
+
+    logger.info({ user: req.user?.username }, 'Citadel Cloud enabled');
+    res.json({ ok: true, message: 'Cloud integration enabled' });
+  });
+
+  /**
+   * POST /api/cloud/disable — Disable Citadel Cloud integration (admin only)
+   */
+  app.post('/api/cloud/disable', auth('admin'), (req, res) => {
+    const structured = ctx.CONFIG._structured;
+    if (!structured) return res.status(500).json({ error: 'Config not available' });
+
+    structured.cloud.enabled = false;
+
+    const fs = require('fs');
+    try { fs.writeFileSync(ctx.CONFIG._configFilePath, JSON.stringify(structured, null, 2)); } catch { /* ok */ }
+    ctx.CONFIG.cloud = structured.cloud;
+
+    cloudAgent.stopCloudAgent();
+
+    logger.info({ user: req.user?.username }, 'Citadel Cloud disabled');
+    res.json({ ok: true, message: 'Cloud integration disabled' });
+  });
+
   /**
    * GET /api/cloud/status — Get cloud connection status for all servers.
    */

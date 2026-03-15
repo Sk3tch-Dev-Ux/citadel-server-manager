@@ -7,7 +7,7 @@ import API from '../api';
 import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound, Monitor, Gauge, Settings, Menu, X, Crown, ShoppingCart } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound, Monitor, Gauge, Settings, Menu, X, Crown, ShoppingCart, Globe } from '../components/Icon';
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -36,6 +36,7 @@ export default function AppLayout() {
     : location.pathname === '/store-management' ? 'VIP Store'
     : location.pathname === '/settings' ? 'Settings'
     : location.pathname === '/license' ? 'License'
+    : location.pathname === '/cloud' ? 'Citadel Cloud'
     : location.pathname === '/dashboard' ? 'Dashboard'
     : 'Server Hub';
 
@@ -107,6 +108,11 @@ export default function AppLayout() {
           {user.role === 'admin' && (
             <Link to="/license" className={`nav-item ${location.pathname === '/license' ? 'active' : ''}`}>
               <span className="nav-icon"><KeyRound size={16} /></span>License
+            </Link>
+          )}
+          {user.role === 'admin' && (
+            <Link to="/cloud" className={`nav-item ${location.pathname === '/cloud' ? 'active' : ''}`}>
+              <span className="nav-icon"><Globe size={16} /></span>Citadel Cloud
             </Link>
           )}
 
