@@ -5,7 +5,7 @@ import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import {
   Shield, Crown, Check, Server, Users,
   Calendar, Mail, KeyRound, ArrowUpRight, BadgeCheck, Star,
-  RefreshCw, ExternalLink, Zap,
+  ExternalLink, Zap,
 } from '../components/Icon';
 
 const TIERS = [
@@ -62,7 +62,6 @@ export default function LicensePage() {
   const [activateKey, setActivateKey] = useState('');
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [billingInterval, setBillingInterval] = useState('month');
 
   useEffect(() => { loadData(); }, []);
@@ -105,48 +104,6 @@ export default function LicensePage() {
       loadData();
     } catch {
       window.addToast?.('Failed to deactivate', 'error');
-    }
-  }
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    try {
-      const result = await API.post('/api/license/refresh');
-      if (result?.success) {
-        window.addToast?.('License refreshed', 'success');
-        setLicense(result.license);
-      } else {
-        window.addToast?.('Refresh failed', 'error');
-      }
-    } catch {
-      window.addToast?.('Failed to refresh', 'error');
-    }
-    setRefreshing(false);
-  }
-
-  async function handleCheckout(tier) {
-    try {
-      const result = await API.post('/api/license/checkout', { tier, interval: billingInterval });
-      if (result?.url) {
-        window.open(result.url, '_blank');
-      } else {
-        window.addToast?.(result?.error || 'Failed to start checkout', 'error');
-      }
-    } catch {
-      window.addToast?.('Failed to create checkout', 'error');
-    }
-  }
-
-  async function handleManageBilling() {
-    try {
-      const result = await API.post('/api/license/portal');
-      if (result?.url) {
-        window.open(result.url, '_blank');
-      } else {
-        window.addToast?.(result?.error || 'Failed to open billing portal', 'error');
-      }
-    } catch {
-      window.addToast?.('Failed to open billing portal', 'error');
     }
   }
 
@@ -206,17 +163,12 @@ export default function LicensePage() {
           </div>
         )}
 
-        {/* Subscription management buttons */}
+        {/* Subscription management via Cloud */}
         {currentTier !== 'free' && (
           <div className="license-hero-actions">
-            {license?.stripeCustomerId && (
-              <button className="btn btn-secondary btn-sm" onClick={handleManageBilling}>
-                <ExternalLink size={14} /> Manage Subscription
-              </button>
-            )}
-            <button className="btn btn-secondary btn-sm" onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw size={14} /> {refreshing ? 'Refreshing...' : 'Refresh License'}
-            </button>
+            <a className="btn btn-secondary btn-sm" href="https://cloud.citadelforge.com" target="_blank" rel="noopener noreferrer">
+              <ExternalLink size={14} /> Manage on Citadel Cloud
+            </a>
           </div>
         )}
       </div>
@@ -280,13 +232,15 @@ export default function LicensePage() {
                     </button>
                   )
                 ) : (
-                  <button
+                  <a
                     className={`btn ${tier.popular ? 'btn-primary' : 'btn-secondary'} license-tier-btn`}
-                    onClick={() => handleCheckout(tier.id)}
+                    href="https://cloud.citadelforge.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    {isUpgrade ? 'Get Started' : isDowngrade ? 'Downgrade' : 'Get Started'}
-                    {isUpgrade && <ArrowUpRight size={14} />}
-                  </button>
+                    {isUpgrade ? 'Subscribe on Cloud' : isDowngrade ? 'Manage on Cloud' : 'Subscribe on Cloud'}
+                    <ArrowUpRight size={14} />
+                  </a>
                 )}
 
                 <ul className="license-tier-features">
@@ -310,7 +264,7 @@ export default function LicensePage() {
           <div>
             <div className="license-activate-title">{currentTier !== 'free' ? 'Manage License' : 'Activate License'}</div>
             <div className="license-activate-desc">
-              {currentTier !== 'free' ? 'Update your license key or deactivate.' : 'Already subscribed? Paste your license key from the email.'}
+              {currentTier !== 'free' ? 'Update your license key or deactivate.' : 'Subscribe on Citadel Cloud, then paste your license key here.'}
             </div>
           </div>
         </div>
