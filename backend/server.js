@@ -180,7 +180,7 @@ require('./routes/cloud.routes')(app);
 
 // ─── License status ──────────────────────────────────────
 const { isLicensed } = require('./lib/license');
-if (!isLicensed()) logger.info('Running unlicensed — purchase at citadel.gg for $34.99 to unlock all features');
+if (!isLicensed()) logger.info('Running unlicensed — purchase at citadels.cc for $34.99 to unlock all features');
 
 // ─── WebSocket (authenticated) ───────────────────────────
 io.use((socket, next) => {
