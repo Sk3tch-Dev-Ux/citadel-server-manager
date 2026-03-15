@@ -180,6 +180,10 @@ async function handleModal(interaction) {
     });
     return;
   }
+
+  // Fallback for unknown modal IDs
+  console.warn(`[modals] No handler for modalId: ${modalId}`);
+  await interaction.editReply({ content: 'This action is not available.' });
 }
 
 module.exports = { handleModal };

@@ -1,7 +1,8 @@
 /**
  * Bot configuration from environment variables.
  */
-require('dotenv').config({ path: '../.env' });
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const CONFIG = {
   token: process.env.DISCORD_BOT_TOKEN,

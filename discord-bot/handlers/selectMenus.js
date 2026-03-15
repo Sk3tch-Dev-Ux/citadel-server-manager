@@ -3,7 +3,8 @@
  */
 const { EmbedBuilder, ActionRowBuilder, MessageFlags } = require('discord.js');
 const { panelAction, safeReply, selectedServers } = require('../api');
-const { setCooldown } = require('../utils/cooldowns');
+const { isAdmin } = require('../utils/permissions');
+const { checkCooldown, setCooldown } = require('../utils/cooldowns');
 const COLORS = require('../ui/colors');
 const { buildStatusEmbed } = require('../ui/embeds');
 const {
@@ -81,6 +82,14 @@ async function handleSelectMenu(interaction) {
   }
 
   // ── Admin Action Player Selects ──
+  // Re-verify admin permission on all admin select menus
+  const adminSelects = ['select_gl_heal', 'select_gl_kill', 'select_gl_teleport', 'select_gl_spawn',
+    'select_gl_unstuck', 'select_gl_freeze', 'select_gl_strip', 'select_gl_explode', 'select_gl_message'];
+  if (adminSelects.includes(customId) && !isAdmin(interaction)) {
+    await safeReply(interaction, { content: '⛔ You do not have permission to use admin actions.', flags: MessageFlags.Ephemeral });
+    return;
+  }
+
   if (customId === 'select_gl_heal') {
     const steamId = interaction.values[0];
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -187,6 +196,10 @@ async function handleSelectMenu(interaction) {
     await interaction.showModal(buildMessagePlayerModal(steamId));
     return;
   }
+
+  // Fallback for unknown select menus
+  console.warn(`[selectMenus] No handler for customId: ${customId}`);
+  await safeReply(interaction, { content: 'This action is not available.', flags: MessageFlags.Ephemeral });
 }
 
 module.exports = { handleSelectMenu };

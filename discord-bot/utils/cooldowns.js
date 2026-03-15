@@ -21,6 +21,7 @@ const ACTION_TIERS = {
   panel_lock: 'admin', panel_unlock: 'admin', panel_message: 'admin',
   panel_rcon: 'admin', panel_kick_menu: 'admin',
   panel_gl_heal: 'admin', panel_gl_kill: 'admin', panel_gl_teleport: 'admin', panel_gl_spawn: 'admin',
+  panel_gl_unstuck: 'admin', panel_gl_freeze: 'admin', panel_gl_strip: 'admin', panel_gl_explode: 'admin', panel_gl_message: 'admin',
   panel_mod_install: 'admin', panel_mod_uninstall: 'admin', panel_mod_enable: 'admin', panel_mod_disable: 'admin',
   heal: 'admin', kill: 'admin', teleport: 'admin', spawnitem: 'admin',
   rcon: 'admin', broadcast: 'admin',

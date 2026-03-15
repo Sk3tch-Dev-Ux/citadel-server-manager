@@ -15,7 +15,7 @@ function formatPlaytime(seconds) {
 function formatUptime(startedAt) {
   if (!startedAt) return 'N/A';
   const diff = Date.now() - new Date(startedAt).getTime();
-  if (diff < 0) return 'N/A';
+  if (isNaN(diff) || diff < 0) return 'N/A';
   const days = Math.floor(diff / 86400000);
   const hours = Math.floor((diff % 86400000) / 3600000);
   const mins = Math.floor((diff % 3600000) / 60000);
@@ -26,7 +26,8 @@ function formatUptime(startedAt) {
 
 /** ASCII progress bar */
 function progressBar(pct, length = 10) {
-  const filled = Math.round((pct / 100) * length);
+  const clamped = Math.max(0, Math.min(100, isNaN(pct) ? 0 : pct));
+  const filled = Math.round((clamped / 100) * length);
   const empty = length - filled;
   return '█'.repeat(filled) + '░'.repeat(empty);
 }
