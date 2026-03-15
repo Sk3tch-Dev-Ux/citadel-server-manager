@@ -107,6 +107,9 @@ This will:
 1. Run the setup wizard (generates `.env` with secure JWT secret if missing)
 2. Build the frontend
 3. Start the backend server
+4. Start the Discord bot automatically (if `DISCORD_BOT_TOKEN` is configured in `.env`)
+
+All components are managed by a single process — no separate terminal windows needed.
 
 ### 4. Complete the Setup Wizard
 
@@ -129,6 +132,36 @@ npm run dev
 
 - **Backend API:** `http://localhost:3001`
 - **Frontend Dev:** `http://localhost:5173` (proxies API to :3001)
+
+---
+
+## Architecture
+
+Citadel runs three components, all managed automatically from a single `npm start`:
+
+| Component | Purpose | Startup |
+|-----------|---------|---------|
+| **Backend** | Express API + web dashboard on port 3001 | Always starts |
+| **Discord Bot** | 18+ slash commands, interactive panels, real-time server intel | Auto-starts if `DISCORD_BOT_TOKEN` is set in `.env` |
+| **Sidecar** | Per-server file IPC bridge between backend and @CitadelAdmin mod | Auto-spawned when a DayZ server starts |
+
+### Discord Bot
+
+The Discord bot runs as a managed child process of the backend. If the bot crashes, it automatically restarts with exponential backoff (5s → 15s → 30s → 60s). To enable it, add these to your `.env`:
+
+```env
+DISCORD_BOT_TOKEN=your-bot-token
+DISCORD_CLIENT_ID=your-client-id
+DISCORD_GUILD_ID=your-guild-id
+DISCORD_ADMIN_ROLE_ID=your-admin-role-id
+DISCORD_BOT_API_KEY=a-shared-secret-key
+```
+
+If `DISCORD_BOT_TOKEN` is not set, the bot is simply skipped — no errors, no crash loops.
+
+### Sidecar
+
+Each DayZ server gets its own sidecar process that bridges the backend to the @CitadelAdmin mod via file-based IPC. Sidecars are automatically started when you start a server from the dashboard and stopped when the server stops. No manual management needed.
 
 ---
 
@@ -172,7 +205,7 @@ npm install -g pm2
 
 # From an Administrator terminal:
 pm2 start backend/server.js --name citadel
-pm2 start discord-bot/bot.js --name citadel-bot
+# Discord bot is auto-managed by the backend — no separate PM2 entry needed
 pm2 save
 pm2 startup
 ```
@@ -337,7 +370,7 @@ server {
 npm install -g pm2
 
 pm2 start backend/server.js --name citadel
-pm2 start discord-bot/bot.js --name citadel-bot
+# Discord bot is auto-managed by the backend — no separate PM2 entry needed
 
 pm2 save
 pm2 startup
