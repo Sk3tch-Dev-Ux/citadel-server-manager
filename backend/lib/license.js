@@ -1,14 +1,18 @@
 /**
- * Citadel License Validation System
+ * Citadel License & Subscription System
  *
- * Simple one-time purchase model: $34.99 → full access to every feature.
- * License keys are RSA-signed JWTs verified with the embedded public key.
- * The private key is held by the vendor (tools/license-private.pem) and
- * used via tools/generate-license.js to issue keys.
+ * Subscription tiers: Free (no key) → Basic → Pro → Community
+ * License keys are RSA-signed JWTs with tier + limits embedded.
+ * The private key is held by the vendor (tools/license-private.pem).
+ *
+ * Subscription JWTs expire after 30-35 days and are auto-refreshed
+ * by calling the license server's /api/verify-subscription endpoint.
  *
  * States:
- *   unlicensed — No valid key; tool runs with a "please purchase" watermark
- *   licensed   — Valid key; full unrestricted access to all features
+ *   free       — No valid key; limited to 1 server, basic features
+ *   basic      — 2 servers, all admin actions, VIP store
+ *   pro        — 5 servers, data export, cross-server features
+ *   community  — Unlimited servers, custom branding, priority support
  */
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
@@ -16,7 +20,6 @@ const path = require('path');
 const logger = require('./logger');
 
 // ─── RSA Public Key (used to verify license signatures) ──────────
-// The corresponding private key is in tools/license-private.pem (NEVER ship this)
 const LICENSE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp82bd+QOzARJ1BinD2f9
 q7+9LezIXHmkMKBDMRvueNJ38J8djPOSU1w9oeIVS4XJHbj4LZ3ECV92+Bw35kGh
@@ -27,20 +30,49 @@ D2smJX4CWutpCPohja/KuNK4trE9KNdj+CcH2wt+WHCCBMasNERbK1y9QjT26g6Q
 1wIDAQAB
 -----END PUBLIC KEY-----`;
 
-// ─── License State ───────────────────────────────────────────────
+// ─── Tier Limits ─────────────────────────────────────────
+const TIER_LIMITS = {
+  free:      { maxServers: 1,  maxWebhooks: 2,  maxTeamMembers: 3,  dataRetentionDays: 3,   apiRate: 60 },
+  basic:     { maxServers: 2,  maxWebhooks: 5,  maxTeamMembers: 5,  dataRetentionDays: 14,  apiRate: 120 },
+  pro:       { maxServers: 5,  maxWebhooks: 15, maxTeamMembers: 15, dataRetentionDays: 30,  apiRate: 300 },
+  community: { maxServers: -1, maxWebhooks: -1, maxTeamMembers: -1, dataRetentionDays: 365, apiRate: 1000 },
+};
+
+const TIER_ORDER = ['free', 'basic', 'pro', 'community'];
+
+// ─── License State ───────────────────────────────────────
 let _license = {
   licensed: false,
+  tier: 'free',
   licensee: null,
   email: null,
   expiresAt: null,
   watermark: true,
+  stripeCustomerId: null,
+  stripeSubscriptionId: null,
   key: null,
 };
 
+let _refreshInterval = null;
+let _dataDir = null;
+
+/**
+ * Get the limits for a given tier.
+ */
+function getTierLimits(tier) {
+  return TIER_LIMITS[tier] || TIER_LIMITS.free;
+}
+
+/**
+ * Check if tierA meets or exceeds the minimum tier requirement.
+ */
+function meetsMinTier(currentTier, minTier) {
+  if (!minTier) return true;
+  return TIER_ORDER.indexOf(currentTier) >= TIER_ORDER.indexOf(minTier);
+}
+
 /**
  * Validate and decode a license key (RSA-signed JWT).
- * @param {string} key - The license key JWT string
- * @returns {{ valid: boolean, decoded?: object, error?: string }}
  */
 function validateKey(key) {
   if (!key || typeof key !== 'string') {
@@ -53,7 +85,6 @@ function validateKey(key) {
       issuer: 'citadel-license',
     });
 
-    // Must be a Citadel product key
     if (decoded.product !== 'citadel') {
       return { valid: false, error: 'Invalid product identifier in license key' };
     }
@@ -75,6 +106,7 @@ function validateKey(key) {
  * Called once at startup.
  */
 function activateLicense(dataDir) {
+  _dataDir = dataDir;
   const key = process.env.CITADEL_LICENSE_KEY;
   const cacheFile = path.join(dataDir, 'license.json');
 
@@ -83,16 +115,13 @@ function activateLicense(dataDir) {
     const result = validateKey(key);
     if (result.valid) {
       applyLicense(result.decoded, key);
-      // Cache valid license
       try {
-        fs.writeFileSync(cacheFile, JSON.stringify({
-          key,
-          activatedAt: new Date().toISOString(),
-        }));
+        fs.writeFileSync(cacheFile, JSON.stringify({ key, activatedAt: new Date().toISOString() }));
       } catch { /* non-critical */ }
+      startRefreshLoop(dataDir);
       return _license;
     }
-    logger.warn({ error: result.error }, 'License key validation failed — running unlicensed');
+    logger.warn({ error: result.error }, 'License key validation failed — running as free tier');
   }
 
   // Try cached license
@@ -103,24 +132,16 @@ function activateLicense(dataDir) {
         const result = validateKey(cached.key);
         if (result.valid) {
           applyLicense(result.decoded, cached.key);
+          startRefreshLoop(dataDir);
           return _license;
         }
-        logger.warn({ error: result.error }, 'Cached license invalid — running unlicensed');
+        logger.warn({ error: result.error }, 'Cached license invalid — running as free tier');
       }
-    } catch { /* corrupted cache, just continue */ }
+    } catch { /* corrupted cache */ }
   }
 
-  // Default: unlicensed
-  logger.info('No valid license key found — running unlicensed (purchase at citadel.gg for $34.99)');
-  _license = {
-    licensed: false,
-    licensee: null,
-    email: null,
-    expiresAt: null,
-    watermark: true,
-    key: null,
-  };
-
+  // Default: free tier
+  applyFreeTier();
   return _license;
 }
 
@@ -128,19 +149,43 @@ function activateLicense(dataDir) {
  * Apply a decoded license token to the runtime state.
  */
 function applyLicense(decoded, key) {
+  const tier = decoded.tier || (decoded.product === 'citadel' ? 'community' : 'free'); // Legacy permanent keys get community tier
+
   _license = {
     licensed: true,
+    tier,
     licensee: decoded.licensee || null,
     email: decoded.email || null,
     expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
     watermark: false,
+    stripeCustomerId: decoded.stripeCustomerId || null,
+    stripeSubscriptionId: decoded.stripeSubscriptionId || null,
     key,
   };
 
   logger.info({
     licensee: decoded.licensee,
+    tier,
     expires: _license.expiresAt || 'never',
-  }, 'License activated — full access enabled');
+  }, `License activated — ${tier} tier`);
+}
+
+/**
+ * Set the free tier defaults.
+ */
+function applyFreeTier() {
+  logger.info('No valid license key — running as free tier (1 server, limited features)');
+  _license = {
+    licensed: false,
+    tier: 'free',
+    licensee: null,
+    email: null,
+    expiresAt: null,
+    watermark: true,
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    key: null,
+  };
 }
 
 /**
@@ -148,22 +193,28 @@ function applyLicense(decoded, key) {
  */
 function getLicense() {
   const { key, ...safe } = _license;
-  return safe;
+  return {
+    ...safe,
+    tierLimits: getTierLimits(_license.tier),
+  };
 }
 
 /**
- * Check if the instance is licensed.
- * @returns {boolean}
+ * Check if the instance is licensed (any paid tier).
  */
 function isLicensed() {
   return _license.licensed === true;
 }
 
 /**
+ * Get the current tier.
+ */
+function getTier() {
+  return _license.tier;
+}
+
+/**
  * Manually activate a new license key at runtime (e.g., from the UI).
- * @param {string} key - New license key
- * @param {string} dataDir - Data directory for caching
- * @returns {{ success: boolean, license?: object, error?: string }}
  */
 function setLicenseKey(key, dataDir) {
   const result = validateKey(key);
@@ -176,19 +227,81 @@ function setLicenseKey(key, dataDir) {
   // Cache it
   try {
     const cacheFile = path.join(dataDir, 'license.json');
-    fs.writeFileSync(cacheFile, JSON.stringify({
-      key,
-      activatedAt: new Date().toISOString(),
-    }));
+    fs.writeFileSync(cacheFile, JSON.stringify({ key, activatedAt: new Date().toISOString() }));
   } catch { /* non-critical */ }
 
+  // Start refresh loop if not already running
+  startRefreshLoop(dataDir);
+
   return { success: true, license: getLicense() };
+}
+
+/**
+ * Refresh the license by calling the license server's verify endpoint.
+ * Called automatically every 24 hours for subscription keys.
+ */
+async function refreshLicenseFromServer(dataDir) {
+  if (!_license.key || !_license.stripeSubscriptionId) return;
+
+  const licenseServerUrl = process.env.LICENSE_SERVER_URL || 'https://citadel-license-generator.vercel.app';
+
+  try {
+    const { default: fetch } = await import('node-fetch');
+    const res = await fetch(`${licenseServerUrl}/api/verify-subscription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ licenseKey: _license.key }),
+    });
+
+    const data = await res.json();
+
+    if (data.valid && data.licenseKey) {
+      const result = validateKey(data.licenseKey);
+      if (result.valid) {
+        applyLicense(result.decoded, data.licenseKey);
+        // Cache the new key
+        try {
+          const cacheFile = path.join(dataDir, 'license.json');
+          fs.writeFileSync(cacheFile, JSON.stringify({ key: data.licenseKey, activatedAt: new Date().toISOString() }));
+        } catch { /* non-critical */ }
+        logger.info({ tier: data.tier }, 'License refreshed from server');
+      }
+    } else if (!data.valid) {
+      logger.warn({ reason: data.reason }, 'License verification failed — subscription may be inactive');
+      // Don't immediately downgrade — let the JWT expire naturally
+    }
+  } catch (err) {
+    logger.warn({ error: err.message }, 'License refresh failed — will retry in 24h');
+  }
+}
+
+/**
+ * Start the 24-hour refresh loop for subscription keys.
+ */
+function startRefreshLoop(dataDir) {
+  if (_refreshInterval) return; // Already running
+  if (!_license.stripeSubscriptionId) return; // Not a subscription key
+
+  const REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+
+  _refreshInterval = setInterval(() => {
+    refreshLicenseFromServer(dataDir);
+  }, REFRESH_INTERVAL);
+
+  // Don't block process exit
+  if (_refreshInterval.unref) _refreshInterval.unref();
 }
 
 module.exports = {
   activateLicense,
   getLicense,
   isLicensed,
+  getTier,
+  getTierLimits,
+  meetsMinTier,
   setLicenseKey,
   validateKey,
+  refreshLicenseFromServer,
+  TIER_LIMITS,
+  TIER_ORDER,
 };

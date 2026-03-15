@@ -32,7 +32,7 @@ const { addAudit } = require('../lib/audit');
 const { addNotification } = require('../lib/notifications');
 const { scaffoldHookDirectory } = require('../lib/lifecycle-hooks');
 const auth = require('../middleware/auth');
-const requireLicense = require('../middleware/license');
+const { checkServerLimit } = require('../middleware/license');
 const { getSidecarPort } = require('../lib/sidecar-manager');
 const { ensureFirewallRules } = require('../lib/firewall-manager');
 
@@ -205,7 +205,7 @@ const deployLocks = new Map(); // serverId -> timestamp
 const DEPLOY_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 
 module.exports = function(app) {
-  app.post('/api/deploy', auth('server.deploy'), requireLicense(), async (req, res) => {
+  app.post('/api/deploy', auth('server.deploy'), checkServerLimit(), async (req, res) => {
     const { name, installDir, gameTitle, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map } = req.body;
     if (!name || !installDir) return res.status(400).json({ error: 'Name and install directory required' });
 

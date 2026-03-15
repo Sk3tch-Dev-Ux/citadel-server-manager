@@ -174,7 +174,11 @@
       "Bash(grep -r \"aria-\\\\|role=\" /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/web/frontend/src/pages/*.jsx)",
       "Bash(xargs grep -l \"LiveMapPage\\\\|SchedulerPage\\\\|MessengerPage\\\\|Killfeed\\\\|Leaderboard\")",
       "Bash(xargs grep -l \"scheduler\\\\|messenger\\\\|map\\\\|killfeed\\\\|leaderboard\")",
-      "Bash(xargs grep -l \"map\\\\|schedule\\\\|messenger\\\\|killfeed\\\\|leaderboard\")"
+      "Bash(xargs grep -l \"map\\\\|schedule\\\\|messenger\\\\|killfeed\\\\|leaderboard\")",
+      "Bash(find /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib -name *cloud* -o -name *update* -o -name *version* -o -name *package*)",
+      "Bash(grep -E \"\\\\.js$\")",
+      "Bash(find /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController -name *license* -o -name *activation* -o -name *key*)",
+      "Bash(find /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController -name *.dist -o -name dist.js -o -name build.js)"
     ]
   }
 }

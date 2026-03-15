@@ -27,10 +27,11 @@ const SERVICE_NAME = 'CitadelServer';
 const SERVICE_DISPLAY = 'Citadel DayZ Server Controller';
 const SERVICE_DESCRIPTION = 'Citadel — All-In-One DayZ server management platform with web UI, Discord bot, and live map.';
 
-// Resolve absolute paths so the service always finds the right files
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+// Resolve absolute paths so the service always finds the right files.
+// CITADEL_INSTALL_DIR allows the NSIS installer to specify the install location.
+const PROJECT_ROOT = process.env.CITADEL_INSTALL_DIR || path.resolve(__dirname, '..', '..');
 const SERVER_JS = path.join(PROJECT_ROOT, 'backend', 'server.js');
-const NODE_EXE = process.execPath; // e.g. C:\Program Files\nodejs\node.exe
+const NODE_EXE = process.execPath; // e.g. C:\Program Files\Citadel\runtime\node.exe
 
 // ─── Helpers ────────────────────────────────────────────
 

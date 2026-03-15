@@ -26,7 +26,8 @@
     "service:uninstall": "node backend/lib/service-installer.js uninstall",
     "service:status": "node backend/lib/service-installer.js status",
     "service:start": "node backend/lib/service-installer.js start",
-    "service:stop": "node backend/lib/service-installer.js stop"
+    "service:stop": "node backend/lib/service-installer.js stop",
+    "build:installer": "node installer/build.js"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

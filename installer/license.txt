@@ -1,0 +1,35 @@
+CITADEL SOFTWARE LICENSE AGREEMENT
+
+Copyright (c) 2024-2026 Citadel. All rights reserved.
+
+This software is proprietary and confidential. By installing Citadel, you
+agree to the following terms:
+
+1. LICENSE GRANT
+   Subject to the terms of this agreement, Citadel grants you a non-exclusive,
+   non-transferable license to use this software in accordance with your
+   active subscription tier.
+
+2. RESTRICTIONS
+   You may not:
+   - Redistribute, sublicense, or resell this software
+   - Reverse engineer, decompile, or disassemble this software
+   - Remove or alter any proprietary notices or labels
+   - Use this software to operate a competing service
+
+3. SUBSCRIPTION
+   Access to features is governed by your active subscription tier
+   (Free, Basic, Pro, or Community). Feature availability may change
+   between tiers.
+
+4. DISCLAIMER
+   THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY
+   CLAIM, DAMAGES, OR OTHER LIABILITY.
+
+5. TERMINATION
+   This license is effective until terminated. Your rights under this
+   license will terminate automatically if you fail to comply with any
+   of its terms.
+
+For full terms, visit: https://citadel.gg/terms

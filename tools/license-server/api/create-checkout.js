@@ -1,17 +1,30 @@
 /**
  * POST /api/create-checkout
  *
- * Creates a Stripe Checkout Session and returns the URL.
- * Collects customer's GitHub username via Stripe's custom_fields
- * so we can auto-invite them to the private repo after payment.
+ * Creates a Stripe Checkout Session for a subscription tier.
+ * Returns the checkout URL for the customer to complete payment.
  *
- * Body (optional): { "email": "customer@example.com" }
+ * Body: { tier: 'basic'|'pro'|'community', interval: 'month'|'year', email?: string }
  */
 const Stripe = require('stripe');
 
 const SUCCESS_URL = process.env.SUCCESS_URL || 'https://citadel.gg/purchase/success';
 const CANCEL_URL = process.env.CANCEL_URL || 'https://citadel.gg/purchase';
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://sk3tch-dev-ux.github.io').split(',');
+
+// Price ID env var naming convention: STRIPE_PRICE_{TIER}_{INTERVAL}
+// e.g. STRIPE_PRICE_BASIC_MONTHLY, STRIPE_PRICE_PRO_YEARLY
+const PRICE_MAP = {
+  basic_month: process.env.STRIPE_PRICE_BASIC_MONTHLY,
+  basic_year: process.env.STRIPE_PRICE_BASIC_YEARLY,
+  pro_month: process.env.STRIPE_PRICE_PRO_MONTHLY,
+  pro_year: process.env.STRIPE_PRICE_PRO_YEARLY,
+  community_month: process.env.STRIPE_PRICE_COMMUNITY_MONTHLY,
+  community_year: process.env.STRIPE_PRICE_COMMUNITY_YEARLY,
+};
+
+const VALID_TIERS = ['basic', 'pro', 'community'];
+const VALID_INTERVALS = ['month', 'year'];
 
 function setCors(req, res) {
   const origin = req.headers.origin;
@@ -36,32 +49,40 @@ module.exports = async function handler(req, res) {
   }
 
   const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-  const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID;
-
   if (!STRIPE_SECRET_KEY) return res.status(500).json({ error: 'Stripe not configured' });
-  if (!STRIPE_PRICE_ID) return res.status(500).json({ error: 'STRIPE_PRICE_ID not configured' });
+
+  const { tier, interval, email } = req.body || {};
+
+  // Validate tier
+  if (!tier || !VALID_TIERS.includes(tier)) {
+    return res.status(400).json({ error: `Invalid tier. Must be one of: ${VALID_TIERS.join(', ')}` });
+  }
+
+  // Validate interval
+  if (!interval || !VALID_INTERVALS.includes(interval)) {
+    return res.status(400).json({ error: `Invalid interval. Must be one of: ${VALID_INTERVALS.join(', ')}` });
+  }
+
+  const priceKey = `${tier}_${interval}`;
+  const priceId = PRICE_MAP[priceKey];
+
+  if (!priceId) {
+    return res.status(500).json({ error: `Price not configured for ${tier}/${interval}. Set STRIPE_PRICE_${tier.toUpperCase()}_${interval === 'month' ? 'MONTHLY' : 'YEARLY'} env var.` });
+  }
 
   const stripe = new Stripe(STRIPE_SECRET_KEY);
 
   try {
-    const email = req.body?.email || undefined;
-
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+      mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: CANCEL_URL,
-      customer_email: email,
-      // Collect GitHub username on the checkout page
-      custom_fields: [
-        {
-          key: 'github_username',
-          label: { type: 'custom', custom: 'GitHub Username' },
-          type: 'text',
-          optional: false,
-        },
-      ],
+      customer_email: email || undefined,
+      subscription_data: {
+        metadata: { tier },
+      },
     });
 
     return res.status(200).json({ url: session.url });

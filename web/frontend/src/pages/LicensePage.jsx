@@ -3,10 +3,58 @@ import { useState, useEffect } from 'react';
 import API from '../api';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import {
-  Shield, Crown, Check, Server, FolderOpen, Clock, Terminal, Package,
-  Map, Send, Globe, ShieldBan, Users, BarChart3, Skull, Zap,
-  Calendar, Mail, KeyRound, AlertTriangle, ArrowUpRight, BadgeCheck, Star, Infinity,
+  Shield, Crown, Check, Server, Users,
+  Calendar, Mail, KeyRound, ArrowUpRight, BadgeCheck, Star,
+  RefreshCw, ExternalLink, Zap,
 } from '../components/Icon';
+
+const TIERS = [
+  {
+    id: 'free',
+    name: 'Free',
+    price: { month: 0, year: 0 },
+    desc: 'For small communities getting started.',
+    features: [
+      '1 server', '3 team members', '3-day data retention',
+      'Real-time metrics & logs', 'Basic admin actions',
+      '2 webhooks', '60 API requests/min',
+    ],
+  },
+  {
+    id: 'basic',
+    name: 'Basic',
+    price: { month: 4.99, year: 47.88 },
+    desc: 'Full features for small communities.',
+    features: [
+      '2 servers', '5 team members', '14-day data retention',
+      'All admin actions', 'Cross-server search', 'Shared ban lists',
+      'In-game VIP store', '5 webhooks', '120 API requests/min',
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    popular: true,
+    price: { month: 9.99, year: 95.88 },
+    desc: 'For growing communities that need more.',
+    features: [
+      '5 servers', '15 team members', '30-day data retention',
+      'Everything in Basic', '15 webhooks', '25 store products',
+      'Data export', '300 API requests/min',
+    ],
+  },
+  {
+    id: 'community',
+    name: 'Community',
+    price: { month: 24.99, year: 239.88 },
+    desc: 'For large networks and serious operators.',
+    features: [
+      'Unlimited servers', 'Unlimited team members', '365-day data retention',
+      'Everything in Pro', 'Unlimited webhooks', 'Custom branding',
+      'Priority support', '1000 API requests/min',
+    ],
+  },
+];
 
 export default function LicensePage() {
   const { confirm: confirmDialog, DialogComponent } = useConfirmDialog();
@@ -14,6 +62,8 @@ export default function LicensePage() {
   const [activateKey, setActivateKey] = useState('');
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [billingInterval, setBillingInterval] = useState('month');
 
   useEffect(() => { loadData(); }, []);
 
@@ -35,7 +85,7 @@ export default function LicensePage() {
     try {
       const result = await API.post('/api/license/activate', { key: activateKey.trim() });
       if (result?.success) {
-        window.addToast?.('License activated — full access enabled!', 'success');
+        window.addToast?.('License activated!', 'success');
         setActivateKey('');
         loadData();
       } else {
@@ -48,49 +98,92 @@ export default function LicensePage() {
   }
 
   async function handleDeactivate() {
-    if (!await confirmDialog({ title: 'Deactivate License', message: 'Are you sure you want to deactivate your license?', confirmLabel: 'Deactivate', variant: 'danger' })) return;
+    if (!await confirmDialog({ title: 'Deactivate License', message: 'This will revert to the Free tier. Continue?', confirmLabel: 'Deactivate', variant: 'danger' })) return;
     try {
       await API.del('/api/license');
-      window.addToast?.('License deactivated', 'info');
+      window.addToast?.('Reverted to Free tier', 'info');
       loadData();
     } catch {
       window.addToast?.('Failed to deactivate', 'error');
     }
   }
 
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const result = await API.post('/api/license/refresh');
+      if (result?.success) {
+        window.addToast?.('License refreshed', 'success');
+        setLicense(result.license);
+      } else {
+        window.addToast?.('Refresh failed', 'error');
+      }
+    } catch {
+      window.addToast?.('Failed to refresh', 'error');
+    }
+    setRefreshing(false);
+  }
+
+  async function handleCheckout(tier) {
+    try {
+      const result = await API.post('/api/license/checkout', { tier, interval: billingInterval });
+      if (result?.url) {
+        window.open(result.url, '_blank');
+      } else {
+        window.addToast?.(result?.error || 'Failed to start checkout', 'error');
+      }
+    } catch {
+      window.addToast?.('Failed to create checkout', 'error');
+    }
+  }
+
+  async function handleManageBilling() {
+    try {
+      const result = await API.post('/api/license/portal');
+      if (result?.url) {
+        window.open(result.url, '_blank');
+      } else {
+        window.addToast?.(result?.error || 'Failed to open billing portal', 'error');
+      }
+    } catch {
+      window.addToast?.('Failed to open billing portal', 'error');
+    }
+  }
+
   if (loading) return <div className="license-loading">Loading license information...</div>;
 
-  const isLicensed = license?.licensed === true;
+  const currentTier = license?.tier || 'free';
   const isExpired = license?.expiresAt && new Date(license.expiresAt) < new Date();
+  const tierIndex = TIERS.findIndex(t => t.id === currentTier);
 
   return (
     <div className="license-page">
 
       {/* Hero Status */}
-      <div className={`license-hero ${isLicensed ? 'licensed' : 'unlicensed'}`}>
+      <div className={`license-hero ${currentTier !== 'free' ? 'licensed' : 'unlicensed'}`}>
         <div className="license-hero-glow" />
         <div className="license-hero-content">
-          <div className={`license-icon-ring ${isLicensed ? 'active' : ''}`}>
-            {isLicensed ? <Crown size={28} /> : <Shield size={28} />}
+          <div className={`license-icon-ring ${currentTier !== 'free' ? 'active' : ''}`}>
+            {currentTier !== 'free' ? <Crown size={28} /> : <Shield size={28} />}
           </div>
           <div className="license-hero-text">
-            <div className={`license-status-badge ${isLicensed ? (isExpired ? 'expired' : 'active') : 'inactive'}`}>
-              {isLicensed ? (isExpired ? 'Expired' : 'Licensed') : 'Free Tier'}
+            <div className={`license-status-badge ${currentTier !== 'free' ? (isExpired ? 'expired' : 'active') : 'inactive'}`}>
+              {currentTier !== 'free' ? (isExpired ? 'Expired' : TIERS[tierIndex]?.name) : 'Free Tier'}
             </div>
             <h2 className="license-hero-title">
-              {isLicensed
-                ? 'Citadel Pro'
-                : 'Upgrade to Citadel Pro'}
+              {currentTier !== 'free'
+                ? `Citadel ${TIERS[tierIndex]?.name}`
+                : 'Upgrade Your Plan'}
             </h2>
             <p className="license-hero-desc">
-              {isLicensed
-                ? 'Full access to all features and premium support.'
-                : 'Unlock the complete All-In-One DayZ toolkit for your community.'}
+              {currentTier !== 'free'
+                ? `You're on the ${TIERS[tierIndex]?.name} plan. ${TIERS[tierIndex]?.desc}`
+                : 'Start free with one server. Upgrade when your community grows.'}
             </p>
           </div>
         </div>
 
-        {isLicensed && (
+        {currentTier !== 'free' && (
           <div className="license-details-row">
             {license?.licensee && (
               <div className="license-detail">
@@ -104,88 +197,120 @@ export default function LicensePage() {
                 <span>{license.email}</span>
               </div>
             )}
-            {license?.expiresAt ? (
+            {license?.expiresAt && (
               <div className={`license-detail ${isExpired ? 'expired' : ''}`}>
                 <Calendar size={14} />
-                <span>{isExpired ? 'Expired' : 'Expires'}: {new Date(license.expiresAt).toLocaleDateString()}</span>
-              </div>
-            ) : (
-              <div className="license-detail">
-                <Infinity size={14} />
-                <span>Permanent License</span>
+                <span>{isExpired ? 'Expired' : 'Renews'}: {new Date(license.expiresAt).toLocaleDateString()}</span>
               </div>
             )}
           </div>
         )}
+
+        {/* Subscription management buttons */}
+        {currentTier !== 'free' && (
+          <div className="license-hero-actions">
+            {license?.stripeCustomerId && (
+              <button className="btn btn-secondary btn-sm" onClick={handleManageBilling}>
+                <ExternalLink size={14} /> Manage Subscription
+              </button>
+            )}
+            <button className="btn btn-secondary btn-sm" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw size={14} /> {refreshing ? 'Refreshing...' : 'Refresh License'}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Pricing + Features */}
-      {!isLicensed && (
-        <div className="license-offer-grid">
-          {/* Pricing Card */}
-          <div className="license-pricing-card">
-            <div className="license-pricing-header">
-              <Star size={16} />
-              <span>One-Time Purchase</span>
-            </div>
-            <div className="license-price">
-              <span className="license-price-dollar">$</span>
-              <span className="license-price-amount">34</span>
-              <span className="license-price-cents">.99</span>
-              <span className="license-price-unit">USD</span>
-            </div>
-            <div className="license-price-note">Pay once, own it forever. No subscriptions.</div>
-            {license?.purchaseUrl && (
-              <a href={license.purchaseUrl} target="_blank" rel="noopener noreferrer" className="license-buy-btn">
-                Purchase License <ArrowUpRight size={16} />
-              </a>
-            )}
-            <div className="license-guarantee">
-              <Shield size={12} />
-              <span>30-day money-back guarantee</span>
-            </div>
-          </div>
-
-          {/* Features Card */}
-          <div className="license-features-card">
-            <div className="license-features-header">Everything included — one tool, one price</div>
-            <div className="license-features-grid">
-              {[
-                { icon: <Server size={15} />, label: 'Unlimited Servers' },
-                { icon: <FolderOpen size={15} />, label: 'File Manager' },
-                { icon: <Clock size={15} />, label: 'Scheduler' },
-                { icon: <Zap size={15} />, label: 'Backup System' },
-                { icon: <Terminal size={15} />, label: 'RCON Console' },
-                { icon: <Map size={15} />, label: 'Live Map' },
-                { icon: <Package size={15} />, label: 'Mod Manager' },
-                { icon: <Send size={15} />, label: 'Discord Bot' },
-                { icon: <Globe size={15} />, label: 'Webhooks' },
-                { icon: <Users size={15} />, label: 'Priority Queue' },
-                { icon: <ShieldBan size={15} />, label: 'Ban Management' },
-                { icon: <BarChart3 size={15} />, label: 'Leaderboards' },
-                { icon: <Skull size={15} />, label: 'Killfeed' },
-                { icon: <Users size={15} />, label: 'Player Management' },
-                { icon: <AlertTriangle size={15} />, label: 'Watchlist' },
-                { icon: <Package size={15} />, label: 'SteamCMD Deploy' },
-              ].map(f => (
-                <div key={f.label} className="license-feature-item">
-                  <div className="license-feature-icon">{f.icon}</div>
-                  <span>{f.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Pricing Tiers */}
+      <div className="license-pricing-section">
+        <div className="license-pricing-heading">
+          <h3>Simple, transparent pricing</h3>
+          <p>Start free with one server. Upgrade when your community grows. No hidden fees, cancel anytime.</p>
         </div>
-      )}
 
-      {/* Activate License */}
+        {/* Billing interval toggle */}
+        <div className="license-interval-toggle">
+          <span className={billingInterval === 'month' ? 'active' : ''}>Monthly</span>
+          <button
+            className={`license-toggle-switch ${billingInterval === 'year' ? 'yearly' : ''}`}
+            onClick={() => setBillingInterval(b => b === 'month' ? 'year' : 'month')}
+            aria-label="Toggle billing interval"
+          >
+            <span className="license-toggle-thumb" />
+          </button>
+          <span className={billingInterval === 'year' ? 'active' : ''}>
+            Yearly <span className="license-save-badge">Save 20%</span>
+          </span>
+        </div>
+
+        <div className="license-tier-grid">
+          {TIERS.map((tier, i) => {
+            const isCurrent = tier.id === currentTier;
+            const isUpgrade = i > tierIndex;
+            const isDowngrade = i < tierIndex && currentTier !== 'free';
+            const price = billingInterval === 'year'
+              ? (tier.price.year / 12).toFixed(2)
+              : tier.price.month.toFixed(2);
+
+            return (
+              <div key={tier.id} className={`license-tier-card ${isCurrent ? 'current' : ''} ${tier.popular ? 'popular' : ''}`}>
+                {tier.popular && <div className="license-popular-badge">Most Popular</div>}
+                <div className="license-tier-name">{tier.name}</div>
+                <div className="license-tier-price">
+                  <span className="license-tier-dollar">$</span>
+                  <span className="license-tier-amount">{price.split('.')[0]}</span>
+                  <span className="license-tier-cents">.{price.split('.')[1]}</span>
+                  <span className="license-tier-period">/month</span>
+                </div>
+                {billingInterval === 'year' && tier.price.year > 0 && (
+                  <div className="license-tier-yearly">Billed ${tier.price.year.toFixed(2)}/year</div>
+                )}
+                <div className="license-tier-desc">{tier.desc}</div>
+
+                {isCurrent ? (
+                  <button className="btn btn-secondary license-tier-btn" disabled>
+                    <Check size={14} /> Current Plan
+                  </button>
+                ) : tier.id === 'free' ? (
+                  currentTier !== 'free' ? (
+                    <button className="btn btn-secondary license-tier-btn" disabled>Free Tier</button>
+                  ) : (
+                    <button className="btn btn-secondary license-tier-btn" disabled>
+                      <Check size={14} /> Current Plan
+                    </button>
+                  )
+                ) : (
+                  <button
+                    className={`btn ${tier.popular ? 'btn-primary' : 'btn-secondary'} license-tier-btn`}
+                    onClick={() => handleCheckout(tier.id)}
+                  >
+                    {isUpgrade ? 'Get Started' : isDowngrade ? 'Downgrade' : 'Get Started'}
+                    {isUpgrade && <ArrowUpRight size={14} />}
+                  </button>
+                )}
+
+                <ul className="license-tier-features">
+                  {tier.features.map(f => (
+                    <li key={f}>
+                      <Check size={14} className="license-check-icon" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Activate License Key */}
       <div className="license-activate-card">
         <div className="license-activate-header">
           <KeyRound size={18} />
           <div>
-            <div className="license-activate-title">{isLicensed ? 'Manage License' : 'Activate License'}</div>
+            <div className="license-activate-title">{currentTier !== 'free' ? 'Manage License' : 'Activate License'}</div>
             <div className="license-activate-desc">
-              {isLicensed ? 'Change or deactivate your current license key.' : 'Already purchased? Enter your license key below.'}
+              {currentTier !== 'free' ? 'Update your license key or deactivate.' : 'Already subscribed? Paste your license key from the email.'}
             </div>
           </div>
         </div>
@@ -195,13 +320,13 @@ export default function LicensePage() {
             className="input license-key-input"
             value={activateKey}
             onChange={e => setActivateKey(e.target.value)}
-            placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
+            placeholder="Paste your license key here"
           />
           <button className="btn btn-primary license-activate-btn" type="submit" disabled={activating || !activateKey.trim()}>
             {activating ? 'Activating...' : <><Check size={14} /> Activate</>}
           </button>
         </form>
-        {isLicensed && (
+        {currentTier !== 'free' && (
           <div className="license-deactivate-row">
             <button className="btn btn-danger btn-sm" onClick={handleDeactivate}>
               Deactivate License

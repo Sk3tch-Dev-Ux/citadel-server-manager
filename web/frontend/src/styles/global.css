@@ -918,7 +918,7 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 @media (max-width: 800px) { .overview-metrics-grid { grid-template-columns: 1fr; } .overview-ports { flex-direction: column; gap: 16px; } .port-divider { width: 60%; height: 1px; margin: 0; } }
 
 /* ── License Page ── */
-.license-page { max-width: 900px; margin: 0 auto; }
+.license-page { max-width: 1200px; margin: 0 auto; }
 .license-loading { text-align: center; padding: 60px 20px; color: var(--text-muted); }
 
 /* Hero */
@@ -975,62 +975,93 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .license-detail.expired { color: var(--accent-red); }
 .license-detail svg { color: var(--text-muted); flex-shrink: 0; }
 
-/* Offer Grid */
-.license-offer-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; margin-bottom: 24px; }
+/* Pricing Section */
+.license-pricing-section { margin-bottom: 24px; }
+.license-pricing-heading { text-align: center; margin-bottom: 24px; }
+.license-pricing-heading h3 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.license-pricing-heading p { font-size: 14px; color: var(--text-muted); }
 
-/* Pricing Card */
-.license-pricing-card {
+/* Billing Interval Toggle */
+.license-interval-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 24px; font-size: 13px; font-weight: 600; color: var(--text-muted);
+}
+.license-interval-toggle span.active { color: var(--text-primary); }
+.license-save-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  background: rgba(92,184,92,0.15); color: var(--accent-green);
+  margin-left: 4px;
+}
+.license-toggle-switch {
+  position: relative; width: 44px; height: 24px; border-radius: 12px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  cursor: pointer; transition: background 0.2s;
+}
+.license-toggle-switch.yearly { background: rgba(108,180,240,0.2); border-color: rgba(108,180,240,0.3); }
+.license-toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--text-secondary); transition: transform 0.2s;
+}
+.license-toggle-switch.yearly .license-toggle-thumb { transform: translateX(20px); background: var(--accent-blue); }
+
+/* Tier Grid */
+.license-tier-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.license-tier-card {
+  position: relative;
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 32px 28px;
-  display: flex; flex-direction: column; align-items: center; text-align: center;
+  border-radius: var(--radius-lg); padding: 28px 20px;
+  display: flex; flex-direction: column; text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.license-pricing-header {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 1px; color: var(--accent-yellow); margin-bottom: 20px;
-}
-.license-price { display: flex; align-items: flex-start; margin-bottom: 8px; }
-.license-price-dollar { font-size: 20px; font-weight: 700; color: var(--text-secondary); margin-top: 6px; margin-right: 2px; }
-.license-price-amount { font-size: 56px; font-weight: 800; line-height: 1; font-family: var(--font-mono); }
-.license-price-cents { font-size: 20px; font-weight: 700; color: var(--text-secondary); margin-top: 6px; }
-.license-price-unit { font-size: 13px; color: var(--text-muted); margin-left: 6px; margin-top: 10px; }
-.license-price-note { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+.license-tier-card:hover { border-color: rgba(155,163,176,0.3); }
+.license-tier-card.current { border-color: rgba(108,180,240,0.4); box-shadow: 0 0 0 1px rgba(108,180,240,0.15); }
+.license-tier-card.popular { border-color: rgba(196,155,255,0.4); }
 
-.license-buy-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 14px 36px; border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  color: #fff; font-weight: 700; font-size: 15px;
-  text-decoration: none; transition: all 0.2s; width: 100%;
-  justify-content: center; border: none; cursor: pointer;
-}
-.license-buy-btn:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(108,180,240,0.25); }
-
-.license-guarantee {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; color: var(--text-muted); margin-top: 16px;
+.license-popular-badge {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  padding: 3px 14px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  color: #fff; white-space: nowrap;
 }
 
-/* Features Card */
-.license-features-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 28px;
+.license-tier-name {
+  font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary);
 }
-.license-features-header {
-  font-size: 15px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);
+
+.license-tier-price {
+  display: flex; align-items: flex-start; justify-content: center; margin-bottom: 4px;
 }
-.license-features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.license-feature-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: var(--radius);
-  font-size: 13px; color: var(--text-secondary);
-  transition: background 0.15s;
+.license-tier-dollar { font-size: 16px; font-weight: 700; color: var(--text-muted); margin-top: 4px; }
+.license-tier-amount { font-size: 40px; font-weight: 800; line-height: 1; font-family: var(--font-mono); }
+.license-tier-cents { font-size: 16px; font-weight: 700; color: var(--text-muted); margin-top: 4px; }
+.license-tier-period { font-size: 13px; color: var(--text-muted); margin-left: 4px; align-self: flex-end; margin-bottom: 4px; }
+
+.license-tier-yearly { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.license-tier-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+
+.license-tier-btn { width: 100%; margin-bottom: 20px; }
+
+.license-tier-features {
+  list-style: none; padding: 0; margin: 0;
+  border-top: 1px solid var(--border); padding-top: 16px;
+  text-align: left; flex: 1;
 }
-.license-feature-item:hover { background: rgba(255,255,255,0.03); }
-.license-feature-icon {
-  width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(108,180,240,0.08); color: var(--accent-blue);
+.license-tier-features li {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-secondary);
+  padding: 5px 0;
+}
+.license-check-icon { color: var(--accent-green); flex-shrink: 0; }
+
+/* Hero Actions */
+.license-hero-actions {
+  display: flex; gap: 8px; margin-top: 16px;
+  position: relative; z-index: 1;
 }
 
 /* Activate Card */
@@ -1054,12 +1085,13 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 }
 
 /* Responsive */
+@media (max-width: 1100px) { .license-tier-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 800px) {
-  .license-offer-grid { grid-template-columns: 1fr; }
+  .license-tier-grid { grid-template-columns: 1fr; }
   .license-hero-content { flex-direction: column; align-items: center; text-align: center; }
   .license-details-row { justify-content: center; }
-  .license-features-grid { grid-template-columns: 1fr; }
   .license-activate-form { flex-direction: column; }
+  .license-hero-actions { justify-content: center; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1168,6 +1200,131 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 .empty-state p { color: var(--text-muted); font-size: 13px; max-width: 360px; line-height: 1.5; }
 .empty-state .btn { margin-top: 16px; }
 .empty-state-icon-large { margin-bottom: 20px; opacity: 0.15; color: var(--text-secondary); }
+
+/* ── Cloud Page ── */
+.cloud-page { max-width: 900px; margin: 0 auto; }
+.cloud-loading { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+
+.cloud-hero {
+  position: relative; overflow: hidden;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 40px 36px 32px;
+  margin-bottom: 24px;
+}
+.cloud-hero.enabled { border-color: rgba(92,184,92,0.3); }
+
+.cloud-hero-content { display: flex; align-items: flex-start; gap: 24px; }
+.cloud-icon-ring {
+  width: 64px; height: 64px; border-radius: 16px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(155,163,176,0.1); color: var(--text-muted);
+  border: 1px solid rgba(155,163,176,0.2);
+}
+.cloud-icon-ring.active {
+  background: rgba(92,184,92,0.1); color: var(--accent-green);
+  border-color: rgba(92,184,92,0.25);
+}
+
+.cloud-hero-text { flex: 1; min-width: 0; }
+.cloud-status-badge {
+  display: inline-block; padding: 3px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.cloud-status-badge.connected { background: rgba(92,184,92,0.15); color: var(--accent-green); }
+.cloud-status-badge.offline { background: rgba(155,163,176,0.15); color: var(--text-muted); }
+
+.cloud-hero-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.cloud-hero-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+.cloud-hero-actions { margin-top: 16px; }
+
+.cloud-details-row {
+  display: flex; flex-wrap: wrap; gap: 20px;
+  margin-top: 20px; padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.cloud-detail {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text-secondary);
+}
+.cloud-detail svg { color: var(--text-muted); flex-shrink: 0; }
+
+/* Server Connections Card */
+.cloud-servers-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;
+}
+.cloud-card-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.cloud-card-header-text h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.cloud-card-header-text p { font-size: 13px; color: var(--text-muted); }
+.cloud-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
+
+.cloud-server-list { display: flex; flex-direction: column; gap: 8px; }
+.cloud-server-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-radius: var(--radius);
+  background: var(--bg-elevated); border: 1px solid var(--border);
+}
+.cloud-server-item.connected { border-color: rgba(92,184,92,0.2); }
+.cloud-server-item.auth-failed { border-color: rgba(224,108,117,0.2); }
+
+.cloud-server-info { display: flex; align-items: center; gap: 12px; }
+.cloud-server-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.cloud-server-dot.status-connected { background: var(--accent-green); box-shadow: 0 0 6px rgba(92,184,92,0.4); }
+.cloud-server-dot.status-connecting { background: var(--accent-yellow); animation: pulse 1.5s infinite; }
+.cloud-server-dot.status-auth-failed { background: var(--accent-red); }
+.cloud-server-dot.status-disconnected { background: var(--text-muted); }
+
+.cloud-server-name { font-size: 14px; font-weight: 600; }
+.cloud-server-status { font-size: 12px; color: var(--text-muted); }
+.cloud-server-actions { display: flex; gap: 8px; }
+
+/* Connect Dialog */
+.cloud-dialog-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+}
+.cloud-dialog {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px;
+  width: 100%; max-width: 480px;
+}
+.cloud-dialog h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.cloud-dialog p { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.cloud-dialog .input { width: 100%; margin-bottom: 16px; }
+.cloud-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Setup Guide */
+.cloud-guide-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px;
+}
+.cloud-guide-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+
+.cloud-steps { display: flex; flex-direction: column; gap: 16px; }
+.cloud-step { display: flex; align-items: flex-start; gap: 14px; }
+.cloud-step-num {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(108,180,240,0.1); color: var(--accent-blue);
+  font-size: 12px; font-weight: 700; border: 1px solid rgba(108,180,240,0.2);
+}
+.cloud-step-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.cloud-step-desc { font-size: 13px; color: var(--text-muted); }
+
+@media (max-width: 800px) {
+  .cloud-hero-content { flex-direction: column; align-items: center; text-align: center; }
+  .cloud-details-row { justify-content: center; }
+  .cloud-server-item { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .cloud-server-actions { width: 100%; }
+}
 
 /* ═══════════════════════════════════════════════════════
    Responsive Sidebar — collapses below 900px
