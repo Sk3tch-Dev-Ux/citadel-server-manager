@@ -198,7 +198,23 @@
       "Bash(export PATH=\"/opt/homebrew/bin:/usr/bin:/bin:$PATH\")",
       "Bash(stripe webhook_endpoints list --live)",
       "Bash(stripe webhook_endpoints update we_1TB6VqA4kXoqX4AwBDITg8Sz --url=\"https://citadels.cc/api/stripe/webhook\" --live)",
-      "Bash(stripe webhook_endpoints delete we_1T6CGiA4kXoqX4AwD7vsmFAw --live)"
+      "Bash(stripe webhook_endpoints delete we_1T6CGiA4kXoqX4AwD7vsmFAw --live)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts|md\\)$\")",
+      "Bash(ls -la /Users/sk3tch/Documents/GitHub/citadel-cloud/packages/web/src/app/\\\\\\(dashboard\\\\\\)/teams/[teamId]/servers/)",
+      "Bash(head -c 60000 /Users/sk3tch/Documents/GitHub/citadel-cloud/packages/web/src/app/\\\\\\(marketing\\\\\\)/docs/page.tsx)",
+      "Bash(wc -l /Users/sk3tch/Documents/GitHub/citadel-cloud/packages/web/src/app/\\\\\\(marketing\\\\\\)/docs/page.tsx)",
+      "Bash(find /Users/sk3tch/Documents/GitHub/DayzServerController/dayz-mod/@CitadelAdmin -type f \\\\\\(-name *.md -o -name *.txt -o -name *README* -o -name *CONFIG* -o -name *INSTALL* \\\\\\))",
+      "Bash(ls -la /Users/sk3tch/Documents/GitHub/citadel-cloud/packages/web/src/app/\\\\\\(marketing\\\\\\)/)",
+      "Bash(grep -r \"command.queue\\\\|file.*queue\\\\|ipc\" /Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot --include=*.js)",
+      "Bash(grep -r \"citadel-cloud\\\\|cloud.routes\" /Users/sk3tch/Documents/GitHub/DayzServerController/backend --include=*.js)",
+      "Bash(wc -l /Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/**/*.js)",
+      "Bash(git add:*)",
+      "Bash(ls /Users/sk3tch/Documents/GitHub/citadel-cloud/packages/web/src/app/\\\\\\(marketing\\\\\\)/)",
+      "Bash(git push:*)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(find /Users/sk3tch/Documents/GitHub/DayzServerController -type f \\\\\\(-name *.js -o -name *.tsx -o -name *.ts \\\\\\))",
+      "Bash(find /Users/sk3tch/Documents/GitHub/DayzServerController/backend -name setup.routes.js -o -name setup*.js)",
+      "Bash(ssh vps:*)"
     ]
   }
 }
