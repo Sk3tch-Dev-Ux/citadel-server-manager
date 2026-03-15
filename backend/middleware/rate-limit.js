@@ -4,6 +4,8 @@
  */
 const rateLimit = require('express-rate-limit');
 const logger = require('../lib/logger');
+const ctx = require('../lib/context');
+const { loadJSON, saveJSON } = require('../lib/data-store');
 
 /** General API limiter: 120 requests per minute per IP */
 const apiLimiter = rateLimit({
@@ -44,8 +46,21 @@ const BAN_DURATIONS = [60 * 1000, 300 * 1000, 3600 * 1000]; // 60s, 5min, 1hr
 const STALE_ENTRY_TTL = 3600 * 1000; // Remove entries not seen for 1 hour
 const CLEANUP_INTERVAL = 5 * 60 * 1000; // Prune every 5 minutes
 
-// In-memory tracking: ip -> { failures, lastFailure, bannedUntil, banLevel }
+// Persistent tracking: ip -> { failures, lastFailure, bannedUntil, banLevel }
+// Loaded from disk so bans survive restarts.
 const _ipTracker = new Map();
+
+// Restore persisted IP bans on startup
+try {
+  const persisted = loadJSON(ctx.CONFIG.dataDir, 'ip-bans.json', {});
+  const now = Date.now();
+  for (const [ip, entry] of Object.entries(persisted)) {
+    // Only restore entries with active bans or recent failures
+    if (entry.bannedUntil > now || (now - entry.lastFailure) < STALE_ENTRY_TTL) {
+      _ipTracker.set(ip, entry);
+    }
+  }
+} catch { /* ignore startup load errors */ }
 
 /**
  * Fail2Ban middleware.
@@ -94,6 +109,9 @@ function recordLoginFailure(ip) {
     entry.failures = 0; // Reset failures for next escalation cycle
     logger.warn({ ip, banDurationMs: duration, banLevel: entry.banLevel }, 'IP banned by fail2ban');
   }
+
+  // Persist IP ban state to disk
+  _persistIpBans();
 }
 
 /**
@@ -105,6 +123,19 @@ function recordLoginFailure(ip) {
 function recordLoginSuccess(ip) {
   if (!ip) return;
   _ipTracker.delete(ip);
+  _persistIpBans();
+}
+
+/**
+ * Persist current IP ban state to disk.
+ * Uses saveJSON (debounced) so rapid login failures don't hammer disk I/O.
+ */
+function _persistIpBans() {
+  const obj = {};
+  for (const [ip, entry] of _ipTracker.entries()) {
+    obj[ip] = entry;
+  }
+  saveJSON(ctx.CONFIG.dataDir, 'ip-bans.json', obj);
 }
 
 /**

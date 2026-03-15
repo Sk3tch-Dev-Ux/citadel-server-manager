@@ -2,6 +2,7 @@
  * Select menu interaction handlers.
  */
 const { EmbedBuilder, ActionRowBuilder, MessageFlags } = require('discord.js');
+const logger = require('../lib/logger');
 const { panelAction, safeReply, selectedServers } = require('../api');
 const { isAdmin } = require('../utils/permissions');
 const { checkCooldown, setCooldown } = require('../utils/cooldowns');
@@ -198,7 +199,7 @@ async function handleSelectMenu(interaction) {
   }
 
   // Fallback for unknown select menus
-  console.warn(`[selectMenus] No handler for customId: ${customId}`);
+  logger.warn(`No handler for selectMenu customId: ${customId}`);
   await safeReply(interaction, { content: 'This action is not available.', flags: MessageFlags.Ephemeral });
 }
 

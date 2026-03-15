@@ -3,6 +3,7 @@
  */
 const { MessageFlags } = require('discord.js');
 const CONFIG = require('./config');
+const logger = require('./lib/logger');
 
 // Ensure `fetch` is available (Node 18+ has global fetch)
 let fetch;
@@ -14,7 +15,7 @@ try {
     fetch = nf && (nf.default || nf);
   }
 } catch (err) {
-  console.warn('fetch unavailable (no global fetch and node-fetch import failed)', err);
+  logger.warn(`fetch unavailable (no global fetch and node-fetch import failed): ${err.message}`);
 }
 
 /** Per-guild selected server (guildId → serverId) */
@@ -110,11 +111,7 @@ async function fetchWithRetry(url, options = {}, attempt = 1) {
 
   // Retry on 5xx errors
   if (!result.ok && result.status >= 500 && result.status < 600 && attempt < maxAttempts) {
-    console.warn(`[api] 5xx error on attempt ${attempt}, retrying in ${RETRY_DELAY_MS}ms`, {
-      url,
-      status: result.status,
-      error: result.error
-    });
+    logger.warn({ url, status: result.status, error: result.error }, `5xx error on attempt ${attempt}, retrying in ${RETRY_DELAY_MS}ms`);
     await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
     return fetchWithRetry(url, options, attempt + 1);
   }
@@ -175,7 +172,7 @@ async function safeReply(interaction, options) {
     const flags = options.flags ?? MessageFlags.Ephemeral;
     return await interaction.followUp(Object.assign({}, options, { flags }));
   } catch (err) {
-    console.error('[safeReply] error', err);
+    logger.error({ err: err.message }, 'safeReply error');
   }
 }
 

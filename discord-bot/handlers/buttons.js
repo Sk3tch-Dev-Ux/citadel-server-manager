@@ -3,6 +3,7 @@
  * Uses a dispatch map instead of if/else chain.
  */
 const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
+const logger = require('../lib/logger');
 const { panelAction, safeReply } = require('../api');
 const { isAdmin } = require('../utils/permissions');
 const { checkCooldown, setCooldown } = require('../utils/cooldowns');
@@ -427,7 +428,7 @@ async function handleButton(interaction) {
   if (handler) {
     await handler(interaction);
   } else {
-    console.warn(`[buttons] No handler for customId: ${interaction.customId}`);
+    logger.warn(`No handler for button customId: ${interaction.customId}`);
     await safeReply(interaction, { content: 'This action is not available.', flags: MessageFlags.Ephemeral });
   }
 }

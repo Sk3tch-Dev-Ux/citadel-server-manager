@@ -6,6 +6,7 @@
  */
 const { Client, GatewayIntentBits, Events, MessageFlags } = require('discord.js');
 const CONFIG = require('./config');
+const logger = require('./lib/logger');
 const { panelAction } = require('./api');
 const { commands, registerCommands } = require('./commands');
 const { handleButton } = require('./handlers/buttons');
@@ -23,7 +24,7 @@ const client = new Client({
 
 // ─── Ready (BUG FIX: Events.ClientReady, not 'clientReady') ──
 client.once(Events.ClientReady, async () => {
-  console.log(`Discord bot logged in as ${client.user.tag}`);
+  logger.info(`Logged in as ${client.user.tag}`);
 
   // Validate admin role on startup
   if (CONFIG.adminRoleId) {
@@ -44,50 +45,50 @@ async function validateAdminRole() {
   try {
     // Validate format: Discord snowflakes are 17-20 digit numbers
     if (!/^\d{17,20}$/.test(CONFIG.adminRoleId)) {
-      console.error(`[bot] DISCORD_ADMIN_ROLE_ID invalid format: "${CONFIG.adminRoleId}". Must be a numeric Discord snowflake (17-20 digits).`);
-      console.error('[bot] Admin commands will be disabled.');
+      logger.error(`DISCORD_ADMIN_ROLE_ID invalid format: "${CONFIG.adminRoleId}". Must be a numeric Discord snowflake (17-20 digits).`);
+      logger.error('Admin commands will be disabled.');
       return;
     }
 
     // Try to fetch the role from the guild
     if (!CONFIG.guildId) {
-      console.warn('[bot] DISCORD_GUILD_ID not set. Skipping admin role verification.');
+      logger.warn('DISCORD_GUILD_ID not set. Skipping admin role verification.');
       return;
     }
 
     try {
       const guild = await client.guilds.fetch(CONFIG.guildId);
       if (!guild) {
-        console.error(`[bot] Guild not found: ${CONFIG.guildId}. Admin role verification failed.`);
+        logger.error(`Guild not found: ${CONFIG.guildId}. Admin role verification failed.`);
         return;
       }
 
       const role = await guild.roles.fetch(CONFIG.adminRoleId);
       if (!role) {
-        console.error(`[bot] Admin role not found in guild: ${CONFIG.adminRoleId}`);
-        console.error(`[bot] Available roles in ${guild.name}:`);
+        logger.error(`Admin role not found in guild: ${CONFIG.adminRoleId}`);
+        logger.error(`Available roles in ${guild.name}:`);
         const roles = await guild.roles.fetch();
         roles.forEach(r => {
           if (!r.managed) {
-            console.error(`[bot]   - ${r.name} (${r.id})`);
+            logger.error(`  - ${r.name} (${r.id})`);
           }
         });
-        console.error('[bot] Admin commands will be disabled until role is created or DISCORD_ADMIN_ROLE_ID is updated.');
+        logger.error('Admin commands will be disabled until role is created or DISCORD_ADMIN_ROLE_ID is updated.');
         return;
       }
 
-      console.log(`[bot] Admin role verified: ${role.name} (${role.id})`);
+      logger.info(`Admin role verified: ${role.name} (${role.id})`);
     } catch (err) {
-      console.error(`[bot] Failed to verify admin role: ${err.message}`);
-      console.error('[bot] Admin commands may not work correctly.');
+      logger.error(`Failed to verify admin role: ${err.message}`);
+      logger.error('Admin commands may not work correctly.');
     }
   } catch (err) {
-    console.error(`[bot] Unexpected error during admin role validation: ${err.message}`);
+    logger.error(`Unexpected error during admin role validation: ${err.message}`);
   }
 }
 
 client.on('error', (err) => {
-  console.error('[client] error', err);
+  logger.error({ err: err.message }, 'Client error');
 });
 
 // ─── Interaction Router ──────────────────────────────────
@@ -114,7 +115,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
   } catch (err) {
-    console.error('[interaction] error', err);
+    logger.error({ err: err.message }, 'Interaction error');
     try {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({ content: 'Error processing interaction. Check logs.', flags: MessageFlags.Ephemeral });
@@ -122,7 +123,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.editReply({ content: 'Error processing interaction. Check logs.' });
       }
     } catch (err2) {
-      console.error('[interaction] failed to send error reply', err2);
+      logger.error({ err: err2.message }, 'Failed to send error reply');
     }
   }
 });
@@ -162,16 +163,16 @@ setInterval(async () => {
 // ─── Start ───────────────────────────────────────────────
 async function main() {
   if (!CONFIG.token) {
-    console.error('DISCORD_BOT_TOKEN is required. Set it in .env');
-    console.log('\nTo set up the Discord bot:');
-    console.log('1. Go to https://discord.com/developers/applications');
-    console.log('2. Create a New Application');
-    console.log('3. Go to Bot > Add Bot > Copy Token');
-    console.log('4. Go to OAuth2 > URL Generator');
-    console.log('5. Select: bot, applications.commands');
-    console.log('6. Select permissions: Send Messages, Embed Links, Use Slash Commands');
-    console.log('7. Copy the generated URL and invite the bot to your server');
-    console.log('8. Set DISCORD_BOT_TOKEN in your .env file\n');
+    logger.error('DISCORD_BOT_TOKEN is required. Set it in .env');
+    logger.info('\nTo set up the Discord bot:');
+    logger.info('1. Go to https://discord.com/developers/applications');
+    logger.info('2. Create a New Application');
+    logger.info('3. Go to Bot > Add Bot > Copy Token');
+    logger.info('4. Go to OAuth2 > URL Generator');
+    logger.info('5. Select: bot, applications.commands');
+    logger.info('6. Select permissions: Send Messages, Embed Links, Use Slash Commands');
+    logger.info('7. Copy the generated URL and invite the bot to your server');
+    logger.info('8. Set DISCORD_BOT_TOKEN in your .env file\n');
     process.exit(1);
   }
 
@@ -179,13 +180,13 @@ async function main() {
   await client.login(CONFIG.token);
 }
 
-main().catch(console.error);
+main().catch((err) => logger.error({ err: err.message }, 'Bot startup failed'));
 
 // ─── Graceful Shutdown ───────────────────────────────────
 function gracefulShutdown(signal) {
-  console.log(`${signal} received. Shutting down bot gracefully...`);
+  logger.info(`${signal} received. Shutting down bot gracefully...`);
   client.destroy();
-  console.log('Discord client destroyed');
+  logger.info('Discord client destroyed');
   process.exit(0);
 }
 
