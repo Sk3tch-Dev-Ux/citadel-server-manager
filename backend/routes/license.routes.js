@@ -3,11 +3,8 @@
  * Tiered model: Free → Basic ($4.99) → Pro ($9.99) → Community ($24.99)
  */
 const auth = require('../middleware/auth');
-const { getLicense, setLicenseKey, refreshLicenseFromServer, TIER_LIMITS, TIER_ORDER } = require('../lib/license');
+const { getLicense, setLicenseKey, TIER_LIMITS, TIER_ORDER } = require('../lib/license');
 const ctx = require('../lib/context');
-const logger = require('../lib/logger');
-
-const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL || 'https://citadel-license-generator.vercel.app';
 
 module.exports = function(app) {
 
@@ -18,7 +15,6 @@ module.exports = function(app) {
     res.json({
       ...getLicense(),
       purchaseUrl: ctx.CONFIG.purchaseUrl || null,
-      licenseServerUrl: LICENSE_SERVER_URL,
     });
   });
 
@@ -56,88 +52,6 @@ module.exports = function(app) {
     }
 
     res.json({ success: true, license: result.license });
-  });
-
-  /**
-   * POST /api/license/refresh — Force-refresh subscription status from license server (admin only)
-   */
-  app.post('/api/license/refresh', auth('admin'), async (req, res) => {
-    try {
-      await refreshLicenseFromServer(ctx.CONFIG.dataDir);
-      const license = getLicense();
-
-      if (ctx.io) {
-        ctx.io.emit('licenseUpdate', license);
-      }
-
-      res.json({ success: true, license });
-    } catch (err) {
-      logger.error({ error: err.message }, 'License refresh failed');
-      res.status(500).json({ error: 'Failed to refresh license' });
-    }
-  });
-
-  /**
-   * POST /api/license/checkout — Create a Stripe checkout session (admin only)
-   * Body: { tier: 'basic'|'pro'|'community', interval: 'month'|'year' }
-   */
-  app.post('/api/license/checkout', auth('admin'), async (req, res) => {
-    const { tier, interval } = req.body;
-
-    if (!tier || !['basic', 'pro', 'community'].includes(tier)) {
-      return res.status(400).json({ error: 'Invalid tier' });
-    }
-    if (!interval || !['month', 'year'].includes(interval)) {
-      return res.status(400).json({ error: 'Invalid interval' });
-    }
-
-    try {
-      const { default: fetch } = await import('node-fetch');
-      const response = await fetch(`${LICENSE_SERVER_URL}/api/create-checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier, interval }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        res.json({ url: data.url });
-      } else {
-        res.status(500).json({ error: data.error || 'Failed to create checkout session' });
-      }
-    } catch (err) {
-      logger.error({ error: err.message }, 'Checkout creation failed');
-      res.status(500).json({ error: 'Failed to create checkout session' });
-    }
-  });
-
-  /**
-   * POST /api/license/portal — Create a Stripe billing portal session (admin only)
-   */
-  app.post('/api/license/portal', auth('admin'), async (req, res) => {
-    const license = getLicense();
-    if (!license.stripeCustomerId) {
-      return res.status(400).json({ error: 'No Stripe customer associated with this license' });
-    }
-
-    try {
-      const { default: fetch } = await import('node-fetch');
-      const response = await fetch(`${LICENSE_SERVER_URL}/api/create-portal-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stripeCustomerId: license.stripeCustomerId }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        res.json({ url: data.url });
-      } else {
-        res.status(500).json({ error: data.error || 'Failed to create portal session' });
-      }
-    } catch (err) {
-      logger.error({ error: err.message }, 'Portal session creation failed');
-      res.status(500).json({ error: 'Failed to create billing portal session' });
-    }
   });
 
   /**

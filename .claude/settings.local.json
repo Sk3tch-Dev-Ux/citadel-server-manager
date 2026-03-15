@@ -178,7 +178,14 @@
       "Bash(find /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib -name *cloud* -o -name *update* -o -name *version* -o -name *package*)",
       "Bash(grep -E \"\\\\.js$\")",
       "Bash(find /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController -name *license* -o -name *activation* -o -name *key*)",
-      "Bash(find /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController -name *.dist -o -name dist.js -o -name build.js)"
+      "Bash(find /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController -name *.dist -o -name dist.js -o -name build.js)",
+      "Bash(find C:/Users/KurtE/OneDrive/Documents/GitHub/citadel-cloud/packages -type f -name *.ts -path */db/*)",
+      "Bash(find C:/Users/KurtE/OneDrive/Documents/GitHub/citadel-cloud/packages -type f -name *.ts -path *config*)",
+      "Bash(find C:/Users/KurtE/OneDrive/Documents/GitHub/citadel-cloud/packages -type f -name *.tsx -path *settings*)",
+      "Bash(find C:/Users/KurtE/OneDrive/Documents/GitHub/citadel-cloud/packages -path */shared/* -name *.ts)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(node -e \":*)"
     ]
   }
 }

@@ -5,8 +5,8 @@
  * License keys are RSA-signed JWTs with tier + limits embedded.
  * The private key is held by the vendor (tools/license-private.pem).
  *
- * Subscription JWTs expire after 30-35 days and are auto-refreshed
- * by calling the license server's /api/verify-subscription endpoint.
+ * Subscription JWTs expire after 30-35 days. Users obtain fresh keys
+ * from Citadel Cloud (Settings → License Key) and paste them here.
  *
  * States:
  *   free       — No valid key; limited to 1 server, basic features
@@ -52,9 +52,6 @@ let _license = {
   stripeSubscriptionId: null,
   key: null,
 };
-
-let _refreshInterval = null;
-let _dataDir = null;
 
 /**
  * Get the limits for a given tier.
@@ -106,7 +103,6 @@ function validateKey(key) {
  * Called once at startup.
  */
 function activateLicense(dataDir) {
-  _dataDir = dataDir;
   const key = process.env.CITADEL_LICENSE_KEY;
   const cacheFile = path.join(dataDir, 'license.json');
 
@@ -118,7 +114,6 @@ function activateLicense(dataDir) {
       try {
         fs.writeFileSync(cacheFile, JSON.stringify({ key, activatedAt: new Date().toISOString() }));
       } catch { /* non-critical */ }
-      startRefreshLoop(dataDir);
       return _license;
     }
     logger.warn({ error: result.error }, 'License key validation failed — running as free tier');
@@ -132,7 +127,6 @@ function activateLicense(dataDir) {
         const result = validateKey(cached.key);
         if (result.valid) {
           applyLicense(result.decoded, cached.key);
-          startRefreshLoop(dataDir);
           return _license;
         }
         logger.warn({ error: result.error }, 'Cached license invalid — running as free tier');
@@ -230,66 +224,7 @@ function setLicenseKey(key, dataDir) {
     fs.writeFileSync(cacheFile, JSON.stringify({ key, activatedAt: new Date().toISOString() }));
   } catch { /* non-critical */ }
 
-  // Start refresh loop if not already running
-  startRefreshLoop(dataDir);
-
   return { success: true, license: getLicense() };
-}
-
-/**
- * Refresh the license by calling the license server's verify endpoint.
- * Called automatically every 24 hours for subscription keys.
- */
-async function refreshLicenseFromServer(dataDir) {
-  if (!_license.key || !_license.stripeSubscriptionId) return;
-
-  const licenseServerUrl = process.env.LICENSE_SERVER_URL || 'https://citadel-license-generator.vercel.app';
-
-  try {
-    const { default: fetch } = await import('node-fetch');
-    const res = await fetch(`${licenseServerUrl}/api/verify-subscription`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ licenseKey: _license.key }),
-    });
-
-    const data = await res.json();
-
-    if (data.valid && data.licenseKey) {
-      const result = validateKey(data.licenseKey);
-      if (result.valid) {
-        applyLicense(result.decoded, data.licenseKey);
-        // Cache the new key
-        try {
-          const cacheFile = path.join(dataDir, 'license.json');
-          fs.writeFileSync(cacheFile, JSON.stringify({ key: data.licenseKey, activatedAt: new Date().toISOString() }));
-        } catch { /* non-critical */ }
-        logger.info({ tier: data.tier }, 'License refreshed from server');
-      }
-    } else if (!data.valid) {
-      logger.warn({ reason: data.reason }, 'License verification failed — subscription may be inactive');
-      // Don't immediately downgrade — let the JWT expire naturally
-    }
-  } catch (err) {
-    logger.warn({ error: err.message }, 'License refresh failed — will retry in 24h');
-  }
-}
-
-/**
- * Start the 24-hour refresh loop for subscription keys.
- */
-function startRefreshLoop(dataDir) {
-  if (_refreshInterval) return; // Already running
-  if (!_license.stripeSubscriptionId) return; // Not a subscription key
-
-  const REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
-
-  _refreshInterval = setInterval(() => {
-    refreshLicenseFromServer(dataDir);
-  }, REFRESH_INTERVAL);
-
-  // Don't block process exit
-  if (_refreshInterval.unref) _refreshInterval.unref();
 }
 
 module.exports = {
@@ -301,7 +236,6 @@ module.exports = {
   meetsMinTier,
   setLicenseKey,
   validateKey,
-  refreshLicenseFromServer,
   TIER_LIMITS,
   TIER_ORDER,
 };

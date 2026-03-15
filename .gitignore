@@ -58,9 +58,5 @@ data/.jwt-secret
 tools/license-private.pem
 *.pem
 
-# License server (Vercel)
-tools/license-server/.env
-tools/license-server/.vercel/
-tools/license-server/node_modules/
 /000_Scripts
 /data
