@@ -5,6 +5,7 @@ import { formatUptime } from '../utils';
 import MiniChart from '../components/MiniChart';
 import PageLoader from '../components/PageLoader';
 import { Cpu, MemoryStick, Users, Clock, Activity, Server, Globe } from '../components/Icon';
+import UpdateBanner from '../components/UpdateBanner';
 
 export default function ServerOverviewPage({ serverId }) {
   const socket = useSocket();
@@ -32,6 +33,8 @@ export default function ServerOverviewPage({ serverId }) {
 
   return (
     <div>
+      <UpdateBanner serverId={serverId} />
+
       {/* Map info bar */}
       {status.map && (
         <div className="overview-map-bar">

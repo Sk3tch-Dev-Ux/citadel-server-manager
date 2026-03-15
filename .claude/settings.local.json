@@ -185,7 +185,9 @@
       "Bash(find C:/Users/KurtE/OneDrive/Documents/GitHub/citadel-cloud/packages -path */shared/* -name *.ts)",
       "Bash(npx tsc:*)",
       "Bash(npx next:*)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(find /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController -type f -name *update* -o -name *auto-update*)",
+      "Bash(wc -l /c/Users/KurtE/OneDrive/Documents/GitHub/DayzServerController/backend/lib/*.js)"
     ]
   }
 }
