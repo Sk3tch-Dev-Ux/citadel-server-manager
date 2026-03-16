@@ -23,9 +23,9 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
 
-      - name: Install NSIS
+      - name: Install NSIS and NSSM
         run: |
-          choco install nsis -y
+          choco install nsis nssm -y
           echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Install dependencies

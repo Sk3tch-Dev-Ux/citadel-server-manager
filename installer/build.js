@@ -34,7 +34,11 @@ const NODE_URL = `https://nodejs.org/dist/v${NODE_VERSION}/${NODE_ZIP}`;
 
 const NSSM_VERSION = '2.24';
 const NSSM_ZIP = `nssm-${NSSM_VERSION}.zip`;
-const NSSM_URL = `https://nssm.cc/release/${NSSM_ZIP}`;
+// Multiple download sources — nssm.cc is unreliable
+const NSSM_URLS = [
+  `https://nssm.cc/release/${NSSM_ZIP}`,
+  `https://nssm.cc/ci/${NSSM_ZIP}`,
+];
 
 const pkg = require(path.join(ROOT, 'package.json'));
 const VERSION = pkg.version || '2.0.0';
@@ -162,29 +166,62 @@ async function main() {
   );
   log('  node.exe extracted');
 
-  // Download NSSM (service wrapper)
-  log('  Downloading NSSM service wrapper...');
+  // Download and extract NSSM (service wrapper)
+  const nssmDest = path.join(runtimeDir, 'nssm.exe');
   const cachedNssmZip = path.join(CACHE_DIR, NSSM_ZIP);
+
   if (fs.existsSync(cachedNssmZip)) {
     log(`  Using cached ${NSSM_ZIP}`);
   } else {
-    log(`  Downloading ${NSSM_URL}`);
-    await download(NSSM_URL, cachedNssmZip);
-    log('  NSSM download complete');
+    log('  Downloading NSSM service wrapper...');
+    let downloaded = false;
+    for (const url of NSSM_URLS) {
+      try {
+        log(`  Trying ${url}`);
+        await download(url, cachedNssmZip);
+        log('  NSSM download complete');
+        downloaded = true;
+        break;
+      } catch (err) {
+        log(`  Failed: ${err.message}`);
+        if (fs.existsSync(cachedNssmZip)) fs.unlinkSync(cachedNssmZip);
+      }
+    }
+    if (!downloaded) {
+      // Fall back: try to find nssm.exe on PATH (e.g. installed via choco install nssm)
+      log('  All download URLs failed — checking PATH for nssm.exe...');
+      try {
+        const whereResult = execSync('where nssm.exe', { encoding: 'utf8', windowsHide: true }).trim().split('\n')[0].trim();
+        if (whereResult && fs.existsSync(whereResult)) {
+          fs.copyFileSync(whereResult, nssmDest);
+          log(`  Copied nssm.exe from ${whereResult}`);
+        } else {
+          throw new Error('not found');
+        }
+      } catch {
+        throw new Error(
+          'Failed to download NSSM and nssm.exe not found on PATH.\n' +
+          '  Install via: choco install nssm\n' +
+          '  Or download manually from https://nssm.cc/download'
+        );
+      }
+    }
   }
 
-  // Extract nssm.exe (win64) from the zip
-  log('  Extracting nssm.exe...');
-  run(
-    `powershell -NoProfile -Command "` +
-    `Add-Type -Assembly System.IO.Compression.FileSystem; ` +
-    `$zip = [System.IO.Compression.ZipFile]::OpenRead('${cachedNssmZip.replace(/\\/g, '\\\\')}'); ` +
-    `$entry = $zip.Entries | Where-Object { $_.FullName -match 'win64/nssm.exe$' } | Select-Object -First 1; ` +
-    `[System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, '${path.join(runtimeDir, 'nssm.exe').replace(/\\/g, '\\\\')}', $true); ` +
-    `$zip.Dispose()"`,
-    { cwd: ROOT }
-  );
-  log('  nssm.exe extracted');
+  // Extract nssm.exe from zip (skip if already copied from PATH)
+  if (!fs.existsSync(nssmDest) && fs.existsSync(cachedNssmZip)) {
+    log('  Extracting nssm.exe...');
+    run(
+      `powershell -NoProfile -Command "` +
+      `Add-Type -Assembly System.IO.Compression.FileSystem; ` +
+      `$zip = [System.IO.Compression.ZipFile]::OpenRead('${cachedNssmZip.replace(/\\/g, '\\\\')}'); ` +
+      `$entry = $zip.Entries | Where-Object { $_.FullName -match 'win64/nssm.exe$' } | Select-Object -First 1; ` +
+      `[System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, '${nssmDest.replace(/\\/g, '\\\\')}', $true); ` +
+      `$zip.Dispose()"`,
+      { cwd: ROOT }
+    );
+    log('  nssm.exe extracted');
+  }
 
   // Step 3: Copy application files
   log('Step 3/6: Copying application files...');
