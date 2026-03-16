@@ -108,18 +108,24 @@ function copyDir(src, dest) {
 function download(url, dest) {
   return new Promise((resolve, reject) => {
     const file = createWriteStream(dest);
+    const cleanup = (err) => {
+      file.close();
+      try { fs.unlinkSync(dest); } catch {}
+      reject(err);
+    };
+    file.on('error', cleanup);
     const request = (url) => {
       https.get(url, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return request(res.headers.location);
         }
         if (res.statusCode !== 200) {
-          reject(new Error(`Download failed: HTTP ${res.statusCode}`));
+          cleanup(new Error(`Download failed: HTTP ${res.statusCode}`));
           return;
         }
         res.pipe(file);
         file.on('finish', () => { file.close(); resolve(); });
-      }).on('error', reject);
+      }).on('error', cleanup);
     };
     request(url);
   });
@@ -184,7 +190,6 @@ async function main() {
         break;
       } catch (err) {
         log(`  Failed: ${err.message}`);
-        if (fs.existsSync(cachedNssmZip)) fs.unlinkSync(cachedNssmZip);
       }
     }
     if (!downloaded) {
