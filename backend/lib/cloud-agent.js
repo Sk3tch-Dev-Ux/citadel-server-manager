@@ -499,6 +499,10 @@ function _checkCommandRate(conn) {
   const now = Date.now();
   // Remove timestamps outside the window
   conn.commandTimestamps = conn.commandTimestamps.filter(ts => now - ts < COMMAND_RATE_WINDOW_MS);
+  // Safety cap: prevent unbounded growth if filter somehow fails
+  if (conn.commandTimestamps.length > COMMAND_RATE_LIMIT * 2) {
+    conn.commandTimestamps = conn.commandTimestamps.slice(-COMMAND_RATE_LIMIT);
+  }
   if (conn.commandTimestamps.length >= COMMAND_RATE_LIMIT) {
     return false;
   }

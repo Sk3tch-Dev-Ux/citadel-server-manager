@@ -18,7 +18,8 @@ module.exports = function(app) {
   // Server console output (DayZ stdout from server_console.log)
   app.get('/api/servers/:id/console', authForServer('logs.view'), (req, res) => {
     const limit = parseInt(req.query.limit) || 500;
-    res.json(getConsoleBuffer(req.params.id).slice(0, limit));
+    const buf = getConsoleBuffer(req.params.id);
+    res.json(buf.slice(-limit).reverse());
   });
 
   app.get('/api/servers/:id/metrics', authForServer('metrics.view'), (req, res) => {
