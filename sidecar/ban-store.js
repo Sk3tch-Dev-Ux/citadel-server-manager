@@ -25,7 +25,9 @@ function load() {
 
 function save() {
   try {
-    fs.writeFileSync(config.banFile, JSON.stringify(bans, null, 2));
+    const tmpFile = config.banFile + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(bans, null, 2));
+    fs.renameSync(tmpFile, config.banFile);
   } catch (err) {
     logger.error({ err: err.message }, 'Failed to save bans');
   }
