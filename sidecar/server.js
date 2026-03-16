@@ -1230,6 +1230,14 @@ app.delete('/bans/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/bans/unban', (req, res) => {
+  const { steamId } = req.body;
+  if (!steamId) return res.status(400).json({ ok: false, error: 'steamId required' });
+  const removed = banStore.remove(steamId);
+  if (!removed) return res.status(404).json({ ok: false, error: 'Ban not found for steamId' });
+  res.json({ ok: true });
+});
+
 app.get('/bans/check/:steamId', (req, res) => {
   res.json({ ok: true, banned: banStore.isBanned(req.params.steamId) });
 });
@@ -1282,7 +1290,9 @@ function loadPriority() {
 }
 
 function savePriority(list) {
-  fs.writeFileSync(priorityFile, JSON.stringify(list, null, 2));
+  const tmpFile = priorityFile + '.tmp';
+  fs.writeFileSync(tmpFile, JSON.stringify(list, null, 2));
+  fs.renameSync(tmpFile, priorityFile);
 }
 
 app.get('/priority-queue', (req, res) => {

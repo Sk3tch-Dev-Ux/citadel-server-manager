@@ -67,7 +67,9 @@ function loadStats() {
 
 function saveStats() {
   try {
-    fs.writeFileSync(statsFile, JSON.stringify(playerStats, null, 2));
+    const tmpFile = statsFile + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(playerStats, null, 2));
+    fs.renameSync(tmpFile, statsFile);
   } catch (err) {
     logger.error({ err: err.message }, 'Failed to save player stats');
   }
@@ -153,14 +155,32 @@ function getLeaderboard(limit = 100) {
 /**
  * Process kill events from the DayZ mod's kill feed file.
  * The mod writes kills to Citadel/events.jsonl (newline-delimited JSON).
+ *
+ * Uses rename-before-read to prevent a race condition where the mod
+ * writes new events between our read and truncate, causing data loss.
  */
 function processEventLog() {
   const eventFile = path.join(path.dirname(config.playerDataFile), 'events.jsonl');
+  const processingFile = eventFile + '.processing';
+
   if (!fs.existsSync(eventFile)) return;
 
   try {
-    const raw = fs.readFileSync(eventFile, 'utf-8').trim();
-    if (!raw) return;
+    // Atomically rename the file so the mod starts writing to a fresh events.jsonl.
+    // This prevents losing events written between our read and truncate.
+    fs.renameSync(eventFile, processingFile);
+  } catch (err) {
+    // Rename can fail if the mod is actively writing — skip this cycle
+    logger.debug({ err: err.message }, 'Could not rename event log, will retry next cycle');
+    return;
+  }
+
+  try {
+    const raw = fs.readFileSync(processingFile, 'utf-8').trim();
+    if (!raw) {
+      fs.unlinkSync(processingFile);
+      return;
+    }
 
     const lines = raw.split('\n');
     for (const line of lines) {
@@ -174,11 +194,13 @@ function processEventLog() {
       } catch { /* skip malformed lines */ }
     }
 
-    // Truncate the file after processing
-    fs.writeFileSync(eventFile, '');
+    // Delete the processing file now that we've consumed all events
+    fs.unlinkSync(processingFile);
     saveStats();
   } catch (err) {
     logger.debug({ err: err.message }, 'Failed to process event log');
+    // Try to clean up the processing file if it still exists
+    try { fs.unlinkSync(processingFile); } catch { /* ignore */ }
   }
 }
 
