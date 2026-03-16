@@ -129,11 +129,11 @@ function startTailing(serverId) {
         const level = classifyLevel(line);
         const entry = { timestamp: new Date().toISOString(), level, message: line };
 
-        // Store in ring buffer
+        // Store in ring buffer (push + shift is O(1) amortized vs unshift which is O(n))
         const buf = consoleBuffers[serverId];
         if (buf) {
-          buf.unshift(entry);
-          if (buf.length > MAX_CONSOLE_LINES) buf.pop();
+          buf.push(entry);
+          if (buf.length > MAX_CONSOLE_LINES) buf.shift();
         }
 
         // Emit to frontend via dedicated event
