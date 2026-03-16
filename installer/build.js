@@ -149,6 +149,7 @@ async function main() {
   // Use PowerShell to extract just node.exe from the zip
   run(
     `powershell -NoProfile -Command "` +
+    `Add-Type -Assembly System.IO.Compression.FileSystem; ` +
     `$zip = [System.IO.Compression.ZipFile]::OpenRead('${cachedZip.replace(/\\/g, '\\\\')}'); ` +
     `$entry = $zip.Entries | Where-Object { $_.Name -eq 'node.exe' } | Select-Object -First 1; ` +
     `[System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, '${path.join(runtimeDir, 'node.exe').replace(/\\/g, '\\\\')}', $true); ` +
