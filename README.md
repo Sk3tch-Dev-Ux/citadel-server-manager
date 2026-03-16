@@ -37,7 +37,9 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 - **Automated backups** — Scheduled server file backups with retention policies
 - **Firewall management** — Automatic Windows Firewall rule creation for server ports (elevated)
 - **Windows Service** — Install Citadel as a Windows Service for auto-start on boot
-- **First-run setup wizard** — Guided 5-step setup (admin account, SteamCMD, server profile)
+- **First-run setup wizard** — Guided 7-step setup (admin account, network, SteamCMD, server profile, license activation)
+- **Citadel Cloud integration** — Connect to Citadel Cloud for remote management, webhooks, and premium features
+- **License activation** — Activate your plan directly in the setup wizard or from the License page
 
 ### In-Game Admin Mod (@CitadelAdmin)
 - **Player actions** — Heal, kill, teleport, spawn items, strip gear, explode, unstuck, freeze, message, teleport to player
@@ -70,7 +72,7 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 | Requirement | Details |
 |-------------|---------|
 | **OS** | Windows 10 or later (DayZ dedicated server is Windows-only) |
-| **Node.js** | 18.x or later ([download](https://nodejs.org)) |
+| **Node.js** | 18.x or later (bundled with installer, or [download](https://nodejs.org) for source installs) |
 | **Administrator** | Required for firewall rule management and Windows Service installation |
 | **DayZ Server** | A DayZ dedicated server installation (or deploy one through the UI) |
 | **SteamCMD** | Required for mod installs and server deployment (configured via setup wizard) |
@@ -82,46 +84,40 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 
 ## Quick Start
 
-### 1. Clone the Repository
+### Option A: Installer (Recommended)
+
+Download the latest installer from [GitHub Releases](https://github.com/Sk3tch-Dev-Ux/DayzServerController/releases):
+
+1. Download `CitadelSetup-x.x.x.exe` from the latest release
+2. Run the installer (requires Administrator)
+3. Open **http://localhost:3001** to start the setup wizard
+
+The installer bundles everything (Node.js runtime, backend, frontend, Discord bot) and registers Citadel as a Windows Service that starts automatically on boot.
+
+### Option B: From Source
 
 ```bash
 git clone https://github.com/Sk3tch-Dev-Ux/DayzServerController.git
 cd DayzServerController
-```
-
-### 2. Install Dependencies
-
-```bash
 npm install
-```
-
-This automatically installs both backend and frontend dependencies via the `postinstall` script.
-
-### 3. Start Citadel
-
-```bash
 npm start
 ```
 
-This will:
-1. Run the setup wizard (generates `.env` with secure JWT secret if missing)
-2. Build the frontend
-3. Start the backend server
-4. Start the Discord bot automatically (if `DISCORD_BOT_TOKEN` is configured in `.env`)
+This automatically installs dependencies, builds the frontend, and starts the backend. The Discord bot auto-starts if `DISCORD_BOT_TOKEN` is configured in `.env`. All components are managed by a single process — no separate terminal windows needed.
 
-All components are managed by a single process — no separate terminal windows needed.
-
-### 4. Complete the Setup Wizard
+### Setup Wizard
 
 On first launch, navigate to **http://localhost:3001** — you'll be redirected to the setup wizard:
 
 1. **Welcome** — Introduction and overview
 2. **Admin Account** — Create your admin username and password
-3. **SteamCMD** — Configure SteamCMD path for mod management
-4. **Server Profile** — Add your first DayZ server (install directory, ports, RCON)
-5. **Complete** — Ready to use
+3. **Network** — Configure your server IP address
+4. **SteamCMD** — Configure SteamCMD path for mod management (or skip)
+5. **First Server** — Add your first DayZ server (install directory, ports, RCON) or skip
+6. **Citadel Cloud** — Activate your license key to unlock premium features (or skip for Free tier)
+7. **Complete** — Summary of everything configured
 
-After setup, log in with the credentials you created.
+After setup, log in with the credentials you created. You can always change your license or connect to Citadel Cloud later from the dashboard.
 
 ### Development Mode
 
@@ -460,6 +456,17 @@ GitHub Actions runs on every push and PR to `main`:
 - Backend tests (Jest)
 - Frontend lint (ESLint)
 - Frontend build verification (Vite)
+
+### Releases
+
+Pushing a version tag triggers the release workflow which builds the NSIS installer and publishes it as a GitHub Release:
+
+```bash
+git tag v2.1.0
+git push --tags
+```
+
+The workflow runs on `windows-latest`, builds the installer via `node installer/build.js`, and uploads `CitadelSetup-x.x.x.exe` as a release asset. Tags containing `-beta` or `-rc` are marked as pre-releases.
 
 ---
 

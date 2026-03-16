@@ -56,8 +56,8 @@ jobs:
             ### Installation
             1. Download `CitadelSetup-*.exe` below
             2. Run the installer (requires Administrator)
-            3. Open **http://localhost:3001** to complete the setup wizard
-            4. Paste your license key when prompted (or skip for Free tier)
+            3. Open **http://localhost:3001** to complete the 7-step setup wizard
+            4. Create your admin account, configure your server, and activate your license key
 
             ### What's Included
             - Web Dashboard + API server
