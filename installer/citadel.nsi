@@ -29,7 +29,7 @@
 ; ─── Installer metadata ──────────────────────────────────
 Name "Citadel"
 OutFile "${OUTPUT_DIR}\CitadelSetup-${VERSION}.exe"
-InstallDir "$PROGRAMFILES64\Citadel"
+InstallDir "C:\Citadel"
 InstallDirRegKey HKLM "Software\Citadel" "InstallDir"
 RequestExecutionLevel admin
 ShowInstDetails show
