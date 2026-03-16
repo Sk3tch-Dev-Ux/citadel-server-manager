@@ -32,6 +32,10 @@ const NODE_ARCH = 'win-x64';
 const NODE_ZIP = `node-v${NODE_VERSION}-${NODE_ARCH}.zip`;
 const NODE_URL = `https://nodejs.org/dist/v${NODE_VERSION}/${NODE_ZIP}`;
 
+const NSSM_VERSION = '2.24';
+const NSSM_ZIP = `nssm-${NSSM_VERSION}.zip`;
+const NSSM_URL = `https://nssm.cc/release/${NSSM_ZIP}`;
+
 const pkg = require(path.join(ROOT, 'package.json'));
 const VERSION = pkg.version || '2.0.0';
 
@@ -157,6 +161,30 @@ async function main() {
     { cwd: ROOT }
   );
   log('  node.exe extracted');
+
+  // Download NSSM (service wrapper)
+  log('  Downloading NSSM service wrapper...');
+  const cachedNssmZip = path.join(CACHE_DIR, NSSM_ZIP);
+  if (fs.existsSync(cachedNssmZip)) {
+    log(`  Using cached ${NSSM_ZIP}`);
+  } else {
+    log(`  Downloading ${NSSM_URL}`);
+    await download(NSSM_URL, cachedNssmZip);
+    log('  NSSM download complete');
+  }
+
+  // Extract nssm.exe (win64) from the zip
+  log('  Extracting nssm.exe...');
+  run(
+    `powershell -NoProfile -Command "` +
+    `Add-Type -Assembly System.IO.Compression.FileSystem; ` +
+    `$zip = [System.IO.Compression.ZipFile]::OpenRead('${cachedNssmZip.replace(/\\/g, '\\\\')}'); ` +
+    `$entry = $zip.Entries | Where-Object { $_.FullName -match 'win64/nssm.exe$' } | Select-Object -First 1; ` +
+    `[System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, '${path.join(runtimeDir, 'nssm.exe').replace(/\\/g, '\\\\')}', $true); ` +
+    `$zip.Dispose()"`,
+    { cwd: ROOT }
+  );
+  log('  nssm.exe extracted');
 
   // Step 3: Copy application files
   log('Step 3/6: Copying application files...');
