@@ -1,0 +1,69 @@
+name: Build & Release Installer
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    name: Build NSIS Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installer
+        run: node installer/build.js
+
+      - name: Verify installer exists
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $exe = "build/CitadelSetup-$version.exe"
+          if (!(Test-Path $exe)) {
+            Write-Error "Installer not found at $exe"
+            exit 1
+          }
+          $size = (Get-Item $exe).Length / 1MB
+          Write-Output "Installer built: $exe ($([math]::Round($size, 1)) MB)"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/CitadelSetup-*.exe
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+          name: Citadel ${{ github.ref_name }}
+          body: |
+            ## Citadel ${{ github.ref_name }}
+
+            ### Installation
+            1. Download `CitadelSetup-*.exe` below
+            2. Run the installer (requires Administrator)
+            3. Open **http://localhost:3001** to complete the setup wizard
+            4. Paste your license key when prompted (or skip for Free tier)
+
+            ### What's Included
+            - Web Dashboard + API server
+            - Discord Bot (auto-starts if configured)
+            - @CitadelAdmin DayZ mod integration
+            - Windows Service (auto-start on boot)
+
+            ---
+            _Full changelog below:_
