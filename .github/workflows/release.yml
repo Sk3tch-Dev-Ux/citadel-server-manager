@@ -24,7 +24,9 @@ jobs:
           cache: 'npm'
 
       - name: Install NSIS
-        run: choco install nsis -y
+        run: |
+          choco install nsis -y
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Install dependencies
         run: npm ci
