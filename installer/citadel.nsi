@@ -77,10 +77,11 @@ Section "Citadel" SecMain
   SetOutPath "$INSTDIR"
   DetailPrint "Installing Citadel v${VERSION}..."
 
-  ; ── Copy Node.js runtime ──
-  DetailPrint "Installing Node.js runtime..."
+  ; ── Copy Node.js runtime and NSSM service wrapper ──
+  DetailPrint "Installing Node.js runtime and NSSM..."
   SetOutPath "$INSTDIR\runtime"
   File "${STAGING_DIR}\runtime\node.exe"
+  File "${STAGING_DIR}\runtime\nssm.exe"
 
   ; ── Copy application files ──
   DetailPrint "Installing application files..."
@@ -99,9 +100,9 @@ Section "Citadel" SecMain
   nsExec::ExecToLog '"$INSTDIR\runtime\node.exe" "$INSTDIR\backend\lib\service-installer.js" install'
   Pop $0
 
-  ; ── Start the service ──
+  ; ── Start the service via NSSM ──
   DetailPrint "Starting Citadel service..."
-  nsExec::ExecToLog 'sc.exe start CitadelServer'
+  nsExec::ExecToLog '"$INSTDIR\runtime\nssm.exe" start CitadelServer'
   Pop $0
 
   ; ── Create Start Menu shortcuts ──
@@ -164,14 +165,14 @@ FunctionEnd
 ; Uninstaller
 ; ═══════════════════════════════════════════════════════════
 Section "Uninstall"
-  ; ── Stop and remove Windows Service ──
+  ; ── Stop and remove Windows Service via NSSM ──
   DetailPrint "Stopping Citadel service..."
-  nsExec::ExecToLog 'sc.exe stop CitadelServer'
+  nsExec::ExecToLog '"$INSTDIR\runtime\nssm.exe" stop CitadelServer'
   Pop $0
   ; Wait for service to stop
   Sleep 3000
   DetailPrint "Removing Citadel service..."
-  nsExec::ExecToLog 'sc.exe delete CitadelServer'
+  nsExec::ExecToLog '"$INSTDIR\runtime\nssm.exe" remove CitadelServer confirm'
   Pop $0
 
   ; ── Remove Start Menu shortcuts ──
