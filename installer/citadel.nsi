@@ -104,6 +104,7 @@ Section "Citadel" SecMain
   DetailPrint "Starting Citadel service..."
   nsExec::ExecToLog '"$INSTDIR\runtime\nssm.exe" start CitadelServer'
   Pop $0
+  DetailPrint "Service log: $INSTDIR\data\service.log"
 
   ; ── Create Start Menu shortcuts ──
   CreateDirectory "$SMPROGRAMS\Citadel"

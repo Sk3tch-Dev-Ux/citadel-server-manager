@@ -316,7 +316,24 @@ if (process.env.NODE_ENV !== 'test') {
     // eslint-disable-next-line no-console
     console.error('FATAL: Startup failed —', err.message || err);
     try { require('./lib/logger').fatal({ err }, 'Startup failed'); } catch {}
-    process.exit(1);
+
+    // When running as an NSSM service, do NOT call process.exit(1).
+    // If the process exits too quickly, NSSM enters a PAUSED state that
+    // the user cannot recover from without manual intervention.
+    // Instead, keep the process alive and serve an error page so the
+    // admin can diagnose the issue via the dashboard URL.
+    if (isServiceMode) {
+      const errApp = express();
+      const errMsg = `Citadel startup failed: ${err.message || err}. Check data/service.log for details.`;
+      errApp.get('*', (_req, res) => res.status(503).json({ error: errMsg }));
+      const errServer = http.createServer(errApp);
+      errServer.listen(CONFIG.port, () => {
+        // eslint-disable-next-line no-console
+        console.error(`Service is alive on port ${CONFIG.port} but in error state. Fix the issue and restart the service.`);
+      });
+    } else {
+      process.exit(1);
+    }
   });
 }
 
