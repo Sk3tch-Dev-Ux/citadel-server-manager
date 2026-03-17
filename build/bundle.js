@@ -156,15 +156,16 @@ async function main() {
   // Step 3: Bundle with esbuild
   log('Step 3/7: Bundling with esbuild...');
 
-  // Ensure esbuild is available
+  // Ensure esbuild is available (installed in backend/node_modules)
+  const esbuildPath = path.join(ROOT, 'backend', 'node_modules', 'esbuild');
   try {
-    require.resolve('esbuild');
+    require.resolve(esbuildPath);
   } catch {
     log('  Installing esbuild...');
     run('npm install --save-dev esbuild', { cwd: path.join(ROOT, 'backend') });
   }
 
-  const esbuild = require('esbuild');
+  const esbuild = require(esbuildPath);
 
   for (const bundle of BUNDLES) {
     if (!fs.existsSync(bundle.entry)) {
