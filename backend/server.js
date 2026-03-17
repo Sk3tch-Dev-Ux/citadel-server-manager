@@ -20,7 +20,8 @@ const https = require('https');
 const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 const { Server: SocketIO } = require('socket.io');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const { ROOT: _root, WEB_DIST, ENV_FILE } = require('./lib/paths');
+require('dotenv').config({ path: ENV_FILE });
 
 // ─── Core modules ────────────────────────────────────────
 const logger = require('./lib/logger');
@@ -73,7 +74,7 @@ ctx.steamCredentials = {
 const app = express();
 let server, useHttps = false;
 try {
-  const certPath = path.join(__dirname, '..', 'cert');
+  const certPath = path.join(_root, 'cert');
   server = https.createServer({
     key: fs.readFileSync(path.join(certPath, 'key.pem')),
     cert: fs.readFileSync(path.join(certPath, 'cert.pem')),
@@ -99,11 +100,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],  // Vite needs inline during dev
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
       imgSrc: ["'self'", 'data:', 'blob:'],
       connectSrc: ["'self'", 'ws:', 'wss:'],
-      fontSrc: ["'self'"],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
     },
@@ -138,7 +139,7 @@ app.get('/readyz', (req, res) => {
 });
 require('./routes/health.routes')(app); // Comprehensive /api/health — no auth required
 
-app.use(express.static(path.join(__dirname, '../web/dist')));
+app.use(express.static(WEB_DIST));
 
 // ─── License Activation ──────────────────────────────────
 const license = activateLicense(CONFIG.dataDir);
@@ -238,7 +239,7 @@ io.on('connection', (socket) => {
 
 // ─── SPA Fallback ────────────────────────────────────────
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../web/dist/index.html'));
+  res.sendFile(path.join(WEB_DIST, 'index.html'));
 });
 
 // ─── Error handler (must be after all routes) ────────────

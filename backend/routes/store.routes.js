@@ -17,6 +17,7 @@ const auth = require('../middleware/auth');
 const { addAudit } = require('../lib/audit');
 const logger = require('../lib/logger');
 const CONFIG = require('../lib/config');
+const { ENV_FILE } = require('../lib/paths');
 
 module.exports = function (app) {
 
@@ -258,7 +259,7 @@ module.exports = function (app) {
  */
 function _persistEnvVar(envKey, value) {
   try {
-    const envPath = path.join(__dirname, '..', '..', '.env');
+    const envPath = ENV_FILE;
     if (!fs.existsSync(envPath)) return;
     let envContent = fs.readFileSync(envPath, 'utf-8');
 

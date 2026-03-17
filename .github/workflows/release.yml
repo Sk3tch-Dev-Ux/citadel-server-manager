@@ -1,4 +1,4 @@
-name: Build & Release Installer
+name: Build & Release
 
 on:
   push:
@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  build-installer:
-    name: Build NSIS Installer
+  build:
+    name: Build Citadel Bundle
     runs-on: windows-latest
 
     steps:
@@ -23,32 +23,30 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
 
-      - name: Install NSIS and NSSM
-        run: |
-          choco install nsis nssm -y
-          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Install NSSM
+        run: choco install nssm -y
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build installer
-        run: node installer/build.js
+      - name: Build bundle
+        run: node build/bundle.js
 
-      - name: Verify installer exists
+      - name: Verify output exists
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
-          $exe = "build/CitadelSetup-$version.exe"
-          if (!(Test-Path $exe)) {
-            Write-Error "Installer not found at $exe"
+          $zip = "dist/Citadel-v$version-win-x64.zip"
+          if (!(Test-Path $zip)) {
+            Write-Error "Zip not found at $zip"
             exit 1
           }
-          $size = (Get-Item $exe).Length / 1MB
-          Write-Output "Installer built: $exe ($([math]::Round($size, 1)) MB)"
+          $size = (Get-Item $zip).Length / 1MB
+          Write-Output "Bundle built: $zip ($([math]::Round($size, 1)) MB)"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/CitadelSetup-*.exe
+          files: dist/Citadel-*.zip
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           name: Citadel ${{ github.ref_name }}
@@ -56,13 +54,20 @@ jobs:
             ## Citadel ${{ github.ref_name }}
 
             ### Installation
-            1. Download `CitadelSetup-*.exe` below
-            2. Run the installer (requires Administrator)
-            3. Open **http://localhost:3001** to complete the 7-step setup wizard
-            4. Create your admin account, configure your server, and activate your license key
+            1. Download `Citadel-*-win-x64.zip` below
+            2. Extract the zip
+            3. Right-click `install.ps1` → **Run with PowerShell** (as Administrator)
+            4. Open **http://localhost:3001** to complete the setup wizard
+
+            ### Upgrading
+            1. Download and extract the new zip
+            2. Run `install.ps1` — it preserves your existing `data/` and `.env`
+
+            ### Uninstalling
+            - Run `uninstall.ps1` as Administrator
 
             ### What's Included
-            - Web Dashboard + API server
+            - Web Dashboard + API server (bundled, no node_modules needed)
             - Discord Bot (auto-starts if configured)
             - @CitadelAdmin DayZ mod integration
             - Windows Service (auto-start on boot)

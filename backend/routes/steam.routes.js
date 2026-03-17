@@ -8,13 +8,14 @@ const { ensureSteamCMD, validateSteamLogin } = require('../lib/steamcmd');
 const auth = require('../middleware/auth');
 const logger = require('../lib/logger');
 const { encryptForEnv } = require('../lib/credential-encryption');
+const { ENV_FILE } = require('../lib/paths');
 
 /**
  * Persist Steam credentials to .env so they survive server restarts.
  */
 function persistSteamCredentials(username, password) {
   try {
-    const envPath = path.join(__dirname, '..', '..', '.env');
+    const envPath = ENV_FILE;
     if (!fs.existsSync(envPath)) return;
     let envContent = fs.readFileSync(envPath, 'utf-8');
 

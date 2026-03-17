@@ -29,17 +29,21 @@ const SERVICE_DISPLAY = 'Citadel DayZ Server Controller';
 const SERVICE_DESCRIPTION = 'Citadel — All-In-One DayZ server management platform with web UI, Discord bot, and live map.';
 
 // Resolve absolute paths so the service always finds the right files.
-// CITADEL_INSTALL_DIR allows the NSIS installer to specify the install location.
-const PROJECT_ROOT = process.env.CITADEL_INSTALL_DIR || path.resolve(__dirname, '..', '..');
-const SERVER_JS = path.join(PROJECT_ROOT, 'backend', 'server.js');
-const NODE_EXE = process.execPath; // e.g. C:\Citadel\runtime\node.exe
+const { ROOT, SERVER_ENTRY } = require('./paths');
+const PROJECT_ROOT = process.env.CITADEL_INSTALL_DIR || ROOT;
+const SERVER_JS = SERVER_ENTRY;
+const NODE_EXE = process.execPath; // e.g. C:\Citadel\citadel-node.exe
 const LOG_DIR = path.join(PROJECT_ROOT, 'data');
 
 /**
  * Locate nssm.exe — check runtime/ next to project root first, then PATH.
  */
 function findNssm() {
-  // Check bundled location (installer puts it in runtime/)
+  // Check alongside citadel-server.js / node.exe (new zip layout)
+  const alongside = path.join(PROJECT_ROOT, 'nssm.exe');
+  if (fs.existsSync(alongside)) return alongside;
+
+  // Check legacy bundled location (old NSIS installer puts it in runtime/)
   const bundled = path.join(PROJECT_ROOT, 'runtime', 'nssm.exe');
   if (fs.existsSync(bundled)) return bundled;
 

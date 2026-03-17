@@ -15,7 +15,7 @@ const crypto = require('crypto');
 const logger = require('./logger');
 const { getDefaults, validateConfig, getEnvMap, redactSensitive, getSchema, CONFIG_SCHEMA } = require('./config-schema');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { ROOT } = require('./paths');
 const CONFIG_FILE = path.join(ROOT, 'citadel.config.json');
 
 // ─── 1. Start with schema defaults ──────────────────────
