@@ -12,7 +12,5 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/',
   ],
-  moduleNameMapper: {
-    '^otplib$': '<rootDir>/__mocks__/otplib.js',
-  },
+  moduleNameMapper: {},
 };

@@ -3,7 +3,7 @@
  */
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { authenticator } = require('otplib');
+const { authenticator } = require('../lib/totp');
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
 const logger = require('../lib/logger');
