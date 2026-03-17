@@ -10,9 +10,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('./logger');
 
-// Project root — two levels up from backend/lib/
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-const BOT_ENTRY = path.join(PROJECT_ROOT, 'discord-bot', 'bot.js');
+const { ROOT: PROJECT_ROOT, BOT_ENTRY } = require('./paths');
 
 // Backoff schedule (ms) for auto-restart on crash
 const BACKOFF_SCHEDULE = [5000, 15000, 30000, 60000];

@@ -13,9 +13,7 @@ const { spawn } = require('child_process');
 const logger = require('./logger');
 const ctx = require('./context');
 
-// Project root — two levels up from backend/lib/
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-const SIDECAR_ENTRY = path.join(PROJECT_ROOT, 'sidecar', 'server.js');
+const { ROOT: PROJECT_ROOT, SIDECAR_ENTRY } = require('./paths');
 
 /**
  * Derive sidecar port from server's game port.
