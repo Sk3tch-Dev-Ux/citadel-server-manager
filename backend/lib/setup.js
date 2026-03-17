@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { ROOT } = require('./paths');
 const ENV_PATH = path.join(ROOT, '.env');
 const ENV_EXAMPLE = path.join(ROOT, '.env.example');
 const DATA_DIR = path.join(ROOT, 'data');

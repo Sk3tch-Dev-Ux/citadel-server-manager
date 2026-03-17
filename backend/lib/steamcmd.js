@@ -12,16 +12,17 @@ const {
   STEAMCMD_DOWNLOAD_TIMEOUT_MS,
   STEAMCMD_UPDATE_TIMEOUT_MS,
 } = require('./constants');
+const { ROOT } = require('./paths');
 
 async function ensureSteamCMD() {
   if (ctx.steamCmdPath && fs.existsSync(ctx.steamCmdPath)) return ctx.steamCmdPath;
   const searchPaths = [
     'C:\\SteamCMD\\steamcmd.exe', 'C:\\steamcmd\\steamcmd.exe',
-    path.join(__dirname, '..', '..', 'steamcmd', 'steamcmd.exe'),
+    path.join(ROOT, 'steamcmd', 'steamcmd.exe'),
   ];
   for (const p of searchPaths) { if (fs.existsSync(p)) { ctx.steamCmdPath = p; return p; } }
   // Auto-download
-  const steamCmdDir = path.join(__dirname, '..', '..', 'steamcmd');
+  const steamCmdDir = path.join(ROOT, 'steamcmd');
   const zipPath = path.join(steamCmdDir, 'steamcmd.zip');
   if (!fs.existsSync(steamCmdDir)) fs.mkdirSync(steamCmdDir, { recursive: true });
   const resp = await fetch('https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip');

@@ -13,6 +13,7 @@ const logger = require('../lib/logger');
 const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { ensureSteamCMD, validateSteamLogin } = require('../lib/steamcmd');
+const { ENV_FILE } = require('../lib/paths');
 const { ensurePanelFirewallRule } = require('../lib/firewall-manager');
 const { encryptForEnv } = require('../lib/credential-encryption');
 const { checkPasswordPolicy } = require('../lib/helpers');
@@ -148,7 +149,7 @@ module.exports = function(app) {
 
     try {
       // Update DAYZ_SERVER_IP in .env
-      const envPath = path.join(__dirname, '..', '..', '.env');
+      const envPath = ENV_FILE;
       if (fs.existsSync(envPath)) {
         let envContent = fs.readFileSync(envPath, 'utf-8');
         if (envContent.match(/^#?\s*DAYZ_SERVER_IP=/m)) {
@@ -230,7 +231,7 @@ module.exports = function(app) {
       }
 
       // Update .env file with SteamCMD settings
-      const envPath = path.join(__dirname, '..', '..', '.env');
+      const envPath = ENV_FILE;
       if (fs.existsSync(envPath)) {
         let envContent = fs.readFileSync(envPath, 'utf-8');
 
@@ -291,7 +292,7 @@ module.exports = function(app) {
         ctx.steamLoginValidated = true;
 
         // Persist to .env so credentials survive restarts
-        const envPath = path.join(__dirname, '..', '..', '.env');
+        const envPath = ENV_FILE;
         if (fs.existsSync(envPath)) {
           let envContent = fs.readFileSync(envPath, 'utf-8');
           if (envContent.match(/^#?\s*STEAM_USERNAME=/m)) {
@@ -335,7 +336,7 @@ module.exports = function(app) {
     ctx.steamLoginValidated = false;
 
     // Persist to .env
-    const envPath = path.join(__dirname, '..', '..', '.env');
+    const envPath = ENV_FILE;
     if (fs.existsSync(envPath)) {
       let envContent = fs.readFileSync(envPath, 'utf-8');
       if (envContent.match(/^#?\s*STEAM_USERNAME=/m)) {
