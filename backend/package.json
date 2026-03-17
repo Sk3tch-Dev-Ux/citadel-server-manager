@@ -23,15 +23,11 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "otplib": "^13.3.0",
     "pino": "^10.3.1",
     "socket.io": "^4.7.2",
     "stripe": "^20.4.0",
     "uuid": "^9.0.1",
     "ws": "^8.19.0"
-  },
-  "overrides": {
-    "@scure/base": "1.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
