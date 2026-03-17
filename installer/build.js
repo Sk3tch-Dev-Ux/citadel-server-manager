@@ -193,19 +193,50 @@ async function main() {
       }
     }
     if (!downloaded) {
-      // Fall back: try to find nssm.exe on PATH (e.g. installed via choco install nssm)
-      log('  All download URLs failed — checking PATH for nssm.exe...');
-      try {
-        const whereResult = execSync('where nssm.exe', { encoding: 'utf8', windowsHide: true }).trim().split('\n')[0].trim();
-        if (whereResult && fs.existsSync(whereResult)) {
-          fs.copyFileSync(whereResult, nssmDest);
-          log(`  Copied nssm.exe from ${whereResult}`);
-        } else {
-          throw new Error('not found');
+      // Fall back: try to find the real nssm.exe (not Chocolatey shims)
+      log('  All download URLs failed — searching for nssm.exe...');
+      let found = false;
+
+      // Check Chocolatey's actual binary location first (shims on PATH are ~60KB wrappers)
+      const chocoBase = process.env.ChocolateyInstall || 'C:\\ProgramData\\chocolatey';
+      const chocoNssmPaths = [
+        path.join(chocoBase, 'lib', 'NSSM', 'tools', 'win64', 'nssm.exe'),
+        path.join(chocoBase, 'lib', 'nssm', 'tools', 'win64', 'nssm.exe'),
+        path.join(chocoBase, 'lib', 'NSSM', 'tools', 'nssm.exe'),
+        path.join(chocoBase, 'lib', 'nssm', 'tools', 'nssm.exe'),
+      ];
+      for (const p of chocoNssmPaths) {
+        if (fs.existsSync(p)) {
+          const stat = fs.statSync(p);
+          if (stat.size > 100000) { // Real nssm.exe is >200KB; shims are ~60KB
+            fs.copyFileSync(p, nssmDest);
+            log(`  Copied real nssm.exe from ${p} (${stat.size} bytes)`);
+            found = true;
+            break;
+          }
         }
-      } catch {
+      }
+
+      // Fall back to PATH, but verify it's not a shim
+      if (!found) {
+        try {
+          const whereResult = execSync('where nssm.exe', { encoding: 'utf8', windowsHide: true }).trim().split('\n')[0].trim();
+          if (whereResult && fs.existsSync(whereResult)) {
+            const stat = fs.statSync(whereResult);
+            if (stat.size > 100000) {
+              fs.copyFileSync(whereResult, nssmDest);
+              log(`  Copied nssm.exe from ${whereResult} (${stat.size} bytes)`);
+              found = true;
+            } else {
+              log(`  Skipping ${whereResult} — appears to be a Chocolatey shim (${stat.size} bytes)`);
+            }
+          }
+        } catch { /* not on PATH */ }
+      }
+
+      if (!found) {
         throw new Error(
-          'Failed to download NSSM and nssm.exe not found on PATH.\n' +
+          'Failed to download NSSM and real nssm.exe not found locally.\n' +
           '  Install via: choco install nssm\n' +
           '  Or download manually from https://nssm.cc/download'
         );
