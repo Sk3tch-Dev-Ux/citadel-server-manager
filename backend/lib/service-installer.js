@@ -231,7 +231,24 @@ async function installService() {
   run(`"${nssm}" set "${SERVICE_NAME}" Start SERVICE_AUTO_START`);
   console.log('  [OK] Auto-start on boot enabled');
 
-  // 9. Configure failure recovery via sc.exe (3 restarts, 60s delay)
+  // 9. Configure NSSM throttle & restart behavior
+  //    AppThrottle: ms the app must run before NSSM considers it a "successful" start.
+  //    Default is 1500ms — if Node crashes within that window repeatedly, NSSM
+  //    pauses the service and it becomes unrecoverable without manual intervention.
+  //    We set 5000ms to give the app time to initialize.
+  run(`"${nssm}" set "${SERVICE_NAME}" AppThrottle 5000`);
+  console.log('  [OK] Startup throttle set to 5000ms');
+
+  //    AppRestartDelay: ms to wait before restarting after an exit (prevents rapid loops)
+  run(`"${nssm}" set "${SERVICE_NAME}" AppRestartDelay 3000`);
+  console.log('  [OK] Restart delay set to 3000ms');
+
+  //    AppExit Default: what to do when the app exits — Restart, Ignore, Exit, or Suicide.
+  //    Explicit "Restart" ensures NSSM always tries to bring the service back.
+  run(`"${nssm}" set "${SERVICE_NAME}" AppExit Default Restart`);
+  console.log('  [OK] Exit action set to Restart');
+
+  // 10. Configure failure recovery via sc.exe (3 restarts, 60s delay)
   run(
     `sc.exe failure "${SERVICE_NAME}" ` +
     `reset= 86400 ` +
