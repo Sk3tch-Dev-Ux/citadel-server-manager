@@ -200,14 +200,15 @@ async function validateSteamLogin(username, password, guardCode) {
 
       // Stall detection: SteamCMD often hangs silently when waiting for a
       // Steam Guard code (no "Steam Guard" text, just blocks on stdin).
-      // If we see "Logging in" but get no success/failure within 10s, assume guard.
+      // If we see "Logging in" but get no success/failure within 20s, assume guard.
+      // Increased from 10s to 20s to reduce false positives on slow connections.
       if (text.includes('Logging in') && !loginStallTimer) {
         loginStallTimer = setTimeout(() => {
           if (!resolved && !isLoginSuccess(output)) {
             logger.info({ steamcmdOutput: output.substring(0, 500) }, 'SteamCMD stalled after login attempt — assuming Steam Guard required');
-            done({ success: false, needsGuard: true, error: 'Steam Guard code required — check your email' });
+            done({ success: false, needsGuard: true, error: 'Steam Guard code required — check your email or authenticator app' });
           }
-        }, 10_000);
+        }, 20_000);
       }
     };
     proc.stdout?.on('data', handleData); proc.stderr?.on('data', handleData);
@@ -399,4 +400,31 @@ async function updateWorkshopMod(serverId, installDir, modId) {
   });
 }
 
-module.exports = { ensureSteamCMD, findWorkshopContent, downloadWorkshopMod, validateSteamLogin, updateServerApp, updateWorkshopMod };
+/**
+ * Wrapper around downloadWorkshopMod with automatic retry on transient failures.
+ * Retries up to 2 times with 5s/15s delays. Does NOT retry on auth failures.
+ */
+async function downloadWorkshopModWithRetry(workshopId, modName, serverId, maxRetries = 2) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await downloadWorkshopMod(workshopId, modName, serverId);
+    } catch (err) {
+      lastError = err;
+      // Don't retry auth failures
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('guard') || msg.includes('credential') || msg.includes('password') || msg.includes('rate limit')) {
+        throw err;
+      }
+      if (attempt < maxRetries) {
+        const delay = attempt === 0 ? 5000 : 15000;
+        logger.warn({ workshopId, modName, attempt: attempt + 1, error: err.message }, `Mod download failed, retrying in ${delay / 1000}s...`);
+        if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status: 'retrying', progress: 0, message: `Download failed — retrying (attempt ${attempt + 2}/${maxRetries + 1})...` });
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
+module.exports = { ensureSteamCMD, findWorkshopContent, downloadWorkshopMod: downloadWorkshopModWithRetry, validateSteamLogin, updateServerApp, updateWorkshopMod };

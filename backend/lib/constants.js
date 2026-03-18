@@ -50,8 +50,8 @@ module.exports = {
   /** Max audit trail entries kept in memory */
   MAX_AUDIT_ENTRIES: 10_000,
 
-  /** Max audit entries persisted to disk */
-  MAX_AUDIT_PERSIST: 2_000,
+  /** Max audit entries persisted to disk (matches MAX_AUDIT_ENTRIES to prevent data loss on restart) */
+  MAX_AUDIT_PERSIST: 10_000,
 
   /** Max in-app notifications kept in memory */
   MAX_NOTIFICATION_COUNT: 200,
@@ -66,8 +66,8 @@ module.exports = {
   /** SteamCMD initial self-update timeout (ms) */
   STEAMCMD_INIT_TIMEOUT_MS: 120_000,
 
-  /** SteamCMD login validation timeout (ms) */
-  STEAMCMD_LOGIN_TIMEOUT_MS: 60_000,
+  /** SteamCMD login validation timeout (ms) — 120s to allow time for Steam Guard email delivery */
+  STEAMCMD_LOGIN_TIMEOUT_MS: 120_000,
 
   /** SteamCMD mod download timeout (ms) — 30 minutes */
   STEAMCMD_DOWNLOAD_TIMEOUT_MS: 30 * 60 * 1000,
@@ -110,8 +110,8 @@ module.exports = {
   RCON_LOGIN_TIMEOUT_MS: 10_000,
   /** RCON command response timeout (ms) */
   RCON_COMMAND_TIMEOUT_MS: 5_000,
-  /** RCON keep-alive ping interval (ms) */
-  RCON_KEEPALIVE_INTERVAL_MS: 30_000,
+  /** RCON keep-alive ping interval (ms) — 15s for faster disconnect detection (was 30s) */
+  RCON_KEEPALIVE_INTERVAL_MS: 15_000,
 
   // ─── Crash Detector ───────────────────────────────────
   /** Crash backoff schedule (ms): 5s → 10s → 20s → 40s → 80s → 5 min */

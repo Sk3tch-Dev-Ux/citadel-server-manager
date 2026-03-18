@@ -28,10 +28,21 @@ const ALLOWED_ACTIONS = [
 
 module.exports = function(app) {
   app.post('/api/discord/action', async (req, res) => {
-    const { action, apiKey, params } = req.body;
+    const { action, params } = req.body;
     const expectedKey = process.env.DISCORD_BOT_API_KEY;
     if (!expectedKey) return res.status(500).json({ error: 'DISCORD_BOT_API_KEY not configured on server' });
-    if (!apiKey || typeof apiKey !== 'string') return res.status(400).json({ error: 'API key required' });
+
+    // Accept API key from Authorization header (preferred) or body (legacy fallback)
+    let apiKey;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      apiKey = authHeader.slice(7);
+    } else if (req.body.apiKey && typeof req.body.apiKey === 'string') {
+      // Legacy: accept from body for backward compatibility
+      apiKey = req.body.apiKey;
+    }
+
+    if (!apiKey || typeof apiKey !== 'string') return res.status(400).json({ error: 'API key required (use Authorization: Bearer <key>)' });
     const apiKeyBuf = Buffer.from(apiKey);
     const expectedKeyBuf = Buffer.from(expectedKey);
     if (apiKeyBuf.length !== expectedKeyBuf.length || !crypto.timingSafeEqual(apiKeyBuf, expectedKeyBuf)) {

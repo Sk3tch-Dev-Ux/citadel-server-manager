@@ -11,13 +11,63 @@
  *   - Security incident (revoke token class)
  */
 
+const fs = require('fs');
+const path = require('path');
 const logger = require('./logger');
 
 /**
  * In-memory revocation registry: Set of revoked JWT jti values
  * Expires entries after 8+ hours (token lifetime + buffer)
+ *
+ * Persisted to disk on every write so revocations survive server restarts.
  */
 const revokedTokens = new Map(); // Map of jti => expiryTime
+
+const PERSIST_FILE = path.join(process.cwd(), 'data', 'token-revocations.json');
+
+/** Load persisted revocations from disk on startup */
+function loadFromDisk() {
+  try {
+    if (fs.existsSync(PERSIST_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(PERSIST_FILE, 'utf8'));
+      const now = Date.now();
+      let loaded = 0;
+      for (const [key, entry] of Object.entries(raw)) {
+        // Skip expired entries
+        if (entry && entry.expiresAt && entry.expiresAt > now) {
+          revokedTokens.set(key, entry);
+          loaded++;
+        }
+      }
+      if (loaded > 0) {
+        logger.info({ loaded }, 'Loaded persisted token revocations from disk');
+      }
+    }
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Failed to load token revocations from disk (starting fresh)');
+  }
+}
+
+/** Persist current revocations to disk (debounced) */
+let _persistTimer = null;
+function persistToDisk() {
+  // Debounce: only write once per second even if multiple revocations happen rapidly
+  if (_persistTimer) return;
+  _persistTimer = setTimeout(() => {
+    _persistTimer = null;
+    try {
+      const dir = path.dirname(PERSIST_FILE);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const data = Object.fromEntries(revokedTokens);
+      fs.writeFileSync(PERSIST_FILE, JSON.stringify(data), 'utf8');
+    } catch (err) {
+      logger.warn({ err: err.message }, 'Failed to persist token revocations to disk');
+    }
+  }, 1000);
+}
+
+// Load on module init
+loadFromDisk();
 
 /**
  * Revoke all tokens for a user by ID.
@@ -31,6 +81,7 @@ function revokeUserTokens(userId, reason = 'manual') {
   // Mark all tokens issued before now as revoked
   // New tokens will have a newer iat (issued-at) time
   revokedTokens.set(`user:${userId}:*`, { expiresAt: Date.now() + 30 * 60 * 1000, reason });
+  persistToDisk();
 }
 
 /**
@@ -44,6 +95,7 @@ function revokeToken(jti, expiresAt, reason = 'manual') {
   if (!jti) return;
   logger.debug({ jti, reason }, 'Revoking token');
   revokedTokens.set(jti, { expiresAt, reason });
+  persistToDisk();
 }
 
 /**
@@ -86,6 +138,7 @@ function cleanupExpired() {
   }
   if (removed > 0) {
     logger.debug({ removed }, 'Cleaned up expired token revocations');
+    persistToDisk();
   }
 }
 

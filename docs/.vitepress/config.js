@@ -102,8 +102,8 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024-present Citadel Contributors',
+      message: 'Proprietary License. All rights reserved.',
+      copyright: 'Copyright © 2024-2026 Sk3tch Dev.',
     },
 
     search: {

@@ -168,28 +168,37 @@ function startMetricsPolling() {
     for (const srv of ctx.servers) {
       const state = ctx.serverStates[srv.id];
       if (!state || (state.status !== 'running' && state.status !== 'starting')) continue;
-      // If we have a known PID, verify that specific PID is still alive
-      // rather than searching by executable name (which could match a different instance)
-      let pid;
-      if (state.pid) {
-        const alive = await detectProcessByPid(state.pid);
-        pid = alive ? state.pid : null;
-      } else {
-        pid = await detectRunningProcess(srv.executable);
-      }
-      if (pid) {
-        state.pid = pid;
-        if (state.status !== 'running') {
-          state.status = 'running'; state.startedAt = state.startedAt || new Date().toISOString();
-          ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
-          startTailing(srv.id);
+
+      // Per-server try/catch: one server's error must not skip or crash all others
+      try {
+        // Skip if this server is in the middle of a state transition (restart/stop)
+        if (state._stateTransitioning) continue;
+
+        // If we have a known PID, verify that specific PID is still alive
+        // rather than searching by executable name (which could match a different instance)
+        let pid;
+        if (state.pid) {
+          const alive = await detectProcessByPid(state.pid);
+          pid = alive ? state.pid : null;
+        } else {
+          pid = await detectRunningProcess(srv.executable);
         }
-        // Delegate metrics collection + health monitoring to focused module
-        await collectMetrics(srv, state, pid);
-      } else if (state.status === 'running') {
-        stopTailing(srv.id);
-        // Delegate crash handling to focused module
-        await handleCrash(srv, state);
+        if (pid) {
+          state.pid = pid;
+          if (state.status !== 'running') {
+            state.status = 'running'; state.startedAt = state.startedAt || new Date().toISOString();
+            ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+            startTailing(srv.id);
+          }
+          // Delegate metrics collection + health monitoring to focused module
+          await collectMetrics(srv, state, pid);
+        } else if (state.status === 'running') {
+          stopTailing(srv.id);
+          // Delegate crash handling to focused module
+          await handleCrash(srv, state);
+        }
+      } catch (err) {
+        logger.error({ err, serverId: srv.id, serverName: srv.name }, 'Metrics polling error for server (continuing to next)');
       }
     }
     } finally { _metricsPollingRunning = false; }

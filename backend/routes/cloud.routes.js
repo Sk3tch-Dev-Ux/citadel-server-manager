@@ -8,7 +8,7 @@ const cloudAgent = require('../lib/cloud-agent');
 const { saveJSON } = require('../lib/data-store');
 const logger = require('../lib/logger');
 
-const DEFAULT_RELAY_URL = 'wss://api.citadels.cc/ws/plugin';
+const DEFAULT_RELAY_URL = 'wss://api.citadel.cc/ws/plugin';
 
 module.exports = function (app) {
 

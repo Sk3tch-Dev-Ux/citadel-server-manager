@@ -54,7 +54,7 @@ cd /opt/citadel-cloud && docker compose -f docker/docker-compose.prod.yml --env-
 
 ### Step 6: Configure Stripe Webhook ✅
 Created via Stripe CLI:
-- Endpoint: `https://citadels.cc/api/stripe/webhook`
+- Endpoint: `https://citadel.cc/api/stripe/webhook`
 - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
 - Signing secret added as `STRIPE_WEBHOOK_SECRET` in `.env.production`
 

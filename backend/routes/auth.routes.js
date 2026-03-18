@@ -196,7 +196,12 @@ module.exports = function(app) {
     user.mustChangePassword = false;
     const { saveJSON } = require('../lib/data-store');
     saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users);
-    addAudit(user.id, user.username, 'password.force-change', 'User changed forced password');
-    res.json({ message: 'Password changed successfully' });
+
+    // Invalidate all existing sessions for this user so old tokens can't be reused
+    const { revokeUserTokens } = require('../lib/token-revocation');
+    revokeUserTokens(user.id, 'password.changed');
+
+    addAudit(user.id, user.username, 'password.force-change', 'User changed forced password (all sessions invalidated)');
+    res.json({ message: 'Password changed successfully. Please log in again.' });
   });
 };

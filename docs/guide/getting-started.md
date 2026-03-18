@@ -26,19 +26,18 @@ cd discord-bot && npm install && cd ..
 
 ### 3. Start Citadel
 
+::: danger Run as Administrator
+Right-click your terminal (Command Prompt or PowerShell) and select **"Run as Administrator"** before running `npm start`. Without admin privileges, you'll see repeated UAC prompts for every firewall operation and Windows Service commands will fail.
+:::
+
 ```bash
-# From an Administrator terminal (recommended):
 npm start
 ```
 
 This will:
-1. Run the setup wizard (first time only — generates `.env` with secure secrets)
+1. Auto-generate `.env` with secure secrets (JWT_SECRET, API keys — no manual config needed)
 2. Build the frontend for production
 3. Start the backend server on port 3001
-
-::: tip Administrator Recommended
-Run from an Administrator terminal for automatic Windows Firewall rule management. See [Running as Administrator](/guide/backend-setup#running-as-administrator) for details.
-:::
 
 ### 4. Complete the setup wizard
 
@@ -46,9 +45,11 @@ On first launch, open **http://localhost:3001** — you'll be redirected to the 
 
 1. **Welcome** — Introduction and overview
 2. **Admin Account** — Create your admin username and password
-3. **SteamCMD** — Configure SteamCMD path for mod and server management
-4. **Server Profile** — Add your first DayZ server (install directory, ports, RCON)
-5. **Complete** — Ready to use
+3. **Network** — Configure your server IP address
+4. **SteamCMD** — Configure SteamCMD path for mod management (auto-downloads if not found)
+5. **First Server** — Add your first DayZ server (install directory, ports, RCON) or skip
+6. **Citadel Cloud** — Activate your license key for premium features (or skip for Free tier)
+7. **Complete** — Summary of everything configured
 
 After completing the wizard, log in with the credentials you created.
 
