@@ -1,32 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import obfuscator from 'vite-plugin-javascript-obfuscator';
 
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
-    // Obfuscate production builds to protect commercial IP
-    ...(mode === 'production' ? [obfuscator({
-      apply: 'build',
-      debugger: false,
-      options: {
-        compact: true,
-        controlFlowFlattening: true,
-        controlFlowFlatteningThreshold: 0.5,
-        deadCodeInjection: true,
-        deadCodeInjectionThreshold: 0.2,
-        identifierNamesGenerator: 'hexadecimal',
-        renameGlobals: false,
-        selfDefending: false,
-        stringArray: true,
-        stringArrayEncoding: ['base64'],
-        stringArrayThreshold: 0.75,
-        transformObjectKeys: true,
-        unicodeEscapeSequence: false,
-        sourceMap: false,
-        log: false,
-      },
-    })] : []),
   ],
   build: {
     outDir: '../dist',
