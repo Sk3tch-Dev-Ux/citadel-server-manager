@@ -396,7 +396,21 @@ class CitadelCommandRunner
 
     protected void WriteResponse(string id, bool success, string data, string error)
     {
-        string resPath = RES_DIR + "/" + id + ".res.json";
+        // Sanitize id to prevent path traversal — only allow alphanumeric, hyphens, underscores
+        string safeId = "";
+        for (int ci = 0; ci < id.Length(); ci++)
+        {
+            string ch = id.Get(ci);
+            if ((ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z") || (ch >= "0" && ch <= "9") || ch == "-" || ch == "_")
+                safeId += ch;
+        }
+        if (safeId == "")
+        {
+            GetCitadel().GetLogger().Error("WriteResponse: invalid command id (empty after sanitization)");
+            return;
+        }
+
+        string resPath = RES_DIR + "/" + safeId + ".res.json";
         FileHandle file = OpenFile(resPath, FileMode.WRITE);
         if (file == 0)
         {
