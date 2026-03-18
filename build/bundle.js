@@ -323,7 +323,7 @@ async function main() {
   }
 
   // Copy install/uninstall scripts
-  for (const script of ['install.ps1', 'uninstall.ps1']) {
+  for (const script of ['install.ps1', 'install.bat', 'uninstall.ps1']) {
     const src = path.join(ROOT, script);
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, path.join(STAGING_DIR, script));
