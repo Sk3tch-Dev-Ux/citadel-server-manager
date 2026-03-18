@@ -144,6 +144,27 @@ function createBackup(serverId, type) {
       return;
     }
 
+    // Check disk space before proceeding (require at least 500MB free)
+    const MIN_FREE_BYTES = 500 * 1024 * 1024; // 500 MB
+    try {
+      const { execSync } = require('child_process');
+      const drive = path.parse(srv.installDir).root.replace('\\', '');
+      const output = execSync(
+        `powershell -NoProfile -Command "(Get-PSDrive ${drive.replace(':', '')}).Free"`,
+        { windowsHide: true, timeout: 5000 }
+      ).toString().trim();
+      const freeBytes = parseInt(output);
+      if (!isNaN(freeBytes) && freeBytes < MIN_FREE_BYTES) {
+        logger.warn({ serverId, freeBytes, minRequired: MIN_FREE_BYTES }, 'Backup: insufficient disk space');
+        if (state?.backup) state.backup.lastError = 'Insufficient disk space';
+        resolve(null);
+        return;
+      }
+    } catch (err) {
+      // Non-fatal: if we can't check, proceed anyway
+      logger.debug({ err: err.message, serverId }, 'Backup: disk space check failed, proceeding');
+    }
+
     // Set in-progress flag
     if (state?.backup) state.backup.inProgress = true;
 

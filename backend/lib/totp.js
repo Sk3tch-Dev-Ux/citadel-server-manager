@@ -66,9 +66,10 @@ const authenticator = {
     return base32Encode(crypto.randomBytes(length));
   },
 
-  /** Verify a TOTP code against a secret (allows ±1 window). */
+  /** Verify a TOTP code against a secret (allows ±1 time step per RFC 6238 §5.2). */
   check(token, secret) {
     const now = Math.floor(Date.now() / 1000 / 30);
+    // ±1 window = standard tolerance for clock drift (prev, current, next 30s period)
     for (let i = -1; i <= 1; i++) {
       if (hotp(secret, now + i) === String(token).padStart(6, '0')) {
         return true;

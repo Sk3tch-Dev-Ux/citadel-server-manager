@@ -84,6 +84,9 @@ module.exports = function(app) {
         return res.status(400).json({ error: 'Password does not meet policy requirements (min 8 chars, uppercase, lowercase, number, special char).' });
       }
       user.passwordHash = await bcrypt.hash(req.body.password, 10);
+      // Invalidate existing sessions when password changes
+      const { revokeUserTokens } = require('../lib/token-revocation');
+      revokeUserTokens(user.id, 'password.changed.by.admin');
     }
 
     saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users.map(u => ({ ...u })));

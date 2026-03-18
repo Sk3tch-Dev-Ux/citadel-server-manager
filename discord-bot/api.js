@@ -142,8 +142,11 @@ async function panelAction(action, params = {}, guildId = null, interaction = nu
 
     const result = await fetchWithRetry(`${CONFIG.apiUrl}/api/discord/action`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, apiKey: CONFIG.apiKey, params: mergedParams }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CONFIG.apiKey}`,
+      },
+      body: JSON.stringify({ action, params: mergedParams }),
       timeout: DEFAULT_FETCH_TIMEOUT_MS,
     });
 

@@ -164,6 +164,7 @@ async function stopServer(serverId, reason) {
   if (!state || state.status === 'stopped') return { success: true, message: 'Not running' };
 
   state.status = 'stopping';
+  state._stateTransitioning = true; // Prevent metrics polling during state change
   ctx.io.emit('serverStatus', { serverId, status: 'stopping' });
   addLog(serverId, 'info', 'server', `Stop initiated: ${reason}`);
 
@@ -176,6 +177,7 @@ async function stopServer(serverId, reason) {
     stopSidecar(serverId);
     stopTailing(serverId);
     state.status = 'stopped'; state.pid = null; state.process = null; state.players = []; state.startedAt = null;
+    state._stateTransitioning = false;
     ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
     ctx.io.emit('players', { serverId, players: [] });
     addNotification(serverId, 'server.stopped', 'Server Stopped', `${srv.name} has been stopped`, 'info');
@@ -187,6 +189,7 @@ async function stopServer(serverId, reason) {
     stopSidecar(serverId);
     stopTailing(serverId);
     state.status = 'stopped'; state.pid = null;
+    state._stateTransitioning = false;
     ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
     return { success: true, message: 'Stopped (force)' };
   }

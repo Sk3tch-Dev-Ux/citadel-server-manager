@@ -70,11 +70,41 @@ The sidecar runs alongside your DayZ server and bridges commands to the `@Citade
 | `BAN_KICK_MESSAGE` | No | `You have been banned. Reason: {reason}. To appeal, visit our Discord.` | Message shown to players when kicked for a ban. Supports `{reason}` and `{banId}` placeholders |
 | `BAN_APPEAL_URL` | No | — | Discord invite or appeal URL. If set, replaces "our Discord" in the default kick message |
 
+## Cloud Integration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `CLOUD_ENABLED` | No | `false` | Enable Citadel Cloud connection |
+| `CLOUD_RELAY_URL` | No | `wss://cloud.citadel.cc` | WebSocket relay URL |
+
+## Store
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `STRIPE_SECRET_KEY` | No | — | Stripe API secret key |
+| `STRIPE_WEBHOOK_SECRET` | No | — | Stripe webhook signing secret |
+| `STORE_ENABLED` | No | `false` | Enable/disable VIP store |
+
+## Sidecar TLS
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SIDECAR_TLS_CERT` | No | — | Path to TLS certificate for sidecar HTTPS |
+| `SIDECAR_TLS_KEY` | No | — | Path to TLS private key for sidecar HTTPS |
+
 ## Security
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `CORS_ORIGINS` | No | `http://localhost:3001,http://127.0.0.1:3001` | Comma-separated list of allowed CORS origins |
+| `USE_HTTPS` | No | `0` | Force HTTPS (1 to enable) |
+
+## Auto-Update
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AUTO_UPDATE_ENABLED` | No | `false` | Enable automatic server updates |
+| `UPDATE_COUNTDOWN_SECONDS` | No | `300` | Countdown before update restart |
 
 ## Example `.env`
 

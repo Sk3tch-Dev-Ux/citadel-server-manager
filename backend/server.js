@@ -100,7 +100,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+      // Removed 'unsafe-inline' for scripts — React/Vite builds don't need it.
+      // Styles keep unsafe-inline because CSS-in-JS libraries and Vite inject inline styles.
+      scriptSrc: ["'self'", 'https://cdnjs.cloudflare.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
       imgSrc: ["'self'", 'data:', 'blob:'],
       connectSrc: ["'self'", 'ws:', 'wss:'],
@@ -181,7 +183,7 @@ require('./routes/cloud.routes')(app);
 
 // ─── License status ──────────────────────────────────────
 const { isLicensed } = require('./lib/license');
-if (!isLicensed()) logger.info('Running unlicensed — purchase at citadels.cc for $34.99 to unlock all features');
+if (!isLicensed()) logger.info('Running unlicensed — purchase at citadel.cc for $34.99 to unlock all features');
 
 // ─── WebSocket (authenticated) ───────────────────────────
 io.use((socket, next) => {
@@ -204,7 +206,31 @@ io.use((socket, next) => {
   }
 });
 
+// ─── WebSocket Rate Limiting ─────────────────────────────
+// Prevent message flooding: max 60 messages per 10 seconds per socket
+const WS_RATE_WINDOW_MS = 10_000;
+const WS_RATE_MAX_MESSAGES = 60;
+
 io.on('connection', (socket) => {
+  let _wsMessageCount = 0;
+  let _wsRateWindowStart = Date.now();
+
+  const _originalOnEvent = socket.onevent;
+  socket.onevent = function(packet) {
+    const now = Date.now();
+    if (now - _wsRateWindowStart > WS_RATE_WINDOW_MS) {
+      _wsMessageCount = 0;
+      _wsRateWindowStart = now;
+    }
+    _wsMessageCount++;
+    if (_wsMessageCount > WS_RATE_MAX_MESSAGES) {
+      logger.warn({ userId: socket.user?.id, count: _wsMessageCount }, 'WebSocket rate limit exceeded');
+      socket.emit('error', { message: 'Rate limit exceeded' });
+      return; // Drop the message
+    }
+    _originalOnEvent.call(socket, packet);
+  };
+
   logger.debug({ userId: socket.user?.id }, 'WebSocket client connected');
 
   // Fire session.begin webhook

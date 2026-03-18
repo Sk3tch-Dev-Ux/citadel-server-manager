@@ -55,9 +55,10 @@ The Sidecar port (9100) should **not** be exposed to the public internet. Use a 
 
 ### Optional
 
-- [SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD) — Required for mod installs and server deployment (can be configured during setup wizard)
+- **SteamCMD** — Required for mod installs and server deployment. Citadel will **automatically download SteamCMD** during the setup wizard if it's not already installed. If you prefer to install manually: [download SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD) and extract it to `C:\SteamCMD\` or the Citadel directory.
 - [Discord Application](https://discord.com/developers/applications) — Required for the Discord bot
 - [PM2](https://pm2.keymetrics.io/) — Alternative process manager (Windows Service is recommended instead)
+- **NSIS** — Only required if building the installer from source (`npm run build:installer`). [Download NSIS](https://nsis.sourceforge.io/Download)
 
 ## Next Steps
 

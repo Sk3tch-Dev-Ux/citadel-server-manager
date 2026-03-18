@@ -139,7 +139,7 @@ async function performLicenseCheck() {
       licensed,
       message: licensed
         ? 'Valid license active'
-        : 'Running unlicensed — upgrade at citadels.cc',
+        : 'Running unlicensed — upgrade at citadel.cc',
     };
   } catch (err) {
     logger.debug({ err }, 'License check error');

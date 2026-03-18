@@ -1346,10 +1346,44 @@ setInterval(() => banStore.purgeExpired(), 300000);
 
 // ─── Start Server ────────────────────────────────────────
 
-app.listen(config.port, () => {
-  logger.info({
-    port: config.port,
-    queueDir: config.queueDir,
-    auth: config.apiKey ? 'enabled' : 'disabled (dev mode)',
-  }, 'Citadel Sidecar API started');
-});
+// ─── TLS Enforcement ─────────────────────────────────────
+// In production, enforce HTTPS if certificates are available.
+// The sidecar API key is sent as a Bearer token and must be
+// protected in transit even on localhost (defense in depth).
+const https = require('https');
+// fs and path already required above (priority queue section)
+
+const TLS_CERT = process.env.SIDECAR_TLS_CERT || path.join(process.cwd(), 'data', 'sidecar.crt');
+const TLS_KEY = process.env.SIDECAR_TLS_KEY || path.join(process.cwd(), 'data', 'sidecar.key');
+const isProduction = process.env.NODE_ENV === 'production';
+
+let server;
+if (isProduction && fs.existsSync(TLS_CERT) && fs.existsSync(TLS_KEY)) {
+  const tlsOptions = {
+    cert: fs.readFileSync(TLS_CERT),
+    key: fs.readFileSync(TLS_KEY),
+  };
+  server = https.createServer(tlsOptions, app);
+  server.listen(config.port, () => {
+    logger.info({
+      port: config.port,
+      tls: true,
+      auth: config.apiKey ? 'enabled' : 'disabled (dev mode)',
+    }, 'Citadel Sidecar API started (HTTPS)');
+  });
+} else {
+  if (isProduction) {
+    logger.warn(
+      { certPath: TLS_CERT, keyPath: TLS_KEY },
+      'TLS certificates not found — sidecar running over HTTP in production. ' +
+      'Set SIDECAR_TLS_CERT and SIDECAR_TLS_KEY env vars or place sidecar.crt/sidecar.key in data/',
+    );
+  }
+  server = app.listen(config.port, () => {
+    logger.info({
+      port: config.port,
+      tls: false,
+      auth: config.apiKey ? 'enabled' : 'disabled (dev mode)',
+    }, 'Citadel Sidecar API started (HTTP)');
+  });
+}

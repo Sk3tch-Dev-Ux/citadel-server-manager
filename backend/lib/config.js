@@ -156,7 +156,7 @@ CONFIG.bans = {
 CONFIG.store = structured.store;
 
 // License purchase URL (Stripe Payment Link or custom checkout page)
-CONFIG.purchaseUrl = process.env.PURCHASE_URL || 'https://citadels.cc/purchase';
+CONFIG.purchaseUrl = process.env.PURCHASE_URL || 'https://citadel.cc/purchase';
 
 // Allowed CORS origins — structured config, with env override already applied
 CONFIG.allowedOrigins = structured.server.allowedOrigins;

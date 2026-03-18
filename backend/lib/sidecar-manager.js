@@ -32,11 +32,27 @@ function startSidecar(srv) {
   const state = ctx.serverStates[srv.id];
   if (!state) return;
 
-  // Already running?
-  if (state.sidecarPid && state.sidecarProcess) {
-    logger.debug({ serverId: srv.id }, 'Sidecar already running, skipping start');
+  // Prevent concurrent start attempts
+  if (state._sidecarStarting) {
+    logger.debug({ serverId: srv.id }, 'Sidecar start already in progress, skipping');
     return;
   }
+
+  // Already running? Verify PID is still alive
+  if (state.sidecarPid) {
+    try {
+      process.kill(state.sidecarPid, 0); // Signal 0 = existence check
+      logger.debug({ serverId: srv.id }, 'Sidecar already running, skipping start');
+      return;
+    } catch {
+      // Process is gone — clean up stale references
+      logger.debug({ serverId: srv.id, stalePid: state.sidecarPid }, 'Sidecar PID stale, cleaning up');
+      state.sidecarPid = null;
+      state.sidecarProcess = null;
+    }
+  }
+
+  state._sidecarStarting = true;
 
   const sidecarPort = getSidecarPort(srv);
   const profileDir = path.join(srv.installDir, srv.profileDir || 'profiles');
@@ -67,8 +83,10 @@ function startSidecar(srv) {
     if (child.pid) {
       state.sidecarProcess = child;
       state.sidecarPid = child.pid;
+      state._sidecarStarting = false;
       logger.info({ server: srv.name, sidecarPid: child.pid, port: sidecarPort }, 'Sidecar started');
     } else {
+      state._sidecarStarting = false;
       logger.error({ server: srv.name }, 'Sidecar spawn returned no PID');
     }
 
@@ -84,6 +102,7 @@ function startSidecar(srv) {
       state.sidecarProcess = null;
     });
   } catch (err) {
+    state._sidecarStarting = false;
     logger.error({ err, server: srv.name }, 'Failed to start sidecar');
   }
 }

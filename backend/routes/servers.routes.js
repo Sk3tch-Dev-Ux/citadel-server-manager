@@ -102,6 +102,23 @@ module.exports = function(app) {
   app.post('/api/servers', auth('server.deploy'), checkServerLimit(), async (req, res) => {
     const { name, installDir, executable, launchParams, ip, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map, gameTitle } = req.body;
     if (!name || !installDir) return res.status(400).json({ error: 'Name and installDir required' });
+
+    // Validate DayZ server binary exists in the install directory
+    const resolvedDir = installDir.replace(/\//g, '\\');
+    if (!fs.existsSync(resolvedDir)) {
+      return res.status(400).json({ error: `Install directory does not exist: ${resolvedDir}` });
+    }
+    const exeToCheck = executable || 'DayZServer_x64.exe';
+    const exePath = path.join(resolvedDir, exeToCheck);
+    if (!fs.existsSync(exePath)) {
+      // Also check fallback name
+      const fallbackExe = exeToCheck === 'DayZServer_x64.exe' ? 'DayZServer.exe' : 'DayZServer_x64.exe';
+      if (!fs.existsSync(path.join(resolvedDir, fallbackExe))) {
+        return res.status(400).json({
+          error: `DayZ server executable not found at ${resolvedDir}. Ensure DayZ Dedicated Server is installed in this directory.`,
+        });
+      }
+    }
     const srv = {
       id: uuid(), name, installDir: installDir.replace(/\//g, '\\'),
       executable: executable || 'DayZServer_x64.exe',

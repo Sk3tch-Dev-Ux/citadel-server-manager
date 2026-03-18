@@ -35,19 +35,25 @@ const ALGORITHM = 'aes-256-gcm';
 let _derivedKey = null;
 
 /**
- * Derive (or return cached) the encryption key from JWT_SECRET.
+ * Derive (or return cached) the encryption key.
+ *
+ * Uses CREDENTIAL_ENCRYPTION_KEY if set (recommended for separation of concerns),
+ * otherwise falls back to JWT_SECRET for backward compatibility.
+ *
  * @returns {Buffer} 32-byte key
  */
 function _getKey() {
   if (_derivedKey) return _derivedKey;
 
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    throw new Error('JWT_SECRET is not set — cannot derive encryption key');
+  // Prefer dedicated encryption key over JWT_SECRET for defense in depth:
+  // compromising JWT_SECRET alone won't decrypt stored credentials.
+  const keySource = process.env.CREDENTIAL_ENCRYPTION_KEY || process.env.JWT_SECRET;
+  if (!keySource) {
+    throw new Error('Neither CREDENTIAL_ENCRYPTION_KEY nor JWT_SECRET is set — cannot derive encryption key');
   }
 
   _derivedKey = crypto.pbkdf2Sync(
-    jwtSecret,
+    keySource,
     FIXED_SALT,
     PBKDF2_ITERATIONS,
     KEY_LENGTH,
