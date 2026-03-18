@@ -33,6 +33,9 @@ const {
 // ─── Constants ─────────────────────────────────────────
 const AGENT_VERSION = '1.0.0';
 
+// Allowed inbound message types from Cloud
+const ALLOWED_MESSAGE_TYPES = new Set(['auth_ok', 'auth_error', 'pong', 'command', 'config_sync']);
+
 // Whitelisted fields for config_sync with per-field validation ranges
 const CONFIG_SYNC_FIELDS = {
   pushIntervalMs: { min: 5000, max: 60000 },
@@ -102,6 +105,7 @@ function stopCloudAgent() {
   for (const [serverId, conn] of connections) {
     conn.intentionalClose = true;
     if (conn.pingTimer) clearInterval(conn.pingTimer);
+    if (conn.staleCheckTimer) clearInterval(conn.staleCheckTimer);
     if (conn.reconnectTimer) clearTimeout(conn.reconnectTimer);
     if (conn.ws && conn.ws.readyState === WebSocket.OPEN) {
       conn.ws.close(1000, 'Agent shutdown');
@@ -138,11 +142,14 @@ function connectServer(srv) {
     cloudServerId: null,
     authenticated: false,
     pingTimer: null,
+    staleCheckTimer: null,
     reconnectTimer: null,
     reconnectDelay: RECONNECT_INITIAL_MS,
     lastPing: null,
+    lastPong: null,
     intentionalClose: false,
     authFailures: 0,
+    authFailureFirstAt: null, // timestamp of first auth failure (for time-based reset)
     commandTimestamps: [], // for rate limiting
   };
   connections.set(srv.id, conn);
@@ -160,6 +167,7 @@ function disconnectServer(serverId) {
 
   conn.intentionalClose = true;
   if (conn.pingTimer) clearInterval(conn.pingTimer);
+  if (conn.staleCheckTimer) clearInterval(conn.staleCheckTimer);
   if (conn.reconnectTimer) clearTimeout(conn.reconnectTimer);
   if (conn.ws && conn.ws.readyState === WebSocket.OPEN) {
     conn.ws.close(1000, 'Disconnected by user');
@@ -366,6 +374,9 @@ function _connect(srv, conn) {
   }, AUTH_TIMEOUT_MS);
 
   conn.ws.on('open', () => {
+    // Guard against race condition where ws closes before open fires
+    if (conn.ws?.readyState !== WebSocket.OPEN) return;
+
     logger.debug({ serverId: srv.id }, 'Cloud WebSocket connected — sending auth');
 
     // Send auth message matching Citadel Cloud's expected format
@@ -396,6 +407,12 @@ function _connect(srv, conn) {
       return;
     }
 
+    // Validate message type against allowlist
+    if (!msg.type || !ALLOWED_MESSAGE_TYPES.has(msg.type)) {
+      logger.debug({ serverId: srv.id, type: msg.type }, 'Cloud: rejected unknown message type');
+      return;
+    }
+
     switch (msg.type) {
       case 'auth_ok':
         clearTimeout(authTimeout);
@@ -405,33 +422,59 @@ function _connect(srv, conn) {
         logger.info({ serverId: srv.id, cloudServerId: msg.server_id }, 'Cloud Agent authenticated');
         addLog(srv.id, 'info', 'cloud', `Connected to Citadel Cloud (server: ${msg.server_id})`);
 
+        // Reset auth failure tracking on success
+        conn.authFailures = 0;
+        conn.authFailureFirstAt = null;
+
         // Start ping keepalive
+        conn.lastPong = Date.now();
         conn.pingTimer = setInterval(() => {
           if (conn.ws?.readyState === WebSocket.OPEN) {
             conn.ws.send(JSON.stringify({ type: 'ping' }));
             conn.lastPing = new Date();
           }
         }, config.pingIntervalMs || 30000);
+
+        // Start stale connection detection
+        conn.staleCheckTimer = setInterval(() => {
+          if (!conn.authenticated || !conn.ws) return;
+          const sincePong = Date.now() - (conn.lastPong || 0);
+          if (sincePong > STALE_THRESHOLD_MS) {
+            logger.warn({ serverId: srv.id, sincePongMs: sincePong }, 'Cloud connection stale — no pong received, reconnecting');
+            addLog(srv.id, 'warn', 'cloud', `Cloud connection stale (no pong for ${Math.round(sincePong / 1000)}s) — reconnecting`);
+            conn.ws.close(4002, 'Stale connection');
+          }
+        }, 30000);
         break;
 
-      case 'auth_error':
+      case 'auth_error': {
         clearTimeout(authTimeout);
+        const now = Date.now();
+
+        // Time-based reset: clear auth failures after 1 hour
+        if (conn.authFailureFirstAt && (now - conn.authFailureFirstAt) > 3600_000) {
+          conn.authFailures = 0;
+          conn.authFailureFirstAt = null;
+        }
+
+        if (!conn.authFailureFirstAt) conn.authFailureFirstAt = now;
         conn.authFailures++;
+
         logger.error({ serverId: srv.id, error: msg.message, failures: conn.authFailures }, 'Cloud auth failed — check API key');
         addLog(srv.id, 'error', 'cloud', `Cloud auth failed: ${msg.message || 'Invalid API key'} (attempt ${conn.authFailures}/${MAX_AUTH_FAILURES})`);
 
         if (conn.authFailures >= MAX_AUTH_FAILURES) {
-          // Stop reconnecting after repeated auth failures — requires manual reconnect
-          conn.intentionalClose = true;
-          logger.error({ serverId: srv.id }, 'Cloud auth failed too many times — stopping reconnection. Use manual reconnect.');
-          addLog(srv.id, 'error', 'cloud', 'Cloud connection disabled after repeated auth failures. Check API key and reconnect manually.');
+          // Back off with extended delay instead of permanent disable
+          conn.reconnectDelay = RECONNECT_MAX_MS * 4; // ~2 min backoff
+          logger.error({ serverId: srv.id }, `Cloud auth failed ${MAX_AUTH_FAILURES} times — backing off for ${conn.reconnectDelay / 1000}s before retrying`);
+          addLog(srv.id, 'error', 'cloud', `Cloud auth failed ${MAX_AUTH_FAILURES} times. Will retry in ${conn.reconnectDelay / 1000}s. Check API key.`);
         }
-        // Allow reconnection for transient auth failures (intentionalClose stays false)
         if (conn.ws?.readyState === WebSocket.OPEN) conn.ws.close(4003, 'Auth failed');
         break;
+      }
 
       case 'pong':
-        // Keepalive response — nothing to do
+        conn.lastPong = Date.now();
         break;
 
       case 'command':
@@ -442,8 +485,6 @@ function _connect(srv, conn) {
         _handleConfigSync(srv, msg);
         break;
 
-      default:
-        logger.debug({ serverId: srv.id, type: msg.type }, 'Cloud: unknown message type');
     }
   });
 
@@ -451,6 +492,7 @@ function _connect(srv, conn) {
     clearTimeout(authTimeout);
     conn.authenticated = false;
     if (conn.pingTimer) { clearInterval(conn.pingTimer); conn.pingTimer = null; }
+    if (conn.staleCheckTimer) { clearInterval(conn.staleCheckTimer); conn.staleCheckTimer = null; }
 
     const reasonStr = reason?.toString() || '';
     logger.info({ serverId: srv.id, code, reason: reasonStr }, 'Cloud WebSocket closed');
