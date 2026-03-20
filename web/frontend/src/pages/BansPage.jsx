@@ -5,12 +5,117 @@ import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
 import { ShieldBan, Plus, Search, Download, Upload, Copy, Check, Trash2 } from '../components/Icon';
 
+// ─── Ban File Parsers ────────────────────────────────────
+
+const STEAM_ID_RE = /^7656\d{13,}$/;
+
+const STEAM_ID_HEADERS = ['steamid', 'steam_id', 'steamid64', 'identifier', 'steam', 'guid', 'id'];
+const NAME_HEADERS = ['playername', 'player_name', 'name', 'player', 'username'];
+const REASON_HEADERS = ['reason', 'ban_reason', 'banreason', 'note', 'notes'];
+
+/** Parse a CSV row respecting quoted fields */
+function parseCSVRow(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuotes = !inQuotes; continue; }
+    if (ch === ',' && !inQuotes) { fields.push(current.trim()); current = ''; continue; }
+    current += ch;
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+/** Find the index of a column by checking against known header names */
+function findColumn(headers, candidates) {
+  const lower = headers.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  for (const candidate of candidates) {
+    const idx = lower.indexOf(candidate.replace(/[^a-z0-9]/g, ''));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+/**
+ * Parse a ban file into a standard array of { steamId, playerName, reason }.
+ * Supports JSON, CSV, and TXT (plain Steam ID list).
+ */
+function parseBanFile(text, filename) {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+
+  // ─── JSON ─────────────────────────────────────────────
+  if (ext === 'json') {
+    const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error('JSON file must contain an array');
+    return { format: 'JSON', entries: data.filter(e => e.steamId) };
+  }
+
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) throw new Error('File is empty');
+
+  // ─── CSV ──────────────────────────────────────────────
+  if (ext === 'csv') {
+    const headers = parseCSVRow(lines[0]);
+    const steamCol = findColumn(headers, STEAM_ID_HEADERS);
+    if (steamCol < 0) {
+      // Fallback: check if first column values look like Steam IDs
+      if (lines.length > 1 && STEAM_ID_RE.test(parseCSVRow(lines[1])[0])) {
+        // No header match but first col is Steam IDs — treat col 0 as steamId
+        const entries = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCSVRow(lines[i]);
+          const steamId = cols[0]?.trim();
+          if (steamId && STEAM_ID_RE.test(steamId)) {
+            entries.push({ steamId, playerName: cols[1]?.trim() || 'Unknown', reason: cols[2]?.trim() || 'Imported' });
+          }
+        }
+        return { format: 'CSV', entries };
+      }
+      throw new Error('Could not find a Steam ID column in CSV headers');
+    }
+    const nameCol = findColumn(headers, NAME_HEADERS);
+    const reasonCol = findColumn(headers, REASON_HEADERS);
+    const entries = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCSVRow(lines[i]);
+      const steamId = cols[steamCol]?.trim();
+      if (!steamId || !STEAM_ID_RE.test(steamId)) continue;
+      entries.push({
+        steamId,
+        playerName: (nameCol >= 0 ? cols[nameCol]?.trim() : '') || 'Unknown',
+        reason: (reasonCol >= 0 ? cols[reasonCol]?.trim() : '') || 'Imported',
+      });
+    }
+    return { format: 'CSV', entries };
+  }
+
+  // ─── TXT (Steam ID list) ─────────────────────────────
+  const steamIds = lines.filter(l => STEAM_ID_RE.test(l));
+  if (steamIds.length > 0) {
+    return {
+      format: 'TXT',
+      entries: steamIds.map(id => ({ steamId: id, playerName: 'Unknown', reason: 'Imported' })),
+    };
+  }
+
+  // ─── Fallback: try JSON parse ─────────────────────────
+  try {
+    const data = JSON.parse(text);
+    if (Array.isArray(data)) return { format: 'JSON', entries: data.filter(e => e.steamId) };
+  } catch { /* not JSON */ }
+
+  throw new Error('Could not detect file format. Supported: JSON, CSV, or TXT (one Steam ID per line)');
+}
+
 export default function BansPage() {
   const [bans, setBans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importPreview, setImportPreview] = useState(null); // { filename, format, entries, newCount, dupeCount }
   const [copiedId, setCopiedId] = useState(null);
   const fileRef = useRef(null);
   const { confirm, DialogComponent } = useConfirmDialog();
@@ -89,26 +194,40 @@ export default function BansPage() {
     }
   };
 
-  // ─── Import bans ──────────────────────────────────────
-  const handleImport = async (e) => {
+  // ─── Import bans (multi-format: JSON, CSV, TXT) ──────
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImporting(true);
     try {
       const text = await file.text();
-      const arr = JSON.parse(text);
-      if (!Array.isArray(arr)) throw new Error('File must contain a JSON array');
-      const result = await API.post('/api/bans/import', arr);
+      const { format, entries } = parseBanFile(text, file.name);
+      if (entries.length === 0) { window.addToast?.('No valid Steam IDs found in file', 'error'); return; }
+      // Count duplicates against existing bans
+      const existingIds = new Set(bans.map(b => b.steamId));
+      const newCount = entries.filter(e => !existingIds.has(e.steamId)).length;
+      const dupeCount = entries.length - newCount;
+      setImportPreview({ filename: file.name, format, entries, newCount, dupeCount });
+    } catch (err) {
+      window.addToast?.(err.message || 'Failed to read file', 'error');
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const executeImport = async () => {
+    if (!importPreview) return;
+    setImporting(true);
+    try {
+      const result = await API.post('/api/bans/import', importPreview.entries);
       if (result.error) { window.addToast?.(result.error, 'error'); return; }
-      // Reload the full list
       const refreshed = await API.get('/api/bans');
       setBans(Array.isArray(refreshed) ? refreshed : []);
       window.addToast?.(`Import complete: ${result.added} added, ${result.skipped} skipped, ${result.errors} errors`, 'success');
+      setImportPreview(null);
     } catch (err) {
       window.addToast?.(err.message || 'Import failed', 'error');
     } finally {
       setImporting(false);
-      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
@@ -135,10 +254,10 @@ export default function BansPage() {
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={bans.length === 0} title="Export bans as JSON">
             <Download size={14} /> Export
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()} disabled={importing} title="Import bans from JSON file">
+          <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()} disabled={importing} title="Import bans from JSON, CSV, or TXT file">
             <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
           </button>
-          <input ref={fileRef} type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+          <input ref={fileRef} type="file" accept=".json,.csv,.txt" onChange={handleFileSelect} style={{ display: 'none' }} />
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
             <Plus size={14} /> Add Ban
           </button>
@@ -219,6 +338,49 @@ export default function BansPage() {
       {/* ─── Add Ban Modal ─────────────────────────────────── */}
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Ban">
         <AddBanForm onSubmit={handleAdd} onCancel={() => setShowAdd(false)} />
+      </Modal>
+
+      {/* ─── Import Preview Modal ──────────────────────────── */}
+      <Modal open={!!importPreview} onClose={() => setImportPreview(null)} title="Import Bans">
+        {importPreview && (
+          <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>File</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{importPreview.filename}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Format</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{importPreview.format}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Total entries</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{importPreview.entries.length}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>New bans</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{importPreview.newCount}</span>
+              </div>
+              {importPreview.dupeCount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Already banned (will skip)</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{importPreview.dupeCount}</span>
+                </div>
+              )}
+            </div>
+            {importPreview.newCount === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 16 }}>
+                All entries in this file are already in your ban database.
+              </p>
+            ) : null}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setImportPreview(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={executeImport} disabled={importing || importPreview.newCount === 0}>
+                {importing ? 'Importing...' : `Import ${importPreview.newCount} Ban${importPreview.newCount !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {DialogComponent}
