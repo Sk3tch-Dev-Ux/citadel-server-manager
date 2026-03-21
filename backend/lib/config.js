@@ -151,13 +151,6 @@ CONFIG.bans = {
   appealUrl: structured.bans.appealUrl,
 };
 
-// VIP Store / Stripe configuration — live reference to structured config
-// so that runtime updates (via store config API) are immediately reflected.
-CONFIG.store = structured.store;
-
-// License purchase URL (Stripe Payment Link or custom checkout page)
-CONFIG.purchaseUrl = process.env.PURCHASE_URL || 'https://citadel.cc/purchase';
-
 // Allowed CORS origins — structured config, with env override already applied
 CONFIG.allowedOrigins = structured.server.allowedOrigins;
 

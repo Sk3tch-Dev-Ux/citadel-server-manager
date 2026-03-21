@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dabs Framework Safe Zones",
+  "type": "object",
+  "properties": {
+    "Enabled": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the safe zone system"
+    },
+    "ShowNotifications": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Show enter/exit notifications"
+    },
+    "DisableDamage": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Disable all damage in safe zones"
+    },
+    "DisableShooting": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Prevent firing weapons in safe zones"
+    },
+    "DisableVehicleDamage": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Prevent vehicle damage in safe zones"
+    },
+    "Zones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "Zone display name"
+          },
+          "X": {
+            "type": "number",
+            "description": "Zone center X coordinate"
+          },
+          "Z": {
+            "type": "number",
+            "description": "Zone center Z coordinate"
+          },
+          "Radius": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 100,
+            "description": "Zone radius in meters"
+          },
+          "ShowBorder": {
+            "type": "integer",
+            "enum": [0, 1],
+            "default": 1,
+            "description": "Show zone border markers"
+          }
+        }
+      },
+      "description": "Safe zone definitions with positions and radii"
+    }
+  }
+}

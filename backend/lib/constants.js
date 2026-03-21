@@ -83,24 +83,6 @@ module.exports = {
   /** Cooldown between health alerts per server (ms) — 5 minutes */
   HEALTH_ALERT_COOLDOWN_MS: 5 * 60 * 1000,
 
-  // ─── Cloud Agent ──────────────────────────────────────
-  /** Auth handshake timeout after WebSocket connect (ms) */
-  CLOUD_AUTH_TIMEOUT_MS: 10_000,
-  /** Initial reconnect delay (ms), doubles on each retry */
-  CLOUD_RECONNECT_INITIAL_MS: 1_000,
-  /** Maximum reconnect delay (ms) */
-  CLOUD_RECONNECT_MAX_MS: 30_000,
-  /** Connection considered stale if no ping response in this window (ms) */
-  CLOUD_STALE_THRESHOLD_MS: 90_000,
-  /** Maximum inbound message size (bytes) */
-  CLOUD_MAX_MESSAGE_SIZE: 64 * 1024,
-  /** Max consecutive auth failures before giving up */
-  CLOUD_MAX_AUTH_FAILURES: 3,
-  /** Max commands per server per rate window */
-  CLOUD_COMMAND_RATE_LIMIT: 10,
-  /** Rate limiting window (ms) */
-  CLOUD_COMMAND_RATE_WINDOW_MS: 60_000,
-
   // ─── Data Store ───────────────────────────────────────
   /** Debounce interval for JSON file writes (ms) */
   DATA_STORE_DEBOUNCE_MS: 1_000,

@@ -1,0 +1,12 @@
+{
+  "modName": "Banking",
+  "description": "In-game banking system with ATMs, transfers, and interest.",
+  "workshopId": "2569522069",
+  "configFiles": [
+    {
+      "fileName": "Banking/BankingConfig.json",
+      "displayName": "Banking Config",
+      "description": "Core banking settings — interest rates, max balance, ATM locations"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "modName": "TraderPlus",
+  "description": "Comprehensive trader system with vehicle trading, banking, stock management, and garage.",
+  "workshopId": "2458896948",
+  "configFiles": [
+    {
+      "fileName": "TraderPlusConfig/TraderPlusGeneralConfig.json",
+      "displayName": "General Config",
+      "description": "Core TraderPlus settings — currency, stock behavior, safe zones",
+      "schemaFile": "TraderPlusGeneralConfig.schema.json"
+    },
+    {
+      "fileName": "TraderPlusConfig/TraderPlusBankConfig.json",
+      "displayName": "Bank Config",
+      "description": "Banking settings — interest, max balance, ATM locations"
+    },
+    {
+      "fileName": "TraderPlusConfig/TraderPlusGarageConfig.json",
+      "displayName": "Garage Config",
+      "description": "Vehicle garage settings — storage limits, pricing"
+    },
+    {
+      "fileName": "TraderPlusConfig/TraderPlusVehicleConfig.json",
+      "displayName": "Vehicle Trading Config",
+      "description": "Vehicle trading settings — which vehicles can be traded and pricing"
+    },
+    {
+      "fileName": "TraderPlusConfig/TraderPlusIDsConfig.json",
+      "displayName": "Item IDs Config",
+      "description": "Item class name definitions and categories for the trader"
+    }
+  ]
+}

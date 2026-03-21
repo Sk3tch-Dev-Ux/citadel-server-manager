@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TraderPlus General Config",
+  "type": "object",
+  "properties": {
+    "EnableStock": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable stock management for traders"
+    },
+    "EnableAutoCalculation": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Auto-calculate prices based on stock"
+    },
+    "EnableAutoDestockAtRestart": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Reset stock levels on server restart"
+    },
+    "MaxStockItems": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": 1000,
+      "description": "Maximum number of items in trader stock"
+    },
+    "EnableCurrencyTransfer": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Allow players to transfer currency to each other"
+    },
+    "CurrencyName": {
+      "type": "string",
+      "default": "Rubles",
+      "description": "Name of the in-game currency"
+    },
+    "MaxCurrencyValue": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1000000,
+      "description": "Maximum currency a player can hold"
+    },
+    "EnableSafeZone": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable safe zones around traders"
+    },
+    "SafeZoneRadius": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 150,
+      "description": "Radius of trader safe zones (meters)"
+    },
+    "EnableSafeZoneNotification": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Show notification when entering/leaving safe zone"
+    },
+    "EnableShowBuySellNotification": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Show buy/sell confirmation notifications"
+    },
+    "EnableShowTraderName": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Show trader NPC names"
+    },
+    "EnableTraderDiscountWithReputation": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Enable reputation-based pricing discounts"
+    },
+    "RestockTimeInMinutes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1440,
+      "default": 30,
+      "description": "Time between stock restocks (minutes, 0 = disabled)"
+    }
+  }
+}

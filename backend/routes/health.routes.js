@@ -17,8 +17,6 @@ const path = require('path');
 const { exec } = require('child_process');
 const ctx = require('../lib/context');
 const logger = require('../lib/logger');
-const { isLicensed } = require('../lib/license');
-
 /**
  * Application version (from package.json)
  */
@@ -48,7 +46,6 @@ module.exports = function (app) {
    * GET /api/health — Comprehensive health diagnostics
    *
    * Performs health checks across all critical subsystems:
-   *   - License status
    *   - Configured servers (online/offline count)
    *   - Disk space (free/used/total)
    *   - RCON connectivity
@@ -71,7 +68,6 @@ module.exports = function (app) {
 
       // ─── Run all checks in parallel (non-blocking) ──────────────
       const [
-        licenseCheck,
         serversCheck,
         diskCheck,
         rconCheck,
@@ -80,7 +76,6 @@ module.exports = function (app) {
         steamcmdCheck,
         memoryCheck,
       ] = await Promise.all([
-        performLicenseCheck(),
         performServersCheck(),
         performDiskCheck(),
         performRconCheck(),
@@ -92,7 +87,6 @@ module.exports = function (app) {
 
       // ─── Aggregate status from all checks ───────────────────────
       const checks = {
-        license: licenseCheck,
         servers: serversCheck,
         disk: diskCheck,
         rcon: rconCheck,
@@ -127,29 +121,6 @@ module.exports = function (app) {
     }
   });
 };
-
-/**
- * Check license status (pass/fail)
- */
-async function performLicenseCheck() {
-  try {
-    const licensed = isLicensed();
-    return {
-      status: licensed ? 'pass' : 'fail',
-      licensed,
-      message: licensed
-        ? 'Valid license active'
-        : 'Running unlicensed — upgrade at citadel.cc',
-    };
-  } catch (err) {
-    logger.debug({ err }, 'License check error');
-    return {
-      status: 'fail',
-      licensed: false,
-      message: 'License check failed',
-    };
-  }
-}
 
 /**
  * Check server online/offline status

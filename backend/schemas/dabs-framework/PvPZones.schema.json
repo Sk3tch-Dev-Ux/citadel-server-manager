@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dabs Framework PvP Zones",
+  "type": "object",
+  "properties": {
+    "Enabled": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the PvP zone system"
+    },
+    "ShowNotifications": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Show enter/exit notifications"
+    },
+    "DefaultPvPState": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Default PvP state outside zones (0=PvE, 1=PvP)"
+    },
+    "Zones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "Zone display name"
+          },
+          "X": {
+            "type": "number",
+            "description": "Zone center X coordinate"
+          },
+          "Z": {
+            "type": "number",
+            "description": "Zone center Z coordinate"
+          },
+          "Radius": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 500,
+            "description": "Zone radius in meters"
+          },
+          "IsPvP": {
+            "type": "integer",
+            "enum": [0, 1],
+            "default": 1,
+            "description": "Is this a PvP zone (1) or PvE zone (0)"
+          },
+          "ShowBorder": {
+            "type": "integer",
+            "enum": [0, 1],
+            "default": 1,
+            "description": "Show zone border markers"
+          }
+        }
+      },
+      "description": "PvP/PvE zone definitions"
+    }
+  }
+}

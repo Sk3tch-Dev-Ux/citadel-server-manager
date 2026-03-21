@@ -1037,27 +1037,6 @@ export default function SetupWizardPage() {
               )}
 
               {/* Tier comparison */}
-              <div style={{
-                padding: 14, borderRadius: 10, fontSize: 12, lineHeight: 1.6,
-                background: 'var(--bg-card)', border: '1px solid var(--border)',
-              }}>
-                <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 13 }}>Plan Comparison</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', color: 'var(--text-muted)' }}>
-                  <div><span style={{ color: 'var(--text-muted)' }}>Free</span> — 1 server</div>
-                  <div><span style={{ color: 'var(--accent-blue)' }}>Basic</span> — 2 servers</div>
-                  <div><span style={{ color: 'var(--accent-purple, #a78bfa)' }}>Pro</span> — 5 servers</div>
-                  <div><span style={{ color: 'var(--accent-green)' }}>Community</span> — Unlimited</div>
-                </div>
-                <a
-                  href="https://citadels.cc/pricing"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, color: 'var(--accent-blue)', fontSize: 12, textDecoration: 'none' }}
-                >
-                  View full pricing <ExternalLink size={11} />
-                </a>
-              </div>
-
               <div className="btn-group" style={{ marginTop: 16 }}>
                 <button className="btn btn-secondary" onClick={goBack}>
                   <ArrowLeft size={14} /> Back

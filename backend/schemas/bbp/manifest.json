@@ -1,0 +1,12 @@
+{
+  "modName": "Base Building Plus",
+  "description": "Enhanced base building with additional building parts, fortifications, and tools.",
+  "workshopId": "1710977250",
+  "configFiles": [
+    {
+      "fileName": "BaseBuildingPlus/BBPConfig.json",
+      "displayName": "BBP Config",
+      "description": "Base building settings — build limits, damage multipliers, raid configuration"
+    }
+  ]
+}

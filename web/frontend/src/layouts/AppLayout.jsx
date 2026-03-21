@@ -7,7 +7,7 @@ import API from '../api';
 import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, KeyRound, Monitor, Gauge, Settings, Menu, X, Crown, ShoppingCart, Globe } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown } from '../components/Icon';
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -33,10 +33,7 @@ export default function AppLayout() {
     : location.pathname === '/users' ? 'Users & Roles'
     : location.pathname === '/webhooks' ? 'Webhooks'
     : location.pathname === '/priority-queue' ? 'Priority Queue'
-    : location.pathname === '/store-management' ? 'VIP Store'
     : location.pathname === '/settings' ? 'Settings'
-    : location.pathname === '/license' ? 'License'
-    : location.pathname === '/cloud' ? 'Citadel Cloud'
     : location.pathname === '/dashboard' ? 'Dashboard'
     : 'Server Hub';
 
@@ -97,22 +94,9 @@ export default function AppLayout() {
           <Link to="/priority-queue" className={`nav-item ${location.pathname === '/priority-queue' ? 'active' : ''}`}>
             <span className="nav-icon"><Crown size={16} /></span>Priority Queue
           </Link>
-          <Link to="/store-management" className={`nav-item ${location.pathname === '/store-management' ? 'active' : ''}`}>
-            <span className="nav-icon"><ShoppingCart size={16} /></span>VIP Store
-          </Link>
           {user.role === 'admin' && (
             <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
               <span className="nav-icon"><Settings size={16} /></span>Settings
-            </Link>
-          )}
-          {user.role === 'admin' && (
-            <Link to="/license" className={`nav-item ${location.pathname === '/license' ? 'active' : ''}`}>
-              <span className="nav-icon"><KeyRound size={16} /></span>License
-            </Link>
-          )}
-          {user.role === 'admin' && (
-            <Link to="/cloud" className={`nav-item ${location.pathname === '/cloud' ? 'active' : ''}`}>
-              <span className="nav-icon"><Globe size={16} /></span>Citadel Cloud
             </Link>
           )}
 
@@ -197,32 +181,57 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
-  const navItems = [
+  const serverItems = [
     { id: 'overview', icon: <LayoutDashboard size={16} />, label: 'Overview' },
     { id: 'metrics', icon: <BarChart3 size={16} />, label: 'Metrics' },
     { id: 'console', icon: <Terminal size={16} />, label: 'Console' },
     { id: 'players', icon: <Users size={16} />, label: 'Players' },
-    { id: 'mods', icon: <Package size={16} />, label: 'Mods' },
-    { id: 'files', icon: <FolderOpen size={16} />, label: 'Files' },
-    { id: 'config', icon: <Settings size={16} />, label: 'Configuration' },
-    { id: 'types', icon: <FileCode size={16} />, label: 'Types Editor' },
     { id: 'logs', icon: <FileText size={16} />, label: 'Logs' },
     { id: 'bans', icon: <ShieldBan size={16} />, label: 'Bans' },
+  ];
+
+  const economyItems = [
+    { id: 'economy', icon: <BarChart3 size={16} />, label: 'Economy Hub' },
+    { id: 'types', icon: <FileCode size={16} />, label: 'Types' },
+    { id: 'events', icon: <Zap size={16} />, label: 'Events' },
+    { id: 'globals', icon: <Globe size={16} />, label: 'Globals' },
+    { id: 'spawnabletypes', icon: <Layers size={16} />, label: 'Spawnable Types' },
+    { id: 'spawnpoints', icon: <MapPin size={16} />, label: 'Spawn Points' },
+    { id: 'limits', icon: <Filter size={16} />, label: 'Limits Def' },
+  ];
+
+  const modConfigItems = [
+    { id: 'mod-configs', icon: <Puzzle size={16} />, label: 'Mod Configs' },
+  ];
+
+  const configItems = [
+    { id: 'config', icon: <Settings size={16} />, label: 'serverDZ.cfg' },
+    { id: 'files', icon: <FolderOpen size={16} />, label: 'Files' },
+    { id: 'mods', icon: <Package size={16} />, label: 'Mods' },
     { id: 'settings', icon: <Wrench size={16} />, label: 'Settings' },
     { id: 'dangerzone', icon: <AlertTriangle size={16} />, label: 'Dangerzone' },
   ];
 
+  const renderNavGroup = (items) => items.map(item => (
+    <Link key={item.id} to={`/servers/${serverId}/${item.id}`} className={`nav-item ${activeTab === item.id ? 'active' : ''}`}>
+      <span className="nav-icon">{item.icon}</span>{item.label}
+    </Link>
+  ));
+
   return (
     <div role="navigation" aria-label={`${serverName || 'Server'} navigation`}>
       <div className="nav-divider" />
-      {navItems.map(item => (
-        <Link key={item.id} to={`/servers/${serverId}/${item.id}`} className={`nav-item ${activeTab === item.id ? 'active' : ''}`}>
-          <span className="nav-icon">{item.icon}</span>{item.label}
-        </Link>
-      ))}
+      <div className="nav-section" style={{ fontSize: 10, marginTop: 4 }}>Server</div>
+      {renderNavGroup(serverItems)}
+      <div className="nav-section" style={{ fontSize: 10, marginTop: 8 }}>Economy Editors</div>
+      {renderNavGroup(economyItems)}
+      <div className="nav-section" style={{ fontSize: 10, marginTop: 8 }}>Mod Configs</div>
+      {renderNavGroup(modConfigItems)}
+      <div className="nav-section" style={{ fontSize: 10, marginTop: 8 }}>Configuration</div>
+      {renderNavGroup(configItems)}
     </div>
   );
 }

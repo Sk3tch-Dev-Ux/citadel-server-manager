@@ -1,0 +1,60 @@
+{
+  "modName": "DayZ Expansion",
+  "description": "The most popular DayZ mod suite — traders, territories, vehicles, AI, hardline, and more.",
+  "workshopId": "2572331007",
+  "configFiles": [
+    {
+      "fileName": "ExpansionMod/Settings/GeneralSettings.json",
+      "displayName": "General Settings",
+      "description": "Core expansion settings — enable/disable modules, map markers, notifications",
+      "schemaFile": "GeneralSettings.schema.json"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/MarketSettings.json",
+      "displayName": "Market Settings",
+      "description": "Market/trader zone positions, ATM locations, trading parameters",
+      "schemaFile": "MarketSettings.schema.json"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/TerritorySettings.json",
+      "displayName": "Territory Settings",
+      "description": "Territory flag rules, build limits, object caps",
+      "schemaFile": "TerritorySettings.schema.json"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/BaseBuilding.json",
+      "displayName": "Base Building",
+      "description": "Base building rules, raiding settings, damage multipliers"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/HardlineSettings.json",
+      "displayName": "Hardline Settings",
+      "description": "Reputation/hardline system — factions, tiers, rewards"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/AISettings.json",
+      "displayName": "AI Settings",
+      "description": "AI patrol configuration, guard settings, loadouts"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/VehicleSettings.json",
+      "displayName": "Vehicle Settings",
+      "description": "Vehicle spawn and behavior settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/NotificationSettings.json",
+      "displayName": "Notification Settings",
+      "description": "In-game notification configuration"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/SpawnSettings.json",
+      "displayName": "Spawn Settings",
+      "description": "Player spawn selection, spawn points, loadouts"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/MapSettings.json",
+      "displayName": "Map Settings",
+      "description": "Map markers, GPS, 3D markers, compass settings"
+    }
+  ]
+}

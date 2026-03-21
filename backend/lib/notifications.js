@@ -80,7 +80,6 @@ const WEBHOOK_EVENTS = {
   'backup.created':       'Backup created',
   'backup.restored':      'Backup restored',
   'scheduler.executed':   'Scheduled task executed',
-  'store.purchased':      'Store purchase completed',
   'player.unban':         'Player unbanned from server',
 };
 
@@ -92,7 +91,7 @@ const NOTIFICATION_ICONS = {
   'server.health': '⚠️', 'player.join': '👋', 'player.leave': '👤', 'player.kick': '🦶',
   'player.ban': '🔨', 'mod.installed': '📦', 'mod.updated': '📦', 'mod.removed': '🗑️',
   'scheduler.task': '📅', 'backup.created': '💾', 'update.available': '🆕', 'rcon.command': '🖥️',
-  'store.purchased': '🛒', 'player.unban': '✅',
+  'player.unban': '✅',
 };
 
 /**
@@ -326,7 +325,7 @@ async function deliverWebhook(wh, eventType, data, attemptNum, maxRetries) {
  * Supports Discord webhook format (embeds + variable substitution) and generic JSON POST.
  * Retries up to `retryCount` times (default 3) on failure if retryEnabled is set.
  * Includes standard HTTP headers, idempotence tokens, event filtering, and delivery TTL cleanup.
- * Also forwards events to Citadel Cloud when connected.
+ *
  */
 async function fireWebhooks(eventType, data) {
   const matching = ctx.webhooks.filter(w => w.enabled && webhookMatchesEvent(w, eventType) && webhookMatchesServer(w, data));
@@ -335,13 +334,6 @@ async function fireWebhooks(eventType, data) {
     await deliverWebhook(wh, eventType, data, 1, maxRetries);
   }
 
-  // Forward event to Citadel Cloud (lazy-loaded to avoid circular dependency)
-  try {
-    const cloudAgent = require('./cloud-agent');
-    if (cloudAgent.isEnabled() && data.serverId) {
-      cloudAgent.pushEvent(data.serverId, eventType, data);
-    }
-  } catch { /* cloud-agent not available */ }
 }
 
 module.exports = { addNotification, loadNotifications, sendDiscordWebhook, fireWebhooks, NOTIFICATION_ICONS, WEBHOOK_EVENTS, isPrivateIP };

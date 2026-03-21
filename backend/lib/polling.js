@@ -415,11 +415,6 @@ function gracefulShutdown(httpServer, signal) {
     stopSidecar(srv.id);
     stopTailing(srv.id);
   }
-  // Stop Cloud Agent connections
-  try {
-    const cloudAgent = require('./cloud-agent');
-    cloudAgent.stopCloudAgent();
-  } catch { /* cloud-agent not loaded */ }
   // Stop Discord bot
   try {
     const botManager = require('./bot-manager');

@@ -49,19 +49,6 @@ const CONFIG_SCHEMA = {
     kickMessage: { type: 'string', default: 'You have been banned. Reason: {reason}. To appeal, visit our Discord.', envKey: 'BAN_KICK_MESSAGE', description: 'Message shown to players when kicked for a ban. Use {reason} for the ban reason and {banId} for the ban ID.' },
     appealUrl: { type: 'string', default: '', envKey: 'BAN_APPEAL_URL', description: 'Discord invite or appeal URL included in ban messages. If set, replaces "our Discord" in the default kick message.' },
   },
-  store: {
-    enabled: { type: 'boolean', default: false, description: 'Enable the public VIP store for player purchases' },
-    stripeSecretKey: { type: 'string', default: '', sensitive: true, envKey: 'STRIPE_SECRET_KEY', description: 'Stripe Secret Key (sk_live_... or sk_test_...)' },
-    stripeWebhookSecret: { type: 'string', default: '', sensitive: true, envKey: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe Webhook Signing Secret (whsec_...)' },
-    storeName: { type: 'string', default: 'VIP Priority Queue', description: 'Store name shown on the checkout page' },
-    currency: { type: 'string', default: 'usd', description: 'Default currency for products (usd, eur, gbp, etc.)' },
-  },
-  cloud: {
-    enabled: { type: 'boolean', default: false, envKey: 'CLOUD_ENABLED', description: 'Enable Citadel Cloud integration for remote dashboard access' },
-    relayUrl: { type: 'string', default: '', envKey: 'CLOUD_RELAY_URL', pattern: /^(wss?:\/\/).+/, description: 'Citadel Cloud WebSocket relay URL (must start with ws:// or wss://)' },
-    pushIntervalMs: { type: 'number', default: 15000, min: 5000, max: 60000, description: 'How often to push metrics to Citadel Cloud (ms)' },
-    pingIntervalMs: { type: 'number', default: 30000, min: 10000, max: 60000, description: 'WebSocket keepalive ping interval (ms)' },
-  },
 };
 
 /**

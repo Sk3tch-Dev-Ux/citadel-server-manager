@@ -14,7 +14,6 @@ const { startSidecar, stopSidecar } = require('../lib/sidecar-manager');
 const { restartServer } = require('../lib/server-lifecycle');
 const { stopTailing } = require('../lib/rpt-tailer');
 const auth = require('../middleware/auth');
-const { checkServerLimit } = require('../middleware/license');
 const { ensureFirewallRules, removeFirewallRules } = require('../lib/firewall-manager');
 
 // Map template names from serverDZ.cfg to our map values
@@ -99,7 +98,7 @@ module.exports = function(app) {
     res.json(result);
   });
 
-  app.post('/api/servers', auth('server.deploy'), checkServerLimit(), async (req, res) => {
+  app.post('/api/servers', auth('server.deploy'), async (req, res) => {
     const { name, installDir, executable, launchParams, ip, gamePort, queryPort, rconPort, rconPassword, maxPlayers, map, gameTitle } = req.body;
     if (!name || !installDir) return res.status(400).json({ error: 'Name and installDir required' });
 

@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Expansion Market Settings",
+  "type": "object",
+  "properties": {
+    "MaxItemsPerRow": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 30,
+      "description": "Maximum items displayed per row in trader menu"
+    },
+    "MaxVehicleDistanceToTrader": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 60,
+      "description": "Maximum distance a vehicle can be from trader to sell it (meters)"
+    },
+    "UseWholeMap": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Allow trading from anywhere on the map (no zone requirement)"
+    },
+    "NetworkBatchSize": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "default": 50,
+      "description": "Number of market items sent per network batch"
+    },
+    "ATMEnabled": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable ATM machines for banking"
+    },
+    "MaxDepositMoney": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 100000,
+      "description": "Maximum amount that can be deposited at once"
+    },
+    "DefaultDepositMoney": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 1000,
+      "description": "Default deposit amount in ATM UI"
+    },
+    "SellPricePercent": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 50,
+      "description": "Default sell price as percentage of buy price"
+    },
+    "MarketMenuCategories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "DisplayName": { "type": "string", "description": "Category display name" },
+          "Icon": { "type": "string", "description": "Category icon name" },
+          "Color": { "type": "string", "description": "Category color (ARGB hex)" },
+          "IsExchange": { "type": "integer", "enum": [0, 1], "description": "Is this an exchange category" }
+        }
+      },
+      "description": "Market menu category definitions"
+    }
+  }
+}

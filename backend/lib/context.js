@@ -14,9 +14,6 @@ module.exports = {
   priorityQueue: [],
   banDatabase: [],
   notifications: [],
-  storeProducts: [],
-  storePurchases: [],
-
   // ─── Runtime State ─────────────────────────────────────
   serverStates: {},
   activeInstalls: {},
@@ -28,6 +25,4 @@ module.exports = {
   CONFIG: null,
   io: null,
 
-  // ─── Cloud Agent (set when cloud.enabled = true) ─────
-  cloudAgent: null,
 };

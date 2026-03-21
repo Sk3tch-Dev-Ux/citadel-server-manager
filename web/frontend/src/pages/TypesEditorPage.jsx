@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import API from '../api';
 import Modal from '../components/ui/Modal';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
-import { Search, Save, Plus, Trash2, RefreshCw, Edit, FileCode, ChevronUp, ChevronDown, Filter, X, Copy } from '../components/Icon';
+import { Search, Save, Plus, Trash2, RefreshCw, Edit, FileCode, ChevronUp, ChevronDown, Filter, X, Copy, Download, Upload } from '../components/Icon';
 import './TypesEditorPage.css';
 
 // ─── Constants ──────────────────────────────────────────────
@@ -197,6 +197,50 @@ export default function TypesEditorPage({ serverId }) {
     setShowDeleteConfirm(null);
   };
 
+  // ─── Import/Export ─────────────────────────────────────
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handleClick = () => setShowExportMenu(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showExportMenu]);
+
+  const handleExport = async (format) => {
+    setShowExportMenu(false);
+    try {
+      const data = await API.get(`/api/servers/${serverId}/types/export?format=${format}`);
+      const content = format === 'json' ? JSON.stringify(data, null, 2) : data;
+      const blob = new Blob([content], { type: format === 'json' ? 'application/json' : 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `types-export.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      window.addToast?.(`Exported as ${format.toUpperCase()}`, 'success');
+    } catch (err) {
+      window.addToast?.('Export failed: ' + (err.message || err), 'error');
+    }
+  };
+
+  const handleImport = async (importItems, targetFile, mode) => {
+    try {
+      const result = await API.post(`/api/servers/${serverId}/types/import`, { items: importItems, targetFile, mode });
+      if (result.error) { window.addToast?.(result.error, 'error'); return false; }
+      window.addToast?.(`Imported ${result.imported} items (${result.added} added, ${result.updated} updated)`, 'success');
+      setShowImportModal(false);
+      await loadData();
+      return true;
+    } catch (err) {
+      window.addToast?.('Import failed: ' + (err.message || err), 'error');
+      return false;
+    }
+  };
+
   // ─── Unique filter values from data ─────────────────────
 
   const uniqueCategories = useMemo(() => [...new Set(items.map(i => i.category).filter(Boolean))].sort(), [items]);
@@ -255,6 +299,20 @@ export default function TypesEditorPage({ serverId }) {
               <Edit size={14} /> Batch Edit ({selectedNames.size})
             </button>
           )}
+          <div className="types-export-wrap" style={{ position: 'relative' }}>
+            <button className="btn btn-sm btn-secondary" onClick={(e) => { e.stopPropagation(); setShowExportMenu(!showExportMenu); }}>
+              <Download size={14} /> Export <ChevronDown size={12} />
+            </button>
+            {showExportMenu && (
+              <div className="types-dropdown-menu">
+                <button onClick={() => handleExport('json')}>Export JSON</button>
+                <button onClick={() => handleExport('csv')}>Export CSV</button>
+              </div>
+            )}
+          </div>
+          <button className="btn btn-sm btn-secondary" onClick={() => setShowImportModal(true)}>
+            <Upload size={14} /> Import
+          </button>
           <button className="btn btn-sm btn-secondary" onClick={loadData}>
             <RefreshCw size={14} /> Reload
           </button>
@@ -404,6 +462,15 @@ export default function TypesEditorPage({ serverId }) {
             window.addToast?.(`Batch updated ${selectedNames.size} items`, 'success');
           }}
           onClose={() => setShowBatchModal(false)}
+        />
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <ImportModal
+          files={files}
+          onImport={handleImport}
+          onClose={() => setShowImportModal(false)}
         />
       )}
 
@@ -769,6 +836,134 @@ function BatchEditModal({ items, limits, onApply, onClose }) {
       <div className="btn-group" style={{ justifyContent: 'flex-end', marginTop: 20 }}>
         <button className="btn btn-sm btn-secondary" onClick={onClose}>Cancel</button>
         <button className="btn btn-sm btn-primary" onClick={handleApply}>Apply Changes</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── CSV Parser ──────────────────────────────────────────────
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.trim());
+    const obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = values[i] || '';
+    });
+    // Convert numeric fields
+    ['nominal', 'lifetime', 'restock', 'min', 'quantmin', 'quantmax', 'cost'].forEach(f => {
+      if (obj[f] !== undefined) obj[f] = parseInt(obj[f], 10) || 0;
+    });
+    // Convert semicolon-joined arrays
+    if (obj.usage) obj.usage = obj.usage.split(';').filter(Boolean);
+    else obj.usage = [];
+    if (obj.value) obj.value = obj.value.split(';').filter(Boolean);
+    else obj.value = [];
+    return obj;
+  });
+}
+
+// ─── Import Modal ────────────────────────────────────────────
+
+function ImportModal({ files, onImport, onClose }) {
+  const [importItems, setImportItems] = useState(null);
+  const [targetFile, setTargetFile] = useState(files[0] || '');
+  const [mode, setMode] = useState('merge');
+  const [importing, setImporting] = useState(false);
+  const [fileName, setFileName] = useState('');
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        let parsed;
+        if (file.name.endsWith('.json')) {
+          parsed = JSON.parse(text);
+          if (!Array.isArray(parsed)) {
+            window.addToast?.('JSON file must contain an array of items', 'error');
+            return;
+          }
+        } else if (file.name.endsWith('.csv')) {
+          parsed = parseCSV(text);
+        } else {
+          window.addToast?.('Unsupported file type. Use .json or .csv', 'error');
+          return;
+        }
+        setImportItems(parsed);
+      } catch (err) {
+        window.addToast?.('Failed to parse file: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSubmit = async () => {
+    if (!importItems || importItems.length === 0) {
+      window.addToast?.('No items to import', 'error');
+      return;
+    }
+    if (!targetFile) {
+      window.addToast?.('Select a target file', 'error');
+      return;
+    }
+    setImporting(true);
+    await onImport(importItems, targetFile, mode);
+    setImporting(false);
+  };
+
+  return (
+    <Modal open onClose={onClose} title="Import Types" className="types-edit-modal">
+      <div className="types-edit-grid">
+        <div className="types-edit-section">
+          <h4>Select File</h4>
+          <input
+            type="file"
+            accept=".json,.csv"
+            onChange={handleFileSelect}
+            className="input"
+            style={{ padding: '6px' }}
+          />
+          {importItems && (
+            <p style={{ marginTop: 8, fontSize: 13, color: 'var(--text-muted)' }}>
+              Found <strong>{importItems.length}</strong> items in <em>{fileName}</em>
+            </p>
+          )}
+        </div>
+
+        <div className="types-edit-section">
+          <h4>Target File</h4>
+          <select className="input" value={targetFile} onChange={e => setTargetFile(e.target.value)}>
+            {files.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+        </div>
+
+        <div className="types-edit-section">
+          <h4>Import Mode</h4>
+          <div className="types-edit-flags">
+            <label className="types-flag-label">
+              <input type="radio" name="importMode" value="merge" checked={mode === 'merge'} onChange={() => setMode('merge')} />
+              Merge (add new items, update existing by name)
+            </label>
+            <label className="types-flag-label">
+              <input type="radio" name="importMode" value="replace" checked={mode === 'replace'} onChange={() => setMode('replace')} />
+              Replace (overwrite entire file with imported items)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="btn-group" style={{ justifyContent: 'flex-end', marginTop: 20 }}>
+        <button className="btn btn-sm btn-secondary" onClick={onClose}>Cancel</button>
+        <button className="btn btn-sm btn-primary" onClick={handleSubmit} disabled={importing || !importItems}>
+          {importing ? 'Importing...' : 'Import'}
+        </button>
       </div>
     </Modal>
   );

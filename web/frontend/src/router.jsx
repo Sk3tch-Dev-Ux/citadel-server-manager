@@ -29,13 +29,16 @@ const ModsPage = lazy(() => import('./pages/ModsPage/ModsPage'));
 const FilesPage = lazy(() => import('./pages/FilesPage'));
 const ConfigPage = lazy(() => import('./pages/ConfigPage'));
 const TypesEditorPage = lazy(() => import('./pages/TypesEditorPage'));
+const EventsEditorPage = lazy(() => import('./pages/EventsEditorPage'));
+const GlobalsEditorPage = lazy(() => import('./pages/GlobalsEditorPage'));
+const SpawnableTypesEditorPage = lazy(() => import('./pages/SpawnableTypesEditorPage'));
+const SpawnPointsEditorPage = lazy(() => import('./pages/SpawnPointsEditorPage'));
+const LimitsEditorPage = lazy(() => import('./pages/LimitsEditorPage'));
+const EconomyHubPage = lazy(() => import('./pages/EconomyHubPage'));
+const ModConfigsPage = lazy(() => import('./pages/ModConfigsPage'));
 const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
-const LicensePage = lazy(() => import('./pages/LicensePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
-const StorePage = lazy(() => import('./pages/StorePage'));
-const StoreManagementPage = lazy(() => import('./pages/StoreManagementPage'));
-const CloudPage = lazy(() => import('./pages/CloudPage'));
 
 function AuthGuard({ children }) {
   const { user } = useAuth();
@@ -119,7 +122,6 @@ export default function AppRouter() {
       <Routes>
         <Route path="/login" element={<SmartLogin />} />
         <Route path="/setup" element={<><SetupWizardPage /><ToastContainer /></>} />
-        <Route path="/store" element={<Lazy><StorePage /><ToastContainer /></Lazy>} />
         <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route index element={<ErrorBoundary><ServerHubPage /></ErrorBoundary>} />
           <Route path="dashboard" element={<ErrorBoundary><SystemDashboardPage /></ErrorBoundary>} />
@@ -128,9 +130,6 @@ export default function AppRouter() {
           <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><Lazy><WebhooksPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><SettingsPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><PriorityQueuePage /></Lazy></ErrorBoundary></PermGuard>} />
-          <Route path="store-management" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><StoreManagementPage /></Lazy></ErrorBoundary></PermGuard>} />
-          <Route path="license" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><LicensePage /></Lazy></ErrorBoundary></PermGuard>} />
-          <Route path="cloud" element={<PermGuard permission="settings.manage"><ErrorBoundary><Lazy><CloudPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ErrorBoundary><ServerPage Component={ServerOverviewPage} /></ErrorBoundary>} />
@@ -140,7 +139,14 @@ export default function AppRouter() {
             <Route path="mods" element={<ErrorBoundary><Lazy><ServerPage Component={ModsPage} /></Lazy></ErrorBoundary>} />
             <Route path="files" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={FilesPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="config" element={<PermGuard permission="config.manage"><ErrorBoundary><Lazy><ServerPage Component={ConfigPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="economy" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={EconomyHubPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="types" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={TypesEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="events" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={EventsEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="globals" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={GlobalsEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="spawnabletypes" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={SpawnableTypesEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="spawnpoints" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={SpawnPointsEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="limits" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={LimitsEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="mod-configs" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={ModConfigsPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
             <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />
             <Route path="settings" element={<PermGuard permission="server.settings"><ErrorBoundary><ServerPage Component={ServerSettingsPage} /></ErrorBoundary></PermGuard>} />

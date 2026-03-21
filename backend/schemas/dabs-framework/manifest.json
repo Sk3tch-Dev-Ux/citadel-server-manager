@@ -1,0 +1,24 @@
+{
+  "modName": "Dabs Framework",
+  "description": "Server framework with PvP zones, safe zones, notifications, and server management tools.",
+  "workshopId": "2545327648",
+  "configFiles": [
+    {
+      "fileName": "DabsFramework/Zones/SafeZones.json",
+      "displayName": "Safe Zones",
+      "description": "Safe zone definitions — position, radius, behavior",
+      "schemaFile": "SafeZones.schema.json"
+    },
+    {
+      "fileName": "DabsFramework/Zones/PvPZones.json",
+      "displayName": "PvP Zones",
+      "description": "PvP zone definitions — position, radius, behavior",
+      "schemaFile": "PvPZones.schema.json"
+    },
+    {
+      "fileName": "DabsFramework/Settings/NotificationSettings.json",
+      "displayName": "Notification Settings",
+      "description": "In-game notification configuration"
+    }
+  ]
+}

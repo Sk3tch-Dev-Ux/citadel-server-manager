@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Expansion General Settings",
+  "type": "object",
+  "properties": {
+    "EnableAirdrop": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the airdrop system"
+    },
+    "EnableBaseBuilding": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the Expansion base building system"
+    },
+    "EnableChat": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable Expansion chat system (global, side, admin)"
+    },
+    "EnableGarageVehicle": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the vehicle garage system"
+    },
+    "EnableHardline": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Enable the reputation/hardline system"
+    },
+    "EnableMarket": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the market/trader system"
+    },
+    "EnableMission": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the AI mission system"
+    },
+    "EnableNavigation": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable GPS and navigation features"
+    },
+    "EnableNotification": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable in-game notifications"
+    },
+    "EnablePersonalStorage": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Enable personal storage system"
+    },
+    "EnableSpawnSelection": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Enable spawn selection screen"
+    },
+    "EnableTerritory": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the territory/flag system"
+    },
+    "EnableVehicle": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable Expansion vehicle features"
+    },
+    "NVGBrightness": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 2.5,
+      "description": "Night vision goggle brightness multiplier"
+    },
+    "DisableMagicCrosshair": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Disable the magic crosshair feature"
+    },
+    "EnableLamps": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable street lamps and environmental lights"
+    },
+    "EnableGenerators": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable generators powering lights and appliances"
+    },
+    "EnableGlobalChat": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable global chat channel"
+    }
+  }
+}

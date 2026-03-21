@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Expansion Hardline Settings",
+  "type": "object",
+  "properties": {
+    "EnableHardline": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable the hardline reputation system"
+    },
+    "UseReputation": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Use reputation for trader pricing tiers"
+    },
+    "UseFactionReputation": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 0,
+      "description": "Enable faction-based reputation"
+    },
+    "ShowHardlineHUD": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Show reputation HUD element"
+    },
+    "ReputationOnKillInfected": {
+      "type": "integer",
+      "minimum": -1000,
+      "maximum": 1000,
+      "default": 1,
+      "description": "Reputation gained/lost per infected kill"
+    },
+    "ReputationOnKillAnimal": {
+      "type": "integer",
+      "minimum": -1000,
+      "maximum": 1000,
+      "default": 1,
+      "description": "Reputation gained/lost per animal kill"
+    },
+    "ReputationOnKillPlayer": {
+      "type": "integer",
+      "minimum": -10000,
+      "maximum": 10000,
+      "default": -100,
+      "description": "Reputation gained/lost per player kill"
+    },
+    "ReputationOnKillFriendly": {
+      "type": "integer",
+      "minimum": -10000,
+      "maximum": 10000,
+      "default": -500,
+      "description": "Reputation gained/lost per friendly player kill"
+    },
+    "ReputationOnKillBandit": {
+      "type": "integer",
+      "minimum": -10000,
+      "maximum": 10000,
+      "default": 50,
+      "description": "Reputation gained/lost per bandit kill"
+    },
+    "ReputationLossOnDeath": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000,
+      "default": 100,
+      "description": "Reputation lost on death"
+    },
+    "DefaultReputation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000,
+      "default": 0,
+      "description": "Starting reputation for new players"
+    },
+    "MaxReputation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000,
+      "default": 100000,
+      "description": "Maximum attainable reputation"
+    },
+    "ReputationTiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "Tier display name"
+          },
+          "Reputation": {
+            "type": "integer",
+            "description": "Minimum reputation for this tier"
+          },
+          "Color": {
+            "type": "string",
+            "description": "HUD color (ARGB hex)"
+          }
+        }
+      },
+      "description": "Reputation tier definitions for trader access and display"
+    }
+  }
+}

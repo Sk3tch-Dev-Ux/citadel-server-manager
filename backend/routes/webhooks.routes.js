@@ -9,7 +9,6 @@ const { validateFields } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
 const { fireWebhooks, WEBHOOK_EVENTS, isPrivateIP } = require('../lib/notifications');
 const auth = require('../middleware/auth');
-const { requireTier, checkWebhookLimit } = require('../middleware/license');
 const logger = require('../lib/logger');
 
 /** Delivery record TTL: 7 days in milliseconds */
@@ -114,13 +113,13 @@ module.exports = function(app) {
     res.json(WEBHOOK_EVENTS);
   });
 
-  app.get('/api/webhooks', auth('webhooks.manage'), requireTier(), (req, res) => {
+  app.get('/api/webhooks', auth('webhooks.manage'), (req, res) => {
     // Prune old delivery records on list access
     pruneAllDeliveries();
     res.json(ctx.webhooks);
   });
 
-  app.post('/api/webhooks', auth('webhooks.manage'), checkWebhookLimit(), async (req, res) => {
+  app.post('/api/webhooks', auth('webhooks.manage'), async (req, res) => {
     const { event, url, template, retryEnabled, retryCount, timeout, headers, events, serverIds } = req.body;
     const error = validateFields(req.body, {
       event: { required: true, type: 'string', minLength: 2 },

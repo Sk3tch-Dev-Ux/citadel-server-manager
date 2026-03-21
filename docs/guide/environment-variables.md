@@ -70,21 +70,6 @@ The sidecar runs alongside your DayZ server and bridges commands to the `@Citade
 | `BAN_KICK_MESSAGE` | No | `You have been banned. Reason: {reason}. To appeal, visit our Discord.` | Message shown to players when kicked for a ban. Supports `{reason}` and `{banId}` placeholders |
 | `BAN_APPEAL_URL` | No | — | Discord invite or appeal URL. If set, replaces "our Discord" in the default kick message |
 
-## Cloud Integration
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `CLOUD_ENABLED` | No | `false` | Enable Citadel Cloud connection |
-| `CLOUD_RELAY_URL` | No | `wss://cloud.citadel.cc` | WebSocket relay URL |
-
-## Store
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `STRIPE_SECRET_KEY` | No | — | Stripe API secret key |
-| `STRIPE_WEBHOOK_SECRET` | No | — | Stripe webhook signing secret |
-| `STORE_ENABLED` | No | `false` | Enable/disable VIP store |
-
 ## Sidecar TLS
 
 | Variable | Required | Default | Description |

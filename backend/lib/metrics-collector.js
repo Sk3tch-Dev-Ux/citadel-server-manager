@@ -22,7 +22,6 @@ const { pushMetrics } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { restartServer } = require('./server-lifecycle');
 const { HEALTH_ALERT_COOLDOWN_MS } = require('./constants');
-const cloudAgent = require('./cloud-agent');
 
 /**
  * Collect metrics for a single running server.
@@ -75,23 +74,6 @@ async function collectMetrics(srv, state, pid) {
     if (vehicles.length > 0) state.vehicles = vehicles;
   } catch (err) {
     logger.debug({ err, serverId: srv.id }, 'Vehicle poll failed');
-  }
-
-  // ─── Push to Citadel Cloud (if enabled) ───────────────
-  if (cloudAgent.isEnabled()) {
-    const mm = state.modMetrics || {};
-    cloudAgent.pushMetrics(srv.id, {
-      fps,
-      playerCount: state.players?.length || 0,
-      aiCount: mm.ai_count || 0,
-      activeAi: mm.active_ai || 0,
-      animalCount: mm.animal_count || 0,
-      vehicleCount: state.vehicles?.length || mm.vehicle_count || 0,
-      entityCount: mm.entity_count || 0,
-      uptime: mm.uptime || 0,
-    });
-    cloudAgent.pushPlayerPositions(srv.id, state.players);
-    if (state.vehicles?.length) cloudAgent.pushVehicles(srv.id, state.vehicles);
   }
 
   // ─── Health monitoring ─────────────────────────────────

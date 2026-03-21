@@ -28,7 +28,6 @@ const logger = require('./lib/logger');
 const CONFIG = require('./lib/config');
 const ctx = require('./lib/context');
 const { loadJSON } = require('./lib/data-store');
-const { activateLicense } = require('./lib/license');
 
 // ─── Service mode detection ─────────────────────────────
 const isServiceMode = process.env.CITADEL_SERVICE_MODE === '1';
@@ -53,8 +52,6 @@ ctx.auditLog = loadJSON(CONFIG.dataDir, 'audit.json', []);
 ctx.watchList = loadJSON(CONFIG.dataDir, 'watchlist.json', []);
 ctx.priorityQueue = loadJSON(CONFIG.dataDir, 'priority_queue.json', []);
 ctx.banDatabase = loadJSON(CONFIG.dataDir, 'bans.json', []);
-ctx.storeProducts = loadJSON(CONFIG.dataDir, 'store_products.json', []);
-ctx.storePurchases = loadJSON(CONFIG.dataDir, 'store_purchases.json', []);
 
 // Load notifications from disk (persisted across restarts)
 const { loadNotifications } = require('./lib/notifications');
@@ -114,13 +111,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,  // Allow image loading
 }));
 app.use(createCors(CONFIG.allowedOrigins));
-app.use(express.json({
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    // Preserve raw body for Stripe webhook signature verification
-    if (req.originalUrl === '/api/store/webhook') req.rawBody = buf;
-  },
-}));
+app.use(express.json({ limit: '10mb' }));
 app.use(secureCookies(useHttps));
 app.use(cookieParser()); // Parse cookies for CSRF middleware
 
@@ -143,14 +134,9 @@ require('./routes/health.routes')(app); // Comprehensive /api/health — no auth
 
 app.use(express.static(WEB_DIST));
 
-// ─── License Activation ──────────────────────────────────
-const license = activateLicense(CONFIG.dataDir);
-ctx.license = license;
-
 // ─── Routes ──────────────────────────────────────────────
 require('./routes/setup.routes')(app);
 require('./routes/auth.routes')(app);
-require('./routes/license.routes')(app);
 require('./routes/servers.routes')(app);
 require('./routes/server-control.routes')(app);
 require('./routes/rcon-players.routes')(app);
@@ -175,15 +161,15 @@ require('./routes/bans.routes')(app);
 require('./routes/actions.routes')(app);
 require('./routes/items.routes')(app);
 require('./routes/types-editor.routes')(app);
+require('./routes/events-editor.routes')(app);
+require('./routes/globals-editor.routes')(app);
+require('./routes/spawnabletypes-editor.routes')(app);
+require('./routes/spawnpoints-editor.routes')(app);
+require('./routes/limits-editor.routes')(app);
+require('./routes/mod-config.routes')(app);
 require('./routes/compat.routes')(app);
-require('./routes/store.routes')(app);
 require('./routes/lb-perks.routes')(app);
 require('./routes/system.routes')(app);
-require('./routes/cloud.routes')(app);
-
-// ─── License status ──────────────────────────────────────
-const { isLicensed } = require('./lib/license');
-if (!isLicensed()) logger.info('Running unlicensed — purchase at citadel.cc for $34.99 to unlock all features');
 
 // ─── WebSocket (authenticated) ───────────────────────────
 io.use((socket, next) => {
@@ -292,17 +278,6 @@ if (process.env.NODE_ENV !== 'test') {
     // Start all polling loops (metrics, mod detection, leaderboard, steam updates, RCON)
     await startAllPolling();
 
-    // Start Cloud Agent (connects to Citadel Cloud if enabled)
-    try {
-      const cloudAgent = require('./lib/cloud-agent');
-      ctx.cloudAgent = cloudAgent;
-      if (cloudAgent.isEnabled()) {
-        cloudAgent.startCloudAgent();
-      }
-    } catch (err) {
-      logger.warn({ err: err.message }, 'Cloud Agent failed to initialize');
-    }
-
     // Priority queue expiration cleanup (every 60s — lightweight array filter)
     setInterval(() => {
       try { require('./lib/priority-engine').cleanExpired(); } catch {}
@@ -315,7 +290,6 @@ if (process.env.NODE_ENV !== 'test') {
 
       const proto = useHttps ? 'https' : 'http';
       const botConfigured = !!process.env.DISCORD_BOT_TOKEN;
-      const cloudEnabled = ctx.cloudAgent?.isEnabled?.() || false;
 
       // Startup banner
       /* eslint-disable no-console */
@@ -325,7 +299,6 @@ if (process.env.NODE_ENV !== 'test') {
       console.log('├───────────────┬─────────────────────────────┤');
       console.log(`│ Dashboard     │ ${(proto + '://localhost:' + CONFIG.port).padEnd(28)}│`);
       console.log(`│ Discord Bot   │ ${(botConfigured ? '✅ Starting' : '❌ Not configured').padEnd(28)}│`);
-      console.log(`│ Cloud Agent   │ ${(cloudEnabled ? '✅ Connected' : '⚪ Disabled').padEnd(28)}│`);
       console.log(`│ Sidecar       │ ${'Managed per-server'.padEnd(28)}│`);
       console.log(`│ Servers       │ ${(ctx.servers.length + ' configured').padEnd(28)}│`);
       console.log('└───────────────┴─────────────────────────────┘');

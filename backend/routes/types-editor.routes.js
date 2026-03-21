@@ -11,11 +11,11 @@
 const fs = require('fs');
 const path = require('path');
 const ctx = require('../lib/context');
-const { readServerConfig } = require('../lib/dayz-config');
 const { safePath } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
 const { authForServer } = require('../middleware/auth');
 const logger = require('../lib/logger');
+const { getMissionDir, createBackup } = require('../lib/mission-folder');
 const {
   parseLimitsDefinition,
   parseUserDefinitions,
@@ -23,47 +23,6 @@ const {
   buildTypesXml,
   parseEconomyCore,
 } = require('../lib/types-xml-parser');
-
-// ─── Mission Folder Detection (shared with items.routes) ────
-
-const TEMPLATE_TO_FOLDER = {
-  'dayzoffline.chernarusplus': 'dayzOffline.chernarusplus',
-  'chernarusplus': 'dayzOffline.chernarusplus',
-  'dayzoffline.enoch': 'dayzOffline.enoch',
-  'enoch': 'dayzOffline.enoch',
-  'deerisle': 'deerisle',
-  'namalsk': 'namalsk',
-  'sakhal': 'sakhal',
-  'takistanplus': 'takistanplus',
-};
-
-function detectMissionFolder(installDir) {
-  const mpDir = path.join(installDir, 'mpmissions');
-  if (!fs.existsSync(mpDir)) return null;
-  const cfg = readServerConfig(installDir);
-  const template = (cfg.template || '').toLowerCase();
-  if (template && TEMPLATE_TO_FOLDER[template]) {
-    const candidate = path.join(mpDir, TEMPLATE_TO_FOLDER[template]);
-    if (fs.existsSync(candidate)) return TEMPLATE_TO_FOLDER[template];
-  }
-  try {
-    const entries = fs.readdirSync(mpDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      if (template && entry.name.toLowerCase().includes(template)) return entry.name;
-    }
-    const dirs = entries.filter(e => e.isDirectory());
-    if (dirs.length > 0) return dirs[0].name;
-  } catch { /* ignore */ }
-  return null;
-}
-
-function getMissionDir(srv) {
-  const missionFolder = detectMissionFolder(srv.installDir);
-  if (!missionFolder) return null;
-  const missionDir = path.join(srv.installDir, 'mpmissions', missionFolder);
-  return fs.existsSync(missionDir) ? missionDir : null;
-}
 
 // ─── Find all types XML files via cfgeconomycore.xml ────────
 
@@ -248,9 +207,7 @@ module.exports = function(app) {
         const finalItems = allItems.map(item => modMap[item.name] || item);
 
         // Create backup
-        const backupDir = path.join(srv.installDir, '.backups');
-        if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-        fs.copyFileSync(fullPath, path.join(backupDir, `${path.basename(relPath)}.${Date.now()}.bak`));
+        createBackup(srv.installDir, fullPath, path.basename(relPath));
 
         // Write new XML
         const newXml = buildTypesXml(finalItems, originalContent, userDefs);
@@ -300,9 +257,7 @@ module.exports = function(app) {
       existing.push(item);
 
       // Backup
-      const backupDir = path.join(srv.installDir, '.backups');
-      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-      fs.copyFileSync(fullPath, path.join(backupDir, `${path.basename(targetFile)}.${Date.now()}.bak`));
+      createBackup(srv.installDir, fullPath, path.basename(targetFile));
 
       const newXml = buildTypesXml(existing, content, userDefs);
       fs.writeFileSync(fullPath, newXml, 'utf8');
@@ -345,9 +300,7 @@ module.exports = function(app) {
       }
 
       // Backup
-      const backupDir = path.join(srv.installDir, '.backups');
-      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-      fs.copyFileSync(fullPath, path.join(backupDir, `${path.basename(sourceFile)}.${Date.now()}.bak`));
+      createBackup(srv.installDir, fullPath, path.basename(sourceFile));
 
       const newXml = buildTypesXml(filtered, content, userDefs);
       fs.writeFileSync(fullPath, newXml, 'utf8');
@@ -358,6 +311,141 @@ module.exports = function(app) {
       res.json({ success: true });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to delete type item');
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Export all items as JSON or CSV
+  app.get('/api/servers/:id/types/export', authForServer('files.edit'), (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const missionDir = getMissionDir(srv);
+    if (!missionDir) return res.status(404).json({ error: 'Mission folder not found' });
+
+    const format = (req.query.format || 'json').toLowerCase();
+    if (format !== 'json' && format !== 'csv') {
+      return res.status(400).json({ error: 'Format must be json or csv' });
+    }
+
+    try {
+      const typesFiles = findAllTypesFiles(missionDir);
+      const { userDefs } = loadLimits(missionDir);
+      const allItems = [];
+
+      for (const relPath of typesFiles) {
+        const fullPath = path.join(missionDir, relPath);
+        try {
+          const content = fs.readFileSync(fullPath, 'utf8');
+          const items = parseTypesXml(content, relPath, userDefs);
+          allItems.push(...items);
+        } catch (err) {
+          logger.warn({ err: err.message, file: relPath }, 'Failed to parse types file during export');
+        }
+      }
+
+      if (format === 'csv') {
+        const csvHeaders = ['name', 'nominal', 'lifetime', 'restock', 'min', 'quantmin', 'quantmax', 'cost', 'category', 'usage', 'value', 'source_file'];
+        const csvLines = [csvHeaders.join(',')];
+        for (const item of allItems) {
+          const row = [
+            item.name || '',
+            item.nominal ?? 0,
+            item.lifetime ?? 0,
+            item.restock ?? 0,
+            item.min ?? 0,
+            item.quantmin ?? -1,
+            item.quantmax ?? -1,
+            item.cost ?? 100,
+            item.category || '',
+            (item.usage || []).join(';'),
+            (item.value || []).join(';'),
+            item.source_file || '',
+          ];
+          csvLines.push(row.join(','));
+        }
+        const csvContent = csvLines.join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="types-export.csv"');
+        return res.send(csvContent);
+      }
+
+      // JSON format
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename="types-export.json"');
+      res.json(allItems);
+    } catch (err) {
+      logger.error({ err, serverId: srv.id }, 'Failed to export types');
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Import items into a target types file
+  app.post('/api/servers/:id/types/import', authForServer('files.edit'), (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const missionDir = getMissionDir(srv);
+    if (!missionDir) return res.status(404).json({ error: 'Mission folder not found' });
+
+    const { items, targetFile, mode } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'No items provided' });
+    }
+    if (!targetFile) {
+      return res.status(400).json({ error: 'Target file is required' });
+    }
+    if (mode !== 'merge' && mode !== 'replace') {
+      return res.status(400).json({ error: 'Mode must be merge or replace' });
+    }
+
+    try {
+      const fullPath = path.join(missionDir, targetFile);
+      const validated = safePath(path.join(srv.installDir, 'mpmissions'), fullPath);
+      if (!validated) return res.status(403).json({ error: 'Access denied' });
+      if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Target file not found' });
+
+      const { userDefs } = loadLimits(missionDir);
+      const originalContent = fs.readFileSync(fullPath, 'utf8');
+      const existingItems = parseTypesXml(originalContent, targetFile, userDefs);
+
+      // Create backup before writing
+      createBackup(srv.installDir, fullPath, path.basename(targetFile));
+
+      let finalItems;
+      let added = 0;
+      let updated = 0;
+
+      if (mode === 'replace') {
+        // Replace entire file contents with imported items
+        finalItems = items.map(item => ({ ...item, source_file: targetFile }));
+        added = finalItems.length;
+      } else {
+        // Merge: update existing by name, add new ones
+        const existingMap = {};
+        for (const item of existingItems) existingMap[item.name] = item;
+
+        for (const importItem of items) {
+          if (existingMap[importItem.name]) {
+            // Update existing item
+            existingMap[importItem.name] = { ...existingMap[importItem.name], ...importItem, source_file: targetFile };
+            updated++;
+          } else {
+            // Add new item
+            existingMap[importItem.name] = { ...importItem, source_file: targetFile };
+            added++;
+          }
+        }
+        finalItems = Object.values(existingMap);
+      }
+
+      const newXml = buildTypesXml(finalItems, originalContent, userDefs);
+      fs.writeFileSync(fullPath, newXml, 'utf8');
+
+      addAudit(req.user.id, req.user.username, 'types.import',
+        `Imported ${items.length} type items (mode: ${mode}) into ${targetFile} on ${srv.name}`);
+
+      res.json({ success: true, imported: items.length, updated, added });
+    } catch (err) {
+      logger.error({ err, serverId: srv.id }, 'Failed to import types');
       res.status(500).json({ error: err.message });
     }
   });

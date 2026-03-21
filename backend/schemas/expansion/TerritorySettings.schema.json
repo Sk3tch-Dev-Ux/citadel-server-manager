@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Expansion Territory Settings",
+  "type": "object",
+  "properties": {
+    "TerritorySize": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 500,
+      "default": 150,
+      "description": "Territory flag radius in meters"
+    },
+    "TerritoryPerPlayer": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 50,
+      "default": 1,
+      "description": "Maximum territories per player (0 = unlimited)"
+    },
+    "TerritoryFollowTerrainNormal": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Place objects following terrain angle"
+    },
+    "AutoDeleteAfterDays": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 365,
+      "default": 40,
+      "description": "Auto-delete territory after days of no refresh (0 = disabled)"
+    },
+    "EnableTerritoryMember": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Allow adding members to territories"
+    },
+    "MaxMembersPerTerritory": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 200,
+      "default": 10,
+      "description": "Maximum members per territory (0 = unlimited)"
+    },
+    "EnableTerritoryPin": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Enable territory PIN codes for access"
+    },
+    "MaxObjectsPerTerritory": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000,
+      "default": 500,
+      "description": "Maximum objects that can be placed in a territory (0 = unlimited)"
+    },
+    "CodelockOnlyOnFences": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Restrict code locks to fences only"
+    },
+    "EnableDeleteTerritory": {
+      "type": "integer",
+      "enum": [0, 1],
+      "default": 1,
+      "description": "Allow territory owners to delete their territory"
+    }
+  }
+}
