@@ -101,8 +101,8 @@ app.use(helmet({
       // Styles keep unsafe-inline because CSS-in-JS libraries and Vite inject inline styles.
       scriptSrc: ["'self'", 'https://cdnjs.cloudflare.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
-      imgSrc: ["'self'", 'data:', 'blob:'],
-      connectSrc: ["'self'", 'ws:', 'wss:'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.xam.nu', 'https://xam.nu', 'https://unpkg.com'],
+      connectSrc: ["'self'", 'ws:', 'wss:', 'https://*.xam.nu', 'https://xam.nu'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
