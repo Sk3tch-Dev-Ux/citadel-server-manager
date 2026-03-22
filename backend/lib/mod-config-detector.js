@@ -15,11 +15,11 @@ const logger = require('./logger');
  * is renamed or the workshopId is missing from meta.cpp.
  */
 const MOD_IDENTIFIERS = {
-  // Expansion
+  // Expansion (Bundle or Licensed — not @CF which is just Community Framework)
   'expansion': {
     schemaId: 'expansion',
     workshopIds: ['2572331007', '2116157322', '2291785308', '2792983762'],
-    dirPatterns: [/^@(cf|expansion|dayzexpansion)/i],
+    dirPatterns: [/^@.*expansion/i, /^@dayzexpansion/i],
   },
   // TraderPlus
   'traderplus': {
@@ -67,6 +67,7 @@ function detectModConfigs(serverId) {
   const modList = state?.modList || [];
   const installDir = srv.installDir;
   const detected = [];
+  const seenSchemaIds = new Set(); // Deduplicate — only one entry per schema
 
   for (const mod of modList) {
     const modDir = path.join(installDir, mod.name);
@@ -74,6 +75,9 @@ function detectModConfigs(serverId) {
 
     // Try to match this mod to a known schema
     for (const [, identifier] of Object.entries(MOD_IDENTIFIERS)) {
+      // Skip if we already detected this schema from another mod folder
+      if (seenSchemaIds.has(identifier.schemaId)) continue;
+
       let matched = false;
 
       // Match by workshop ID
@@ -92,6 +96,7 @@ function detectModConfigs(serverId) {
       }
 
       if (matched) {
+        seenSchemaIds.add(identifier.schemaId);
         detected.push({
           schemaId: identifier.schemaId,
           modName: mod.name,
@@ -126,28 +131,34 @@ function findModConfigFiles(srv, modDir, configFileNames) {
 
   for (const fileName of configFileNames) {
     // Search locations in priority order
+    // fileName may be a relative path like "ExpansionMod/Settings/GeneralSettings.json"
+    // or just a filename like "config.json"
     const candidates = [];
 
-    // Profile subdirectories (most common for Expansion, etc.)
-    if (fs.existsSync(profileDir)) {
-      try {
-        const profileSubdirs = fs.readdirSync(profileDir, { withFileTypes: true })
-          .filter(e => e.isDirectory())
-          .map(e => e.name);
-        for (const sub of profileSubdirs) {
-          candidates.push(path.join(profileDir, sub, fileName));
-        }
-      } catch { /* ignore */ }
-    }
-
-    // Profile root
+    // Profile root + relative path (most common — e.g. profiles/ExpansionMod/Settings/GeneralSettings.json)
     candidates.push(path.join(profileDir, fileName));
 
-    // Mod directory
+    // Server install root + relative path
+    candidates.push(path.join(srv.installDir, fileName));
+
+    // Mod directory + relative path
     candidates.push(path.join(modDir, fileName));
 
-    // Server install root
-    candidates.push(path.join(srv.installDir, fileName));
+    // Also try just the basename in common locations (for simple filenames)
+    const baseName = path.basename(fileName);
+    if (baseName !== fileName) {
+      // Profile subdirectories with just the basename
+      if (fs.existsSync(profileDir)) {
+        try {
+          const profileSubdirs = fs.readdirSync(profileDir, { withFileTypes: true })
+            .filter(e => e.isDirectory())
+            .map(e => e.name);
+          for (const sub of profileSubdirs) {
+            candidates.push(path.join(profileDir, sub, baseName));
+          }
+        } catch { /* ignore */ }
+      }
+    }
 
     for (const candidate of candidates) {
       if (fs.existsSync(candidate)) {
