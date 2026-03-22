@@ -17,6 +17,9 @@ const CATEGORIES = [
   { id: 'playerlist', label: 'Player List', fileKey: 'PlayerListSettings.json', color: 'var(--accent-green)' },
   { id: 'damage', label: 'Damage System', fileKey: 'DamageSystemSettings.json', color: 'var(--accent-red)' },
   { id: 'social', label: 'Social Media', fileKey: 'SocialMediaSettings.json', color: 'var(--accent-orange, #f59e0b)' },
+  { id: 'chat', label: 'Chat', fileKey: 'ChatSettings.json', color: 'var(--accent-blue)' },
+  { id: 'quests', label: 'Quests', fileKey: 'QuestSettings.json', color: 'var(--accent-orange, #f59e0b)' },
+  { id: 'garage', label: 'Garage', fileKey: 'GarageSettings.json', color: 'var(--accent-green)' },
   { id: 'airdrops', label: 'Airdrops', fileKey: 'AirdropSettings.json', color: 'var(--accent-blue)' },
   // Mission-folder configs
   { id: 'map', label: 'Map', fileKey: 'MapSettings.json', color: 'var(--accent-blue)', section: 'Mission' },
@@ -119,6 +122,82 @@ function SettingsTable({ title, color, fields, data, onChange }) {
               </tr>
             );
           })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ARGB hex color input — shows swatch + text input
+function ColorInput({ value, onChange }) {
+  // ARGB hex string like "FFFFFFFF" or "DC0000FF" → CSS rgba
+  const argbToCSS = (hex) => {
+    if (!hex || hex.length < 8) return '#888';
+    const a = parseInt(hex.substring(0, 2), 16) / 255;
+    const r = parseInt(hex.substring(2, 4), 16);
+    const g = parseInt(hex.substring(4, 6), 16);
+    const b = parseInt(hex.substring(6, 8), 16);
+    return `rgba(${r},${g},${b},${a.toFixed(2)})`;
+  };
+  // CSS hex (#RRGGBB from color picker) → ARGB hex string
+  const cssToARGB = (cssHex) => {
+    const r = cssHex.substring(1, 3).toUpperCase();
+    const g = cssHex.substring(3, 5).toUpperCase();
+    const b = cssHex.substring(5, 7).toUpperCase();
+    // Preserve existing alpha or default to FF
+    const existingAlpha = (value && value.length >= 8) ? value.substring(0, 2) : 'FF';
+    return `${existingAlpha}${r}${g}${b}`;
+  };
+  // Convert ARGB to #RRGGBB for the color picker
+  const toPickerValue = (hex) => {
+    if (!hex || hex.length < 8) return '#ffffff';
+    return `#${hex.substring(2, 8)}`;
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <input type="color" value={toPickerValue(value)} style={{ width: 32, height: 24, padding: 0, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', background: 'none' }}
+        onChange={e => onChange(cssToARGB(e.target.value))} />
+      <div style={{ width: 24, height: 24, borderRadius: 4, border: '1px solid var(--border)', background: argbToCSS(value) }} />
+      <input className="input" value={value || ''} style={{ width: 100, fontSize: 11, fontFamily: 'var(--font-mono, monospace)', padding: '2px 6px' }}
+        onChange={e => onChange(e.target.value.toUpperCase())} />
+    </div>
+  );
+}
+
+// Color table for nested color objects (HUDColors, ChatColors)
+function ColorTable({ title, color, colorData, onChange, descriptions }) {
+  if (!colorData || typeof colorData !== 'object') return null;
+  return (
+    <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+      <div style={{
+        padding: '10px 16px', fontWeight: 700, fontSize: 14,
+        borderBottom: '1px solid var(--border)', borderLeft: `3px solid ${color}`,
+        background: 'var(--bg-surface, var(--bg-deep))',
+      }}>
+        {title}
+      </div>
+      <table className="table" style={{ width: '100%' }}>
+        <thead>
+          <tr>
+            <th style={{ width: '30%', padding: '8px 16px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Color</th>
+            <th style={{ width: '30%', padding: '8px 16px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Value</th>
+            <th style={{ padding: '8px 16px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(colorData).map(([key, val]) => (
+            <tr key={key}>
+              <td style={{ padding: '8px 16px', fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}>
+                {key.replace(/([A-Z])/g, ' $1').trim()}
+              </td>
+              <td style={{ padding: '6px 16px' }}>
+                <ColorInput value={val} onChange={v => onChange({ ...colorData, [key]: v })} />
+              </td>
+              <td style={{ padding: '8px 16px', fontSize: 12, color: 'var(--text-muted)' }}>
+                {descriptions?.[key] || key.replace(/([A-Z])/g, ' $1').trim()}
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -298,27 +377,34 @@ function GeneralSection({ data, onChange }) {
         { key: 'EnableAirdrop', type: 'toggle', description: 'Enable airdrops' },
       ]} />
 
-      {/* HUD Colors section — only show if UseHUDColors exists */}
+      {/* HUD Colors section */}
       {data.UseHUDColors !== undefined && (
         <>
           <SettingsTable title="HUD Colors" color="var(--accent-purple, #a78bfa)" data={data} onChange={upd} fields={[
             { key: 'UseHUDColors', type: 'toggle', description: 'Enable custom HUD colors' },
           ]} />
-          {data.UseHUDColors ? (
-            <SettingsTable title="HUD Color Values (ARGB Hex)" color="var(--accent-purple, #a78bfa)" data={data} onChange={upd} fields={[
-              { key: 'StaminaBarColor', type: 'color', description: 'Stamina bar color (ARGB hex)' },
-              { key: 'NotifierDividerColor', type: 'color', description: 'Notifier divider color' },
-              { key: 'TemperatureHotColor', type: 'color', description: 'Hot temperature color' },
-              { key: 'TemperatureColdColor', type: 'color', description: 'Cold temperature color' },
-              { key: 'NotifierHealthColor', type: 'color', description: 'Health notifier color' },
-              { key: 'NotifierBloodColor', type: 'color', description: 'Blood notifier color' },
-              { key: 'NotifierHungerColor', type: 'color', description: 'Hunger notifier color' },
-              { key: 'NotifierThirstColor', type: 'color', description: 'Thirst notifier color' },
-              { key: 'NotifierFeverColor', type: 'color', description: 'Fever notifier color' },
-              { key: 'NotifierSickColor', type: 'color', description: 'Sick notifier color' },
-              { key: 'ReputationPositiveColor', type: 'color', description: 'Positive reputation color' },
-              { key: 'ReputationNegativeColor', type: 'color', description: 'Negative reputation color' },
-            ].filter(f => data[f.key] !== undefined)} />
+          {data.UseHUDColors && data.HUDColors ? (
+            <ColorTable title="HUD Color Values" color="var(--accent-purple, #a78bfa)"
+              colorData={data.HUDColors}
+              onChange={newColors => upd({ ...data, HUDColors: newColors })}
+              descriptions={{
+                StaminaBarColor: 'Stamina bar color',
+                StaminaBarColorHalf: 'Stamina bar half color',
+                StaminaBarColorLow: 'Stamina bar low color',
+                NotifierDividerColor: 'Notifier divider line',
+                TemperatureBurningColor: 'Burning temperature',
+                TemperatureHotColor: 'Hot temperature',
+                TemperatureIdealColor: 'Ideal temperature',
+                TemperatureColdColor: 'Cold temperature',
+                TemperatureFreezingColor: 'Freezing temperature',
+                NotifiersIdealColor: 'Notifier ideal state',
+                NotifiersHalfColor: 'Notifier half state',
+                NotifiersLowColor: 'Notifier low/critical state',
+                ReputationBaseColor: 'Reputation base color',
+                ReputationMedColor: 'Reputation medium color',
+                ReputationHighColor: 'Reputation high color',
+              }}
+            />
           ) : null}
         </>
       )}
@@ -967,6 +1053,144 @@ function NoData() {
         Config file not found on disk. It may need to be created by running the mod first.
       </p>
     </div>
+  );
+}
+
+// ─── Chat section ────────────────────────────────────────────────────
+
+function ChatSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
+  return (
+    <>
+      <SettingsTable title="Chat Channels" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+        { key: 'EnableGlobalChat', type: 'toggle', description: 'Enable global chat channel' },
+        { key: 'EnablePartyChat', type: 'toggle', description: 'Enable party/group chat channel' },
+        { key: 'EnableTransportChat', type: 'toggle', description: 'Enable transport chat channel' },
+        { key: 'EnableExpansionChat', type: 'toggle', description: 'Enable Expansion chat system' },
+      ]} />
+      {data.ChatColors && (
+        <ColorTable title="Chat Colors" color="var(--accent-blue)"
+          colorData={data.ChatColors}
+          onChange={newColors => update('ChatColors', newColors)}
+          descriptions={{
+            SystemChatColor: 'System messages',
+            AdminChatColor: 'Admin messages',
+            GlobalChatColor: 'Global chat messages',
+            DirectChatColor: 'Direct/proximity chat',
+            TransportChatColor: 'Transport chat',
+            PartyChatColor: 'Party/group chat',
+            TransmitterChatColor: 'Radio transmitter chat',
+            StatusMessageColor: 'Status messages',
+            ActionMessageColor: 'Action messages',
+            FriendlyMessageColor: 'Friendly messages',
+            ImportantMessageColor: 'Important messages',
+            DefaultMessageColor: 'Default message color',
+          }}
+        />
+      )}
+      <StringListEditor items={data.BlacklistedWords || []} placeholder="Add blacklisted word..."
+        onChange={v => update('BlacklistedWords', v)} />
+    </>
+  );
+}
+
+// ─── Quests section ──────────────────────────────────────────────────
+
+function QuestsSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  return (
+    <>
+      <SettingsTable title="Quest System" color="var(--accent-orange, #f59e0b)" data={data} onChange={onChange} fields={[
+        { key: 'EnableQuests', type: 'toggle', description: 'Enable the quest system' },
+        { key: 'EnableQuestLogTab', type: 'toggle', description: 'Show quest log tab in menu' },
+        { key: 'CreateQuestNPCMarkers', type: 'toggle', description: 'Create map markers for quest NPCs' },
+        { key: 'UseQuestNPCIndicators', type: 'toggle', description: 'Show indicators above quest NPCs' },
+        { key: 'UseUTCTime', type: 'toggle', description: 'Use UTC time for resets (0 = server local time)' },
+        { key: 'MaxActiveQuests', type: 'number', description: 'Maximum active quests per player (-1 = unlimited)' },
+        { key: 'GroupQuestMode', type: 'select', description: 'Group quest behavior', options: [
+          { value: 0, label: '0 - Only group owners accept/turn-in' },
+          { value: 1, label: '1 - Owner turn-in, all accept' },
+          { value: 2, label: '2 - All members accept/turn-in' },
+        ]},
+      ]} />
+      <SettingsTable title="Reset Schedule" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={[
+        { key: 'WeeklyResetDay', type: 'select', description: 'Day of the week for weekly quest reset', options: [
+          { value: 'Sunday', label: 'Sunday' }, { value: 'Monday', label: 'Monday' },
+          { value: 'Tuesday', label: 'Tuesday' }, { value: 'Wednesday', label: 'Wednesday' },
+          { value: 'Thursday', label: 'Thursday' }, { value: 'Friday', label: 'Friday' },
+          { value: 'Saturday', label: 'Saturday' },
+        ]},
+        { key: 'WeeklyResetHour', type: 'number', description: 'Hour for weekly reset (0-23)' },
+        { key: 'WeeklyResetMinute', type: 'number', description: 'Minute for weekly reset (0-59)' },
+        { key: 'DailyResetHour', type: 'number', description: 'Hour for daily quest reset (0-23)' },
+        { key: 'DailyResetMinute', type: 'number', description: 'Minute for daily reset (0-59)' },
+      ]} />
+      <SettingsTable title="Quest Messages" color="var(--text-muted)" data={data} onChange={onChange} fields={[
+        { key: 'QuestAcceptedTitle', type: 'text', description: 'Title shown when quest accepted' },
+        { key: 'QuestAcceptedText', type: 'text', description: 'Text shown when quest accepted (%1 = quest name)' },
+        { key: 'QuestCompletedTitle', type: 'text', description: 'Title when all objectives completed' },
+        { key: 'QuestCompletedText', type: 'text', description: 'Text when all objectives completed' },
+        { key: 'QuestFailedTitle', type: 'text', description: 'Title when quest failed' },
+        { key: 'QuestFailedText', type: 'text', description: 'Text when quest failed' },
+        { key: 'QuestCanceledTitle', type: 'text', description: 'Title when quest canceled' },
+        { key: 'QuestCanceledText', type: 'text', description: 'Text when quest canceled' },
+        { key: 'QuestTurnInTitle', type: 'text', description: 'Title when quest turned in' },
+        { key: 'QuestTurnInText', type: 'text', description: 'Text when quest turned in' },
+        { key: 'QuestObjectiveCompletedTitle', type: 'text', description: 'Title when objective completed' },
+        { key: 'QuestObjectiveCompletedText', type: 'text', description: 'Text when objective completed (%1=obj, %2=quest)' },
+        { key: 'QuestCooldownTitle', type: 'text', description: 'Title when quest on cooldown' },
+        { key: 'QuestCooldownText', type: 'text', description: 'Text when quest on cooldown (%1=time)' },
+        { key: 'QuestNotInGroupTitle', type: 'text', description: 'Title for group quest requirement' },
+        { key: 'QuestNotInGroupText', type: 'text', description: 'Text for group quest requirement' },
+        { key: 'QuestNotGroupOwnerTitle', type: 'text', description: 'Title for group owner requirement' },
+        { key: 'QuestNotGroupOwnerText', type: 'text', description: 'Text for group owner requirement' },
+        { key: 'AchievementCompletedTitle', type: 'text', description: 'Title when achievement completed (%1=name)' },
+        { key: 'AchievementCompletedText', type: 'text', description: 'Text when achievement completed' },
+      ]} />
+    </>
+  );
+}
+
+// ─── Garage section ──────────────────────────────────────────────────
+
+function GarageSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
+  return (
+    <>
+      <SettingsTable title="Garage General" color="var(--accent-green)" data={data} onChange={onChange} fields={[
+        { key: 'Enabled', type: 'toggle', description: 'Enable the vehicle garage system' },
+        { key: 'GarageMode', type: 'number', description: 'Garage mode (0=default)' },
+        { key: 'GarageStoreMode', type: 'number', description: 'Store mode (0=default)' },
+        { key: 'GarageRetrieveMode', type: 'number', description: 'Retrieve mode (0=default)' },
+        { key: 'MaxStorableVehicles', type: 'number', description: 'Max vehicles per player in garage' },
+        { key: 'VehicleSearchRadius', type: 'number', description: 'Search radius for storing vehicles (meters)' },
+        { key: 'MaxDistanceFromStoredPosition', type: 'number', description: 'Max distance from stored position to retrieve (meters)' },
+        { key: 'CanStoreWithCargo', type: 'toggle', description: 'Allow storing vehicles with cargo inside' },
+        { key: 'UseVirtualStorageForCargo', type: 'toggle', description: 'Use virtual storage for vehicle cargo' },
+        { key: 'NeedKeyToStore', type: 'toggle', description: 'Require vehicle key to store' },
+        { key: 'AllowStoringDEVehicles', type: 'toggle', description: 'Allow storing DE (vanilla) vehicles' },
+      ]} />
+      <SettingsTable title="Group & Market Features" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+        { key: 'EnableGroupFeatures', type: 'toggle', description: 'Enable group garage features' },
+        { key: 'GroupStoreMode', type: 'number', description: 'Group store mode (0=disabled, 1=owner, 2=all members)' },
+        { key: 'EnableMarketFeatures', type: 'toggle', description: 'Enable market integration for garage' },
+        { key: 'StorePricePercent', type: 'number', description: 'Store price as % of vehicle value' },
+        { key: 'StaticStorePrice', type: 'number', description: 'Static store price (0=use percent)' },
+      ]} />
+      <SettingsTable title="Tier Limits" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={[
+        { key: 'MaxStorableTier1', type: 'number', description: 'Max storable vehicles for Tier 1' },
+        { key: 'MaxStorableTier2', type: 'number', description: 'Max storable vehicles for Tier 2' },
+        { key: 'MaxStorableTier3', type: 'number', description: 'Max storable vehicles for Tier 3' },
+        { key: 'MaxRangeTier1', type: 'number', description: 'Max search range for Tier 1 (meters)' },
+        { key: 'MaxRangeTier2', type: 'number', description: 'Max search range for Tier 2 (meters)' },
+        { key: 'MaxRangeTier3', type: 'number', description: 'Max search range for Tier 3 (meters)' },
+        { key: 'ParkingMeterEnableFlavor', type: 'toggle', description: 'Enable parking meter flavor text' },
+      ]} />
+      <StringListEditor items={data.EntityWhitelist || []} placeholder="Add whitelisted entity..."
+        onChange={v => update('EntityWhitelist', v)} />
+    </>
   );
 }
 
@@ -1659,6 +1883,9 @@ const SECTION_RENDERERS = {
   playerlist: PlayerListSection,
   damage: DamageSystemSection,
   social: SocialMediaSection,
+  chat: ChatSection,
+  quests: QuestsSection,
+  garage: GarageSection,
   airdrops: AirdropSection,
   map: MapSection,
   basebuilding: BaseBuildingSection,
