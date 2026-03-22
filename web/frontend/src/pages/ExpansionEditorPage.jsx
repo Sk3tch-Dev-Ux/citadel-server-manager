@@ -2170,8 +2170,8 @@ function QuestListView({ quests, onEdit, onDelete, onCreate }) {
                   <td style={{ padding: '8px 12px', fontSize: 13 }}>{q.Title || q.ObjectiveText || '(untitled)'}</td>
                   <td style={{ padding: '8px 12px' }}><QuestTypeBadge type={q.Type ?? 0} /></td>
                   <td style={{ padding: '8px 12px' }}>
-                    <span style={{ color: q.IsActive !== 0 ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
-                      {q.IsActive !== 0 ? 'ON' : 'OFF'}
+                    <span style={{ color: q.Active !== 0 ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
+                      {q.Active !== 0 ? 'ON' : 'OFF'}
                     </span>
                   </td>
                   <td style={{ padding: '8px 12px', fontSize: 12 }}>{objCount}</td>
@@ -2242,7 +2242,7 @@ function QuestEditorView({ quest, quests, npcs, objectives, onSave, onCancel }) 
             {QUEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         ))}
-        {fieldRow('Active', <InlineToggle value={q.IsActive ?? 1} onChange={v => upd('IsActive', v)} />)}
+        {fieldRow('Active', <InlineToggle value={q.Active ?? 1} onChange={v => upd('Active', v)} />)}
         {fieldRow('Objective Text', <input className="input" value={q.ObjectiveText || ''} onChange={e => upd('ObjectiveText', e.target.value)} style={{ width: '100%', fontSize: 13 }} />)}
         {fieldRow('Descriptions', (
           <div>
@@ -2441,8 +2441,8 @@ function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
                     <td style={{ padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}>{n.ClassName || ''}</td>
                     <td style={{ padding: '8px 12px', fontSize: 12 }}>{n.NPCFaction || ''}</td>
                     <td style={{ padding: '8px 12px' }}>
-                      <span style={{ color: n.IsActive !== 0 ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
-                        {n.IsActive !== 0 ? 'ON' : 'OFF'}
+                      <span style={{ color: n.Active !== 0 ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
+                        {n.Active !== 0 ? 'ON' : 'OFF'}
                       </span>
                     </td>
                     <td style={{ padding: '8px 12px', fontSize: 11, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-muted)' }}>
@@ -2486,7 +2486,7 @@ function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
                             </div>
                             <div>
                               <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Active</label>
-                              <InlineToggle value={editData.IsActive ?? 1} onChange={v => npcUpd('IsActive', v)} />
+                              <InlineToggle value={editData.Active ?? 1} onChange={v => npcUpd('Active', v)} />
                             </div>
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
@@ -2783,7 +2783,7 @@ function QuestChainView({ quests }) {
   const typeColor = (q) => {
     if (q.IsDailyQuest) return 'var(--accent-blue)';
     if (q.IsWeeklyQuest) return 'var(--accent-purple, #a78bfa)';
-    if (q.IsActive === 0) return 'var(--text-muted)';
+    if (q.Active === 0) return 'var(--text-muted)';
     return 'var(--accent-green)';
   };
 
@@ -2879,30 +2879,25 @@ function QuestsSection({ serverId }) {
       setQuests(Array.isArray(qRes) ? qRes : (qRes?.quests || qRes?.data || []));
       setNPCs(Array.isArray(nRes) ? nRes : (nRes?.npcs || nRes?.data || []));
       if (oRes && !oRes.error) {
-        // objectives may come as { "2": [...], "3": [...] } or flat array
+        // API returns { "2": { folder, prefix, objectives: [...] }, "3": { ... } }
+        // Normalize to { "2": [...], "3": [...] } for the UI
+        const grouped = {};
         if (Array.isArray(oRes)) {
-          const grouped = {};
           oRes.forEach(o => {
-            const t = o.ObjectiveType ?? 0;
+            const t = String(o.ObjectiveType ?? 0);
             if (!grouped[t]) grouped[t] = [];
             grouped[t].push(o);
           });
-          setObjectives(grouped);
-        } else if (oRes.objectives) {
-          if (Array.isArray(oRes.objectives)) {
-            const grouped = {};
-            oRes.objectives.forEach(o => {
-              const t = o.ObjectiveType ?? 0;
-              if (!grouped[t]) grouped[t] = [];
-              grouped[t].push(o);
-            });
-            setObjectives(grouped);
-          } else {
-            setObjectives(oRes.objectives);
-          }
         } else {
-          setObjectives(oRes.data || oRes || {});
+          for (const [typeKey, typeData] of Object.entries(oRes)) {
+            if (typeData && Array.isArray(typeData.objectives)) {
+              grouped[typeKey] = typeData.objectives;
+            } else if (Array.isArray(typeData)) {
+              grouped[typeKey] = typeData;
+            }
+          }
         }
+        setObjectives(grouped);
       }
     } catch (err) {
       window.addToast?.('Failed to load quest data: ' + (err.message || ''), 'error');
@@ -2953,7 +2948,7 @@ function QuestsSection({ serverId }) {
 
   const createQuest = () => {
     setEditingQuest({
-      Title: '', Type: 0, IsActive: 1, ObjectiveText: '', Descriptions: [],
+      Title: '', Type: 0, Active: 1, ObjectiveText: '', Descriptions: [],
       FollowUpQuest: -1, PreQuestIDs: [], IsAchievement: 0,
       Repeatable: 0, IsDailyQuest: 0, IsWeeklyQuest: 0,
       CancelQuestOnPlayerDeath: 0, Autocomplete: 0, IsGroupQuest: 0, SequentialObjectives: 0,
@@ -3006,7 +3001,7 @@ function QuestsSection({ serverId }) {
     const newNPC = {
       NPCName: 'New NPC', ClassName: 'SurvivorM_Mirek',
       Position: [0, 0, 0], Orientation: [0, 0, 0],
-      NPCLoadoutFile: '', NPCFaction: '', NPCType: 2, IsActive: 1,
+      NPCLoadoutFile: '', NPCFaction: '', NPCType: 2, Active: 1,
       NPCEmoteID: 0, NPCEmoteIsStatic: 0, NPCInteractionEmoteID: 0, NPCInteractionEmoteIsStatic: 0,
       Waypoints: [],
     };

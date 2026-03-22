@@ -55,10 +55,14 @@ module.exports = function(app) {
             const summary = quests.map(q => ({
                 ID: q.ID,
                 Title: q.Title || '',
-                Type: q.Type,
-                IsActive: q.IsActive !== undefined ? q.IsActive : true,
-                FollowUpQuest: q.FollowUpQuest || -1,
-                ObjectiveCount: Array.isArray(q.ObjectiveConfigs) ? q.ObjectiveConfigs.length : 0,
+                Type: q.Type ?? 0,
+                Active: q.Active ?? 1,
+                Repeatable: q.Repeatable ?? 0,
+                IsDailyQuest: q.IsDailyQuest ?? 0,
+                IsWeeklyQuest: q.IsWeeklyQuest ?? 0,
+                FollowUpQuest: q.FollowUpQuest ?? -1,
+                ObjectiveCount: Array.isArray(q.Objectives) ? q.Objectives.length : 0,
+                QuestGiverIDs: q.QuestGiverIDs || [],
             }));
             res.json(summary);
         } catch (err) {
