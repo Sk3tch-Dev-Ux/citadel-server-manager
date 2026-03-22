@@ -2,7 +2,7 @@
  * Economy Core Editor routes — CRUD for cfgeconomycore.xml.
  *
  * GET /api/servers/:id/economycore  — read & parse economy core config
- * PUT /api/servers/:id/economycore  — save economy core config (full replacement)
+ * PUT /api/servers/:id/economycore  — save CE folder entries (preserves classes/defaults)
  */
 const fs = require('fs');
 const path = require('path');
@@ -31,7 +31,7 @@ module.exports = function(app) {
       }
 
       const content = fs.readFileSync(filePath, 'utf8');
-      const folders = parseEconomyCoreXml(content);
+      const { folders } = parseEconomyCoreXml(content);
 
       // Check which CE folders actually exist on disk
       const foldersWithExistence = folders.map(f => ({
@@ -46,7 +46,8 @@ module.exports = function(app) {
     }
   });
 
-  // Save economy core config (full replacement)
+  // Save economy core config — only replaces CE folder entries,
+  // preserves <classes> and <defaults> sections from the original file.
   app.put('/api/servers/:id/economycore', authForServer('files.edit'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
@@ -79,12 +80,20 @@ module.exports = function(app) {
     try {
       const filePath = path.join(missionDir, 'cfgeconomycore.xml');
 
-      // Backup existing file if it exists
+      // Read the original file to preserve <classes> and <defaults> sections
+      let rawClasses = null;
+      let rawDefaults = null;
       if (fs.existsSync(filePath)) {
+        const originalContent = fs.readFileSync(filePath, 'utf8');
+        const parsed = parseEconomyCoreXml(originalContent);
+        rawClasses = parsed.rawClasses;
+        rawDefaults = parsed.rawDefaults;
+
+        // Backup existing file
         createBackup(srv.installDir, filePath, 'cfgeconomycore.xml');
       }
 
-      const xml = buildEconomyCoreXml(folders);
+      const xml = buildEconomyCoreXml(folders, rawClasses, rawDefaults);
       fs.writeFileSync(filePath, xml, 'utf8');
 
       addAudit(req.user.id, req.user.username, 'economycore.update', `Updated cfgeconomycore.xml (${folders.length} CE folders)`);
