@@ -129,6 +129,10 @@ function findModConfigFiles(srv, modDir, configFileNames) {
     ? path.resolve(srv.installDir, srv.profileDir)
     : path.join(srv.installDir, 'profiles');
 
+  // Detect mission folder for configs that live there (e.g. Expansion MapSettings, BaseBuildingSettings)
+  const { getMissionDir } = require('./mission-folder');
+  const missionDir = getMissionDir(srv);
+
   for (const fileName of configFileNames) {
     // Search locations in priority order
     // fileName may be a relative path like "ExpansionMod/Settings/GeneralSettings.json"
@@ -137,6 +141,14 @@ function findModConfigFiles(srv, modDir, configFileNames) {
 
     // Profile root + relative path (most common — e.g. profiles/ExpansionMod/Settings/GeneralSettings.json)
     candidates.push(path.join(profileDir, fileName));
+
+    // Mission folder + relative path (e.g. mpmissions/<template>/expansion/settings/MapSettings.json)
+    if (missionDir) {
+      candidates.push(path.join(missionDir, fileName));
+      // Also try common Expansion mission-folder pattern
+      const baseName = path.basename(fileName);
+      candidates.push(path.join(missionDir, 'expansion', 'settings', baseName));
+    }
 
     // Server install root + relative path
     candidates.push(path.join(srv.installDir, fileName));

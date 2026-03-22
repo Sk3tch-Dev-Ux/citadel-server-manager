@@ -113,6 +113,66 @@
       "fileName": "ExpansionMod/Settings/NotificationSchedulerSettings.json",
       "displayName": "Notification Scheduler",
       "description": "Scheduled notification settings"
+    },
+    {
+      "fileName": "expansion/settings/MapSettings.json",
+      "displayName": "Map",
+      "description": "Map markers, GPS, compass, player position, death markers",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/BaseBuildingSettings.json",
+      "displayName": "Base Building",
+      "description": "Build rules, zones, code locks, territory flag crafting",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/HardlineSettings.json",
+      "displayName": "Hardline",
+      "description": "Reputation system — factions, tiers, kill rewards",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/MarketSettings.json",
+      "displayName": "Market",
+      "description": "Market zones, ATM, trading parameters, categories",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/SafeZoneSettings.json",
+      "displayName": "Safe Zones",
+      "description": "Safe zone positions, rules, and behavior",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/SpawnSettings.json",
+      "displayName": "Spawn Selection",
+      "description": "Player spawn points, loadouts, spawn selection UI",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/P2PMarketSettings.json",
+      "displayName": "P2P Market",
+      "description": "Player-to-player market settings",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/PersonalStorageSettings.json",
+      "displayName": "Personal Storage (Mission)",
+      "description": "Personal storage zone settings",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/AIPatrolSettings.json",
+      "displayName": "AI Patrols",
+      "description": "AI patrol routes and behavior",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/AILocationSettings.json",
+      "displayName": "AI Locations",
+      "description": "AI spawn locations and guard positions",
+      "location": "mission"
     }
   ]
 }

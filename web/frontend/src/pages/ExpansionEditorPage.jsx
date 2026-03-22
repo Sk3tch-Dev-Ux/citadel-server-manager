@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { ArrowLeft, Save, ChevronRight, Plus, X, Puzzle } from '../components/Icon';
@@ -17,6 +17,12 @@ const CATEGORIES = [
   { id: 'playerlist', label: 'Player List', fileKey: 'PlayerListSettings.json', color: 'var(--accent-green)' },
   { id: 'damage', label: 'Damage System', fileKey: 'DamageSystemSettings.json', color: 'var(--accent-red)' },
   { id: 'social', label: 'Social Media', fileKey: 'SocialMediaSettings.json', color: 'var(--accent-orange, #f59e0b)' },
+  // Mission-folder configs
+  { id: 'map', label: 'Map', fileKey: 'MapSettings.json', color: 'var(--accent-blue)', section: 'Mission' },
+  { id: 'basebuilding', label: 'Base Building', fileKey: 'BaseBuildingSettings.json', color: 'var(--accent-green)', section: 'Mission' },
+  { id: 'safezones', label: 'Safe Zones', fileKey: 'SafeZoneSettings.json', color: 'var(--accent-green)', section: 'Mission' },
+  { id: 'hardline', label: 'Hardline', fileKey: 'HardlineSettings.json', color: 'var(--accent-purple, #a78bfa)', section: 'Mission' },
+  { id: 'market', label: 'Market', fileKey: 'MarketSettings.json', color: 'var(--accent-orange, #f59e0b)', section: 'Mission' },
 ];
 
 // Helper: find the full fileName key in configs that ends with the given fileKey
@@ -963,6 +969,283 @@ function NoData() {
   );
 }
 
+// ─── Mission-folder section renderers ────────────────────────────────
+
+function MapSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
+  return (
+    <>
+      <SettingsTable title="Map General" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+        { key: 'EnableMap', type: 'toggle', description: 'Enable Expansion colored map (0 = vanilla white map)' },
+        { key: 'UseMapOnMapItem', type: 'toggle', description: 'Use Expansion map UI for map items' },
+        { key: 'ShowPlayerPosition', type: 'number', description: 'Show player position (0=hidden, 1=always, 2=compass only)' },
+        { key: 'ShowMapStats', type: 'toggle', description: 'Show XYZ coordinates on map' },
+        { key: 'CanOpenMapWithKeyBinding', type: 'toggle', description: 'Allow M key to open map' },
+        { key: 'NeedMapItemForKeyBinding', type: 'toggle', description: 'Require physical map item for keybind' },
+        { key: 'CreateDeathMarker', type: 'toggle', description: 'Auto-mark death location on map' },
+        { key: 'PlayerLocationNotifier', type: 'toggle', description: 'Show town name/time notifications' },
+      ]} />
+      <SettingsTable title="Markers" color="var(--accent-green)" data={data} onChange={onChange} fields={[
+        { key: 'CanCreateMarker', type: 'toggle', description: 'Allow players to create markers' },
+        { key: 'CanCreate3DMarker', type: 'toggle', description: 'Allow 3D markers visible in-world' },
+        { key: 'NeedPenItemForCreateMarker', type: 'toggle', description: 'Require pen item to create markers' },
+        { key: 'NeedGPSItemForCreateMarker', type: 'toggle', description: 'Require GPS item to create markers' },
+        { key: 'ShowDistanceOnPersonalMarkers', type: 'toggle', description: 'Show distance to personal markers' },
+        { key: 'EnableServerMarkers', type: 'toggle', description: 'Enable server-defined markers' },
+        { key: 'ShowNameOnServerMarkers', type: 'toggle', description: 'Show names on server markers' },
+        { key: 'ShowDistanceOnServerMarkers', type: 'toggle', description: 'Show distance on server markers' },
+      ]} />
+      <SettingsTable title="GPS & Compass" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={[
+        { key: 'EnableHUDGPS', type: 'toggle', description: 'Enable GPS HUD (N key)' },
+        { key: 'NeedGPSItemForKeyBinding', type: 'toggle', description: 'Require GPS item for HUD GPS' },
+        { key: 'EnableHUDCompass', type: 'toggle', description: 'Enable compass at top of screen' },
+        { key: 'NeedCompassItemForHUDCompass', type: 'toggle', description: 'Require compass item for HUD compass' },
+        { key: 'NeedGPSItemForHUDCompass', type: 'toggle', description: 'Require GPS item for HUD compass' },
+      ]} />
+      {/* Server Markers list */}
+      {data.ServerMarkers && data.ServerMarkers.length > 0 && (
+        <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{
+            padding: '10px 16px', fontWeight: 700, fontSize: 14,
+            borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-orange, #f59e0b)',
+            background: 'var(--bg-surface, var(--bg-deep))',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span>Server Markers ({data.ServerMarkers.length})</span>
+            <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 11 }}
+              onClick={() => update('ServerMarkers', [...data.ServerMarkers, { m_UID: 'NewMarker_' + Date.now(), m_Visibility: 6, m_Is3D: 1, m_Text: 'New Marker', m_IconName: 'Trader', m_Color: -13710223, m_Position: [0, 0, 0], m_Locked: 0, m_Persist: 1 }])}>
+              <Plus size={12} /> Add Marker
+            </button>
+          </div>
+          <table className="table" style={{ width: '100%', fontSize: 13 }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '8px 12px' }}>Name</th>
+                <th style={{ padding: '8px 12px' }}>Display Text</th>
+                <th style={{ padding: '8px 12px' }}>Icon</th>
+                <th style={{ padding: '8px 12px' }}>X</th>
+                <th style={{ padding: '8px 12px' }}>Y</th>
+                <th style={{ padding: '8px 12px' }}>Z</th>
+                <th style={{ padding: '8px 12px' }}>3D</th>
+                <th style={{ padding: '8px 12px', width: 50 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.ServerMarkers.map((marker, idx) => (
+                <tr key={idx}>
+                  <td style={{ padding: '6px 12px' }}>
+                    <input className="input" value={marker.m_UID || ''} style={{ width: '100%', fontSize: 12 }}
+                      onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_UID: e.target.value }; update('ServerMarkers', m); }} />
+                  </td>
+                  <td style={{ padding: '6px 12px' }}>
+                    <input className="input" value={marker.m_Text || ''} style={{ width: '100%', fontSize: 12 }}
+                      onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Text: e.target.value }; update('ServerMarkers', m); }} />
+                  </td>
+                  <td style={{ padding: '6px 12px' }}>
+                    <input className="input" value={marker.m_IconName || ''} style={{ width: 80, fontSize: 12 }}
+                      onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_IconName: e.target.value }; update('ServerMarkers', m); }} />
+                  </td>
+                  <td style={{ padding: '6px 12px' }}>
+                    <input className="input" type="number" value={marker.m_Position?.[0] ?? 0} style={{ width: 80, fontSize: 12 }}
+                      onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Position: [Number(e.target.value), marker.m_Position?.[1] ?? 0, marker.m_Position?.[2] ?? 0] }; update('ServerMarkers', m); }} />
+                  </td>
+                  <td style={{ padding: '6px 12px' }}>
+                    <input className="input" type="number" value={marker.m_Position?.[1] ?? 0} style={{ width: 80, fontSize: 12 }}
+                      onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Position: [marker.m_Position?.[0] ?? 0, Number(e.target.value), marker.m_Position?.[2] ?? 0] }; update('ServerMarkers', m); }} />
+                  </td>
+                  <td style={{ padding: '6px 12px' }}>
+                    <input className="input" type="number" value={marker.m_Position?.[2] ?? 0} style={{ width: 80, fontSize: 12 }}
+                      onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Position: [marker.m_Position?.[0] ?? 0, marker.m_Position?.[1] ?? 0, Number(e.target.value)] }; update('ServerMarkers', m); }} />
+                  </td>
+                  <td style={{ padding: '6px 12px', textAlign: 'center' }}>
+                    <button onClick={() => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Is3D: m[idx].m_Is3D ? 0 : 1 }; update('ServerMarkers', m); }}
+                      style={{ padding: '2px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, border: '1px solid var(--border)', cursor: 'pointer',
+                        background: marker.m_Is3D ? 'var(--accent-green)' : 'var(--bg-elevated, var(--bg-card))', color: marker.m_Is3D ? '#fff' : 'var(--text-muted)' }}>
+                      {marker.m_Is3D ? 'ON' : 'OFF'}
+                    </button>
+                  </td>
+                  <td style={{ padding: '6px 12px' }}>
+                    <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }}
+                      onClick={() => { const m = [...data.ServerMarkers]; m.splice(idx, 1); update('ServerMarkers', m); }}>
+                      <X size={12} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+function BaseBuildingSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
+  return (
+    <>
+      <SettingsTable title="Build Permissions" color="var(--accent-green)" data={data} onChange={onChange} fields={[
+        { key: 'CanBuildAnywhere', type: 'toggle', description: 'Allow building anywhere on the map' },
+        { key: 'AllowBuildingWithoutATerritory', type: 'toggle', description: 'Allow building without a territory flag' },
+        { key: 'CanCraftVanillaBasebuilding', type: 'toggle', description: 'Allow crafting vanilla base building items' },
+        { key: 'CanCraftExpansionBasebuilding', type: 'toggle', description: 'Allow crafting Expansion base building items' },
+        { key: 'CanCraftTerritoryFlagKit', type: 'toggle', description: 'Allow crafting territory flag kits' },
+      ]} />
+      <SettingsTable title="Territory Flags" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={[
+        { key: 'SimpleTerritory', type: 'toggle', description: 'Use simplified territory system' },
+        { key: 'AutomaticFlagOnCreation', type: 'toggle', description: 'Auto-place flag when creating territory' },
+        { key: 'GetTerritoryFlagKitAfterBuild', type: 'toggle', description: 'Return flag kit after building' },
+        { key: 'DestroyFlagOnDismantle', type: 'toggle', description: 'Destroy flag when dismantled' },
+        { key: 'DismantleFlagMode', type: 'number', description: 'Flag dismantle mode (1=enabled)' },
+        { key: 'FlagMenuMode', type: 'number', description: 'Flag menu mode (1=enabled)' },
+      ]} />
+      <SettingsTable title="Dismantling & Code Locks" color="var(--accent-orange, #f59e0b)" data={data} onChange={onChange} fields={[
+        { key: 'DismantleOutsideTerritory', type: 'toggle', description: 'Allow dismantling outside territories' },
+        { key: 'DismantleInsideTerritory', type: 'toggle', description: 'Allow dismantling inside territories' },
+        { key: 'DismantleAnywhere', type: 'toggle', description: 'Allow dismantling anywhere' },
+        { key: 'CodelockActionsAnywhere', type: 'toggle', description: 'Allow code lock actions anywhere' },
+        { key: 'CodelockAttachMode', type: 'number', description: 'Code lock attachment mode (0=all, 1=fences)' },
+        { key: 'CodeLockLength', type: 'number', description: 'Code lock PIN length (4 or 6 digits)' },
+        { key: 'DoDamageWhenEnterWrongCodeLock', type: 'toggle', description: 'Deal damage on wrong code entry' },
+        { key: 'DamageWhenEnterWrongCodeLock', type: 'number', description: 'Damage dealt per wrong code (HP)' },
+        { key: 'RememberCode', type: 'toggle', description: 'Remember entered code for the session' },
+      ]} />
+      <SettingsTable title="Virtual Storage & Misc" color="var(--text-muted)" data={data} onChange={onChange} fields={[
+        { key: 'ZonesAreNoBuildZones', type: 'toggle', description: 'Defined zones are no-build zones' },
+        { key: 'PreventItemAccessThroughObstructingItems', type: 'toggle', description: 'Block item access through walls/objects' },
+        { key: 'EnableVirtualStorage', type: 'toggle', description: 'Enable virtual storage system' },
+        { key: 'BuildZoneRequiredCustomMessage', type: 'text', description: 'Custom message when building in restricted zone' },
+      ]} />
+      <StringListEditor items={data.DeployableOutsideATerritory || []} placeholder="Add classname..."
+        onChange={v => update('DeployableOutsideATerritory', v)} />
+      <StringListEditor items={data.DeployableInsideAEnemyTerritory || []} placeholder="Add classname..."
+        onChange={v => update('DeployableInsideAEnemyTerritory', v)} />
+    </>
+  );
+}
+
+function SafeZonesSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
+  return (
+    <>
+      <SettingsTable title="Safe Zone General" color="var(--accent-green)" data={data} onChange={onChange} fields={[
+        { key: 'Enabled', type: 'toggle', description: 'Enable the safe zone system' },
+        { key: 'FrameRateCheckSafeZoneInMs', type: 'number', description: 'Frame rate check interval (0 = default)' },
+        { key: 'ActorsPerTick', type: 'number', description: 'Actors processed per server tick' },
+        { key: 'DisablePlayerCollision', type: 'toggle', description: 'Disable player collision in safe zones' },
+        { key: 'DisableVehicleDamageInSafeZone', type: 'toggle', description: 'Prevent vehicle damage in safe zones' },
+        { key: 'EnableForceSZCleanup', type: 'toggle', description: 'Auto-cleanup items in safe zones' },
+        { key: 'ItemLifetimeInSafeZone', type: 'number', description: 'Item cleanup lifetime in safe zones (seconds)' },
+        { key: 'EnableForceSZCleanupVehicles', type: 'toggle', description: 'Auto-cleanup vehicles in safe zones' },
+        { key: 'VehicleLifetimeInSafeZone', type: 'number', description: 'Vehicle cleanup lifetime in safe zones (seconds)' },
+      ]} />
+      {/* Circle Zones */}
+      <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{
+          padding: '10px 16px', fontWeight: 700, fontSize: 14,
+          borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-blue)',
+          background: 'var(--bg-surface, var(--bg-deep))',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span>Circle Zones ({(data.CircleZones || []).length})</span>
+          <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 11 }}
+            onClick={() => update('CircleZones', [...(data.CircleZones || []), { Center: [0, 0, 0], Radius: 500 }])}>
+            <Plus size={12} /> Add Zone
+          </button>
+        </div>
+        <table className="table" style={{ width: '100%', fontSize: 13 }}>
+          <thead><tr>
+            <th style={{ padding: '8px 12px' }}>X</th>
+            <th style={{ padding: '8px 12px' }}>Y</th>
+            <th style={{ padding: '8px 12px' }}>Z</th>
+            <th style={{ padding: '8px 12px' }}>Radius</th>
+            <th style={{ padding: '8px 12px', width: 50 }}></th>
+          </tr></thead>
+          <tbody>
+            {(data.CircleZones || []).map((zone, idx) => (
+              <tr key={idx}>
+                {[0, 1, 2].map(i => (
+                  <td key={i} style={{ padding: '6px 12px' }}>
+                    <input className="input" type="number" step="0.1" value={zone.Center?.[i] ?? 0} style={{ width: 100, fontSize: 12 }}
+                      onChange={e => { const z = [...data.CircleZones]; const c = [...(z[idx].Center || [0, 0, 0])]; c[i] = Number(e.target.value); z[idx] = { ...z[idx], Center: c }; update('CircleZones', z); }} />
+                  </td>
+                ))}
+                <td style={{ padding: '6px 12px' }}>
+                  <input className="input" type="number" value={zone.Radius ?? 500} style={{ width: 80, fontSize: 12 }}
+                    onChange={e => { const z = [...data.CircleZones]; z[idx] = { ...z[idx], Radius: Number(e.target.value) }; update('CircleZones', z); }} />
+                </td>
+                <td style={{ padding: '6px 12px' }}>
+                  <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }}
+                    onClick={() => { const z = [...data.CircleZones]; z.splice(idx, 1); update('CircleZones', z); }}>
+                    <X size={12} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* Polygon Zones */}
+      <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{
+          padding: '10px 16px', fontWeight: 700, fontSize: 14,
+          borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-purple, #a78bfa)',
+          background: 'var(--bg-surface, var(--bg-deep))',
+        }}>
+          Polygon Zones ({(data.PolygonZones || []).length})
+        </div>
+        <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 13 }}>
+          {(data.PolygonZones || []).length === 0
+            ? 'No polygon zones defined.'
+            : `${data.PolygonZones.length} polygon zone(s) with ${data.PolygonZones.reduce((sum, z) => sum + (z.Positions?.length || 0), 0)} total vertices. Edit via raw JSON in the Files editor for complex polygon manipulation.`
+          }
+        </div>
+      </div>
+    </>
+  );
+}
+
+function HardlineSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  return (
+    <SettingsTable title="Hardline / Reputation" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={
+      Object.keys(data).filter(k => k !== 'm_Version').map(key => ({
+        key,
+        type: typeof data[key] === 'number' && (data[key] === 0 || data[key] === 1) && !key.includes('Reputation') && !key.includes('Max') && !key.includes('Default') ? 'toggle' : 'number',
+        description: key.replace(/([A-Z])/g, ' $1').trim(),
+      }))
+    } />
+  );
+}
+
+function MarketSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  return (
+    <>
+      <SettingsTable title="Market General" color="var(--accent-orange, #f59e0b)" data={data} onChange={onChange} fields={[
+        { key: 'MarketSystemEnabled', type: 'toggle', description: 'Enable the market/trader system' },
+        { key: 'CurrencyIcon', type: 'text', description: 'Currency icon path (.edds file)' },
+        { key: 'SellPricePercent', type: 'number', description: 'Default sell price as % of buy price' },
+        { key: 'NetworkBatchSize', type: 'number', description: 'Items sent per network batch' },
+        { key: 'MaxVehicleDistanceToTrader', type: 'number', description: 'Max vehicle distance to trader (meters)' },
+        { key: 'MaxLargeVehicleDistanceToTrader', type: 'number', description: 'Max large vehicle distance to trader (meters)' },
+      ]} />
+      <SettingsTable title="ATM / Banking" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+        { key: 'ATMSystemEnabled', type: 'toggle', description: 'Enable ATM machines' },
+        { key: 'MaxDepositMoney', type: 'number', description: 'Maximum deposit amount per transaction' },
+        { key: 'DefaultDepositMoney', type: 'number', description: 'Default deposit amount in ATM UI' },
+        { key: 'ATMPlayerTransferEnabled', type: 'toggle', description: 'Allow player-to-player money transfers' },
+        { key: 'ATMPartyLockerEnabled', type: 'toggle', description: 'Enable party locker in ATM' },
+        { key: 'MaxPartyDepositMoney', type: 'number', description: 'Maximum party locker deposit' },
+        { key: 'UseWholeMapForATMPlayerList', type: 'toggle', description: 'Show all players in ATM transfer list' },
+      ]} />
+    </>
+  );
+}
+
 // ─── Section router ─────────────────────────────────────────────────
 
 const SECTION_RENDERERS = {
@@ -977,6 +1260,11 @@ const SECTION_RENDERERS = {
   playerlist: PlayerListSection,
   damage: DamageSystemSection,
   social: SocialMediaSection,
+  map: MapSection,
+  basebuilding: BaseBuildingSection,
+  safezones: SafeZonesSection,
+  hardline: HardlineSection,
+  market: MarketSection,
 };
 
 // ─── Main Component ─────────────────────────────────────────────────
@@ -1166,16 +1454,23 @@ export default function ExpansionEditorPage({ serverId }) {
           flexDirection: 'column',
           gap: 2,
         }}>
-          {CATEGORIES.map(cat => {
+          {CATEGORIES.map((cat, idx) => {
             const fileName = fileMap[cat.id];
             const isActive = activeCategory === cat.id;
             const isModified = fileName && modifiedFiles.has(fileName);
             const meta = fileName ? rawConfigMeta[fileName] : null;
             const notFound = meta && meta.found === false;
+            const prevCat = idx > 0 ? CATEGORIES[idx - 1] : null;
+            const showSectionDivider = cat.section === 'Mission' && (!prevCat || prevCat.section !== 'Mission');
 
             return (
+              <React.Fragment key={cat.id}>
+              {showSectionDivider && (
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', padding: '12px 12px 4px', borderTop: '1px solid var(--border)', marginTop: 4 }}>
+                  Mission Folder
+                </div>
+              )}
               <button
-                key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
                 style={{
                   display: 'flex',
@@ -1208,6 +1503,7 @@ export default function ExpansionEditorPage({ serverId }) {
                   }}>N/A</span>
                 )}
               </button>
+              </React.Fragment>
             );
           })}
         </div>

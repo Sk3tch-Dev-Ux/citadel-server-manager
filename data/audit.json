@@ -1,5 +1,53 @@
 [
   {
+    "id": "7f019b19-b5ba-4b7e-a7d2-dbccc7203b09",
+    "timestamp": "2026-03-22T01:39:54.347Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: TestingHub"
+  },
+  {
+    "id": "19816637-194e-4d0d-abff-33ccd270f465",
+    "timestamp": "2026-03-22T01:38:40.879Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "economycore.update",
+    "details": "Updated cfgeconomycore.xml (1 CE folders)"
+  },
+  {
+    "id": "afd16fb9-b4a8-4256-ba1a-af2c76240f8b",
+    "timestamp": "2026-03-22T01:32:44.418Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "modconfig.save",
+    "details": "Saved ExpansionMod/Settings/GeneralSettings.json for DayZ Expansion on TestingHub"
+  },
+  {
+    "id": "1763bc4f-8510-4389-9eb1-c07dd65dbd21",
+    "timestamp": "2026-03-22T01:31:30.172Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: TestingHub"
+  },
+  {
+    "id": "10e71076-32b1-4594-9bb7-db99008dda9c",
+    "timestamp": "2026-03-22T01:31:24.176Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: DayZ Server"
+  },
+  {
+    "id": "abaec061-e184-4e5f-8d98-70e0a6415992",
+    "timestamp": "2026-03-22T01:28:39.863Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: TestingHub"
+  },
+  {
     "id": "2b24ac67-a362-4d94-b4ee-c9c7d976d7d4",
     "timestamp": "2026-03-22T01:25:01.300Z",
     "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
