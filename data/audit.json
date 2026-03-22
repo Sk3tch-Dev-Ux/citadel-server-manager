@@ -1,5 +1,29 @@
 [
   {
+    "id": "2b24ac67-a362-4d94-b4ee-c9c7d976d7d4",
+    "timestamp": "2026-03-22T01:25:01.300Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: TestingHub"
+  },
+  {
+    "id": "1b20b1eb-4b2c-4599-aacd-a5e5e4f03282",
+    "timestamp": "2026-03-22T01:21:56.568Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: DayZ Server"
+  },
+  {
+    "id": "cb0ecdc0-6771-4577-a4ab-49875b5fb90e",
+    "timestamp": "2026-03-22T01:21:51.252Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: TestingHub"
+  },
+  {
     "id": "90905338-dd34-4c38-88ea-1f4bd45e4812",
     "timestamp": "2026-03-22T01:06:49.297Z",
     "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",

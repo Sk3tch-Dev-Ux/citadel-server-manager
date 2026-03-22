@@ -82,6 +82,15 @@ function buildLaunchParams(gamePort, queryPort) {
  * Build a complete serverDZ.cfg with all essential settings.
  */
 function buildServerDZCfg(name, maxPlayers, map, queryPort) {
+  const template = map || 'chernarusplus';
+  // Map template names to proper mission folder names
+  const TEMPLATE_MAP = {
+    'chernarusplus': 'dayzOffline.chernarusplus',
+    'enoch': 'dayzOffline.enoch',
+    'sakhal': 'dayzOffline.sakhal',
+  };
+  const missionTemplate = TEMPLATE_MAP[template.toLowerCase()] || `dayzOffline.${template}`;
+
   return [
     `hostname = "${name}";`,
     `password = "";`,
@@ -91,8 +100,12 @@ function buildServerDZCfg(name, maxPlayers, map, queryPort) {
     `verifySignatures = 2;`,
     `forceSameBuild = 1;`,
     `disableThirdPerson = 0;`,
+    `disableCrosshair = 0;`,
+    `disablePersonalLight = 1;`,
+    `lightingConfig = 0;`,
     `serverTime = "SystemTime";`,
     `serverTimeAcceleration = 1;`,
+    `serverNightTimeAcceleration = 1;`,
     `serverTimePersistent = 0;`,
     `guaranteedUpdates = 1;`,
     `loginQueueConcurrentPlayers = 5;`,
@@ -102,7 +115,16 @@ function buildServerDZCfg(name, maxPlayers, map, queryPort) {
     `respawnTime = 5;`,
     `timeStampFormat = "Short";`,
     `allowFilePatching = 1;`,
-    `template = "${map || 'chernarusplus'}";`,
+    `disableVoN = 0;`,
+    `vonCodecQuality = 20;`,
+    ``,
+    `class Missions`,
+    `{`,
+    `    class DayZ`,
+    `    {`,
+    `        template = "${missionTemplate}";`,
+    `    };`,
+    `};`,
     ``,
   ].join('\n');
 }
