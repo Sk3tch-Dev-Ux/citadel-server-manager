@@ -388,7 +388,7 @@ function GeneralSection({ data, onChange }) {
           {data.UseHUDColors && data.HUDColors ? (
             <ColorTable title="HUD Color Values" color="var(--accent-purple, #a78bfa)"
               colorData={data.HUDColors}
-              onChange={newColors => upd({ ...data, HUDColors: newColors })}
+              onChange={newColors => upd('HUDColors', newColors)}
               descriptions={{
                 StaminaBarColor: 'Stamina bar color',
                 StaminaBarColorHalf: 'Stamina bar half color',
@@ -1065,7 +1065,7 @@ function ChatSection({ data, onChange }) {
   const update = (key, val) => onChange({ ...data, [key]: val });
   return (
     <>
-      <SettingsTable title="Chat Channels" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Chat Channels" color="var(--accent-blue)" data={data} onChange={update} fields={[
         { key: 'EnableGlobalChat', type: 'toggle', description: 'Enable global chat channel' },
         { key: 'EnablePartyChat', type: 'toggle', description: 'Enable party/group chat channel' },
         { key: 'EnableTransportChat', type: 'toggle', description: 'Enable transport chat channel' },
@@ -1101,9 +1101,10 @@ function ChatSection({ data, onChange }) {
 
 function QuestSettingsSection({ data, onChange }) {
   if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
   return (
     <>
-      <SettingsTable title="Quest System" color="var(--accent-orange, #f59e0b)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Quest System" color="var(--accent-orange, #f59e0b)" data={data} onChange={update} fields={[
         { key: 'EnableQuests', type: 'toggle', description: 'Enable the quest system' },
         { key: 'EnableQuestLogTab', type: 'toggle', description: 'Show quest log tab in menu' },
         { key: 'CreateQuestNPCMarkers', type: 'toggle', description: 'Create map markers for quest NPCs' },
@@ -1116,7 +1117,7 @@ function QuestSettingsSection({ data, onChange }) {
           { value: 2, label: '2 - All members accept/turn-in' },
         ]},
       ]} />
-      <SettingsTable title="Reset Schedule" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Reset Schedule" color="var(--accent-purple, #a78bfa)" data={data} onChange={update} fields={[
         { key: 'WeeklyResetDay', type: 'select', description: 'Day of the week for weekly quest reset', options: [
           { value: 'Sunday', label: 'Sunday' }, { value: 'Monday', label: 'Monday' },
           { value: 'Tuesday', label: 'Tuesday' }, { value: 'Wednesday', label: 'Wednesday' },
@@ -1128,7 +1129,7 @@ function QuestSettingsSection({ data, onChange }) {
         { key: 'DailyResetHour', type: 'number', description: 'Hour for daily quest reset (0-23)' },
         { key: 'DailyResetMinute', type: 'number', description: 'Minute for daily reset (0-59)' },
       ]} />
-      <SettingsTable title="Quest Messages" color="var(--text-muted)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Quest Messages" color="var(--text-muted)" data={data} onChange={update} fields={[
         { key: 'QuestAcceptedTitle', type: 'text', description: 'Title shown when quest accepted' },
         { key: 'QuestAcceptedText', type: 'text', description: 'Text shown when quest accepted (%1 = quest name)' },
         { key: 'QuestCompletedTitle', type: 'text', description: 'Title when all objectives completed' },
@@ -1161,7 +1162,7 @@ function GarageSection({ data, onChange }) {
   const update = (key, val) => onChange({ ...data, [key]: val });
   return (
     <>
-      <SettingsTable title="Garage General" color="var(--accent-green)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Garage General" color="var(--accent-green)" data={data} onChange={update} fields={[
         { key: 'Enabled', type: 'toggle', description: 'Enable the vehicle garage system' },
         { key: 'GarageMode', type: 'number', description: 'Garage mode (0=default)' },
         { key: 'GarageStoreMode', type: 'number', description: 'Store mode (0=default)' },
@@ -1174,14 +1175,14 @@ function GarageSection({ data, onChange }) {
         { key: 'NeedKeyToStore', type: 'toggle', description: 'Require vehicle key to store' },
         { key: 'AllowStoringDEVehicles', type: 'toggle', description: 'Allow storing DE (vanilla) vehicles' },
       ]} />
-      <SettingsTable title="Group & Market Features" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Group & Market Features" color="var(--accent-blue)" data={data} onChange={update} fields={[
         { key: 'EnableGroupFeatures', type: 'toggle', description: 'Enable group garage features' },
         { key: 'GroupStoreMode', type: 'number', description: 'Group store mode (0=disabled, 1=owner, 2=all members)' },
         { key: 'EnableMarketFeatures', type: 'toggle', description: 'Enable market integration for garage' },
         { key: 'StorePricePercent', type: 'number', description: 'Store price as % of vehicle value' },
         { key: 'StaticStorePrice', type: 'number', description: 'Static store price (0=use percent)' },
       ]} />
-      <SettingsTable title="Tier Limits" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Tier Limits" color="var(--accent-purple, #a78bfa)" data={data} onChange={update} fields={[
         { key: 'MaxStorableTier1', type: 'number', description: 'Max storable vehicles for Tier 1' },
         { key: 'MaxStorableTier2', type: 'number', description: 'Max storable vehicles for Tier 2' },
         { key: 'MaxStorableTier3', type: 'number', description: 'Max storable vehicles for Tier 3' },
@@ -1278,7 +1279,7 @@ function AirdropSection({ data, onChange }) {
   return (
     <>
       {/* Global airdrop settings */}
-      <SettingsTable title="Airdrop Flight Settings" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Airdrop Flight Settings" color="var(--accent-blue)" data={data} onChange={update} fields={[
         { key: 'ServerMarkerOnDropLocation', type: 'toggle', description: 'Show map marker on drop location' },
         { key: 'Server3DMarkerOnDropLocation', type: 'toggle', description: 'Show 3D marker on drop location' },
         { key: 'ShowAirdropTypeOnMarker', type: 'toggle', description: 'Show container type on marker' },
@@ -1601,7 +1602,7 @@ function MapSection({ data, onChange }) {
   const update = (key, val) => onChange({ ...data, [key]: val });
   return (
     <>
-      <SettingsTable title="Map General" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Map General" color="var(--accent-blue)" data={data} onChange={update} fields={[
         { key: 'EnableMap', type: 'toggle', description: 'Enable Expansion colored map (0 = vanilla white map)' },
         { key: 'UseMapOnMapItem', type: 'toggle', description: 'Use Expansion map UI for map items' },
         { key: 'ShowPlayerPosition', type: 'number', description: 'Show player position (0=hidden, 1=always, 2=compass only)' },
@@ -1611,7 +1612,7 @@ function MapSection({ data, onChange }) {
         { key: 'CreateDeathMarker', type: 'toggle', description: 'Auto-mark death location on map' },
         { key: 'PlayerLocationNotifier', type: 'toggle', description: 'Show town name/time notifications' },
       ]} />
-      <SettingsTable title="Markers" color="var(--accent-green)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Markers" color="var(--accent-green)" data={data} onChange={update} fields={[
         { key: 'CanCreateMarker', type: 'toggle', description: 'Allow players to create markers' },
         { key: 'CanCreate3DMarker', type: 'toggle', description: 'Allow 3D markers visible in-world' },
         { key: 'NeedPenItemForCreateMarker', type: 'toggle', description: 'Require pen item to create markers' },
@@ -1621,7 +1622,7 @@ function MapSection({ data, onChange }) {
         { key: 'ShowNameOnServerMarkers', type: 'toggle', description: 'Show names on server markers' },
         { key: 'ShowDistanceOnServerMarkers', type: 'toggle', description: 'Show distance on server markers' },
       ]} />
-      <SettingsTable title="GPS & Compass" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="GPS & Compass" color="var(--accent-purple, #a78bfa)" data={data} onChange={update} fields={[
         { key: 'EnableHUDGPS', type: 'toggle', description: 'Enable GPS HUD (N key)' },
         { key: 'NeedGPSItemForKeyBinding', type: 'toggle', description: 'Require GPS item for HUD GPS' },
         { key: 'EnableHUDCompass', type: 'toggle', description: 'Enable compass at top of screen' },
@@ -1692,7 +1693,7 @@ function MapSection({ data, onChange }) {
               </tr>
             </thead>
             <tbody>
-              {data.ServerMarkers.map((marker, idx) => (
+              {(data.ServerMarkers || []).map((marker, idx) => (
                 <tr key={idx}>
                   <td style={{ padding: '6px 12px' }}>
                     <input className="input" value={marker.m_UID || ''} style={{ width: '100%', fontSize: 12 }}
@@ -1746,14 +1747,14 @@ function BaseBuildingSection({ data, onChange }) {
   const update = (key, val) => onChange({ ...data, [key]: val });
   return (
     <>
-      <SettingsTable title="Build Permissions" color="var(--accent-green)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Build Permissions" color="var(--accent-green)" data={data} onChange={update} fields={[
         { key: 'CanBuildAnywhere', type: 'toggle', description: 'Allow building anywhere on the map' },
         { key: 'AllowBuildingWithoutATerritory', type: 'toggle', description: 'Allow building without a territory flag' },
         { key: 'CanCraftVanillaBasebuilding', type: 'toggle', description: 'Allow crafting vanilla base building items' },
         { key: 'CanCraftExpansionBasebuilding', type: 'toggle', description: 'Allow crafting Expansion base building items' },
         { key: 'CanCraftTerritoryFlagKit', type: 'toggle', description: 'Allow crafting territory flag kits' },
       ]} />
-      <SettingsTable title="Territory Flags" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Territory Flags" color="var(--accent-purple, #a78bfa)" data={data} onChange={update} fields={[
         { key: 'SimpleTerritory', type: 'toggle', description: 'Use simplified territory system' },
         { key: 'AutomaticFlagOnCreation', type: 'toggle', description: 'Auto-place flag when creating territory' },
         { key: 'GetTerritoryFlagKitAfterBuild', type: 'toggle', description: 'Return flag kit after building' },
@@ -1761,7 +1762,7 @@ function BaseBuildingSection({ data, onChange }) {
         { key: 'DismantleFlagMode', type: 'number', description: 'Flag dismantle mode (1=enabled)' },
         { key: 'FlagMenuMode', type: 'number', description: 'Flag menu mode (1=enabled)' },
       ]} />
-      <SettingsTable title="Dismantling & Code Locks" color="var(--accent-orange, #f59e0b)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Dismantling & Code Locks" color="var(--accent-orange, #f59e0b)" data={data} onChange={update} fields={[
         { key: 'DismantleOutsideTerritory', type: 'toggle', description: 'Allow dismantling outside territories' },
         { key: 'DismantleInsideTerritory', type: 'toggle', description: 'Allow dismantling inside territories' },
         { key: 'DismantleAnywhere', type: 'toggle', description: 'Allow dismantling anywhere' },
@@ -1772,7 +1773,7 @@ function BaseBuildingSection({ data, onChange }) {
         { key: 'DamageWhenEnterWrongCodeLock', type: 'number', description: 'Damage dealt per wrong code (HP)' },
         { key: 'RememberCode', type: 'toggle', description: 'Remember entered code for the session' },
       ]} />
-      <SettingsTable title="Virtual Storage & Misc" color="var(--text-muted)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Virtual Storage & Misc" color="var(--text-muted)" data={data} onChange={update} fields={[
         { key: 'ZonesAreNoBuildZones', type: 'toggle', description: 'Defined zones are no-build zones' },
         { key: 'PreventItemAccessThroughObstructingItems', type: 'toggle', description: 'Block item access through walls/objects' },
         { key: 'EnableVirtualStorage', type: 'toggle', description: 'Enable virtual storage system' },
@@ -1791,7 +1792,7 @@ function SafeZonesSection({ data, onChange }) {
   const update = (key, val) => onChange({ ...data, [key]: val });
   return (
     <>
-      <SettingsTable title="Safe Zone General" color="var(--accent-green)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Safe Zone General" color="var(--accent-green)" data={data} onChange={update} fields={[
         { key: 'Enabled', type: 'toggle', description: 'Enable the safe zone system' },
         { key: 'FrameRateCheckSafeZoneInMs', type: 'number', description: 'Frame rate check interval (0 = default)' },
         { key: 'ActorsPerTick', type: 'number', description: 'Actors processed per server tick' },
@@ -1910,8 +1911,9 @@ function SafeZonesSection({ data, onChange }) {
 
 function HardlineSection({ data, onChange }) {
   if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
   return (
-    <SettingsTable title="Hardline / Reputation" color="var(--accent-purple, #a78bfa)" data={data} onChange={onChange} fields={
+    <SettingsTable title="Hardline / Reputation" color="var(--accent-purple, #a78bfa)" data={data} onChange={update} fields={
       Object.keys(data).filter(k => k !== 'm_Version').map(key => ({
         key,
         type: typeof data[key] === 'number' && (data[key] === 0 || data[key] === 1) && !key.includes('Reputation') && !key.includes('Max') && !key.includes('Default') ? 'toggle' : 'number',
@@ -1923,9 +1925,10 @@ function HardlineSection({ data, onChange }) {
 
 function MarketSection({ data, onChange }) {
   if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
   return (
     <>
-      <SettingsTable title="Market General" color="var(--accent-orange, #f59e0b)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="Market General" color="var(--accent-orange, #f59e0b)" data={data} onChange={update} fields={[
         { key: 'MarketSystemEnabled', type: 'toggle', description: 'Enable the market/trader system' },
         { key: 'CurrencyIcon', type: 'text', description: 'Currency icon path (.edds file)' },
         { key: 'SellPricePercent', type: 'number', description: 'Default sell price as % of buy price' },
@@ -1933,7 +1936,7 @@ function MarketSection({ data, onChange }) {
         { key: 'MaxVehicleDistanceToTrader', type: 'number', description: 'Max vehicle distance to trader (meters)' },
         { key: 'MaxLargeVehicleDistanceToTrader', type: 'number', description: 'Max large vehicle distance to trader (meters)' },
       ]} />
-      <SettingsTable title="ATM / Banking" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+      <SettingsTable title="ATM / Banking" color="var(--accent-blue)" data={data} onChange={update} fields={[
         { key: 'ATMSystemEnabled', type: 'toggle', description: 'Enable ATM machines' },
         { key: 'MaxDepositMoney', type: 'number', description: 'Maximum deposit amount per transaction' },
         { key: 'DefaultDepositMoney', type: 'number', description: 'Default deposit amount in ATM UI' },
@@ -2402,9 +2405,9 @@ function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
             const npc = npcs.find(n => String(n.ID ?? n.ConfigName) === id);
             if (npc) startEdit(npc);
           }}
-          onMarkerMove={editingId != null ? (id, pos) => {
+          onMarkerMove={editingId != null ? (id, x, z) => {
             if (String(editingId) === id) {
-              npcUpd('Position', [pos.x, editData?.Position?.[1] || 0, pos.z]);
+              npcUpd('Position', [x, editData?.Position?.[1] || 0, z]);
             }
           } : undefined}
           mode={editingId != null ? 'view' : 'view'}
