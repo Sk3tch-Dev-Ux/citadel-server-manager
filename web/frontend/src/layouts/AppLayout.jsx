@@ -206,6 +206,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
 
   const modConfigItems = [
     { id: 'mod-configs', icon: <Puzzle size={16} />, label: 'Mod Configs' },
+    { id: 'expansion', icon: <Puzzle size={16} />, label: 'Expansion' },
   ];
 
   const configItems = [

@@ -2,59 +2,117 @@
   "modName": "DayZ Expansion",
   "description": "The most popular DayZ mod suite — traders, territories, vehicles, AI, hardline, and more.",
   "workshopId": "2572331007",
+  "dedicated": true,
   "configFiles": [
     {
       "fileName": "ExpansionMod/Settings/GeneralSettings.json",
-      "displayName": "General Settings",
-      "description": "Core expansion settings — enable/disable modules, map markers, notifications",
-      "schemaFile": "GeneralSettings.schema.json"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/MarketSettings.json",
-      "displayName": "Market Settings",
-      "description": "Market/trader zone positions, ATM locations, trading parameters",
-      "schemaFile": "MarketSettings.schema.json"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/TerritorySettings.json",
-      "displayName": "Territory Settings",
-      "description": "Territory flag rules, build limits, object caps",
-      "schemaFile": "TerritorySettings.schema.json"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/BaseBuilding.json",
-      "displayName": "Base Building",
-      "description": "Base building rules, raiding settings, damage multipliers"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/HardlineSettings.json",
-      "displayName": "Hardline Settings",
-      "description": "Reputation/hardline system — factions, tiers, rewards"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/AISettings.json",
-      "displayName": "AI Settings",
-      "description": "AI patrol configuration, guard settings, loadouts"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/VehicleSettings.json",
-      "displayName": "Vehicle Settings",
-      "description": "Vehicle spawn and behavior settings"
+      "displayName": "General",
+      "description": "Core settings — lamps, gravecross, mapping, HUD, death screen"
     },
     {
       "fileName": "ExpansionMod/Settings/NotificationSettings.json",
-      "displayName": "Notification Settings",
-      "description": "In-game notification configuration"
+      "displayName": "Notifications",
+      "description": "Player join/leave alerts, airdrop notifications, kill feed toggles"
     },
     {
-      "fileName": "ExpansionMod/Settings/SpawnSettings.json",
-      "displayName": "Spawn Settings",
-      "description": "Player spawn selection, spawn points, loadouts"
+      "fileName": "ExpansionMod/Settings/PartySettings.json",
+      "displayName": "Party",
+      "description": "Group system — member limits, markers, HUD, quick markers"
     },
     {
-      "fileName": "ExpansionMod/Settings/MapSettings.json",
-      "displayName": "Map Settings",
-      "description": "Map markers, GPS, 3D markers, compass settings"
+      "fileName": "ExpansionMod/Settings/TerritorySettings.json",
+      "displayName": "Territories",
+      "description": "Territory flags — size, members, code locks, invite settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/NameTagsSettings.json",
+      "displayName": "Name Tags",
+      "description": "Player name tags — visibility, range, colors, safe zone restrictions"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/LogsSettings.json",
+      "displayName": "Logs",
+      "description": "Server logging — toggle logs per feature module"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/AirdropSettings.json",
+      "displayName": "Airdrops",
+      "description": "Airdrop system — flight settings, containers, loot tables, infected spawns"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/CoreSettings.json",
+      "displayName": "Core",
+      "description": "Server update rate, CE item lifetime, inventory tidy"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/ChatSettings.json",
+      "displayName": "Chat",
+      "description": "Chat system settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/DamageSystemSettings.json",
+      "displayName": "Damage System",
+      "description": "Explosion targets, blocking objects"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/GarageSettings.json",
+      "displayName": "Garage",
+      "description": "Vehicle garage system settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/MissionSettings.json",
+      "displayName": "Missions",
+      "description": "AI mission system settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/MonitoringSettings.json",
+      "displayName": "Monitoring",
+      "description": "Server monitoring settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/PlayerListSettings.json",
+      "displayName": "Player List",
+      "description": "In-game player list visibility and tooltips"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/QuestSettings.json",
+      "displayName": "Quests",
+      "description": "Quest system settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/RaidSettings.json",
+      "displayName": "Raiding",
+      "description": "Base raiding — explosives, tools, safe raiding, lock raiding"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/SocialMediaSettings.json",
+      "displayName": "Social Media",
+      "description": "News feed texts and social media links in pause menu"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/VehicleSettings.json",
+      "displayName": "Vehicles",
+      "description": "Vehicle system settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/AISettings.json",
+      "displayName": "AI",
+      "description": "AI system settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/BookSettings.json",
+      "displayName": "Book",
+      "description": "In-game book/server info settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/PersonalStorageNewSettings.json",
+      "displayName": "Personal Storage",
+      "description": "Personal storage system settings"
+    },
+    {
+      "fileName": "ExpansionMod/Settings/NotificationSchedulerSettings.json",
+      "displayName": "Notification Scheduler",
+      "description": "Scheduled notification settings"
     }
   ]
 }

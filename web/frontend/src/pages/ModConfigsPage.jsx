@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import SchemaEditor from '../components/SchemaEditor';
 import JsonConfigEditor from '../components/JsonConfigEditor';
@@ -14,6 +15,7 @@ import { Puzzle, ArrowLeft, Save, RotateCcw } from '../components/Icon';
  *   B) Editor View (when a mod is selected) — config file tabs with schema or raw editor
  */
 export default function ModConfigsPage({ serverId }) {
+  const navigate = useNavigate();
   const [selectedMod, setSelectedMod] = useState(null);
   const [modList, setModList] = useState({ installed: [], available: [] });
   const [modData, setModData] = useState(null);
@@ -87,12 +89,17 @@ export default function ModConfigsPage({ serverId }) {
   });
 
   const handleSelectMod = useCallback((schemaId) => {
+    // Redirect to dedicated editor for Expansion
+    if (schemaId === 'expansion') {
+      navigate(`/servers/${serverId}/expansion`);
+      return;
+    }
     setSelectedMod(schemaId);
     setActiveTab(null);
     setModData(null);
     setEditedData({});
     setModified({});
-  }, []);
+  }, [navigate, serverId]);
 
   const handleBack = useCallback(() => {
     setSelectedMod(null);
