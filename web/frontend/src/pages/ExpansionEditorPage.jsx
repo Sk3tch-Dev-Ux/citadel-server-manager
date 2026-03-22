@@ -17,6 +17,7 @@ const CATEGORIES = [
   { id: 'playerlist', label: 'Player List', fileKey: 'PlayerListSettings.json', color: 'var(--accent-green)' },
   { id: 'damage', label: 'Damage System', fileKey: 'DamageSystemSettings.json', color: 'var(--accent-red)' },
   { id: 'social', label: 'Social Media', fileKey: 'SocialMediaSettings.json', color: 'var(--accent-orange, #f59e0b)' },
+  { id: 'airdrops', label: 'Airdrops', fileKey: 'AirdropSettings.json', color: 'var(--accent-blue)' },
   // Mission-folder configs
   { id: 'map', label: 'Map', fileKey: 'MapSettings.json', color: 'var(--accent-blue)', section: 'Mission' },
   { id: 'basebuilding', label: 'Base Building', fileKey: 'BaseBuildingSettings.json', color: 'var(--accent-green)', section: 'Mission' },
@@ -969,6 +970,404 @@ function NoData() {
   );
 }
 
+// ─── Airdrop section ─────────────────────────────────────────────────
+
+function AirdropSection({ data, onChange }) {
+  if (!data) return <NoData />;
+  const [expandedContainer, setExpandedContainer] = useState(null);
+  const [expandedLoot, setExpandedLoot] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const update = (key, val) => onChange({ ...data, [key]: val });
+
+  const updateContainer = (idx, key, val) => {
+    const containers = [...data.Containers];
+    containers[idx] = { ...containers[idx], [key]: val };
+    update('Containers', containers);
+  };
+
+  const updateLootItem = (containerIdx, lootIdx, key, val) => {
+    const containers = [...data.Containers];
+    const loot = [...containers[containerIdx].Loot];
+    loot[lootIdx] = { ...loot[lootIdx], [key]: val };
+    containers[containerIdx] = { ...containers[containerIdx], Loot: loot };
+    update('Containers', containers);
+  };
+
+  const addLootItem = (containerIdx) => {
+    const containers = [...data.Containers];
+    const loot = [...(containers[containerIdx].Loot || [])];
+    loot.push({ Name: 'NewItem', Chance: 0.5, Attachments: [], QuantityPercent: -1, Max: -1, Min: 0, Variants: [] });
+    containers[containerIdx] = { ...containers[containerIdx], Loot: loot };
+    update('Containers', containers);
+  };
+
+  const removeLootItem = (containerIdx, lootIdx) => {
+    const containers = [...data.Containers];
+    const loot = [...containers[containerIdx].Loot];
+    loot.splice(lootIdx, 1);
+    containers[containerIdx] = { ...containers[containerIdx], Loot: loot };
+    update('Containers', containers);
+  };
+
+  const addAttachment = (containerIdx, lootIdx) => {
+    const containers = [...data.Containers];
+    const loot = [...containers[containerIdx].Loot];
+    const attachments = [...(loot[lootIdx].Attachments || [])];
+    attachments.push({ Name: 'NewAttachment', Chance: 1.0, Attachments: [] });
+    loot[lootIdx] = { ...loot[lootIdx], Attachments: attachments };
+    containers[containerIdx] = { ...containers[containerIdx], Loot: loot };
+    update('Containers', containers);
+  };
+
+  const removeAttachment = (containerIdx, lootIdx, attachIdx) => {
+    const containers = [...data.Containers];
+    const loot = [...containers[containerIdx].Loot];
+    const attachments = [...loot[lootIdx].Attachments];
+    attachments.splice(attachIdx, 1);
+    loot[lootIdx] = { ...loot[lootIdx], Attachments: attachments };
+    containers[containerIdx] = { ...containers[containerIdx], Loot: loot };
+    update('Containers', containers);
+  };
+
+  const addVariant = (containerIdx, lootIdx) => {
+    const containers = [...data.Containers];
+    const loot = [...containers[containerIdx].Loot];
+    const variants = [...(loot[lootIdx].Variants || [])];
+    variants.push({ Name: loot[lootIdx].Name || 'Variant', Chance: 0.5, Attachments: [] });
+    loot[lootIdx] = { ...loot[lootIdx], Variants: variants };
+    containers[containerIdx] = { ...containers[containerIdx], Loot: loot };
+    update('Containers', containers);
+  };
+
+  const removeVariant = (containerIdx, lootIdx, varIdx) => {
+    const containers = [...data.Containers];
+    const loot = [...containers[containerIdx].Loot];
+    const variants = [...loot[lootIdx].Variants];
+    variants.splice(varIdx, 1);
+    loot[lootIdx] = { ...loot[lootIdx], Variants: variants };
+    containers[containerIdx] = { ...containers[containerIdx], Loot: loot };
+    update('Containers', containers);
+  };
+
+  return (
+    <>
+      {/* Global airdrop settings */}
+      <SettingsTable title="Airdrop Flight Settings" color="var(--accent-blue)" data={data} onChange={onChange} fields={[
+        { key: 'ServerMarkerOnDropLocation', type: 'toggle', description: 'Show map marker on drop location' },
+        { key: 'Server3DMarkerOnDropLocation', type: 'toggle', description: 'Show 3D marker on drop location' },
+        { key: 'ShowAirdropTypeOnMarker', type: 'toggle', description: 'Show container type on marker' },
+        { key: 'HideCargoWhileParachuteIsDeployed', type: 'toggle', description: 'Hide cargo while parachute is open' },
+        { key: 'HeightIsRelativeToGroundLevel', type: 'toggle', description: 'Height is relative to ground (not sea level)' },
+        { key: 'Height', type: 'number', description: 'Flight altitude (meters)' },
+        { key: 'DropZoneHeight', type: 'number', description: 'Drop zone altitude (meters)' },
+        { key: 'FollowTerrainFraction', type: 'number', description: 'Terrain following (0=none, 1=full)' },
+        { key: 'Speed', type: 'number', description: 'Flight speed' },
+        { key: 'DropZoneSpeed', type: 'number', description: 'Drop zone speed' },
+        { key: 'Radius', type: 'number', description: 'Drop radius' },
+        { key: 'InfectedSpawnRadius', type: 'number', description: 'Infected spawn radius around drop (meters)' },
+        { key: 'InfectedSpawnInterval', type: 'number', description: 'Infected spawn interval (ms)' },
+        { key: 'ItemCount', type: 'number', description: 'Default item count per container' },
+        { key: 'DropZoneProximityDistance', type: 'number', description: 'Drop zone proximity distance (meters)' },
+        { key: 'ExplodeAirVehiclesOnCollision', type: 'toggle', description: 'Explode air vehicles on collision with airdrop plane' },
+        { key: 'AirdropPlaneClassName', type: 'text', description: 'Custom plane class name (empty = default)' },
+      ]} />
+
+      {/* Containers */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Airdrop Containers ({(data.Containers || []).length})</h3>
+          <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 12 }}
+            onClick={() => {
+              const containers = [...(data.Containers || [])];
+              containers.push({ Container: 'ExpansionAirdropContainer', FallSpeed: 4.5, Usage: 0, Weight: 1.0, ItemCount: 25, InfectedCount: 10, SpawnInfectedForPlayerCalledDrops: 0, ExplodeAirVehiclesOnCollision: 0, Infected: [], Loot: [] });
+              update('Containers', containers);
+            }}>
+            <Plus size={12} /> Add Container
+          </button>
+        </div>
+
+        {(data.Containers || []).map((container, cIdx) => {
+          const isExpanded = expandedContainer === cIdx;
+          const lootCount = container.Loot?.length || 0;
+          const infectedCount = container.Infected?.length || 0;
+
+          return (
+            <div key={cIdx} className="card" style={{ overflow: 'hidden', marginBottom: 12 }}>
+              {/* Container header */}
+              <div
+                onClick={() => setExpandedContainer(isExpanded ? null : cIdx)}
+                style={{
+                  padding: '12px 16px',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  cursor: 'pointer',
+                  borderBottom: isExpanded ? '1px solid var(--border)' : 'none',
+                  background: 'var(--bg-surface, var(--bg-deep))',
+                }}
+              >
+                <ChevronRight size={14} style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', color: 'var(--text-muted)' }} />
+                <span style={{ fontWeight: 600, fontSize: 14, flex: 1 }}>{container.Container}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{lootCount} items</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{infectedCount} infected</span>
+                <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }}
+                  onClick={e => { e.stopPropagation(); const c = [...data.Containers]; c.splice(cIdx, 1); update('Containers', c); }}>
+                  <X size={12} />
+                </button>
+              </div>
+
+              {isExpanded && (
+                <div style={{ padding: 16 }}>
+                  {/* Container settings */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
+                    {[
+                      { key: 'Container', label: 'Class Name', type: 'text' },
+                      { key: 'FallSpeed', label: 'Fall Speed', type: 'number' },
+                      { key: 'Usage', label: 'Usage', type: 'number' },
+                      { key: 'Weight', label: 'Weight', type: 'number' },
+                      { key: 'ItemCount', label: 'Item Count', type: 'number' },
+                      { key: 'InfectedCount', label: 'Infected Count', type: 'number' },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                        <input className="input" type={f.type === 'number' ? 'number' : 'text'}
+                          value={container[f.key] ?? ''} style={{ width: '100%', fontSize: 13 }}
+                          onChange={e => updateContainer(cIdx, f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)} />
+                      </div>
+                    ))}
+                    <div>
+                      <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Spawn Infected (Player Drops)</label>
+                      <button onClick={() => updateContainer(cIdx, 'SpawnInfectedForPlayerCalledDrops', container.SpawnInfectedForPlayerCalledDrops ? 0 : 1)}
+                        style={{ padding: '4px 14px', fontSize: 12, fontWeight: 600, borderRadius: 4, border: '1px solid var(--border)', cursor: 'pointer',
+                          background: container.SpawnInfectedForPlayerCalledDrops ? 'var(--accent-green)' : 'var(--bg-elevated, var(--bg-card))',
+                          color: container.SpawnInfectedForPlayerCalledDrops ? '#fff' : 'var(--text-muted)' }}>
+                        {container.SpawnInfectedForPlayerCalledDrops ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Loot table */}
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <h4 style={{ margin: 0, fontSize: 14 }}>Loot Table ({lootCount} items)</h4>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input className="input" placeholder="Search items..." value={searchText}
+                          onChange={e => setSearchText(e.target.value)}
+                          style={{ width: 180, fontSize: 12, padding: '4px 8px' }} />
+                        <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 11 }}
+                          onClick={() => addLootItem(cIdx)}>
+                          <Plus size={12} /> Add Item
+                        </button>
+                      </div>
+                    </div>
+
+                    <table className="table" style={{ width: '100%', fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th style={{ padding: '6px 10px', width: 30 }}></th>
+                          <th style={{ padding: '6px 10px' }}>Item Name</th>
+                          <th style={{ padding: '6px 10px', width: 80 }}>Chance</th>
+                          <th style={{ padding: '6px 10px', width: 60 }}>Qty%</th>
+                          <th style={{ padding: '6px 10px', width: 50 }}>Min</th>
+                          <th style={{ padding: '6px 10px', width: 50 }}>Max</th>
+                          <th style={{ padding: '6px 10px', width: 40 }}>Att</th>
+                          <th style={{ padding: '6px 10px', width: 40 }}>Var</th>
+                          <th style={{ padding: '6px 10px', width: 40 }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(container.Loot || [])
+                          .map((item, lIdx) => ({ item, lIdx }))
+                          .filter(({ item }) => !searchText || item.Name?.toLowerCase().includes(searchText.toLowerCase()))
+                          .map(({ item, lIdx }) => {
+                            const lootKey = `${cIdx}-${lIdx}`;
+                            const isLootExpanded = expandedLoot === lootKey;
+                            const hasAttach = item.Attachments?.length > 0;
+                            const hasVariants = item.Variants?.length > 0;
+
+                            return (
+                              <React.Fragment key={lIdx}>
+                                <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedLoot(isLootExpanded ? null : lootKey)}>
+                                  <td style={{ padding: '4px 10px' }}>
+                                    <ChevronRight size={11} style={{ transform: isLootExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', color: 'var(--text-muted)' }} />
+                                  </td>
+                                  <td style={{ padding: '4px 10px' }}>
+                                    <input className="input" value={item.Name || ''} style={{ width: '100%', fontSize: 12, padding: '2px 6px' }}
+                                      onClick={e => e.stopPropagation()}
+                                      onChange={e => updateLootItem(cIdx, lIdx, 'Name', e.target.value)} />
+                                  </td>
+                                  <td style={{ padding: '4px 10px' }}>
+                                    <input className="input" type="number" step="0.01" min="0" max="1" value={item.Chance ?? 0.5}
+                                      style={{ width: 70, fontSize: 12, padding: '2px 6px' }}
+                                      onClick={e => e.stopPropagation()}
+                                      onChange={e => updateLootItem(cIdx, lIdx, 'Chance', Number(e.target.value))} />
+                                  </td>
+                                  <td style={{ padding: '4px 10px' }}>
+                                    <input className="input" type="number" value={item.QuantityPercent ?? -1}
+                                      style={{ width: 50, fontSize: 12, padding: '2px 6px' }}
+                                      onClick={e => e.stopPropagation()}
+                                      onChange={e => updateLootItem(cIdx, lIdx, 'QuantityPercent', Number(e.target.value))} />
+                                  </td>
+                                  <td style={{ padding: '4px 10px' }}>
+                                    <input className="input" type="number" value={item.Min ?? 0}
+                                      style={{ width: 40, fontSize: 12, padding: '2px 6px' }}
+                                      onClick={e => e.stopPropagation()}
+                                      onChange={e => updateLootItem(cIdx, lIdx, 'Min', Number(e.target.value))} />
+                                  </td>
+                                  <td style={{ padding: '4px 10px' }}>
+                                    <input className="input" type="number" value={item.Max ?? -1}
+                                      style={{ width: 40, fontSize: 12, padding: '2px 6px' }}
+                                      onClick={e => e.stopPropagation()}
+                                      onChange={e => updateLootItem(cIdx, lIdx, 'Max', Number(e.target.value))} />
+                                  </td>
+                                  <td style={{ padding: '4px 10px', textAlign: 'center', color: hasAttach ? 'var(--accent-blue)' : 'var(--text-muted)', fontSize: 11 }}>
+                                    {item.Attachments?.length || 0}
+                                  </td>
+                                  <td style={{ padding: '4px 10px', textAlign: 'center', color: hasVariants ? 'var(--accent-purple, #a78bfa)' : 'var(--text-muted)', fontSize: 11 }}>
+                                    {item.Variants?.length || 0}
+                                  </td>
+                                  <td style={{ padding: '4px 10px' }}>
+                                    <button className="btn btn-danger" style={{ padding: '1px 6px', fontSize: 10 }}
+                                      onClick={e => { e.stopPropagation(); removeLootItem(cIdx, lIdx); }}>
+                                      <X size={10} />
+                                    </button>
+                                  </td>
+                                </tr>
+
+                                {isLootExpanded && (
+                                  <tr>
+                                    <td colSpan={9} style={{ padding: 0 }}>
+                                      <div style={{ padding: '12px 16px 12px 40px', background: 'var(--bg-deep, var(--bg-surface))', borderTop: '1px solid var(--border)' }}>
+                                        {/* Attachments */}
+                                        <div style={{ marginBottom: 12 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-blue)' }}>Attachments ({item.Attachments?.length || 0})</span>
+                                            <button className="btn btn-secondary" style={{ padding: '1px 8px', fontSize: 10 }}
+                                              onClick={() => addAttachment(cIdx, lIdx)}>
+                                              <Plus size={10} /> Add
+                                            </button>
+                                          </div>
+                                          {(item.Attachments || []).map((att, aIdx) => (
+                                            <div key={aIdx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                                              <input className="input" value={att.Name || ''} placeholder="Attachment name"
+                                                style={{ flex: 1, fontSize: 12, padding: '2px 6px' }}
+                                                onChange={e => {
+                                                  const containers = [...data.Containers];
+                                                  const loot = [...containers[cIdx].Loot];
+                                                  const attachments = [...loot[lIdx].Attachments];
+                                                  attachments[aIdx] = { ...attachments[aIdx], Name: e.target.value };
+                                                  loot[lIdx] = { ...loot[lIdx], Attachments: attachments };
+                                                  containers[cIdx] = { ...containers[cIdx], Loot: loot };
+                                                  update('Containers', containers);
+                                                }} />
+                                              <input className="input" type="number" step="0.01" min="0" max="1" value={att.Chance ?? 1}
+                                                style={{ width: 60, fontSize: 12, padding: '2px 6px' }}
+                                                onChange={e => {
+                                                  const containers = [...data.Containers];
+                                                  const loot = [...containers[cIdx].Loot];
+                                                  const attachments = [...loot[lIdx].Attachments];
+                                                  attachments[aIdx] = { ...attachments[aIdx], Chance: Number(e.target.value) };
+                                                  loot[lIdx] = { ...loot[lIdx], Attachments: attachments };
+                                                  containers[cIdx] = { ...containers[cIdx], Loot: loot };
+                                                  update('Containers', containers);
+                                                }} />
+                                              <button className="btn btn-danger" style={{ padding: '1px 6px', fontSize: 10 }}
+                                                onClick={() => removeAttachment(cIdx, lIdx, aIdx)}>
+                                                <X size={10} />
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Variants */}
+                                        <div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-purple, #a78bfa)' }}>Variants ({item.Variants?.length || 0})</span>
+                                            <button className="btn btn-secondary" style={{ padding: '1px 8px', fontSize: 10 }}
+                                              onClick={() => addVariant(cIdx, lIdx)}>
+                                              <Plus size={10} /> Add
+                                            </button>
+                                          </div>
+                                          {(item.Variants || []).map((vari, vIdx) => (
+                                            <div key={vIdx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, paddingLeft: 8, borderLeft: '2px solid var(--accent-purple, #a78bfa)' }}>
+                                              <input className="input" value={vari.Name || ''} placeholder="Variant name"
+                                                style={{ flex: 1, fontSize: 12, padding: '2px 6px' }}
+                                                onChange={e => {
+                                                  const containers = [...data.Containers];
+                                                  const loot = [...containers[cIdx].Loot];
+                                                  const variants = [...loot[lIdx].Variants];
+                                                  variants[vIdx] = { ...variants[vIdx], Name: e.target.value };
+                                                  loot[lIdx] = { ...loot[lIdx], Variants: variants };
+                                                  containers[cIdx] = { ...containers[cIdx], Loot: loot };
+                                                  update('Containers', containers);
+                                                }} />
+                                              <input className="input" type="number" step="0.01" min="0" max="1" value={vari.Chance ?? 0.5}
+                                                style={{ width: 60, fontSize: 12, padding: '2px 6px' }}
+                                                onChange={e => {
+                                                  const containers = [...data.Containers];
+                                                  const loot = [...containers[cIdx].Loot];
+                                                  const variants = [...loot[lIdx].Variants];
+                                                  variants[vIdx] = { ...variants[vIdx], Chance: Number(e.target.value) };
+                                                  loot[lIdx] = { ...loot[lIdx], Variants: variants };
+                                                  containers[cIdx] = { ...containers[cIdx], Loot: loot };
+                                                  update('Containers', containers);
+                                                }} />
+                                              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{vari.Attachments?.length || 0} att</span>
+                                              <button className="btn btn-danger" style={{ padding: '1px 6px', fontSize: 10 }}
+                                                onClick={() => removeVariant(cIdx, lIdx, vIdx)}>
+                                                <X size={10} />
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Infected list */}
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <h4 style={{ margin: 0, fontSize: 14 }}>Infected Types ({infectedCount})</h4>
+                      <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 11 }}
+                        onClick={() => updateContainer(cIdx, 'Infected', [...(container.Infected || []), 'ZmbM_CitizenASkinny'])}>
+                        <Plus size={12} /> Add
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {(container.Infected || []).map((inf, iIdx) => (
+                        <div key={iIdx} style={{
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          padding: '3px 8px', borderRadius: 4, fontSize: 11,
+                          background: 'var(--bg-elevated, var(--bg-card))', border: '1px solid var(--border)',
+                        }}>
+                          <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{inf}</span>
+                          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-red)', padding: 0, lineHeight: 1 }}
+                            onClick={() => {
+                              const infected = [...container.Infected];
+                              infected.splice(iIdx, 1);
+                              updateContainer(cIdx, 'Infected', infected);
+                            }}>
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 // ─── Mission-folder section renderers ────────────────────────────────
 
 function MapSection({ data, onChange }) {
@@ -1260,6 +1659,7 @@ const SECTION_RENDERERS = {
   playerlist: PlayerListSection,
   damage: DamageSystemSection,
   social: SocialMediaSection,
+  airdrops: AirdropSection,
   map: MapSection,
   basebuilding: BaseBuildingSection,
   safezones: SafeZonesSection,
