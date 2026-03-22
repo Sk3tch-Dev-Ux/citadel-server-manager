@@ -1,0 +1,217 @@
+/* InteractiveMap.css — Dark-themed DayZ map component */
+
+.interactive-map {
+  position: relative;
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+  border: 1px solid var(--border, #3c4250);
+}
+
+.interactive-map .leaflet-container {
+  background: var(--bg-deep, #0a0e17);
+  border-radius: var(--radius-lg, 12px);
+}
+
+/* Darken tiles slightly so overlays pop */
+.interactive-map .leaflet-tile-pane {
+  opacity: 0.85;
+}
+
+/* Hide Leaflet attribution in dev (re-enable for prod if needed) */
+.interactive-map .leaflet-control-attribution {
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: var(--text-muted, #6b7384) !important;
+  font-size: 10px !important;
+  border-radius: 4px 0 0 0;
+}
+.interactive-map .leaflet-control-attribution a {
+  color: var(--accent-blue, #6cb4f0) !important;
+}
+
+/* Dark zoom controls */
+.interactive-map .leaflet-control-zoom a {
+  background: var(--bg-card, #2a2e37) !important;
+  color: var(--text-primary, #dce0e8) !important;
+  border-color: var(--border, #3c4250) !important;
+  width: 30px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  font-size: 16px !important;
+}
+.interactive-map .leaflet-control-zoom a:hover {
+  background: var(--bg-elevated, #323843) !important;
+  color: #fff !important;
+}
+
+/* Coordinate display (bottom-left) */
+.interactive-map .coord-display {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--text-primary, #dce0e8);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Mode indicator (top-left) */
+.interactive-map .map-mode-indicator {
+  position: absolute;
+  top: 8px;
+  left: 50px;
+  z-index: 1000;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-display, 'Outfit', sans-serif);
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.interactive-map .map-mode-indicator.mode-addMarker {
+  background: rgba(92, 184, 92, 0.85);
+  color: #fff;
+}
+.interactive-map .map-mode-indicator.mode-addCircle {
+  background: rgba(108, 180, 240, 0.85);
+  color: #fff;
+}
+
+/* Map selector (top-right) */
+.interactive-map .map-selector {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1000;
+}
+.interactive-map .map-selector select {
+  background: var(--bg-card, #2a2e37);
+  color: var(--text-primary, #dce0e8);
+  border: 1px solid var(--border, #3c4250);
+  padding: 5px 28px 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-display, 'Outfit', sans-serif);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ba3b0' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.interactive-map .map-selector select:hover {
+  border-color: var(--border-active, #515a6b);
+}
+.interactive-map .map-selector select:focus {
+  border-color: var(--accent-blue, #6cb4f0);
+}
+
+/* Custom marker styles */
+.dayz-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5), 0 0 3px rgba(255, 255, 255, 0.2);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  cursor: grab;
+}
+.dayz-marker:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.6), 0 0 6px rgba(255, 255, 255, 0.3);
+}
+.dayz-marker.selected {
+  border-color: var(--accent-yellow, #e5c07b);
+  box-shadow: 0 0 12px rgba(229, 192, 123, 0.6), 0 0 4px rgba(229, 192, 123, 0.3);
+  animation: marker-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes marker-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(229, 192, 123, 0.6), 0 0 4px rgba(229, 192, 123, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(229, 192, 123, 0.8), 0 0 8px rgba(229, 192, 123, 0.5); }
+}
+
+/* Marker label */
+.dayz-marker-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-primary, #dce0e8);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 6px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  font-family: var(--font-display, 'Outfit', sans-serif);
+}
+
+/* Grid lines overlay */
+.interactive-map .grid-label {
+  font-size: 10px;
+  fill: rgba(255, 255, 255, 0.15);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+
+/* Context menu */
+.interactive-map .map-context-menu {
+  position: absolute;
+  z-index: 2000;
+  background: var(--bg-card, #2a2e37);
+  border: 1px solid var(--border, #3c4250);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 140px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.interactive-map .map-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 14px;
+  background: none;
+  border: none;
+  color: var(--text-primary, #dce0e8);
+  font-size: 12px;
+  font-family: var(--font-display, 'Outfit', sans-serif);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.interactive-map .map-context-menu button:hover {
+  background: rgba(108, 180, 240, 0.12);
+}
+.interactive-map .map-context-menu button.danger {
+  color: var(--accent-red, #e06c75);
+}
+.interactive-map .map-context-menu button.danger:hover {
+  background: rgba(224, 108, 117, 0.12);
+}
+
+/* Crosshair cursor when in add mode */
+.interactive-map.mode-addMarker .leaflet-container,
+.interactive-map.mode-addCircle .leaflet-container {
+  cursor: crosshair !important;
+}
+.interactive-map.mode-addMarker .leaflet-grab,
+.interactive-map.mode-addCircle .leaflet-grab {
+  cursor: crosshair !important;
+}
+
+/* Circle labels */
+.dayz-circle-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary, #dce0e8);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  font-family: var(--font-display, 'Outfit', sans-serif);
+  white-space: nowrap;
+}

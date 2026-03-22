@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { ArrowLeft, Save, ChevronRight, Plus, X, Puzzle } from '../components/Icon';
+import InteractiveMap from '../components/InteractiveMap';
 
 // ─── Category definitions mapping config fileNames to sidebar items ───
 
@@ -18,9 +19,10 @@ const CATEGORIES = [
   { id: 'damage', label: 'Damage System', fileKey: 'DamageSystemSettings.json', color: 'var(--accent-red)' },
   { id: 'social', label: 'Social Media', fileKey: 'SocialMediaSettings.json', color: 'var(--accent-orange, #f59e0b)' },
   { id: 'chat', label: 'Chat', fileKey: 'ChatSettings.json', color: 'var(--accent-blue)' },
-  { id: 'quests', label: 'Quests', fileKey: 'QuestSettings.json', color: 'var(--accent-orange, #f59e0b)' },
+  { id: 'questsettings', label: 'Quest Settings', fileKey: 'QuestSettings.json', color: 'var(--accent-orange, #f59e0b)' },
   { id: 'garage', label: 'Garage', fileKey: 'GarageSettings.json', color: 'var(--accent-green)' },
   { id: 'airdrops', label: 'Airdrops', fileKey: 'AirdropSettings.json', color: 'var(--accent-blue)' },
+  { id: 'quests', label: 'Quests', fileKey: null, color: 'var(--accent-orange, #f59e0b)' },
   // Mission-folder configs
   { id: 'map', label: 'Map', fileKey: 'MapSettings.json', color: 'var(--accent-blue)', section: 'Mission' },
   { id: 'basebuilding', label: 'Base Building', fileKey: 'BaseBuildingSettings.json', color: 'var(--accent-green)', section: 'Mission' },
@@ -1097,7 +1099,7 @@ function ChatSection({ data, onChange }) {
 
 // ─── Quests section ──────────────────────────────────────────────────
 
-function QuestsSection({ data, onChange }) {
+function QuestSettingsSection({ data, onChange }) {
   if (!data) return <NoData />;
   return (
     <>
@@ -1626,6 +1628,41 @@ function MapSection({ data, onChange }) {
         { key: 'NeedCompassItemForHUDCompass', type: 'toggle', description: 'Require compass item for HUD compass' },
         { key: 'NeedGPSItemForHUDCompass', type: 'toggle', description: 'Require GPS item for HUD compass' },
       ]} />
+      {/* Server Markers map */}
+      {data.ServerMarkers && (
+        <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{
+            padding: '10px 16px', fontWeight: 700, fontSize: 14,
+            borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-orange, #f59e0b)',
+            background: 'var(--bg-surface, var(--bg-deep))',
+          }}>
+            Server Markers — Map View
+          </div>
+          <div style={{ padding: 8 }}>
+            <InteractiveMap
+              mapName="chernarusplus"
+              height={400}
+              markers={(data.ServerMarkers || []).map((m, i) => ({
+                id: m.m_UID || `marker-${i}`,
+                x: m.m_Position?.[0] || 0,
+                z: m.m_Position?.[2] || 0,
+                label: m.m_Text || m.m_UID,
+                color: '#3b82f6',
+                draggable: true,
+              }))}
+              onMarkerMove={(id, x, z) => {
+                const markers = [...data.ServerMarkers];
+                const idx = markers.findIndex(m => (m.m_UID || '') === id);
+                if (idx >= 0) {
+                  markers[idx] = { ...markers[idx], m_Position: [x, markers[idx].m_Position?.[1] || 0, z] };
+                  update('ServerMarkers', markers);
+                }
+              }}
+              mode="view"
+            />
+          </div>
+        </div>
+      )}
       {/* Server Markers list */}
       {data.ServerMarkers && data.ServerMarkers.length > 0 && (
         <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
@@ -1765,6 +1802,46 @@ function SafeZonesSection({ data, onChange }) {
         { key: 'EnableForceSZCleanupVehicles', type: 'toggle', description: 'Auto-cleanup vehicles in safe zones' },
         { key: 'VehicleLifetimeInSafeZone', type: 'number', description: 'Vehicle cleanup lifetime in safe zones (seconds)' },
       ]} />
+      {/* Safe Zones Map */}
+      <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{
+          padding: '10px 16px', fontWeight: 700, fontSize: 14,
+          borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-green)',
+          background: 'var(--bg-surface, var(--bg-deep))',
+        }}>
+          Safe Zones — Map View
+        </div>
+        <div style={{ padding: 8 }}>
+          <InteractiveMap
+            mapName="chernarusplus"
+            height={400}
+            circles={(data.CircleZones || []).map((z, i) => ({
+              id: `circle-${i}`,
+              x: z.Center?.[0] || 0,
+              z: z.Center?.[2] || 0,
+              radius: z.Radius || 500,
+              color: '#22c55e',
+              label: `Zone ${i + 1} (r=${z.Radius || 500}m)`,
+              draggable: true,
+            }))}
+            polygons={(data.PolygonZones || []).map((p, i) => ({
+              id: `polygon-${i}`,
+              positions: (p.Positions || []).map(pos => [pos[0], pos[2]]),
+              color: '#a78bfa',
+              label: `Polygon ${i + 1}`,
+            }))}
+            onCircleMove={(id, x, z) => {
+              const idx = parseInt(id.split('-')[1]);
+              const zones = [...(data.CircleZones || [])];
+              if (zones[idx]) {
+                zones[idx] = { ...zones[idx], Center: [x, zones[idx].Center?.[1] || 0, z] };
+                update('CircleZones', zones);
+              }
+            }}
+            mode="view"
+          />
+        </div>
+      </div>
       {/* Circle Zones */}
       <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
         <div style={{
@@ -1869,6 +1946,1222 @@ function MarketSection({ data, onChange }) {
   );
 }
 
+// ─── Quest Creator Section ──────────────────────────────────────────
+
+const QUEST_TYPES = [
+  { value: 0, label: 'Normal', color: 'var(--accent-blue)' },
+  { value: 1, label: 'Daily', color: 'var(--accent-green)' },
+  { value: 2, label: 'Weekly', color: 'var(--accent-purple, #a78bfa)' },
+  { value: 3, label: 'Achievement', color: 'var(--accent-orange, #f59e0b)' },
+];
+
+const OBJECTIVE_TYPES = [
+  { value: 2, label: 'Target/Kill' },
+  { value: 3, label: 'Travel' },
+  { value: 4, label: 'Collection' },
+  { value: 5, label: 'Delivery' },
+  { value: 6, label: 'Treasure Hunt' },
+  { value: 7, label: 'AI Patrol' },
+  { value: 8, label: 'AI Camp' },
+  { value: 9, label: 'AI VIP' },
+  { value: 10, label: 'Action' },
+  { value: 11, label: 'Crafting' },
+];
+
+function QuestTypeBadge({ type }) {
+  const qt = QUEST_TYPES.find(t => t.value === type) || QUEST_TYPES[0];
+  return (
+    <span style={{
+      padding: '2px 8px', fontSize: 11, fontWeight: 600, borderRadius: 3,
+      background: qt.color, color: '#fff',
+    }}>
+      {qt.label}
+    </span>
+  );
+}
+
+function ObjTypeBadge({ type }) {
+  const ot = OBJECTIVE_TYPES.find(t => t.value === type);
+  return (
+    <span style={{
+      padding: '2px 8px', fontSize: 11, fontWeight: 600, borderRadius: 3,
+      background: 'var(--bg-elevated, var(--bg-card))', border: '1px solid var(--border)',
+      color: 'var(--text-secondary)',
+    }}>
+      {ot ? ot.label : `Type ${type}`}
+    </span>
+  );
+}
+
+function QuestPillTabs({ tabs, active, onSelect }) {
+  return (
+    <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          onClick={() => onSelect(tab.id)}
+          style={{
+            padding: '6px 16px', fontSize: 13, fontWeight: active === tab.id ? 600 : 400,
+            borderRadius: 20, border: '1px solid var(--border)', cursor: 'pointer',
+            background: active === tab.id ? 'var(--accent-orange, #f59e0b)' : 'var(--bg-elevated, var(--bg-card))',
+            color: active === tab.id ? '#fff' : 'var(--text-secondary)',
+            transition: 'all 0.15s',
+          }}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function InlineToggle({ value, onChange, label }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {label && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>}
+      <button
+        onClick={() => onChange(value ? 0 : 1)}
+        style={{
+          padding: '3px 12px', fontSize: 11, fontWeight: 600, borderRadius: 4,
+          border: '1px solid var(--border)', cursor: 'pointer',
+          background: value ? 'var(--accent-green)' : 'var(--bg-elevated, var(--bg-card))',
+          color: value ? '#fff' : 'var(--text-muted)', transition: 'all 0.15s',
+        }}
+      >
+        {value ? 'ON' : 'OFF'}
+      </button>
+    </div>
+  );
+}
+
+function MultiSelect({ options, selected, onChange, placeholder }) {
+  const sel = Array.isArray(selected) ? selected : [];
+  const [open, setOpen] = useState(false);
+  const available = options.filter(o => !sel.includes(o.value));
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 8px', minHeight: 32,
+        border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-deep)',
+        cursor: 'pointer',
+      }} onClick={() => setOpen(!open)}>
+        {sel.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{placeholder || 'Select...'}</span>}
+        {sel.map(v => {
+          const opt = options.find(o => o.value === v);
+          return (
+            <span key={v} style={{
+              padding: '2px 8px', fontSize: 11, fontWeight: 500, borderRadius: 3,
+              background: 'var(--bg-elevated, var(--bg-card))', border: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              {opt ? opt.label : v}
+              <span style={{ cursor: 'pointer', color: 'var(--accent-red)', fontWeight: 700 }}
+                onClick={e => { e.stopPropagation(); onChange(sel.filter(s => s !== v)); }}>x</span>
+            </span>
+          );
+        })}
+      </div>
+      {open && available.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+          background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 6,
+          maxHeight: 160, overflowY: 'auto', marginTop: 2,
+        }}>
+          {available.map(opt => (
+            <div key={opt.value}
+              onClick={() => { onChange([...sel, opt.value]); setOpen(false); }}
+              style={{
+                padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+                borderBottom: '1px solid var(--border)',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated, var(--bg-deep))'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ItemArrayEditor({ items, onChange, fields }) {
+  const list = Array.isArray(items) ? items : [];
+  const addItem = () => {
+    const blank = {};
+    fields.forEach(f => { blank[f.key] = f.default ?? ''; });
+    onChange([...list, blank]);
+  };
+  const updateItem = (idx, key, val) => {
+    const next = list.map((item, i) => i === idx ? { ...item, [key]: val } : item);
+    onChange(next);
+  };
+  const removeItem = (idx) => onChange(list.filter((_, i) => i !== idx));
+  return (
+    <div style={{ marginBottom: 8 }}>
+      {list.map((item, idx) => (
+        <div key={idx} style={{
+          display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4,
+          padding: '4px 8px', borderRadius: 4, background: 'var(--bg-deep)', border: '1px solid var(--border)',
+        }}>
+          {fields.map(f => (
+            <input key={f.key} className="input" value={item[f.key] ?? ''} placeholder={f.label}
+              type={f.type === 'number' ? 'number' : 'text'}
+              onChange={e => updateItem(idx, f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
+              style={{ flex: f.flex || 1, fontSize: 12 }} />
+          ))}
+          <button onClick={() => removeItem(idx)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-red)', padding: 2 }}>
+            <X size={14} />
+          </button>
+        </div>
+      ))}
+      <button className="btn btn-secondary" onClick={addItem}
+        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: 12, marginTop: 4 }}>
+        <Plus size={12} /> Add
+      </button>
+    </div>
+  );
+}
+
+/* ── Quest List Sub-view ─────────────────────────────────────────── */
+
+function QuestListView({ quests, onEdit, onDelete, onCreate }) {
+  const [search, setSearch] = useState('');
+  const filtered = quests.filter(q =>
+    !search || (q.Title || q.ObjectiveText || '').toLowerCase().includes(search.toLowerCase()) ||
+    String(q.ID || q.ConfigName || '').toLowerCase().includes(search.toLowerCase())
+  );
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+        <input className="input" placeholder="Search quests..." value={search}
+          onChange={e => setSearch(e.target.value)} style={{ flex: 1, fontSize: 13 }} />
+        <button className="btn btn-primary" onClick={onCreate}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, whiteSpace: 'nowrap' }}>
+          <Plus size={14} /> Create Quest
+        </button>
+      </div>
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <table className="table" style={{ width: '100%' }}>
+          <thead>
+            <tr>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>ID</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Title</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Type</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Active</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Objectives</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Follow-up</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Repeatable</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', width: 60 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={8} style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>No quests found</td></tr>
+            )}
+            {filtered.map(q => {
+              const qid = q.ID ?? q.ConfigName ?? '';
+              const objCount = Array.isArray(q.ObjectiveFiles) ? q.ObjectiveFiles.length : (Array.isArray(q.Objectives) ? q.Objectives.length : 0);
+              return (
+                <tr key={qid} style={{ cursor: 'pointer' }} onClick={() => onEdit(q)}>
+                  <td style={{ padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}>{qid}</td>
+                  <td style={{ padding: '8px 12px', fontSize: 13 }}>{q.Title || q.ObjectiveText || '(untitled)'}</td>
+                  <td style={{ padding: '8px 12px' }}><QuestTypeBadge type={q.Type ?? 0} /></td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <span style={{ color: q.IsActive !== 0 ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
+                      {q.IsActive !== 0 ? 'ON' : 'OFF'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '8px 12px', fontSize: 12 }}>{objCount}</td>
+                  <td style={{ padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}>{q.FollowUpQuest || '-'}</td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <span style={{ color: q.Repeatable ? 'var(--accent-green)' : 'var(--text-muted)', fontSize: 12, fontWeight: 600 }}>
+                      {q.Repeatable ? 'Yes' : 'No'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <button className="btn btn-danger" onClick={e => { e.stopPropagation(); onDelete(q); }}
+                      style={{ padding: '2px 8px', fontSize: 11 }}>
+                      <X size={12} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ── Quest Editor Sub-view ───────────────────────────────────────── */
+
+function QuestEditorView({ quest, quests, npcs, objectives, onSave, onCancel }) {
+  const [q, setQ] = useState(() => JSON.parse(JSON.stringify(quest)));
+  const upd = (key, val) => setQ(prev => ({ ...prev, [key]: val }));
+
+  const questOptions = quests.filter(x => (x.ID ?? x.ConfigName) !== (q.ID ?? q.ConfigName))
+    .map(x => ({ value: x.ID ?? x.ConfigName ?? '', label: `${x.ID ?? x.ConfigName} - ${x.Title || '(untitled)'}` }));
+  const npcOptions = npcs.map(n => ({ value: n.ID ?? n.ConfigName ?? '', label: `${n.ID ?? n.ConfigName} - ${n.NPCName || n.ClassName || ''}` }));
+
+  const sectionHeader = (title, color) => (
+    <div style={{
+      padding: '10px 16px', fontWeight: 700, fontSize: 14,
+      borderBottom: '1px solid var(--border)', borderLeft: `3px solid ${color}`,
+      background: 'var(--bg-surface, var(--bg-deep))', marginTop: 16,
+    }}>{title}</div>
+  );
+
+  const fieldRow = (label, content) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', borderBottom: '1px solid var(--border)' }}>
+      <span style={{ width: 200, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1 }}>{content}</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button className="btn btn-secondary" onClick={onCancel} style={{ fontSize: 13 }}>
+          <ArrowLeft size={14} /> Back
+        </button>
+        <div style={{ flex: 1 }} />
+        <button className="btn btn-primary" onClick={() => onSave(q)} style={{ fontSize: 13 }}>
+          <Save size={14} /> Save Quest
+        </button>
+      </div>
+
+      <div className="card" style={{ overflow: 'hidden' }}>
+        {sectionHeader('Basic Info', 'var(--accent-orange, #f59e0b)')}
+        {fieldRow('Title', <input className="input" value={q.Title || ''} onChange={e => upd('Title', e.target.value)} style={{ width: '100%', fontSize: 13 }} />)}
+        {fieldRow('Type', (
+          <select className="input" value={q.Type ?? 0} onChange={e => upd('Type', Number(e.target.value))} style={{ fontSize: 13, maxWidth: 200 }}>
+            {QUEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        ))}
+        {fieldRow('Active', <InlineToggle value={q.IsActive ?? 1} onChange={v => upd('IsActive', v)} />)}
+        {fieldRow('Objective Text', <input className="input" value={q.ObjectiveText || ''} onChange={e => upd('ObjectiveText', e.target.value)} style={{ width: '100%', fontSize: 13 }} />)}
+        {fieldRow('Descriptions', (
+          <div>
+            {(Array.isArray(q.Descriptions) ? q.Descriptions : []).map((desc, i) => (
+              <div key={i} style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                <textarea className="input" value={desc} rows={2}
+                  onChange={e => { const next = [...(q.Descriptions || [])]; next[i] = e.target.value; upd('Descriptions', next); }}
+                  style={{ flex: 1, fontSize: 12, resize: 'vertical' }} />
+                <button onClick={() => upd('Descriptions', (q.Descriptions || []).filter((_, j) => j !== i))}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-red)' }}><X size={14} /></button>
+              </div>
+            ))}
+            <button className="btn btn-secondary" onClick={() => upd('Descriptions', [...(q.Descriptions || []), ''])}
+              style={{ fontSize: 11, padding: '2px 10px' }}><Plus size={12} /> Add Description</button>
+          </div>
+        ))}
+
+        {sectionHeader('Quest Flow', 'var(--accent-blue)')}
+        {fieldRow('Follow-Up Quest', (
+          <select className="input" value={q.FollowUpQuest ?? -1} onChange={e => upd('FollowUpQuest', Number(e.target.value))} style={{ fontSize: 13, maxWidth: 300 }}>
+            <option value={-1}>None</option>
+            {questOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        ))}
+        {fieldRow('Pre-Quest IDs', (
+          <MultiSelect options={questOptions} selected={q.PreQuestIDs || []} onChange={v => upd('PreQuestIDs', v)} placeholder="Select prerequisite quests..." />
+        ))}
+        {fieldRow('Is Achievement', <InlineToggle value={q.IsAchievement ?? 0} onChange={v => upd('IsAchievement', v)} />)}
+
+        {sectionHeader('Schedule', 'var(--accent-purple, #a78bfa)')}
+        {fieldRow('Repeatable', <InlineToggle value={q.Repeatable ?? 0} onChange={v => upd('Repeatable', v)} />)}
+        {fieldRow('Is Daily Quest', <InlineToggle value={q.IsDailyQuest ?? 0} onChange={v => upd('IsDailyQuest', v)} />)}
+        {fieldRow('Is Weekly Quest', <InlineToggle value={q.IsWeeklyQuest ?? 0} onChange={v => upd('IsWeeklyQuest', v)} />)}
+        {fieldRow('Cancel On Player Death', <InlineToggle value={q.CancelQuestOnPlayerDeath ?? 0} onChange={v => upd('CancelQuestOnPlayerDeath', v)} />)}
+        {fieldRow('Autocomplete', <InlineToggle value={q.Autocomplete ?? 0} onChange={v => upd('Autocomplete', v)} />)}
+        {fieldRow('Is Group Quest', <InlineToggle value={q.IsGroupQuest ?? 0} onChange={v => upd('IsGroupQuest', v)} />)}
+        {fieldRow('Sequential Objectives', <InlineToggle value={q.SequentialObjectives ?? 0} onChange={v => upd('SequentialObjectives', v)} />)}
+
+        {sectionHeader('NPCs', 'var(--accent-green)')}
+        {fieldRow('Quest Giver NPCs', (
+          <MultiSelect options={npcOptions} selected={q.QuestGiverIDs || []} onChange={v => upd('QuestGiverIDs', v)} placeholder="Select quest givers..." />
+        ))}
+        {fieldRow('Quest Turn-In NPCs', (
+          <MultiSelect options={npcOptions} selected={q.QuestTurnInIDs || []} onChange={v => upd('QuestTurnInIDs', v)} placeholder="Select turn-in NPCs..." />
+        ))}
+
+        {sectionHeader('Objectives', 'var(--accent-blue)')}
+        <div style={{ padding: 16 }}>
+          {Array.isArray(q.ObjectiveFiles) && q.ObjectiveFiles.length > 0 ? (
+            q.ObjectiveFiles.map((objFile, i) => {
+              const flatObjs = Object.values(objectives).flat();
+              const obj = flatObjs.find(o => (o.ID ?? o.ConfigName) === objFile || o.FileName === objFile);
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                  borderRadius: 4, background: 'var(--bg-deep)', border: '1px solid var(--border)', marginBottom: 4,
+                }}>
+                  {obj && <ObjTypeBadge type={obj.ObjectiveType ?? 0} />}
+                  <span style={{ flex: 1, fontSize: 12 }}>{objFile}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{obj ? (obj.ObjectiveText || '') : '(not found)'}</span>
+                  <button onClick={() => upd('ObjectiveFiles', q.ObjectiveFiles.filter((_, j) => j !== i))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-red)' }}><X size={14} /></button>
+                </div>
+              );
+            })
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>No objectives linked</div>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <select className="input" id="quest-obj-picker" style={{ flex: 1, fontSize: 12 }}>
+              <option value="">-- Select objective to add --</option>
+              {Object.values(objectives).flat().map(o => {
+                const oid = o.ID ?? o.ConfigName ?? o.FileName ?? '';
+                return <option key={oid} value={o.FileName || oid}>{oid} - {o.ObjectiveText || '(no text)'}</option>;
+              })}
+            </select>
+            <button className="btn btn-secondary" onClick={() => {
+              const picker = document.getElementById('quest-obj-picker');
+              if (picker && picker.value) {
+                upd('ObjectiveFiles', [...(q.ObjectiveFiles || []), picker.value]);
+                picker.value = '';
+              }
+            }} style={{ fontSize: 12, padding: '4px 10px' }}><Plus size={12} /> Link</button>
+          </div>
+        </div>
+
+        {sectionHeader('Rewards', 'var(--accent-orange, #f59e0b)')}
+        {fieldRow('Reputation Reward', <input className="input" type="number" value={q.ReputationReward ?? 0} onChange={e => upd('ReputationReward', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 13 }} />)}
+        {fieldRow('Reputation Requirement', <input className="input" type="number" value={q.ReputationRequirement ?? -1} onChange={e => upd('ReputationRequirement', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 13 }} />)}
+        {fieldRow('Need To Select Reward', <InlineToggle value={q.NeedToSelectReward ?? 0} onChange={v => upd('NeedToSelectReward', v)} />)}
+        {fieldRow('Random Reward', <InlineToggle value={q.RandomReward ?? 0} onChange={v => upd('RandomReward', v)} />)}
+        {fieldRow('Random Reward Amount', <input className="input" type="number" value={q.RandomRewardAmount ?? 0} onChange={e => upd('RandomRewardAmount', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 13 }} />)}
+        {fieldRow('Rewards For Group Owner Only', <InlineToggle value={q.RewardsForGroupOwnerOnly ?? 0} onChange={v => upd('RewardsForGroupOwnerOnly', v)} />)}
+        {fieldRow('Quest Items', (
+          <ItemArrayEditor items={q.QuestItems} onChange={v => upd('QuestItems', v)}
+            fields={[{ key: 'ClassName', label: 'Class Name', flex: 2 }, { key: 'Amount', label: 'Amount', type: 'number', default: 1 }]} />
+        ))}
+        {fieldRow('Rewards', (
+          <ItemArrayEditor items={q.Rewards} onChange={v => upd('Rewards', v)}
+            fields={[{ key: 'ClassName', label: 'Class Name', flex: 2 }, { key: 'Amount', label: 'Amount', type: 'number', default: 1 }]} />
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+        <button className="btn btn-secondary" onClick={onCancel} style={{ fontSize: 13 }}>Cancel</button>
+        <button className="btn btn-primary" onClick={() => onSave(q)} style={{ fontSize: 13 }}>
+          <Save size={14} /> Save Quest
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── NPC Manager Sub-view ────────────────────────────────────────── */
+
+function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState(null);
+  const [search, setSearch] = useState('');
+
+  const startEdit = (npc) => {
+    setEditingId(npc.ID ?? npc.ConfigName ?? null);
+    setEditData(JSON.parse(JSON.stringify(npc)));
+  };
+  const cancelEdit = () => { setEditingId(null); setEditData(null); };
+  const npcUpd = (key, val) => setEditData(prev => ({ ...prev, [key]: val }));
+
+  const filtered = npcs.filter(n =>
+    !search || (n.NPCName || n.ClassName || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  const markers = npcs.filter(n => n.Position && (n.Position[0] || n.Position[2])).map(n => ({
+    id: String(n.ID ?? n.ConfigName ?? ''),
+    x: n.Position[0] || 0,
+    z: n.Position[2] || 0,
+    label: n.NPCName || n.ClassName || 'NPC',
+    color: (n.ID ?? n.ConfigName) === editingId ? 'orange' : 'blue',
+  }));
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+        <input className="input" placeholder="Search NPCs..." value={search}
+          onChange={e => setSearch(e.target.value)} style={{ flex: 1, fontSize: 13 }} />
+        <button className="btn btn-primary" onClick={onCreate}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, whiteSpace: 'nowrap' }}>
+          <Plus size={14} /> Create NPC
+        </button>
+      </div>
+
+      <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+        <InteractiveMap
+          mapName="chernarusplus"
+          markers={markers}
+          selectedId={editingId != null ? String(editingId) : null}
+          onSelect={(id) => {
+            const npc = npcs.find(n => String(n.ID ?? n.ConfigName) === id);
+            if (npc) startEdit(npc);
+          }}
+          onMarkerMove={editingId != null ? (id, pos) => {
+            if (String(editingId) === id) {
+              npcUpd('Position', [pos.x, editData?.Position?.[1] || 0, pos.z]);
+            }
+          } : undefined}
+          mode={editingId != null ? 'view' : 'view'}
+          height={400}
+        />
+      </div>
+
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <table className="table" style={{ width: '100%' }}>
+          <thead>
+            <tr>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>ID</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Name</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Class</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Faction</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Active</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Position</th>
+              <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', width: 60 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>No NPCs found</td></tr>
+            )}
+            {filtered.map(n => {
+              const nid = n.ID ?? n.ConfigName ?? '';
+              const isEditing = nid === editingId;
+              return (
+                <React.Fragment key={nid}>
+                  <tr style={{ cursor: 'pointer', background: isEditing ? 'var(--bg-elevated, var(--bg-deep))' : undefined }}
+                    onClick={() => isEditing ? cancelEdit() : startEdit(n)}>
+                    <td style={{ padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}>{nid}</td>
+                    <td style={{ padding: '8px 12px', fontSize: 13 }}>{n.NPCName || '(unnamed)'}</td>
+                    <td style={{ padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}>{n.ClassName || ''}</td>
+                    <td style={{ padding: '8px 12px', fontSize: 12 }}>{n.NPCFaction || ''}</td>
+                    <td style={{ padding: '8px 12px' }}>
+                      <span style={{ color: n.IsActive !== 0 ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
+                        {n.IsActive !== 0 ? 'ON' : 'OFF'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 12px', fontSize: 11, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-muted)' }}>
+                      {n.Position ? `${(n.Position[0] || 0).toFixed(0)}, ${(n.Position[2] || 0).toFixed(0)}` : '-'}
+                    </td>
+                    <td style={{ padding: '8px 12px' }}>
+                      <button className="btn btn-danger" onClick={e => { e.stopPropagation(); onDelete(n); }}
+                        style={{ padding: '2px 8px', fontSize: 11 }}>
+                        <X size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                  {isEditing && editData && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: 0 }}>
+                        <div style={{ padding: 16, background: 'var(--bg-deep)', borderTop: '1px solid var(--border)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>NPC Name</label>
+                              <input className="input" value={editData.NPCName || ''} onChange={e => npcUpd('NPCName', e.target.value)} style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Class Name</label>
+                              <input className="input" value={editData.ClassName || ''} onChange={e => npcUpd('ClassName', e.target.value)} style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Faction</label>
+                              <input className="input" value={editData.NPCFaction || ''} onChange={e => npcUpd('NPCFaction', e.target.value)} style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>NPC Type</label>
+                              <select className="input" value={editData.NPCType ?? 0} onChange={e => npcUpd('NPCType', Number(e.target.value))} style={{ width: '100%', fontSize: 13 }}>
+                                <option value={0}>0 - Static</option>
+                                <option value={1}>1 - Patrol</option>
+                                <option value={2}>2 - Quest</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Loadout File</label>
+                              <input className="input" value={editData.NPCLoadoutFile || ''} onChange={e => npcUpd('NPCLoadoutFile', e.target.value)} style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Active</label>
+                              <InlineToggle value={editData.IsActive ?? 1} onChange={v => npcUpd('IsActive', v)} />
+                            </div>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Position X</label>
+                              <input className="input" type="number" value={editData.Position?.[0] ?? 0}
+                                onChange={e => npcUpd('Position', [Number(e.target.value), editData.Position?.[1] || 0, editData.Position?.[2] || 0])}
+                                style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Position Y</label>
+                              <input className="input" type="number" value={editData.Position?.[1] ?? 0}
+                                onChange={e => npcUpd('Position', [editData.Position?.[0] || 0, Number(e.target.value), editData.Position?.[2] || 0])}
+                                style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Position Z</label>
+                              <input className="input" type="number" value={editData.Position?.[2] ?? 0}
+                                onChange={e => npcUpd('Position', [editData.Position?.[0] || 0, editData.Position?.[1] || 0, Number(e.target.value)])}
+                                style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Orientation X</label>
+                              <input className="input" type="number" value={editData.Orientation?.[0] ?? 0}
+                                onChange={e => npcUpd('Orientation', [Number(e.target.value), editData.Orientation?.[1] || 0, editData.Orientation?.[2] || 0])}
+                                style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Orientation Y</label>
+                              <input className="input" type="number" value={editData.Orientation?.[1] ?? 0}
+                                onChange={e => npcUpd('Orientation', [editData.Orientation?.[0] || 0, Number(e.target.value), editData.Orientation?.[2] || 0])}
+                                style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Orientation Z</label>
+                              <input className="input" type="number" value={editData.Orientation?.[2] ?? 0}
+                                onChange={e => npcUpd('Orientation', [editData.Orientation?.[0] || 0, editData.Orientation?.[1] || 0, Number(e.target.value)])}
+                                style={{ width: '100%', fontSize: 13 }} />
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: 12 }}>
+                            <div style={{
+                              padding: '8px 12px', fontWeight: 600, fontSize: 12,
+                              borderBottom: '1px solid var(--border)', color: 'var(--text-muted)',
+                            }}>Emote Settings</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '8px 0' }}>
+                              <div>
+                                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Emote ID</label>
+                                <input className="input" type="number" value={editData.NPCEmoteID ?? 0} onChange={e => npcUpd('NPCEmoteID', Number(e.target.value))} style={{ width: '100%', fontSize: 13 }} />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Emote Is Static</label>
+                                <InlineToggle value={editData.NPCEmoteIsStatic ?? 0} onChange={v => npcUpd('NPCEmoteIsStatic', v)} />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Interaction Emote ID</label>
+                                <input className="input" type="number" value={editData.NPCInteractionEmoteID ?? 0} onChange={e => npcUpd('NPCInteractionEmoteID', Number(e.target.value))} style={{ width: '100%', fontSize: 13 }} />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Interaction Emote Static</label>
+                                <InlineToggle value={editData.NPCInteractionEmoteIsStatic ?? 0} onChange={v => npcUpd('NPCInteractionEmoteIsStatic', v)} />
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: 12 }}>
+                            <div style={{
+                              padding: '8px 12px', fontWeight: 600, fontSize: 12,
+                              borderBottom: '1px solid var(--border)', color: 'var(--text-muted)',
+                            }}>Waypoints</div>
+                            <ItemArrayEditor
+                              items={(editData.Waypoints || []).map(wp => ({ X: wp[0] || 0, Y: wp[1] || 0, Z: wp[2] || 0 }))}
+                              onChange={v => npcUpd('Waypoints', v.map(wp => [wp.X || 0, wp.Y || 0, wp.Z || 0]))}
+                              fields={[
+                                { key: 'X', label: 'X', type: 'number' },
+                                { key: 'Y', label: 'Y', type: 'number' },
+                                { key: 'Z', label: 'Z', type: 'number' },
+                              ]}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                            <button className="btn btn-secondary" onClick={cancelEdit} style={{ fontSize: 12 }}>Cancel</button>
+                            <button className="btn btn-primary" onClick={() => { onSave(editData); cancelEdit(); }} style={{ fontSize: 12 }}>
+                              <Save size={14} /> Save NPC
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ── Objectives List Sub-view ────────────────────────────────────── */
+
+function ObjectiveEditorFields({ obj, onChange, type }) {
+  const upd = (key, val) => onChange({ ...obj, [key]: val });
+  const fieldRow = (label, content) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0' }}>
+      <span style={{ width: 160, fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1 }}>{content}</div>
+    </div>
+  );
+
+  return (
+    <div>
+      {fieldRow('Objective Text', <input className="input" value={obj.ObjectiveText || ''} onChange={e => upd('ObjectiveText', e.target.value)} style={{ width: '100%', fontSize: 12 }} />)}
+      {fieldRow('Time Limit', <input className="input" type="number" value={obj.TimeLimit ?? -1} onChange={e => upd('TimeLimit', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 12 }} />)}
+      {fieldRow('Active', <InlineToggle value={obj.Active ?? 1} onChange={v => upd('Active', v)} />)}
+
+      {(type === 2) && <>
+        {fieldRow('Amount', <input className="input" type="number" value={obj.Amount ?? 1} onChange={e => upd('Amount', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 12 }} />)}
+        {fieldRow('Max Distance', <input className="input" type="number" value={obj.MaxDistance ?? -1} onChange={e => upd('MaxDistance', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 12 }} />)}
+        {fieldRow('ClassNames', <StringListEditor items={obj.ClassNames} onChange={v => upd('ClassNames', v)} placeholder="Add class name..." />)}
+        {fieldRow('Allowed Weapons', <StringListEditor items={obj.AllowedWeapons} onChange={v => upd('AllowedWeapons', v)} placeholder="Add weapon class..." />)}
+        {fieldRow('Count Self Kill', <InlineToggle value={obj.CountSelfKill ?? 0} onChange={v => upd('CountSelfKill', v)} />)}
+        {fieldRow('Count AI Players', <InlineToggle value={obj.CountAIPlayers ?? 0} onChange={v => upd('CountAIPlayers', v)} />)}
+      </>}
+
+      {(type === 3) && <>
+        {fieldRow('Max Distance', <input className="input" type="number" value={obj.MaxDistance ?? 5} onChange={e => upd('MaxDistance', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 12 }} />)}
+        {fieldRow('Marker Name', <input className="input" value={obj.MarkerName || ''} onChange={e => upd('MarkerName', e.target.value)} style={{ width: '100%', fontSize: 12 }} />)}
+        {fieldRow('Trigger On Enter', <InlineToggle value={obj.TriggerOnEnter ?? 1} onChange={v => upd('TriggerOnEnter', v)} />)}
+        {fieldRow('Trigger On Exit', <InlineToggle value={obj.TriggerOnExit ?? 0} onChange={v => upd('TriggerOnExit', v)} />)}
+      </>}
+
+      {(type === 4 || type === 5) && <>
+        {fieldRow('Collections', (
+          <ItemArrayEditor items={obj.Collections} onChange={v => upd('Collections', v)}
+            fields={[
+              { key: 'ClassName', label: 'Class Name', flex: 2 },
+              { key: 'Amount', label: 'Amount', type: 'number', default: 1 },
+              { key: 'QuantityPercent', label: 'Qty%', type: 'number', default: -1 },
+              { key: 'MinQuantityPercent', label: 'MinQty%', type: 'number', default: -1 },
+            ]}
+          />
+        ))}
+      </>}
+
+      {(type === 6) && <>
+        {fieldRow('Max Distance', <input className="input" type="number" value={obj.MaxDistance ?? 5} onChange={e => upd('MaxDistance', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 12 }} />)}
+      </>}
+
+      {(type >= 7 && type <= 9) && <>
+        {fieldRow('Max Distance', <input className="input" type="number" value={obj.MaxDistance ?? -1} onChange={e => upd('MaxDistance', Number(e.target.value))} style={{ maxWidth: 120, fontSize: 12 }} />)}
+      </>}
+
+      {(type === 10) && <>
+        {fieldRow('Action Names', <StringListEditor items={obj.ActionNames} onChange={v => upd('ActionNames', v)} placeholder="Add action name..." />)}
+      </>}
+
+      {(type === 11) && <>
+        {fieldRow('Item Names', <StringListEditor items={obj.ItemNames} onChange={v => upd('ItemNames', v)} placeholder="Add item name..." />)}
+      </>}
+
+      {/* Position fields for types that use them */}
+      {(type === 2 || type === 3 || type === 6 || type === 7 || type === 8 || type === 9) && <>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
+          <div>
+            <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>Position X</label>
+            <input className="input" type="number" value={obj.Position?.[0] ?? 0}
+              onChange={e => upd('Position', [Number(e.target.value), obj.Position?.[1] || 0, obj.Position?.[2] || 0])}
+              style={{ width: '100%', fontSize: 12 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>Position Y</label>
+            <input className="input" type="number" value={obj.Position?.[1] ?? 0}
+              onChange={e => upd('Position', [obj.Position?.[0] || 0, Number(e.target.value), obj.Position?.[2] || 0])}
+              style={{ width: '100%', fontSize: 12 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 10, color: 'var(--text-muted)' }}>Position Z</label>
+            <input className="input" type="number" value={obj.Position?.[2] ?? 0}
+              onChange={e => upd('Position', [obj.Position?.[0] || 0, obj.Position?.[1] || 0, Number(e.target.value)])}
+              style={{ width: '100%', fontSize: 12 }} />
+          </div>
+        </div>
+      </>}
+    </div>
+  );
+}
+
+function ObjectivesListView({ objectives, onSave, onDelete, onCreate }) {
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState(null);
+
+  const startEdit = (obj) => {
+    setEditingId(obj.ID ?? obj.ConfigName ?? null);
+    setEditData(JSON.parse(JSON.stringify(obj)));
+  };
+  const cancelEdit = () => { setEditingId(null); setEditData(null); };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+        <div style={{ flex: 1 }} />
+        <button className="btn btn-primary" onClick={onCreate}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, whiteSpace: 'nowrap' }}>
+          <Plus size={14} /> Create Objective
+        </button>
+      </div>
+
+      {OBJECTIVE_TYPES.map(otype => {
+        const typeObjs = (objectives[otype.value] || []);
+        if (typeObjs.length === 0) return null;
+        return (
+          <div key={otype.value} className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{
+              padding: '10px 16px', fontWeight: 700, fontSize: 14,
+              borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-blue)',
+              background: 'var(--bg-surface, var(--bg-deep))',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <ObjTypeBadge type={otype.value} />
+              <span>Type {otype.value}: {otype.label}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>({typeObjs.length})</span>
+            </div>
+            <table className="table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>ID</th>
+                  <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Text</th>
+                  <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Active</th>
+                  <th style={{ padding: '8px 12px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', width: 60 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {typeObjs.map(obj => {
+                  const oid = obj.ID ?? obj.ConfigName ?? '';
+                  const isEditing = oid === editingId;
+                  return (
+                    <React.Fragment key={oid}>
+                      <tr style={{ cursor: 'pointer', background: isEditing ? 'var(--bg-elevated, var(--bg-deep))' : undefined }}
+                        onClick={() => isEditing ? cancelEdit() : startEdit(obj)}>
+                        <td style={{ padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}>{oid}</td>
+                        <td style={{ padding: '8px 12px', fontSize: 12 }}>{obj.ObjectiveText || '(no text)'}</td>
+                        <td style={{ padding: '8px 12px' }}>
+                          <span style={{ color: obj.Active !== 0 ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
+                            {obj.Active !== 0 ? 'ON' : 'OFF'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 12px' }}>
+                          <button className="btn btn-danger" onClick={e => { e.stopPropagation(); onDelete(obj); }}
+                            style={{ padding: '2px 8px', fontSize: 11 }}>
+                            <X size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                      {isEditing && editData && (
+                        <tr>
+                          <td colSpan={4} style={{ padding: 0 }}>
+                            <div style={{ padding: 16, background: 'var(--bg-deep)', borderTop: '1px solid var(--border)' }}>
+                              <ObjectiveEditorFields obj={editData} onChange={setEditData} type={otype.value} />
+                              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+                                <button className="btn btn-secondary" onClick={cancelEdit} style={{ fontSize: 12 }}>Cancel</button>
+                                <button className="btn btn-primary" onClick={() => { onSave(editData, otype.value); cancelEdit(); }} style={{ fontSize: 12 }}>
+                                  <Save size={14} /> Save
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+
+      {Object.values(objectives).flat().length === 0 && (
+        <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
+          No objectives found. Create one to get started.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Quest Chain Visualizer Sub-view (Placeholder) ───────────────── */
+
+function QuestChainView({ quests }) {
+  const starters = quests.filter(q => !Array.isArray(q.PreQuestIDs) || q.PreQuestIDs.length === 0);
+  const typeColor = (q) => {
+    if (q.IsDailyQuest) return 'var(--accent-blue)';
+    if (q.IsWeeklyQuest) return 'var(--accent-purple, #a78bfa)';
+    if (q.IsActive === 0) return 'var(--text-muted)';
+    return 'var(--accent-green)';
+  };
+
+  const buildChain = (quest, visited = new Set()) => {
+    const qid = quest.ID ?? quest.ConfigName ?? '';
+    if (visited.has(qid)) return null;
+    visited.add(qid);
+    const followUp = quest.FollowUpQuest && quest.FollowUpQuest !== -1
+      ? quests.find(q => (q.ID ?? q.ConfigName) === quest.FollowUpQuest)
+      : null;
+    return (
+      <div key={qid} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <div style={{
+          padding: '6px 12px', borderRadius: 6, fontSize: 12,
+          border: `2px solid ${typeColor(quest)}`,
+          background: 'var(--bg-card)', minWidth: 160,
+        }}>
+          <div style={{ fontWeight: 600 }}>{quest.Title || quest.ObjectiveText || qid}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', display: 'flex', gap: 4, alignItems: 'center', marginTop: 2 }}>
+            <QuestTypeBadge type={quest.Type ?? 0} />
+            <span>{qid}</span>
+          </div>
+        </div>
+        {followUp && (
+          <>
+            <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>&#8594;</span>
+            {buildChain(followUp, visited)}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div className="card" style={{ padding: 16, marginBottom: 16, borderLeft: '3px solid var(--accent-orange, #f59e0b)' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Quest Chain Visualizer</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          Showing quest chains as a simple flow. Chain starters (no prerequisites) are listed below.
+          A full canvas-based node graph will be built separately.
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-green)' }} /> Active
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--text-muted)' }} /> Inactive
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-blue)' }} /> Daily
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--accent-purple, #a78bfa)' }} /> Weekly
+        </span>
+      </div>
+      {starters.length === 0 && quests.length === 0 && (
+        <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
+          No quests found. Create some quests to see the chain view.
+        </div>
+      )}
+      {starters.map(q => buildChain(q))}
+      {starters.length === 0 && quests.length > 0 && (
+        <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 16 }}>
+          No chain starters found (all quests have prerequisites). Showing all quests:
+          {quests.map(q => buildChain(q))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main QuestsSection Component ────────────────────────────────── */
+
+function QuestsSection({ serverId }) {
+  const [view, setView] = useState('list');
+  const [quests, setQuests] = useState([]);
+  const [npcs, setNPCs] = useState([]);
+  const [objectives, setObjectives] = useState({});
+  const [editingQuest, setEditingQuest] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [newObjType, setNewObjType] = useState(null);
+
+  const loadData = useCallback(async () => {
+    if (!serverId) return;
+    setLoading(true);
+    try {
+      const [qRes, nRes, oRes] = await Promise.all([
+        API.get(`/api/servers/${serverId}/expansion/quests`),
+        API.get(`/api/servers/${serverId}/expansion/npcs`),
+        API.get(`/api/servers/${serverId}/expansion/objectives`),
+      ]);
+      setQuests(Array.isArray(qRes) ? qRes : (qRes?.quests || qRes?.data || []));
+      setNPCs(Array.isArray(nRes) ? nRes : (nRes?.npcs || nRes?.data || []));
+      if (oRes && !oRes.error) {
+        // objectives may come as { "2": [...], "3": [...] } or flat array
+        if (Array.isArray(oRes)) {
+          const grouped = {};
+          oRes.forEach(o => {
+            const t = o.ObjectiveType ?? 0;
+            if (!grouped[t]) grouped[t] = [];
+            grouped[t].push(o);
+          });
+          setObjectives(grouped);
+        } else if (oRes.objectives) {
+          if (Array.isArray(oRes.objectives)) {
+            const grouped = {};
+            oRes.objectives.forEach(o => {
+              const t = o.ObjectiveType ?? 0;
+              if (!grouped[t]) grouped[t] = [];
+              grouped[t].push(o);
+            });
+            setObjectives(grouped);
+          } else {
+            setObjectives(oRes.objectives);
+          }
+        } else {
+          setObjectives(oRes.data || oRes || {});
+        }
+      }
+    } catch (err) {
+      window.addToast?.('Failed to load quest data: ' + (err.message || ''), 'error');
+    }
+    setLoading(false);
+  }, [serverId]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Quest CRUD
+  const saveQuest = async (q) => {
+    try {
+      const qid = q.ID ?? q.ConfigName;
+      let res;
+      if (qid && quests.some(x => (x.ID ?? x.ConfigName) === qid)) {
+        res = await API.put(`/api/servers/${serverId}/expansion/quests/${qid}`, q);
+      } else {
+        res = await API.post(`/api/servers/${serverId}/expansion/quests`, q);
+      }
+      if (res && !res.error) {
+        window.addToast?.('Quest saved', 'success');
+        await loadData();
+        setView('list');
+        setEditingQuest(null);
+      } else {
+        window.addToast?.('Failed to save quest: ' + (res?.error || ''), 'error');
+      }
+    } catch (err) {
+      window.addToast?.('Failed to save quest: ' + err.message, 'error');
+    }
+  };
+
+  const deleteQuest = async (q) => {
+    if (!confirm(`Delete quest "${q.Title || q.ID || q.ConfigName}"?`)) return;
+    try {
+      const qid = q.ID ?? q.ConfigName;
+      const res = await API.del(`/api/servers/${serverId}/expansion/quests/${qid}`);
+      if (res && !res.error) {
+        window.addToast?.('Quest deleted', 'success');
+        await loadData();
+      } else {
+        window.addToast?.('Failed to delete quest: ' + (res?.error || ''), 'error');
+      }
+    } catch (err) {
+      window.addToast?.('Failed to delete quest: ' + err.message, 'error');
+    }
+  };
+
+  const createQuest = () => {
+    setEditingQuest({
+      Title: '', Type: 0, IsActive: 1, ObjectiveText: '', Descriptions: [],
+      FollowUpQuest: -1, PreQuestIDs: [], IsAchievement: 0,
+      Repeatable: 0, IsDailyQuest: 0, IsWeeklyQuest: 0,
+      CancelQuestOnPlayerDeath: 0, Autocomplete: 0, IsGroupQuest: 0, SequentialObjectives: 0,
+      QuestGiverIDs: [], QuestTurnInIDs: [], ObjectiveFiles: [],
+      ReputationReward: 0, ReputationRequirement: -1,
+      NeedToSelectReward: 0, RandomReward: 0, RandomRewardAmount: 0,
+      RewardsForGroupOwnerOnly: 0, QuestItems: [], Rewards: [],
+    });
+    setView('edit');
+  };
+
+  // NPC CRUD
+  const saveNPC = async (npc) => {
+    try {
+      const nid = npc.ID ?? npc.ConfigName;
+      let res;
+      if (nid && npcs.some(x => (x.ID ?? x.ConfigName) === nid)) {
+        res = await API.put(`/api/servers/${serverId}/expansion/npcs/${nid}`, npc);
+      } else {
+        res = await API.post(`/api/servers/${serverId}/expansion/npcs`, npc);
+      }
+      if (res && !res.error) {
+        window.addToast?.('NPC saved', 'success');
+        await loadData();
+      } else {
+        window.addToast?.('Failed to save NPC: ' + (res?.error || ''), 'error');
+      }
+    } catch (err) {
+      window.addToast?.('Failed to save NPC: ' + err.message, 'error');
+    }
+  };
+
+  const deleteNPC = async (npc) => {
+    if (!confirm(`Delete NPC "${npc.NPCName || npc.ID || npc.ConfigName}"?`)) return;
+    try {
+      const nid = npc.ID ?? npc.ConfigName;
+      const res = await API.del(`/api/servers/${serverId}/expansion/npcs/${nid}`);
+      if (res && !res.error) {
+        window.addToast?.('NPC deleted', 'success');
+        await loadData();
+      } else {
+        window.addToast?.('Failed to delete NPC: ' + (res?.error || ''), 'error');
+      }
+    } catch (err) {
+      window.addToast?.('Failed to delete NPC: ' + err.message, 'error');
+    }
+  };
+
+  const createNPC = () => {
+    const newNPC = {
+      NPCName: 'New NPC', ClassName: 'SurvivorM_Mirek',
+      Position: [0, 0, 0], Orientation: [0, 0, 0],
+      NPCLoadoutFile: '', NPCFaction: '', NPCType: 2, IsActive: 1,
+      NPCEmoteID: 0, NPCEmoteIsStatic: 0, NPCInteractionEmoteID: 0, NPCInteractionEmoteIsStatic: 0,
+      Waypoints: [],
+    };
+    saveNPC(newNPC);
+  };
+
+  // Objective CRUD
+  const saveObjective = async (obj, objType) => {
+    try {
+      const oid = obj.ID ?? obj.ConfigName;
+      const t = objType ?? obj.ObjectiveType ?? 0;
+      let res;
+      if (oid && Object.values(objectives).flat().some(x => (x.ID ?? x.ConfigName) === oid)) {
+        res = await API.put(`/api/servers/${serverId}/expansion/objectives/${t}/${oid}`, obj);
+      } else {
+        res = await API.post(`/api/servers/${serverId}/expansion/objectives/${t}`, obj);
+      }
+      if (res && !res.error) {
+        window.addToast?.('Objective saved', 'success');
+        await loadData();
+      } else {
+        window.addToast?.('Failed to save objective: ' + (res?.error || ''), 'error');
+      }
+    } catch (err) {
+      window.addToast?.('Failed to save objective: ' + err.message, 'error');
+    }
+  };
+
+  const deleteObjective = async (obj) => {
+    if (!confirm(`Delete objective "${obj.ObjectiveText || obj.ID || obj.ConfigName}"?`)) return;
+    try {
+      const oid = obj.ID ?? obj.ConfigName;
+      const t = obj.ObjectiveType ?? 0;
+      const res = await API.del(`/api/servers/${serverId}/expansion/objectives/${t}/${oid}`);
+      if (res && !res.error) {
+        window.addToast?.('Objective deleted', 'success');
+        await loadData();
+      } else {
+        window.addToast?.('Failed to delete objective: ' + (res?.error || ''), 'error');
+      }
+    } catch (err) {
+      window.addToast?.('Failed to delete objective: ' + err.message, 'error');
+    }
+  };
+
+  const createObjective = (typeVal) => {
+    const newObj = {
+      ObjectiveType: typeVal, ObjectiveText: '', TimeLimit: -1, Active: 1,
+      Position: [0, 0, 0], MaxDistance: -1,
+    };
+    if (typeVal === 2) { newObj.Amount = 1; newObj.ClassNames = []; newObj.AllowedWeapons = []; newObj.CountSelfKill = 0; newObj.CountAIPlayers = 0; }
+    if (typeVal === 3) { newObj.MaxDistance = 5; newObj.MarkerName = ''; newObj.TriggerOnEnter = 1; newObj.TriggerOnExit = 0; }
+    if (typeVal === 4 || typeVal === 5) { newObj.Collections = []; }
+    if (typeVal === 10) { newObj.ActionNames = []; }
+    if (typeVal === 11) { newObj.ItemNames = []; }
+    saveObjective(newObj, typeVal);
+    setNewObjType(null);
+  };
+
+  if (!serverId) {
+    return (
+      <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
+        No server selected.
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+        <span style={{ color: 'var(--text-muted)' }}>Loading quest data...</span>
+      </div>
+    );
+  }
+
+  const tabs = [
+    { id: 'list', label: 'Quests' },
+    { id: 'npcs', label: 'NPCs' },
+    { id: 'objectives', label: 'Objectives' },
+    { id: 'chain', label: 'Quest Chain' },
+  ];
+
+  // If editing a quest, show the editor instead of the list
+  if (view === 'edit' && editingQuest) {
+    return (
+      <div>
+        <QuestPillTabs tabs={tabs} active="list" onSelect={(id) => { setView(id); setEditingQuest(null); }} />
+        <QuestEditorView
+          quest={editingQuest}
+          quests={quests}
+          npcs={npcs}
+          objectives={objectives}
+          onSave={saveQuest}
+          onCancel={() => { setView('list'); setEditingQuest(null); }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <QuestPillTabs tabs={tabs} active={view} onSelect={setView} />
+
+      {view === 'list' && (
+        <QuestListView
+          quests={quests}
+          onEdit={(q) => { setEditingQuest(q); setView('edit'); }}
+          onDelete={deleteQuest}
+          onCreate={createQuest}
+        />
+      )}
+
+      {view === 'npcs' && (
+        <NPCManagerView
+          npcs={npcs}
+          serverId={serverId}
+          onSave={saveNPC}
+          onDelete={deleteNPC}
+          onCreate={createNPC}
+        />
+      )}
+
+      {view === 'objectives' && (
+        <>
+          {newObjType !== null && (
+            <div className="card" style={{ padding: 16, marginBottom: 16, background: 'var(--bg-deep)' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Select Objective Type:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {OBJECTIVE_TYPES.map(ot => (
+                  <button key={ot.value} className="btn btn-secondary" onClick={() => createObjective(ot.value)}
+                    style={{ fontSize: 12, padding: '4px 12px' }}>
+                    {ot.label}
+                  </button>
+                ))}
+                <button className="btn btn-secondary" onClick={() => setNewObjType(null)}
+                  style={{ fontSize: 12, padding: '4px 12px', color: 'var(--accent-red)' }}>Cancel</button>
+              </div>
+            </div>
+          )}
+          <ObjectivesListView
+            objectives={objectives}
+            onSave={saveObjective}
+            onDelete={deleteObjective}
+            onCreate={() => setNewObjType(true)}
+          />
+        </>
+      )}
+
+      {view === 'chain' && (
+        <QuestChainView quests={quests} />
+      )}
+    </div>
+  );
+}
+
 // ─── Section router ─────────────────────────────────────────────────
 
 const SECTION_RENDERERS = {
@@ -1884,6 +3177,7 @@ const SECTION_RENDERERS = {
   damage: DamageSystemSection,
   social: SocialMediaSection,
   chat: ChatSection,
+  questsettings: QuestSettingsSection,
   quests: QuestsSection,
   garage: GarageSection,
   airdrops: AirdropSection,
@@ -2141,6 +3435,7 @@ export default function ExpansionEditorPage({ serverId }) {
             <SectionRenderer
               data={activeData}
               onChange={(newData) => updateConfig(activeCategory, newData)}
+              serverId={serverId}
             />
           ) : (
             <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
