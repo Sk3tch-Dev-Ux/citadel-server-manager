@@ -201,6 +201,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'spawnabletypes', icon: <Layers size={16} />, label: 'Spawnable Types' },
     { id: 'spawnpoints', icon: <MapPin size={16} />, label: 'Spawn Points' },
     { id: 'limits', icon: <Filter size={16} />, label: 'Limits Def' },
+    { id: 'economycore', icon: <FolderOpen size={16} />, label: 'Economy Core' },
   ];
 
   const modConfigItems = [

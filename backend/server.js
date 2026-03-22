@@ -166,6 +166,7 @@ require('./routes/globals-editor.routes')(app);
 require('./routes/spawnabletypes-editor.routes')(app);
 require('./routes/spawnpoints-editor.routes')(app);
 require('./routes/limits-editor.routes')(app);
+require('./routes/economycore-editor.routes')(app);
 require('./routes/mod-config.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);

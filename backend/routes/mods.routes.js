@@ -43,8 +43,9 @@ module.exports = function(app) {
         modCache.storeInCache(String(workshopId), contentPath, name);
         ctx.activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
       }
-      const folderName = installModToServer(contentPath, name, String(workshopId), srv.installDir);
-      state.modList.push({ name: folderName, workshopId: String(workshopId), enabled: true, order: state.modList.length, type: 'client' });
+      const result = installModToServer(contentPath, name, String(workshopId), srv.installDir);
+      if (result.error) throw new Error(result.error);
+      state.modList.push({ name: result.safeName, workshopId: String(workshopId), enabled: true, order: state.modList.length, type: 'client' });
       updateLaunchParamsMods(srv.id);
       ctx.activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
       ctx.io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
@@ -163,7 +164,8 @@ module.exports = function(app) {
 
       const contentPath = findWorkshopContent(workshopId, srv.installDir);
       if (contentPath) {
-        installModToServer(contentPath, mod.name, workshopId, srv.installDir);
+        const installResult = installModToServer(contentPath, mod.name, workshopId, srv.installDir);
+        if (installResult.error) throw new Error(installResult.error);
         modCache.storeInCache(workshopId, contentPath, mod.name);
       }
 
@@ -216,7 +218,8 @@ module.exports = function(app) {
 
         const contentPath = findWorkshopContent(workshopId, srv.installDir);
         if (contentPath) {
-          installModToServer(contentPath, mod.name, workshopId, srv.installDir);
+          const installResult = installModToServer(contentPath, mod.name, workshopId, srv.installDir);
+          if (installResult.error) throw new Error(installResult.error);
           modCache.storeInCache(workshopId, contentPath, mod.name);
         }
 

@@ -6,8 +6,8 @@ class API {
 
   static headers() {
     const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
-    // Read CSRF token from cookie for double-submit pattern
-    const csrf = document.cookie.split('; ').find(c => c.startsWith('csrf-token='));
+    // Read CSRF nonce from cookie for double-submit pattern
+    const csrf = document.cookie.split('; ').find(c => c.startsWith('csrf-nonce='));
     if (csrf) h['X-CSRF-Token'] = csrf.split('=')[1];
     return h;
   }

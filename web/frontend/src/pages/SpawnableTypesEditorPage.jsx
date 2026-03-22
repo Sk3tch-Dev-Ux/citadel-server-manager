@@ -407,7 +407,7 @@ function ExpandedDetails({
   onAddGroupItem, onUpdateGroupItem, onRemoveGroupItem,
 }) {
   return (
-    <div style={{ padding: '16px 24px', background: 'var(--surface-raised, rgba(0,0,0,0.02))', borderTop: '1px solid var(--border)' }}>
+    <div style={{ padding: '16px 24px', background: 'var(--bg-surface, var(--bg-card))', borderTop: '1px solid var(--border)' }}>
       {/* Hoarder toggle */}
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
@@ -479,7 +479,7 @@ function GroupEditor({
             borderRadius: 6,
             padding: 12,
             marginBottom: 8,
-            background: 'var(--surface, #fff)',
+            background: 'var(--bg-elevated, var(--bg-card))',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>

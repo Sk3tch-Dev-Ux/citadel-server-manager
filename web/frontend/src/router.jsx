@@ -34,6 +34,7 @@ const GlobalsEditorPage = lazy(() => import('./pages/GlobalsEditorPage'));
 const SpawnableTypesEditorPage = lazy(() => import('./pages/SpawnableTypesEditorPage'));
 const SpawnPointsEditorPage = lazy(() => import('./pages/SpawnPointsEditorPage'));
 const LimitsEditorPage = lazy(() => import('./pages/LimitsEditorPage'));
+const EconomyCoreEditorPage = lazy(() => import('./pages/EconomyCoreEditorPage'));
 const EconomyHubPage = lazy(() => import('./pages/EconomyHubPage'));
 const ModConfigsPage = lazy(() => import('./pages/ModConfigsPage'));
 const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
@@ -146,6 +147,7 @@ export default function AppRouter() {
             <Route path="spawnabletypes" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={SpawnableTypesEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="spawnpoints" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={SpawnPointsEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="limits" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={LimitsEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="economycore" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={EconomyCoreEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="mod-configs" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={ModConfigsPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
             <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />

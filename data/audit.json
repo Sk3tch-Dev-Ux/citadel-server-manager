@@ -1,5 +1,53 @@
 [
   {
+    "id": "15537d5f-a80d-4c0b-916c-dee13afea8ca",
+    "timestamp": "2026-03-22T00:28:23.102Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "mod.install",
+    "details": "Installed DayZ-Expansion-Bundle on TestingHub"
+  },
+  {
+    "id": "14bd4902-1b29-44bf-ae29-fa50ccf3eb86",
+    "timestamp": "2026-03-22T00:28:06.444Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "mod.install",
+    "details": "Installed DayZ-Expansion-Licensed on TestingHub"
+  },
+  {
+    "id": "111cf1e4-8fc4-4ad7-9fb9-1495e98e21a1",
+    "timestamp": "2026-03-22T00:27:17.927Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "mod.install",
+    "details": "Installed Community-Online-Tools on TestingHub"
+  },
+  {
+    "id": "18b25722-bf10-4a1f-83b8-5bc760c3e1a9",
+    "timestamp": "2026-03-22T00:27:05.945Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "mod.install",
+    "details": "Installed Dabs Framework on TestingHub"
+  },
+  {
+    "id": "4b61e8d8-b4f2-4fb9-8dfb-08e752d93126",
+    "timestamp": "2026-03-22T00:26:56.265Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "mod.install",
+    "details": "Installed CF on TestingHub"
+  },
+  {
+    "id": "540aa351-1ee9-44e9-8e69-336cb3411e61",
+    "timestamp": "2026-03-22T00:21:20.218Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.deploy",
+    "details": "Deploying TestingHub to C:\\Citadel\\deployments\\TestingHub"
+  },
+  {
     "id": "d4a38269-5618-4145-95c6-d15bcf72c410",
     "timestamp": "2026-03-14T02:31:19.768Z",
     "userId": "355fe5b2-bf0e-41a9-831a-70bef86fb997",
