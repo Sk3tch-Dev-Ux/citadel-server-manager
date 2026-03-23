@@ -35,14 +35,14 @@ const MAP_CONFIGS = {
   chernarusplus: {
     name: 'Chernarus+',
     size: 15360,
-    tileUrl: 'https://xam.nu/dayz/maps/chernarusplus/satellite/{z}/{x}/{y}.png',
+    tileUrl: 'https://static.xam.nu/dayz/maps/chernarusplus/1.27/satellite/{z}/{x}/{y}.webp',
     maxZoom: 7,
     minZoom: 0,
   },
   enoch: {
     name: 'Livonia',
     size: 12800,
-    tileUrl: 'https://xam.nu/dayz/maps/enoch/satellite/{z}/{x}/{y}.png',
+    tileUrl: 'https://static.xam.nu/dayz/maps/enoch/1.27/satellite/{z}/{x}/{y}.webp',
     maxZoom: 7,
     minZoom: 0,
   },

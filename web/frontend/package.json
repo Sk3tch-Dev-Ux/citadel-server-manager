@@ -17,11 +17,12 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-leaflet/core": "^2.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.404.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-leaflet": "^5.0.0",
+    "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.13.1",
     "socket.io-client": "^4.8.3"
   },

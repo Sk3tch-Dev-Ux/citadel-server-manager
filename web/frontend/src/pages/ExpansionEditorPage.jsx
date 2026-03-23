@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { ArrowLeft, Save, ChevronRight, Plus, X, Puzzle } from '../components/Icon';
-import InteractiveMap from '../components/InteractiveMap';
+
+// Lazy-load InteractiveMap to avoid loading leaflet on initial render
+const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
 
 // ─── Category definitions mapping config fileNames to sidebar items ───
 
@@ -62,7 +64,11 @@ function SettingsTable({ title, color, fields, data, onChange }) {
         </thead>
         <tbody>
           {fields.map(f => {
-            const val = data[f.key];
+            let val = data[f.key];
+            // Safety: skip rendering if value is an object/array (nested data)
+            if (val !== null && val !== undefined && typeof val === 'object') {
+              val = JSON.stringify(val);
+            }
             return (
               <tr key={f.key}>
                 <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono, monospace)', fontSize: 13, fontWeight: 500 }}>
@@ -1600,6 +1606,31 @@ function AirdropSection({ data, onChange }) {
 function MapSection({ data, onChange }) {
   if (!data) return <NoData />;
   const update = (key, val) => onChange({ ...data, [key]: val });
+  const [mapMode, setMapMode] = useState('view');
+  const [selectedMarker, setSelectedMarker] = useState(null);
+
+  const addMarkerAtPos = (x, z) => {
+    const markers = [...(data.ServerMarkers || [])];
+    const newMarker = {
+      m_UID: 'Marker_' + Date.now(),
+      m_Visibility: 6, m_Is3D: 1,
+      m_Text: 'New Marker',
+      m_IconName: 'Trader',
+      m_Color: -13710223,
+      m_Position: [Math.round(x), 0, Math.round(z)],
+      m_Locked: 0, m_Persist: 1,
+    };
+    markers.push(newMarker);
+    update('ServerMarkers', markers);
+    setMapMode('view');
+  };
+
+  const deleteMarker = (id) => {
+    const markers = (data.ServerMarkers || []).filter(m => (m.m_UID || '') !== id);
+    update('ServerMarkers', markers);
+    setSelectedMarker(null);
+  };
+
   return (
     <>
       <SettingsTable title="Map General" color="var(--accent-blue)" data={data} onChange={update} fields={[
@@ -1629,20 +1660,37 @@ function MapSection({ data, onChange }) {
         { key: 'NeedCompassItemForHUDCompass', type: 'toggle', description: 'Require compass item for HUD compass' },
         { key: 'NeedGPSItemForHUDCompass', type: 'toggle', description: 'Require GPS item for HUD compass' },
       ]} />
-      {/* Server Markers map */}
-      {data.ServerMarkers && (
-        <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
-          <div style={{
-            padding: '10px 16px', fontWeight: 700, fontSize: 14,
-            borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-orange, #f59e0b)',
-            background: 'var(--bg-surface, var(--bg-deep))',
-          }}>
-            Server Markers — Map View
+
+      {/* Interactive Server Markers Map */}
+      <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{
+          padding: '10px 16px', fontWeight: 700, fontSize: 14,
+          borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-orange, #f59e0b)',
+          background: 'var(--bg-surface, var(--bg-deep))',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span>Server Markers ({(data.ServerMarkers || []).length})</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className={`btn ${mapMode === 'addMarker' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ padding: '3px 10px', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={() => setMapMode(mapMode === 'addMarker' ? 'view' : 'addMarker')}>
+              <Plus size={12} /> {mapMode === 'addMarker' ? 'Cancel' : 'Click to Place'}
+            </button>
+            <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 11 }}
+              onClick={() => {
+                const markers = [...(data.ServerMarkers || [])];
+                markers.push({ m_UID: 'Marker_' + Date.now(), m_Visibility: 6, m_Is3D: 1, m_Text: 'New Marker', m_IconName: 'Trader', m_Color: -13710223, m_Position: [7500, 0, 7500], m_Locked: 0, m_Persist: 1 });
+                update('ServerMarkers', markers);
+              }}>
+              <Plus size={12} /> Add at Center
+            </button>
           </div>
-          <div style={{ padding: 8 }}>
+        </div>
+        <div style={{ padding: 8 }}>
+          <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}>
             <InteractiveMap
               mapName="chernarusplus"
-              height={400}
+              height={500}
               markers={(data.ServerMarkers || []).map((m, i) => ({
                 id: m.m_UID || `marker-${i}`,
                 x: m.m_Position?.[0] || 0,
@@ -1651,33 +1699,38 @@ function MapSection({ data, onChange }) {
                 color: '#3b82f6',
                 draggable: true,
               }))}
+              selectedId={selectedMarker}
+              onSelect={setSelectedMarker}
               onMarkerMove={(id, x, z) => {
-                const markers = [...data.ServerMarkers];
+                const markers = [...(data.ServerMarkers || [])];
                 const idx = markers.findIndex(m => (m.m_UID || '') === id);
                 if (idx >= 0) {
-                  markers[idx] = { ...markers[idx], m_Position: [x, markers[idx].m_Position?.[1] || 0, z] };
+                  markers[idx] = { ...markers[idx], m_Position: [Math.round(x), markers[idx].m_Position?.[1] || 0, Math.round(z)] };
                   update('ServerMarkers', markers);
                 }
               }}
-              mode="view"
+              onMarkerAdd={addMarkerAtPos}
+              onMarkerDelete={deleteMarker}
+              mode={mapMode}
             />
-          </div>
+          </Suspense>
         </div>
-      )}
-      {/* Server Markers list */}
-      {data.ServerMarkers && data.ServerMarkers.length > 0 && (
+        {mapMode === 'addMarker' && (
+          <div style={{ padding: '8px 16px', background: 'rgba(59,130,246,0.1)', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--accent-blue)' }}>
+            Click anywhere on the map to place a new marker. Right-click a marker to delete it. Drag markers to reposition.
+          </div>
+        )}
+      </div>
+
+      {/* Marker Detail Table */}
+      {(data.ServerMarkers || []).length > 0 && (
         <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
           <div style={{
             padding: '10px 16px', fontWeight: 700, fontSize: 14,
             borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-orange, #f59e0b)',
             background: 'var(--bg-surface, var(--bg-deep))',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            <span>Server Markers ({data.ServerMarkers.length})</span>
-            <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 11 }}
-              onClick={() => update('ServerMarkers', [...data.ServerMarkers, { m_UID: 'NewMarker_' + Date.now(), m_Visibility: 6, m_Is3D: 1, m_Text: 'New Marker', m_IconName: 'Trader', m_Color: -13710223, m_Position: [0, 0, 0], m_Locked: 0, m_Persist: 1 }])}>
-              <Plus size={12} /> Add Marker
-            </button>
+            Marker Details
           </div>
           <table className="table" style={{ width: '100%', fontSize: 13 }}>
             <thead>
@@ -1686,7 +1739,6 @@ function MapSection({ data, onChange }) {
                 <th style={{ padding: '8px 12px' }}>Display Text</th>
                 <th style={{ padding: '8px 12px' }}>Icon</th>
                 <th style={{ padding: '8px 12px' }}>X</th>
-                <th style={{ padding: '8px 12px' }}>Y</th>
                 <th style={{ padding: '8px 12px' }}>Z</th>
                 <th style={{ padding: '8px 12px' }}>3D</th>
                 <th style={{ padding: '8px 12px', width: 50 }}></th>
@@ -1694,33 +1746,37 @@ function MapSection({ data, onChange }) {
             </thead>
             <tbody>
               {(data.ServerMarkers || []).map((marker, idx) => (
-                <tr key={idx}>
+                <tr key={idx} style={{
+                  background: selectedMarker === (marker.m_UID || `marker-${idx}`) ? 'rgba(59,130,246,0.1)' : undefined,
+                  cursor: 'pointer',
+                }} onClick={() => setSelectedMarker(marker.m_UID || `marker-${idx}`)}>
                   <td style={{ padding: '6px 12px' }}>
                     <input className="input" value={marker.m_UID || ''} style={{ width: '100%', fontSize: 12 }}
+                      onClick={e => e.stopPropagation()}
                       onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_UID: e.target.value }; update('ServerMarkers', m); }} />
                   </td>
                   <td style={{ padding: '6px 12px' }}>
                     <input className="input" value={marker.m_Text || ''} style={{ width: '100%', fontSize: 12 }}
+                      onClick={e => e.stopPropagation()}
                       onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Text: e.target.value }; update('ServerMarkers', m); }} />
                   </td>
                   <td style={{ padding: '6px 12px' }}>
                     <input className="input" value={marker.m_IconName || ''} style={{ width: 80, fontSize: 12 }}
+                      onClick={e => e.stopPropagation()}
                       onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_IconName: e.target.value }; update('ServerMarkers', m); }} />
                   </td>
                   <td style={{ padding: '6px 12px' }}>
                     <input className="input" type="number" value={marker.m_Position?.[0] ?? 0} style={{ width: 80, fontSize: 12 }}
+                      onClick={e => e.stopPropagation()}
                       onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Position: [Number(e.target.value), marker.m_Position?.[1] ?? 0, marker.m_Position?.[2] ?? 0] }; update('ServerMarkers', m); }} />
                   </td>
                   <td style={{ padding: '6px 12px' }}>
-                    <input className="input" type="number" value={marker.m_Position?.[1] ?? 0} style={{ width: 80, fontSize: 12 }}
-                      onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Position: [marker.m_Position?.[0] ?? 0, Number(e.target.value), marker.m_Position?.[2] ?? 0] }; update('ServerMarkers', m); }} />
-                  </td>
-                  <td style={{ padding: '6px 12px' }}>
                     <input className="input" type="number" value={marker.m_Position?.[2] ?? 0} style={{ width: 80, fontSize: 12 }}
+                      onClick={e => e.stopPropagation()}
                       onChange={e => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Position: [marker.m_Position?.[0] ?? 0, marker.m_Position?.[1] ?? 0, Number(e.target.value)] }; update('ServerMarkers', m); }} />
                   </td>
                   <td style={{ padding: '6px 12px', textAlign: 'center' }}>
-                    <button onClick={() => { const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Is3D: m[idx].m_Is3D ? 0 : 1 }; update('ServerMarkers', m); }}
+                    <button onClick={(e) => { e.stopPropagation(); const m = [...data.ServerMarkers]; m[idx] = { ...m[idx], m_Is3D: m[idx].m_Is3D ? 0 : 1 }; update('ServerMarkers', m); }}
                       style={{ padding: '2px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, border: '1px solid var(--border)', cursor: 'pointer',
                         background: marker.m_Is3D ? 'var(--accent-green)' : 'var(--bg-elevated, var(--bg-card))', color: marker.m_Is3D ? '#fff' : 'var(--text-muted)' }}>
                       {marker.m_Is3D ? 'ON' : 'OFF'}
@@ -1728,7 +1784,7 @@ function MapSection({ data, onChange }) {
                   </td>
                   <td style={{ padding: '6px 12px' }}>
                     <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }}
-                      onClick={() => { const m = [...data.ServerMarkers]; m.splice(idx, 1); update('ServerMarkers', m); }}>
+                      onClick={(e) => { e.stopPropagation(); deleteMarker(marker.m_UID || `marker-${idx}`); }}>
                       <X size={12} />
                     </button>
                   </td>
@@ -1790,6 +1846,26 @@ function BaseBuildingSection({ data, onChange }) {
 function SafeZonesSection({ data, onChange }) {
   if (!data) return <NoData />;
   const update = (key, val) => onChange({ ...data, [key]: val });
+  const [mapMode, setMapMode] = useState('view');
+  const [selectedZone, setSelectedZone] = useState(null);
+
+  const addZoneAtPos = (x, z) => {
+    const zones = [...(data.CircleZones || [])];
+    zones.push({ Center: [Math.round(x), 0, Math.round(z)], Radius: 500 });
+    update('CircleZones', zones);
+    setMapMode('view');
+  };
+
+  const deleteZone = (id) => {
+    const idx = parseInt(id.split('-')[1]);
+    if (id.startsWith('circle-')) {
+      const zones = [...(data.CircleZones || [])];
+      zones.splice(idx, 1);
+      update('CircleZones', zones);
+    }
+    setSelectedZone(null);
+  };
+
   return (
     <>
       <SettingsTable title="Safe Zone General" color="var(--accent-green)" data={data} onChange={update} fields={[
@@ -1803,92 +1879,130 @@ function SafeZonesSection({ data, onChange }) {
         { key: 'EnableForceSZCleanupVehicles', type: 'toggle', description: 'Auto-cleanup vehicles in safe zones' },
         { key: 'VehicleLifetimeInSafeZone', type: 'number', description: 'Vehicle cleanup lifetime in safe zones (seconds)' },
       ]} />
-      {/* Safe Zones Map */}
+
+      {/* Interactive Safe Zones Map */}
       <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
         <div style={{
           padding: '10px 16px', fontWeight: 700, fontSize: 14,
           borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-green)',
           background: 'var(--bg-surface, var(--bg-deep))',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          Safe Zones — Map View
+          <span>Safe Zones — Interactive Map</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className={`btn ${mapMode === 'addCircle' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ padding: '3px 10px', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={() => setMapMode(mapMode === 'addCircle' ? 'view' : 'addCircle')}>
+              <Plus size={12} /> {mapMode === 'addCircle' ? 'Cancel' : 'Click to Place Zone'}
+            </button>
+            <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 11 }}
+              onClick={() => {
+                const zones = [...(data.CircleZones || [])];
+                zones.push({ Center: [7500, 0, 7500], Radius: 500 });
+                update('CircleZones', zones);
+              }}>
+              <Plus size={12} /> Add at Center
+            </button>
+          </div>
         </div>
         <div style={{ padding: 8 }}>
-          <InteractiveMap
-            mapName="chernarusplus"
-            height={400}
-            circles={(data.CircleZones || []).map((z, i) => ({
-              id: `circle-${i}`,
-              x: z.Center?.[0] || 0,
-              z: z.Center?.[2] || 0,
-              radius: z.Radius || 500,
-              color: '#22c55e',
-              label: `Zone ${i + 1} (r=${z.Radius || 500}m)`,
-              draggable: true,
-            }))}
-            polygons={(data.PolygonZones || []).map((p, i) => ({
-              id: `polygon-${i}`,
-              positions: (p.Positions || []).map(pos => [pos[0], pos[2]]),
-              color: '#a78bfa',
-              label: `Polygon ${i + 1}`,
-            }))}
-            onCircleMove={(id, x, z) => {
-              const idx = parseInt(id.split('-')[1]);
-              const zones = [...(data.CircleZones || [])];
-              if (zones[idx]) {
-                zones[idx] = { ...zones[idx], Center: [x, zones[idx].Center?.[1] || 0, z] };
-                update('CircleZones', zones);
-              }
-            }}
-            mode="view"
-          />
+          <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}>
+            <InteractiveMap
+              mapName="chernarusplus"
+              height={500}
+              circles={(data.CircleZones || []).map((z, i) => ({
+                id: `circle-${i}`,
+                x: z.Center?.[0] || 0,
+                z: z.Center?.[2] || 0,
+                radius: z.Radius || 500,
+                color: '#22c55e',
+                label: `Zone ${i + 1} (r=${z.Radius || 500}m)`,
+                draggable: true,
+              }))}
+              polygons={(data.PolygonZones || []).map((p, i) => ({
+                id: `polygon-${i}`,
+                positions: (p.Positions || []).map(pos => [pos[0], pos[2]]),
+                color: '#a78bfa',
+                label: `Polygon ${i + 1}`,
+              }))}
+              selectedId={selectedZone}
+              onSelect={setSelectedZone}
+              onCircleMove={(id, x, z) => {
+                const idx = parseInt(id.split('-')[1]);
+                const zones = [...(data.CircleZones || [])];
+                if (zones[idx]) {
+                  zones[idx] = { ...zones[idx], Center: [Math.round(x), zones[idx].Center?.[1] || 0, Math.round(z)] };
+                  update('CircleZones', zones);
+                }
+              }}
+              onMarkerAdd={addZoneAtPos}
+              onMarkerDelete={deleteZone}
+              mode={mapMode}
+            />
+          </Suspense>
         </div>
+        {mapMode === 'addCircle' && (
+          <div style={{ padding: '8px 16px', background: 'rgba(34,197,94,0.1)', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--accent-green)' }}>
+            Click anywhere on the map to place a new safe zone (default 500m radius). Right-click a zone to delete it. Drag zone centers to reposition.
+          </div>
+        )}
       </div>
-      {/* Circle Zones */}
+
+      {/* Circle Zones Detail Table */}
       <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
         <div style={{
           padding: '10px 16px', fontWeight: 700, fontSize: 14,
           borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-blue)',
           background: 'var(--bg-surface, var(--bg-deep))',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span>Circle Zones ({(data.CircleZones || []).length})</span>
-          <button className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 11 }}
-            onClick={() => update('CircleZones', [...(data.CircleZones || []), { Center: [0, 0, 0], Radius: 500 }])}>
-            <Plus size={12} /> Add Zone
-          </button>
+          Circle Zones ({(data.CircleZones || []).length})
         </div>
-        <table className="table" style={{ width: '100%', fontSize: 13 }}>
-          <thead><tr>
-            <th style={{ padding: '8px 12px' }}>X</th>
-            <th style={{ padding: '8px 12px' }}>Y</th>
-            <th style={{ padding: '8px 12px' }}>Z</th>
-            <th style={{ padding: '8px 12px' }}>Radius</th>
-            <th style={{ padding: '8px 12px', width: 50 }}></th>
-          </tr></thead>
-          <tbody>
-            {(data.CircleZones || []).map((zone, idx) => (
-              <tr key={idx}>
-                {[0, 1, 2].map(i => (
-                  <td key={i} style={{ padding: '6px 12px' }}>
-                    <input className="input" type="number" step="0.1" value={zone.Center?.[i] ?? 0} style={{ width: 100, fontSize: 12 }}
-                      onChange={e => { const z = [...data.CircleZones]; const c = [...(z[idx].Center || [0, 0, 0])]; c[i] = Number(e.target.value); z[idx] = { ...z[idx], Center: c }; update('CircleZones', z); }} />
+        {(data.CircleZones || []).length === 0 ? (
+          <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            No circle zones defined. Use the map above to place zones.
+          </div>
+        ) : (
+          <table className="table" style={{ width: '100%', fontSize: 13 }}>
+            <thead><tr>
+              <th style={{ padding: '8px 12px' }}>#</th>
+              <th style={{ padding: '8px 12px' }}>X</th>
+              <th style={{ padding: '8px 12px' }}>Y</th>
+              <th style={{ padding: '8px 12px' }}>Z</th>
+              <th style={{ padding: '8px 12px' }}>Radius (m)</th>
+              <th style={{ padding: '8px 12px', width: 50 }}></th>
+            </tr></thead>
+            <tbody>
+              {(data.CircleZones || []).map((zone, idx) => (
+                <tr key={idx} style={{
+                  background: selectedZone === `circle-${idx}` ? 'rgba(34,197,94,0.1)' : undefined,
+                  cursor: 'pointer',
+                }} onClick={() => setSelectedZone(`circle-${idx}`)}>
+                  <td style={{ padding: '6px 12px', fontWeight: 600, color: 'var(--text-muted)' }}>{idx + 1}</td>
+                  {[0, 1, 2].map(i => (
+                    <td key={i} style={{ padding: '6px 12px' }}>
+                      <input className="input" type="number" step="0.1" value={zone.Center?.[i] ?? 0} style={{ width: 100, fontSize: 12 }}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => { const z = [...data.CircleZones]; const c = [...(z[idx].Center || [0, 0, 0])]; c[i] = Number(e.target.value); z[idx] = { ...z[idx], Center: c }; update('CircleZones', z); }} />
+                    </td>
+                  ))}
+                  <td style={{ padding: '6px 12px' }}>
+                    <input className="input" type="number" value={zone.Radius ?? 500} style={{ width: 80, fontSize: 12 }}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => { const z = [...data.CircleZones]; z[idx] = { ...z[idx], Radius: Number(e.target.value) }; update('CircleZones', z); }} />
                   </td>
-                ))}
-                <td style={{ padding: '6px 12px' }}>
-                  <input className="input" type="number" value={zone.Radius ?? 500} style={{ width: 80, fontSize: 12 }}
-                    onChange={e => { const z = [...data.CircleZones]; z[idx] = { ...z[idx], Radius: Number(e.target.value) }; update('CircleZones', z); }} />
-                </td>
-                <td style={{ padding: '6px 12px' }}>
-                  <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }}
-                    onClick={() => { const z = [...data.CircleZones]; z.splice(idx, 1); update('CircleZones', z); }}>
-                    <X size={12} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <td style={{ padding: '6px 12px' }}>
+                    <button className="btn btn-danger" style={{ padding: '2px 8px', fontSize: 11 }}
+                      onClick={(e) => { e.stopPropagation(); deleteZone(`circle-${idx}`); }}>
+                      <X size={12} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
+
       {/* Polygon Zones */}
       <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
         <div style={{
@@ -1900,8 +2014,8 @@ function SafeZonesSection({ data, onChange }) {
         </div>
         <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 13 }}>
           {(data.PolygonZones || []).length === 0
-            ? 'No polygon zones defined.'
-            : `${data.PolygonZones.length} polygon zone(s) with ${data.PolygonZones.reduce((sum, z) => sum + (z.Positions?.length || 0), 0)} total vertices. Edit via raw JSON in the Files editor for complex polygon manipulation.`
+            ? 'No polygon zones defined. Polygons are shown on the map above in purple.'
+            : `${data.PolygonZones.length} polygon zone(s) with ${data.PolygonZones.reduce((sum, z) => sum + (z.Positions?.length || 0), 0)} total vertices displayed on the map above.`
           }
         </div>
       </div>
@@ -2397,7 +2511,7 @@ function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
       </div>
 
       <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
-        <InteractiveMap
+        <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}><InteractiveMap
           mapName="chernarusplus"
           markers={markers}
           selectedId={editingId != null ? String(editingId) : null}
@@ -2412,7 +2526,7 @@ function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
           } : undefined}
           mode={editingId != null ? 'view' : 'view'}
           height={400}
-        />
+        /></Suspense>
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
