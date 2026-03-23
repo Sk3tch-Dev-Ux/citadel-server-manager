@@ -115,10 +115,11 @@ function MarketCategoriesTab({ serverId }) {
 
   const loadCategory = useCallback(async (fileName) => {
     try {
-      const data = await API.get(`/api/servers/${serverId}/trader-editor/categories/${encodeURIComponent(fileName)}`);
-      if (data && !data.error) {
-        setCategoryData(data);
-        setOriginalData(JSON.parse(JSON.stringify(data)));
+      const res = await API.get(`/api/servers/${serverId}/trader-editor/categories/${encodeURIComponent(fileName)}`);
+      if (res && !res.error) {
+        const d = res.data || res;
+        setCategoryData(d);
+        setOriginalData(JSON.parse(JSON.stringify(d)));
         setExpandedRows(new Set());
         setSelectedItems(new Set());
       }
@@ -141,7 +142,7 @@ function MarketCategoriesTab({ serverId }) {
     if (!selectedFile || !categoryData) return;
     setSaving(true);
     try {
-      const result = await API.put(`/api/servers/${serverId}/trader-editor/categories/${encodeURIComponent(selectedFile)}`, categoryData);
+      const result = await API.put(`/api/servers/${serverId}/trader-editor/categories/${encodeURIComponent(selectedFile)}`, { data: categoryData });
       if (result && !result.error) {
         window.addToast?.('Category saved successfully', 'success');
         setOriginalData(JSON.parse(JSON.stringify(categoryData)));
@@ -687,10 +688,11 @@ function TradersTab({ serverId }) {
 
   const loadTrader = useCallback(async (fileName) => {
     try {
-      const data = await API.get(`/api/servers/${serverId}/trader-editor/traders/${encodeURIComponent(fileName)}`);
-      if (data && !data.error) {
-        setTraderData(data);
-        setOriginalData(JSON.parse(JSON.stringify(data)));
+      const res = await API.get(`/api/servers/${serverId}/trader-editor/traders/${encodeURIComponent(fileName)}`);
+      if (res && !res.error) {
+        const d = res.data || res;
+        setTraderData(d);
+        setOriginalData(JSON.parse(JSON.stringify(d)));
       }
     } catch {
       window.addToast?.('Failed to load trader', 'error');
@@ -711,7 +713,7 @@ function TradersTab({ serverId }) {
     if (!selectedFile || !traderData) return;
     setSaving(true);
     try {
-      const result = await API.put(`/api/servers/${serverId}/trader-editor/traders/${encodeURIComponent(selectedFile)}`, traderData);
+      const result = await API.put(`/api/servers/${serverId}/trader-editor/traders/${encodeURIComponent(selectedFile)}`, { data: traderData });
       if (result && !result.error) {
         window.addToast?.('Trader saved successfully', 'success');
         setOriginalData(JSON.parse(JSON.stringify(traderData)));
