@@ -623,8 +623,11 @@ export default function EventsEditorPage({ serverId }) {
                 <span>Categories</span>
               </div>
               <div className="events-map-categories">
-                {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                  <label key={key} className="events-map-category-item">
+                {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+                  const isDynamic = key === 'animal' || key === 'infected' || key === 'trajectory';
+                  const posTotal = eventsWithSpawns.filter(e => e.category === key).reduce((sum, e) => sum + e.positionCount, 0);
+                  return (
+                  <label key={key} className="events-map-category-item" style={isDynamic && posTotal === 0 ? { opacity: 0.5 } : undefined}>
                     <input
                       type="checkbox"
                       checked={categoryFilters[key]}
@@ -634,10 +637,11 @@ export default function EventsEditorPage({ serverId }) {
                       className="events-map-category-dot"
                       style={{ background: CATEGORY_COLORS[key] }}
                     />
-                    <span className="events-map-category-label">{label}</span>
-                    <span className="events-map-category-count">{categoryCounts[key] || 0}</span>
+                    <span className="events-map-category-label">{label}{isDynamic && posTotal === 0 ? ' (dynamic)' : ''}</span>
+                    <span className="events-map-category-count">{posTotal > 0 ? posTotal : categoryCounts[key] || 0}</span>
                   </label>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -1330,7 +1334,17 @@ function EventDetailPanel({
 
         {positions.length === 0 ? (
           <div className="events-detail-no-spawns">
-            No spawn positions defined.
+            {(category === 'animal' || category === 'infected' || category === 'trajectory') ? (
+              <>
+                <span style={{ color: 'var(--accent-orange, #f59e0b)', fontWeight: 600, fontSize: 12 }}>Dynamic Spawning</span>
+                <br />
+                <span style={{ fontSize: 11 }}>This event spawns dynamically near players based on terrain. Fixed map positions are not used.</span>
+                <br />
+                <span style={{ fontSize: 10, opacity: 0.6 }}>You can still add fixed positions if needed:</span>
+              </>
+            ) : (
+              'No spawn positions defined.'
+            )}
             <br />
             <button className="btn btn-sm btn-secondary" onClick={onAddPosition} style={{ marginTop: 8 }}>
               <Plus size={12} /> Add Position
