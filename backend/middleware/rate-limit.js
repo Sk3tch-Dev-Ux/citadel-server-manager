@@ -7,14 +7,8 @@ const logger = require('../lib/logger');
 const ctx = require('../lib/context');
 const { loadJSON, saveJSON } = require('../lib/data-store');
 
-/** General API limiter — generous for local tool usage */
-const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 0, // 0 = disabled (local tool, no need for rate limiting)
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later' },
-});
+/** General API limiter — disabled for local tool (passthrough) */
+const apiLimiter = (req, res, next) => next();
 
 /** Auth endpoints: 15 attempts per 15 minutes (brute-force protection) */
 const authLimiter = rateLimit({
