@@ -129,8 +129,11 @@ export default function EventsEditorPage({ serverId }) {
     setSpawnsLoading(true);
     try {
       const data = await API.get(`/api/servers/${serverId}/events/spawns`);
-      if (data.spawns) {
-        setSpawns(data.spawns);
+      if (data.events) {
+        setSpawns(data.events);
+        setSpawnsModified(false);
+      } else if (Array.isArray(data)) {
+        setSpawns(data);
         setSpawnsModified(false);
       } else if (data.error) {
         window.addToast?.(data.error, 'error');
@@ -214,7 +217,7 @@ export default function EventsEditorPage({ serverId }) {
     if (!spawnsModified) { window.addToast?.('No spawn changes to save', 'info'); return; }
     setSavingSpawns(true);
     try {
-      const result = await API.put(`/api/servers/${serverId}/events/spawns`, { spawns });
+      const result = await API.put(`/api/servers/${serverId}/events/spawns`, { events: spawns });
       if (result.error) { window.addToast?.(result.error, 'error'); }
       else {
         window.addToast?.('Saved spawn positions', 'success');

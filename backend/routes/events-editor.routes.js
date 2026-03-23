@@ -185,6 +185,7 @@ module.exports = function(app) {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const missionDir = getMissionDir(srv);
+    logger.info({ serverId: srv.id, installDir: srv.installDir, missionDir }, 'Resolving spawns path');
     if (!missionDir) return res.status(404).json({ error: 'Mission folder not found' });
 
     const spawnsPath = getSpawnsPath(missionDir);
