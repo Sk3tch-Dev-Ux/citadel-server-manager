@@ -10,7 +10,7 @@ const { loadJSON, saveJSON } = require('../lib/data-store');
 /** General API limiter: 120 requests per minute per IP */
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 120,
+  max: 600,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
