@@ -485,4 +485,141 @@ module.exports = function(app) {
             res.status(500).json({ error: err.message });
         }
     });
+
+    // ═══════════════════════════════════════════════════════════
+    //  QUEST WITH RESOLVED OBJECTIVES (for quest builder)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Get a quest with all its objectives resolved inline.
+     * Looks up ObjectiveFiles and attaches the full objective JSON for each.
+     */
+    app.get('/api/servers/:id/expansion/quests/:questId/full', authForServer('files.edit'), (req, res) => {
+        const srv = findServer(req, res);
+        if (!srv) return;
+
+        try {
+            const questId = parseInt(req.params.questId, 10);
+            const quest = qm.getQuest(srv, questId);
+            if (!quest) return res.status(404).json({ error: 'Quest not found' });
+
+            // Resolve objectives by scanning all objective folders for matching file names
+            const allObjectives = qm.listObjectives(srv);
+            const resolvedObjectives = [];
+
+            if (Array.isArray(quest.ObjectiveFiles)) {
+                for (const fileName of quest.ObjectiveFiles) {
+                    const found = allObjectives.find(o => {
+                        const typeInfo = qm.OBJECTIVE_TYPES[o._objType];
+                        if (!typeInfo) return false;
+                        const expectedName = `${typeInfo.prefix}_${o.ID}`;
+                        return expectedName === fileName || o.FileName === fileName;
+                    });
+                    if (found) {
+                        const { _objType, _folder, _prefix, ...cleanObj } = found;
+                        resolvedObjectives.push({ ...cleanObj, _fileName: fileName, _objType });
+                    } else {
+                        resolvedObjectives.push({ _fileName: fileName, _missing: true });
+                    }
+                }
+            }
+
+            res.json({ ...quest, _resolvedObjectives: resolvedObjectives });
+        } catch (err) {
+            logger.error({ err, serverId: req.params.id }, 'Failed to get full quest');
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    /**
+     * Save a quest along with its objectives in one operation.
+     * Body: { quest: {...}, objectives: [{...}, ...] }
+     * Creates/updates objectives, then saves the quest with ObjectiveFiles populated.
+     */
+    app.put('/api/servers/:id/expansion/quests/:questId/full', authForServer('files.edit'), (req, res) => {
+        const srv = findServer(req, res);
+        if (!srv) return;
+
+        try {
+            const questId = parseInt(req.params.questId, 10);
+            const { quest, objectives } = req.body;
+            if (!quest) return res.status(400).json({ error: 'quest object is required' });
+
+            // Save each objective and collect file names
+            const objectiveFiles = [];
+            if (Array.isArray(objectives)) {
+                for (const obj of objectives) {
+                    if (!obj.ObjectiveType) continue;
+                    const objType = parseInt(obj.ObjectiveType, 10);
+                    const typeInfo = qm.OBJECTIVE_TYPES[objType];
+                    if (!typeInfo) continue;
+
+                    if (!obj.ID) {
+                        obj.ID = qm.getNextObjectiveId(srv, objType);
+                    }
+                    qm.saveObjective(srv, obj);
+                    objectiveFiles.push(`${typeInfo.prefix}_${obj.ID}`);
+                }
+            }
+
+            // Save the quest with updated ObjectiveFiles
+            const finalQuest = { ...quest, ID: questId, ObjectiveFiles: objectiveFiles };
+            qm.saveQuest(srv, finalQuest);
+
+            addAudit(req.user.id, req.user.username, 'expansion.quest.update',
+                `Updated quest ${questId} with ${objectiveFiles.length} objectives on ${srv.name}`);
+
+            res.json(finalQuest);
+        } catch (err) {
+            logger.error({ err, serverId: req.params.id }, 'Failed to save full quest');
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    /**
+     * Create a quest along with its objectives in one operation.
+     * Body: { quest: {...}, objectives: [{...}, ...] }
+     */
+    app.post('/api/servers/:id/expansion/quests/full', authForServer('files.edit'), (req, res) => {
+        const srv = findServer(req, res);
+        if (!srv) return;
+
+        try {
+            const { quest, objectives } = req.body;
+            if (!quest) return res.status(400).json({ error: 'quest object is required' });
+
+            if (!quest.ID) {
+                quest.ID = qm.getNextQuestId(srv);
+            }
+
+            // Save each objective and collect file names
+            const objectiveFiles = [];
+            if (Array.isArray(objectives)) {
+                for (const obj of objectives) {
+                    if (!obj.ObjectiveType) continue;
+                    const objType = parseInt(obj.ObjectiveType, 10);
+                    const typeInfo = qm.OBJECTIVE_TYPES[objType];
+                    if (!typeInfo) continue;
+
+                    if (!obj.ID) {
+                        obj.ID = qm.getNextObjectiveId(srv, objType);
+                    }
+                    qm.saveObjective(srv, obj);
+                    objectiveFiles.push(`${typeInfo.prefix}_${obj.ID}`);
+                }
+            }
+
+            // Save the quest
+            const finalQuest = { ...quest, ObjectiveFiles: objectiveFiles };
+            qm.saveQuest(srv, finalQuest);
+
+            addAudit(req.user.id, req.user.username, 'expansion.quest.create',
+                `Created quest ${quest.ID} with ${objectiveFiles.length} objectives on ${srv.name}`);
+
+            res.status(201).json(finalQuest);
+        } catch (err) {
+            logger.error({ err, serverId: req.params.id }, 'Failed to create full quest');
+            res.status(500).json({ error: err.message });
+        }
+    });
 };

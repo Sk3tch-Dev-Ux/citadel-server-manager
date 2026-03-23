@@ -181,7 +181,7 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart, Eye } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart, Eye, Clock, Star } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const serverItems = [
@@ -191,6 +191,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'players', icon: <Users size={16} />, label: 'Players' },
     { id: 'logs', icon: <FileText size={16} />, label: 'Logs' },
     { id: 'bans', icon: <ShieldBan size={16} />, label: 'Bans' },
+    { id: 'scheduler', icon: <Clock size={16} />, label: 'Restart Scheduler' },
   ];
 
   const economyItems = [
@@ -209,6 +210,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'mod-configs', icon: <Puzzle size={16} />, label: 'Mod Configs' },
     { id: 'expansion', icon: <Puzzle size={16} />, label: 'Expansion' },
     { id: 'trader-editor', icon: <ShoppingCart size={16} />, label: 'Trader Editor' },
+    { id: 'quest-creator', icon: <Star size={16} />, label: 'Quest Creator' },
   ];
 
   const configItems = [

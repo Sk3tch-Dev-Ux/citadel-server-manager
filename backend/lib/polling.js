@@ -420,6 +420,8 @@ function gracefulShutdown(httpServer, signal) {
     const botManager = require('./bot-manager');
     botManager.stopBot();
   } catch { /* bot-manager not loaded */ }
+  // Stop restart scheduler timers
+  try { require('./restart-scheduler').shutdown(); } catch { /* not loaded */ }
   // Close WebSocket server
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
   // Flush pending data writes

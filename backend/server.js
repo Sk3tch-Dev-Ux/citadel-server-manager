@@ -172,6 +172,7 @@ require('./routes/expansion-quests.routes')(app);
 require('./routes/expansion-trader.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);
+require('./routes/restart-scheduler.routes')(app);
 require('./routes/system.routes')(app);
 
 // ─── WebSocket (authenticated) ───────────────────────────
@@ -285,6 +286,11 @@ if (process.env.NODE_ENV !== 'test') {
     setInterval(() => {
       try { require('./lib/priority-engine').cleanExpired(); } catch {}
     }, 60_000);
+
+    // Initialize restart scheduler (loads saved schedules, activates timers)
+    try { require('./lib/restart-scheduler').initialize(); } catch (err) {
+      logger.error({ err }, 'Failed to initialize restart scheduler');
+    }
 
     // Listen
     server.listen(CONFIG.port, () => {
