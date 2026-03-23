@@ -181,7 +181,7 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart, Eye } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const serverItems = [
@@ -202,6 +202,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'spawnpoints', icon: <MapPin size={16} />, label: 'Spawn Points' },
     { id: 'limits', icon: <Filter size={16} />, label: 'Limits Def' },
     { id: 'economycore', icon: <FolderOpen size={16} />, label: 'Economy Core' },
+    { id: 'loot-visualizer', icon: <Eye size={16} />, label: 'Loot Visualizer' },
   ];
 
   const modConfigItems = [
