@@ -61,6 +61,15 @@ function parseEventsXml(xmlContent) {
       }
     }
 
+    // Parse <limit> element — child, parent, mixed, or custom string
+    const limit = getText('limit') || null;
+
+    // Parse <active> element — 0 or 1
+    const active = getInt('active', null);
+
+    // Parse <contamination> element — 0 or 1
+    const contamination = getInt('contamination', null);
+
     events.push({
       name,
       nominal: getInt('nominal', 0),
@@ -71,6 +80,9 @@ function parseEventsXml(xmlContent) {
       saferadius: getInt('saferadius', 0),
       distanceradius: getInt('distanceradius', 0),
       cleanupradius: getInt('cleanupradius', 0),
+      limit,
+      active,
+      contamination,
       flags: {
         deletable: getFlag('deletable', 0),
         init_random: getFlag('init_random', 0),
@@ -103,6 +115,18 @@ function eventToXml(event) {
   lines.push(`        <saferadius>${event.saferadius}</saferadius>`);
   lines.push(`        <distanceradius>${event.distanceradius}</distanceradius>`);
   lines.push(`        <cleanupradius>${event.cleanupradius}</cleanupradius>`);
+
+  if (event.limit != null) {
+    lines.push(`        <limit>${event.limit}</limit>`);
+  }
+
+  if (event.active != null) {
+    lines.push(`        <active>${event.active}</active>`);
+  }
+
+  if (event.contamination != null) {
+    lines.push(`        <contamination>${event.contamination}</contamination>`);
+  }
 
   if (event.secondary) {
     lines.push(`        <secondary>${event.secondary}</secondary>`);
