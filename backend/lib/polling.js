@@ -422,6 +422,8 @@ function gracefulShutdown(httpServer, signal) {
   } catch { /* bot-manager not loaded */ }
   // Stop restart scheduler timers
   try { require('./restart-scheduler').shutdown(); } catch { /* not loaded */ }
+  // Stop Citadel bridge file polling
+  try { require('./citadel-bridge').shutdownAll(); } catch { /* not loaded */ }
   // Close WebSocket server
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
   // Flush pending data writes

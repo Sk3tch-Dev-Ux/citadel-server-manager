@@ -174,6 +174,7 @@ require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);
 require('./routes/restart-scheduler.routes')(app);
 require('./routes/system.routes')(app);
+require('./routes/citadel-bridge.routes')(app);
 
 // ─── WebSocket (authenticated) ───────────────────────────
 io.use((socket, next) => {
@@ -252,6 +253,10 @@ io.on('connection', (socket) => {
     }).catch(err => logger.error({ err }, 'Failed to fire session.ended webhook'));
   });
 });
+
+// ─── Citadel Bridge WebSocket ─────────────────────────────
+const { initCitadelSocket } = require('./lib/citadel-socket');
+initCitadelSocket(io);
 
 // ─── SPA Fallback ────────────────────────────────────────
 app.get('*', (req, res) => {
