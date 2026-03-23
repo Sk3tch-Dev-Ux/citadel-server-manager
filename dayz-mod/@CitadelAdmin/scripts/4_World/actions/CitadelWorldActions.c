@@ -100,6 +100,7 @@ class CitadelWorldActions
 
     static bool WipeAI(out string error)
     {
+        if (!GetCitadel()) { error = "CitadelCore not initialized"; return false; }
         int count = 0;
 
         ref array<Object> objects = new array<Object>();
@@ -429,7 +430,7 @@ class CitadelWorldActions
         string steamId = CitadelJson.ExtractString(params, "steamId");
         int count = CitadelJson.ExtractInt(params, "count");
         if (count <= 0) count = 20;
-        if (count > 100) count = 100;
+        if (count > 50) count = 50;
 
         PlayerBase player = CitadelPlayerActions.FindPlayerBySteamId(steamId);
         if (!player) { error = "Player not found: " + steamId; return false; }
@@ -774,6 +775,7 @@ class CitadelWorldActions
      */
     static bool BroadcastMessage(string cmdJson, out string error)
     {
+        if (!GetCitadel()) { error = "CitadelCore not initialized"; return false; }
         string params = CitadelJson.ExtractParams(cmdJson);
         string text = CitadelJson.ExtractString(params, "text");
 

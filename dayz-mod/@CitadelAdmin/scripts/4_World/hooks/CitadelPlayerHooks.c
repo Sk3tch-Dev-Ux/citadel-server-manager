@@ -327,6 +327,12 @@ modded class PlayerBase extends ManBase
 
         // Tick at a configurable interval (default ~2s), not every frame
         float tickInterval = 2.0;
+        if (GetCitadel() && GetCitadel().GetConfiguration())
+        {
+            float cfgTick = GetCitadel().GetConfiguration().GetPlayerTickInterval();
+            if (cfgTick > 0)
+                tickInterval = cfgTick;
+        }
         if (diff >= tickInterval)
         {
             m_CitTickTime = tickTime;

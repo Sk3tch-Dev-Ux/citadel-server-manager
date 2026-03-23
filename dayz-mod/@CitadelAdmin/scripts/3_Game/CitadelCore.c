@@ -56,6 +56,7 @@ class CitadelCore
 
     void CitadelCore()
     {
+        if (!GetGame()) return;
         m_IsServer = GetGame().IsDedicatedServer();
         m_BlockProcessing = false;
 
@@ -100,15 +101,26 @@ class CitadelCore
         if (!FileExist(STORAGE_DIR))
         {
             MakeDirectory(STORAGE_DIR);
-            m_Logger.Info("Created storage directory: " + STORAGE_DIR);
+            if (!FileExist(STORAGE_DIR))
+                m_Logger.Error("Failed to create storage directory: " + STORAGE_DIR);
+            else
+                m_Logger.Info("Created storage directory: " + STORAGE_DIR);
         }
 
         string cmdDir = STORAGE_DIR + "/commands";
         string resDir = STORAGE_DIR + "/responses";
         if (!FileExist(cmdDir))
+        {
             MakeDirectory(cmdDir);
+            if (!FileExist(cmdDir))
+                m_Logger.Error("Failed to create commands directory: " + cmdDir);
+        }
         if (!FileExist(resDir))
+        {
             MakeDirectory(resDir);
+            if (!FileExist(resDir))
+                m_Logger.Error("Failed to create responses directory: " + resDir);
+        }
 
         m_Logger.Info("CitadelCore initialized successfully");
     }

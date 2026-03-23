@@ -11,6 +11,7 @@ class CitadelPlayerActions
 
     static PlayerBase FindPlayerBySteamId(string steamId)
     {
+        if (!GetCitadel()) return null;
         // Use CitadelCore registry — GetGame().GetPlayers() can return empty
         // on some DayZ dedicated server versions.
         map<string, Man> activePlayers = GetCitadel().GetActivePlayers();
@@ -602,6 +603,16 @@ class CitadelPlayerActions
         s_InfiniteStaminaPlayers.Remove(steamId);
         Print("[Citadel] Infinite stamina OFF: " + steamId);
         return true;
+    }
+
+    /**
+     * Cleanup infinite stamina state when a player disconnects.
+     * Called from CitadelMissionServer.PlayerDisconnected().
+     */
+    static void CleanupPlayer(string steamId)
+    {
+        if (s_InfiniteStaminaPlayers && s_InfiniteStaminaPlayers.Contains(steamId))
+            s_InfiniteStaminaPlayers.Remove(steamId);
     }
 
     /**

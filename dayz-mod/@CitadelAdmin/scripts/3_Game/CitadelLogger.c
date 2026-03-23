@@ -85,7 +85,13 @@ class CitadelLogger
         m_FullPath = LOG_DIR + "/" + m_ModIdentifier + ".log";
 
         if (!FileExist(LOG_DIR))
+        {
             MakeDirectory(LOG_DIR);
+            if (!FileExist(LOG_DIR))
+            {
+                Print("[CitadelAdmin] ERROR: Failed to create log directory: " + LOG_DIR);
+            }
+        }
 
         // Log rotation: archive existing log
         if (FileExist(m_FullPath))

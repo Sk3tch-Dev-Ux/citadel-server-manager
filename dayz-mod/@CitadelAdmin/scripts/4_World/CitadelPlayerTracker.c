@@ -112,5 +112,9 @@ class CitadelPlayerTracker
             FPrintln(file, json);
             CloseFile(file);
         }
+        else
+        {
+            Print("[CitadelAdmin] WARNING: Failed to open player data file for writing: " + PLAYER_FILE);
+        }
     }
 };

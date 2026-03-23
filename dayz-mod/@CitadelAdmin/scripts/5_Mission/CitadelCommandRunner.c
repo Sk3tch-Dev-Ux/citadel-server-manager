@@ -6,6 +6,169 @@
  *
  * Polls $profile:Citadel/commands/ for *.cmd.json files, processes them,
  * and writes responses to $profile:Citadel/responses/.
+ *
+ * ─── Command File Format (.cmd.json) ───────────────────────────────────
+ *
+ *   {
+ *     "id": "<unique-command-id>",
+ *     "action": "<action-name>",
+ *     "params": { <action-specific parameters> }
+ *   }
+ *
+ *   - id:     Unique identifier (alphanumeric, hyphens, underscores). Used for
+ *             matching the response file.
+ *   - action: The command to execute (see list below).
+ *   - params: JSON object with action-specific parameters.
+ *
+ * ─── Response File Format (.res.json) ──────────────────────────────────
+ *
+ *   {
+ *     "id": "<matching-command-id>",
+ *     "ok": true|false,
+ *     "data": { <action-specific response data> },
+ *     "error": null|"<error message>",
+ *     "timestamp": "<ISO8601>"
+ *   }
+ *
+ * ─── Available Commands ────────────────────────────────────────────────
+ *
+ *   PLAYER ACTIONS (params: { "steamId": "..." })
+ *     player.heal              — Full heal (health, blood, shock, diseases, bleeding)
+ *     player.kill              — Kill player
+ *     player.teleport          — Teleport { steamId, x, y, z }
+ *     player.spawnItem         — Spawn item { steamId, itemClass, quantity }
+ *     player.strip             — Remove all items
+ *     player.explode           — Explode player
+ *     player.kick              — Kick { steamId, reason }
+ *     player.message           — Send message { steamId, text }
+ *     player.unstuck           — Move to surface
+ *     player.freeze            — Freeze/unfreeze { steamId, frozen: 0|1 }
+ *     player.teleportToPlayer  — Teleport to another player { steamId, targetSteamId }
+ *     player.getLoadout        — Query player inventory (returns data)
+ *     player.dry               — Remove wetness
+ *     player.breakLegs         — Break legs
+ *     player.makeSick          — Infect { steamId, diseaseType: cholera|influenza|salmonella }
+ *     player.cure              — Remove all agents
+ *     player.setBloodType      — Set blood type { steamId, bloodType: "O+"|"A-"|... }
+ *     player.forceDrink        — Max water
+ *     player.forceEat          — Max energy
+ *     player.knockout          — Set shock to 0
+ *     player.wake              — Set shock to 100
+ *     player.setBleeding       — Add bleeding { steamId, sourceCount }
+ *     player.stopBleeding      — Remove all bleeding
+ *     player.dropGear          — Drop all items on ground
+ *     player.launch            — Launch into air { steamId, power, angle }
+ *     player.setStat           — Set stat { steamId, stat: health|blood|shock|water|energy, value }
+ *     player.ragdoll           — Trigger ragdoll
+ *     player.setGodmode        — Enable god mode
+ *     player.removeGodmode     — Disable god mode
+ *     player.setInvisible      — Enable invisibility
+ *     player.removeInvisible   — Disable invisibility
+ *     player.setStaminaInfinite    — Enable infinite stamina
+ *     player.removeStaminaInfinite — Disable infinite stamina
+ *     player.respawn           — Kill and respawn
+ *     player.clearInventory    — Remove all items
+ *     player.fillMagazines     — Fill all magazines to max ammo
+ *
+ *   VEHICLE ACTIONS (params: { "vehicleId": "..." })
+ *     vehicle.delete           — Delete vehicle
+ *     vehicle.repair           — Full repair
+ *     vehicle.refuel           — Full refuel
+ *     vehicle.unstuck          — Unstick vehicle
+ *     vehicle.explode          — Explode vehicle
+ *     vehicle.kill-engine      — Kill engine
+ *     vehicle.eject-driver     — Eject driver
+ *     vehicle.teleport         — Teleport vehicle { vehicleId, x, y, z }
+ *
+ *   WORLD ACTIONS
+ *     world.time               — Set time { hour, minute }
+ *     world.weather            — Set weather { overcast, rain, fog, snow, wind }
+ *     world.sunny              — Clear all weather
+ *     world.wipeAI             — Delete all AI (zombies + animals)
+ *     world.wipeVehicles       — Delete all vehicles
+ *     world.spawnItem          — Spawn at coords { itemClass, x, y, z }
+ *     world.broadcast          — Message all players { text }
+ *     world.setFog             — Set fog { density }
+ *     world.setWind            — Set wind { speed }
+ *     world.flattenTrees       — Remove trees { x, z, radius | steamId }
+ *     world.clearZombies       — Clear zombies { x, z, radius | steamId }
+ *     world.deleteObjectsRadius — Delete objects { x, z, radius, objectType | steamId }
+ *     world.deleteObject       — Delete by network ID { objectId }
+ *
+ *   SPAWN ACTIONS
+ *     spawn.zombie             — Spawn zombies near player { steamId, count }
+ *     spawn.animal             — Spawn animal { steamId, animalType }
+ *     spawn.vehicle            — Spawn vehicle { steamId, vehicleClass }
+ *     spawn.building           — Spawn building { steamId, buildingClass }
+ *     spawn.horde              — Spawn zombie horde { steamId, count (max 50) }
+ *     spawn.supplyCrate        — Spawn crate { coords }
+ *     spawn.lootPile           — Spawn loot pile { steamId }
+ *     spawn.itemAttached       — Spawn in inventory { steamId, itemClass }
+ *     spawn.itemAt             — Spawn at coords { itemClass, coords }
+ *     spawn.zombieAt           — Spawn zombies at coords { coords, count }
+ *     spawn.animalAt           — Spawn animal at coords { animalType, coords }
+ *     spawn.fire               — Spawn fire { steamId }
+ *     spawn.smoke              — Spawn smoke { steamId, color: white|red|green|black }
+ *     spawn.heliCrash          — Spawn heli crash { coords }
+ *     spawn.gasZone            — Spawn gas zone { coords }
+ *
+ *   STRUCTURE ACTIONS
+ *     structure.openDoors      — Open doors { steamId, radius }
+ *     structure.closeDoors     — Close doors { steamId, radius }
+ *     structure.lootMagnet     — Pull loot to player { steamId, radius }
+ *
+ *   ITEM ACTIONS
+ *     item.delete              — Delete item { persistentId }
+ *     item.repair              — Repair item { persistentId }
+ *
+ *   QUERY ACTIONS (return data in response)
+ *     player.getPosition       — Get position { steamId }
+ *     player.getInfo           — Get full player info { steamId }
+ *     player.getGear           — Get gear slots { steamId }
+ *     player.getInventory      — Get full inventory { steamId }
+ *     player.getStats          — Get session stats { steamId }
+ *     player.getFull           — Get info+stats+gear combined { steamId }
+ *     player.getGearFull       — Get detailed gear { steamId }
+ *     player.getHandsData      — Get item in hands { steamId }
+ *     data.onlinePlayers       — List all online players
+ *     data.allPlayers          — Same as onlinePlayers (in-game only)
+ *     data.serverInfo          — Server FPS, player count, entity counts
+ *     data.nearbyVehicles      — Vehicles near coords { x, z, radius }
+ *     data.vehicleInfo         — Vehicle details { vehicleId }
+ *     data.itemDetails         — Item details { objectId }
+ *     data.baseObjects         — Base objects near coords { x, z, radius }
+ *     data.storageContents     — Container contents { objectId }
+ *     data.allStorageObjects   — List all storage containers
+ *     data.nearbyPlayers       — Players near player { steamId, radius }
+ *     data.nearbyLoot          — Loot near player { steamId, radius }
+ *     data.nearbyEntities      — Entities near player { steamId, radius }
+ *     data.nearbyEntitiesAt    — Entities near coords { x, z, radius }
+ *     data.nearbyLootAt        — Loot near coords { x, z, radius }
+ *
+ *   CONFIG
+ *     config.reload            — Reload citadel.cfg from disk
+ *
+ *   SERVER
+ *     server.lock              — Lock server (requires RCON)
+ *     server.unlock            — Unlock server (requires RCON)
+ *
+ * ─── Example Command ───────────────────────────────────────────────────
+ *
+ *   File: $profile:Citadel/commands/abc123.cmd.json
+ *   {
+ *     "id": "abc123",
+ *     "action": "player.heal",
+ *     "params": { "steamId": "76561198012345678" }
+ *   }
+ *
+ *   Response: $profile:Citadel/responses/abc123.res.json
+ *   {
+ *     "id": "abc123",
+ *     "ok": true,
+ *     "data": {},
+ *     "error": null,
+ *     "timestamp": "2026-03-22T12:00:00Z"
+ *   }
  */
 class CitadelCommandRunner
 {
@@ -28,6 +191,9 @@ class CitadelCommandRunner
             m_PollTimer.Stop();
     }
 
+    // Maximum commands to process per poll cycle (rate limiting)
+    static const int MAX_COMMANDS_PER_CYCLE = 10;
+
     void ProcessQueue()
     {
         // Periodic stamina refill for infinite stamina players
@@ -40,11 +206,19 @@ class CitadelCommandRunner
         if (findHandle == 0)
             return;
 
+        int cmdCount = 0;
         ProcessCommandFile(CMD_DIR + "/" + fileName);
+        cmdCount++;
 
         while (FindNextFile(findHandle, fileName, fileAttr))
         {
+            if (cmdCount >= MAX_COMMANDS_PER_CYCLE)
+            {
+                GetCitadel().GetLogger().Warn("Rate limit reached: " + MAX_COMMANDS_PER_CYCLE.ToString() + " commands per cycle, deferring remaining");
+                break;
+            }
             ProcessCommandFile(CMD_DIR + "/" + fileName);
+            cmdCount++;
         }
 
         CloseFindFile(findHandle);

@@ -11,6 +11,7 @@ class CitadelQueryActions
 
     static bool GetPlayerPosition(string cmdJson, out string error, out string responseData)
     {
+        if (!GetCitadel()) { error = "CitadelCore not initialized"; return false; }
         string params = CitadelJson.ExtractParams(cmdJson);
         string steamId = CitadelJson.ExtractString(params, "steamId");
 
@@ -237,6 +238,7 @@ class CitadelQueryActions
 
     static bool GetOnlinePlayers(out string error, out string responseData)
     {
+        if (!GetCitadel()) { error = "CitadelCore not initialized"; return false; }
         map<string, Man> activePlayers = GetCitadel().GetActivePlayers();
 
         responseData = "{\"players\":[";
@@ -272,6 +274,7 @@ class CitadelQueryActions
 
     static bool GetServerInfo(out string error, out string responseData)
     {
+        if (!GetCitadel()) { error = "CitadelCore not initialized"; return false; }
         int fps = GetCitadel().GetServerFPS();
         int playerCount = GetCitadel().GetActivePlayerCount();
         int aiCount = GetCitadel().GetAICount();

@@ -37,6 +37,9 @@ class CitadelConfiguration
     bool trackItems = true;
     bool trackMapMarkers = true;
 
+    // Player tick interval (seconds) for speed check / distance tracking
+    float playerTickInterval = 2.0;
+
     // Metrics
     bool enableMetricsDump = false;
 
@@ -84,6 +87,8 @@ class CitadelConfiguration
     bool GetTrackItems() { return trackItems; }
     bool GetTrackMapMarkers() { return trackMapMarkers; }
 
+    float GetPlayerTickInterval() { return playerTickInterval; }
+
     bool GetMetricsDump() { return enableMetricsDump; }
 
     protected void ValidateAndExtend()
@@ -102,5 +107,7 @@ class CitadelConfiguration
             speedCheckThresholdVehicle = 100.0;
         if (speedCheckTriggerCount < 1)
             speedCheckTriggerCount = 3;
+        if (playerTickInterval < 0.5)
+            playerTickInterval = 2.0;
     }
 };

@@ -31,10 +31,11 @@ class CitadelEventLogger
     static string EscapeJson(string input)
     {
         string output = input;
-        output.Replace("\"", "'");
-        output.Replace("\n", " ");
-        output.Replace("\r", " ");
-        output.Replace("\t", " ");
+        output.Replace("\\", "\\\\");
+        output.Replace("\"", "\\\"");
+        output.Replace("\n", "\\n");
+        output.Replace("\r", "\\r");
+        output.Replace("\t", "\\t");
         return output;
     }
 
@@ -60,17 +61,27 @@ class CitadelEventLogger
     {
         if (s_EventBuffer.Count() == 0) return;
 
+        // Copy-swap to prevent race condition
+        array<string> toFlush = new array<string>();
+        for (int i = 0; i < s_EventBuffer.Count(); i++)
+            toFlush.Insert(s_EventBuffer.Get(i));
+        s_EventBuffer.Clear();
+        s_LastFlushTime = GetGame().GetTickTime();
+
         FileHandle file = OpenFile(EVENT_FILE, FileMode.APPEND);
         if (file != 0)
         {
-            for (int i = 0; i < s_EventBuffer.Count(); i++)
+            for (int j = 0; j < toFlush.Count(); j++)
             {
-                FPrintln(file, s_EventBuffer.Get(i));
+                FPrintln(file, toFlush.Get(j));
             }
             CloseFile(file);
         }
-        s_EventBuffer.Clear();
-        s_LastFlushTime = GetGame().GetTickTime();
+        else
+        {
+            // Failed to open file - log warning
+            Print("[CitadelAdmin] WARNING: Failed to open event log file: " + EVENT_FILE);
+        }
     }
 
     static void CheckFlush()
@@ -87,6 +98,13 @@ class CitadelEventLogger
     protected static void AppendLine(string line)
     {
         s_EventBuffer.Insert(line);
+
+        // Warn if buffer is growing too large (indicates flush failures)
+        if (s_EventBuffer.Count() > BATCH_SIZE * 5)
+        {
+            Print("[CitadelAdmin] WARNING: Event buffer has " + s_EventBuffer.Count().ToString() + " entries — possible flush failure");
+        }
+
         if (s_EventBuffer.Count() >= BATCH_SIZE)
         {
             FlushBuffer();

@@ -223,6 +223,9 @@ modded class MissionServer
                     }
                 }
 
+                // Cleanup infinite stamina state
+                CitadelPlayerActions.CleanupPlayer(steamId);
+
                 // Cleanup player from core registries
                 GetCitadel().UnregisterPlayer(steamId);
 
