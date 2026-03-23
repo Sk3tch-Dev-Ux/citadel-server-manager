@@ -7,10 +7,10 @@ const logger = require('../lib/logger');
 const ctx = require('../lib/context');
 const { loadJSON, saveJSON } = require('../lib/data-store');
 
-/** General API limiter: 120 requests per minute per IP */
+/** General API limiter — generous for local tool usage */
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 600,
+  max: 0, // 0 = disabled (local tool, no need for rate limiting)
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
