@@ -181,7 +181,7 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const serverItems = [
@@ -207,6 +207,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
   const modConfigItems = [
     { id: 'mod-configs', icon: <Puzzle size={16} />, label: 'Mod Configs' },
     { id: 'expansion', icon: <Puzzle size={16} />, label: 'Expansion' },
+    { id: 'trader-editor', icon: <ShoppingCart size={16} />, label: 'Trader Editor' },
   ];
 
   const configItems = [

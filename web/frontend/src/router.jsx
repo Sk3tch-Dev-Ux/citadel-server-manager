@@ -38,6 +38,7 @@ const EconomyCoreEditorPage = lazy(() => import('./pages/EconomyCoreEditorPage')
 const EconomyHubPage = lazy(() => import('./pages/EconomyHubPage'));
 const ModConfigsPage = lazy(() => import('./pages/ModConfigsPage'));
 const ExpansionEditorPage = lazy(() => import('./pages/ExpansionEditorPage'));
+const TraderEditorPage = lazy(() => import('./pages/TraderEditorPage'));
 const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
@@ -151,6 +152,7 @@ export default function AppRouter() {
             <Route path="economycore" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={EconomyCoreEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="mod-configs" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={ModConfigsPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="expansion" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={ExpansionEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="trader-editor" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={TraderEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
             <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />
             <Route path="settings" element={<PermGuard permission="server.settings"><ErrorBoundary><ServerPage Component={ServerSettingsPage} /></ErrorBoundary></PermGuard>} />

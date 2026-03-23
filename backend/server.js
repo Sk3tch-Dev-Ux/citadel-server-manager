@@ -169,6 +169,7 @@ require('./routes/limits-editor.routes')(app);
 require('./routes/economycore-editor.routes')(app);
 require('./routes/mod-config.routes')(app);
 require('./routes/expansion-quests.routes')(app);
+require('./routes/expansion-trader.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);
 require('./routes/system.routes')(app);
