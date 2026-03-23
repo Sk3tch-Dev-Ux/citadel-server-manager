@@ -129,11 +129,14 @@ export default function EventsEditorPage({ serverId }) {
     setSpawnsLoading(true);
     try {
       const data = await API.get(`/api/servers/${serverId}/events/spawns`);
-      if (data.events) {
-        setSpawns(data.events);
-        setSpawnsModified(false);
-      } else if (Array.isArray(data)) {
-        setSpawns(data);
+      // Convert array of { name, positions } to object keyed by name
+      const eventsArray = data.events || (Array.isArray(data) ? data : null);
+      if (eventsArray) {
+        const spawnMap = {};
+        for (const ev of eventsArray) {
+          if (ev.name) spawnMap[ev.name] = { positions: ev.positions || [] };
+        }
+        setSpawns(spawnMap);
         setSpawnsModified(false);
       } else if (data.error) {
         window.addToast?.(data.error, 'error');
@@ -217,7 +220,9 @@ export default function EventsEditorPage({ serverId }) {
     if (!spawnsModified) { window.addToast?.('No spawn changes to save', 'info'); return; }
     setSavingSpawns(true);
     try {
-      const result = await API.put(`/api/servers/${serverId}/events/spawns`, { events: spawns });
+      // Convert object keyed by name back to array format for the API
+      const eventsArray = Object.entries(spawns).map(([name, data]) => ({ name, positions: data.positions || [] }));
+      const result = await API.put(`/api/servers/${serverId}/events/spawns`, { events: eventsArray });
       if (result.error) { window.addToast?.(result.error, 'error'); }
       else {
         window.addToast?.('Saved spawn positions', 'success');
