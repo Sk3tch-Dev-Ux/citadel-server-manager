@@ -237,16 +237,19 @@ modded class PlayerBase extends ManBase
             vector killerPos = killerPlayer.GetPosition();
             float distance = vector.Distance(victimPos, killerPos);
 
+            // Capture weapon class (not just display name)
             string weaponType = "";
             if (killer)
                 weaponType = killer.GetType();
 
-            // Normalize DayZ damage zone names to our hit_zone enum values
-            // DayZ sends: "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg", "Brain"
+            // Capture hit zone from cached damage tracking
             string zone = m_CitLastDmgZone;
             zone.ToLower();
 
-            CitadelEventLogger.LogKill(killerSteamId, killerName, victimSteamId, victimName, distance, weaponType, zone, killerPos, victimPos);
+            // Capture ammo type from cached damage tracking
+            string ammoType = m_CitLastDamageAmmo;
+
+            CitadelEventLogger.LogKill(killerSteamId, killerName, victimSteamId, victimName, distance, weaponType, zone, killerPos, victimPos, ammoType);
 
             // Update killer stats
             CitadelPlayerStats killerStats = GetCitadel().GetPlayerStats(killerSteamId);

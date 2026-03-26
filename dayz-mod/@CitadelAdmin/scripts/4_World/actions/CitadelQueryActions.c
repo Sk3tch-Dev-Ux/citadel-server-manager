@@ -204,8 +204,148 @@ class CitadelQueryActions
 
     static bool GetPlayerGearFull(string cmdJson, out string error, out string responseData)
     {
-        // Same as inventory but with more detail per item
-        return GetPlayerInventory(cmdJson, error, responseData);
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+
+        PlayerBase player = CitadelPlayerActions.FindPlayerBySteamId(steamId);
+        if (!player)
+        {
+            error = "Player not found: " + steamId;
+            return false;
+        }
+
+        responseData = "{\"slots\":{";
+        string slotsJson = "";
+        int slotCount = player.GetInventory().GetAttachmentSlotsCount();
+        bool firstSlot = true;
+        for (int i = 0; i < slotCount; i++)
+        {
+            int slotId = player.GetInventory().GetAttachmentSlotId(i);
+            EntityAI attachment = player.GetInventory().FindAttachment(slotId);
+            if (attachment)
+            {
+                if (!firstSlot) slotsJson += ",";
+                firstSlot = false;
+                string slotName = InventorySlots.GetSlotName(slotId);
+                slotsJson += "\"" + slotName + "\":" + BuildItemDetailJson(attachment, 0);
+            }
+        }
+        responseData += slotsJson + "},\"inventory\":[";
+
+        array<EntityAI> items = new array<EntityAI>();
+        player.GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
+
+        bool first = true;
+        for (int i = 0; i < items.Count(); i++)
+        {
+            EntityAI item = items.Get(i);
+            if (!item || item == player) continue;
+
+            if (!first) responseData += ",";
+            first = false;
+
+            responseData += BuildItemDetailJson(item, 0);
+        }
+        responseData += "],\"count\":" + items.Count().ToString() + "}";
+        return true;
+    }
+
+    private static string BuildItemDetailJson(EntityAI item, int depth)
+    {
+        if (!item || depth > 5) return "null";
+
+        float hp = item.GetHealth("", "Health");
+        float maxHp = item.GetMaxHealth("", "Health");
+        float healthPercent = maxHp > 0 ? (hp / maxHp) * 100.0 : 0;
+        string persistentId = CitGetNetworkIDString(item);
+        string displayName = item.GetDisplayName();
+
+        int qty = 1;
+        int maxQty = 1;
+        ItemBase itemBase = ItemBase.Cast(item);
+        if (itemBase && itemBase.HasQuantity())
+        {
+            qty = itemBase.GetQuantity();
+            maxQty = itemBase.GetQuantityMax();
+        }
+
+        string json = "{";
+        json += "\"className\":\"" + item.GetType() + "\",";
+        json += "\"displayName\":\"" + CitJsonEscape(displayName) + "\",";
+        json += "\"persistentId\":\"" + persistentId + "\",";
+        json += "\"health\":" + CitFloatToStr(hp, 1) + ",";
+        json += "\"maxHealth\":" + CitFloatToStr(maxHp, 1) + ",";
+        json += "\"healthPercent\":" + CitFloatToStr(healthPercent, 1) + ",";
+        json += "\"quantity\":" + qty.ToString() + ",";
+        json += "\"maxQuantity\":" + maxQty.ToString();
+
+        Magazine magazine = Magazine.Cast(item);
+        if (magazine)
+        {
+            int ammoCount = magazine.GetAmmoCount();
+            int ammoMax = magazine.GetAmmoMax();
+            string ammoType = magazine.GetAmmoType();
+            json += ",\"magazine\":{";
+            json += "\"ammoCount\":" + ammoCount.ToString() + ",";
+            json += "\"ammoMax\":" + ammoMax.ToString() + ",";
+            json += "\"ammoType\":\"" + ammoType + "\"";
+            json += "}";
+        }
+
+        Weapon_Base weapon = Weapon_Base.Cast(item);
+        if (weapon)
+        {
+            int fireMode = weapon.GetFireMode();
+            int chamberCount = weapon.GetChamberCount();
+            int chamberedRounds = 0;
+            for (int i = 0; i < chamberCount; i++)
+            {
+                if (weapon.GetChamberRound(i)) chamberedRounds++;
+            }
+            float reloadTime = weapon.GetReloadTime();
+            float rateOfFire = 0;
+            if (reloadTime > 0) rateOfFire = 60.0 / reloadTime;
+
+            json += ",\"weapon\":{";
+            json += "\"fireMode\":" + fireMode.ToString() + ",";
+            json += "\"chamberCount\":" + chamberCount.ToString() + ",";
+            json += "\"chamberedRounds\":" + chamberedRounds.ToString() + ",";
+            json += "\"reloadTime\":" + CitFloatToStr(reloadTime, 2) + ",";
+            json += "\"rateOfFire\":" + CitFloatToStr(rateOfFire, 1);
+            json += "}";
+        }
+
+        if (depth < 5)
+        {
+            array<EntityAI> attachments = new array<EntityAI>();
+            int attachSlotCount = item.GetInventory().GetAttachmentSlotsCount();
+            if (attachSlotCount > 0)
+            {
+                for (int i = 0; i < attachSlotCount; i++)
+                {
+                    int aSlotId = item.GetInventory().GetAttachmentSlotId(i);
+                    EntityAI attachment = item.GetInventory().FindAttachment(aSlotId);
+                    if (attachment)
+                        attachments.Insert(attachment);
+                }
+
+                if (attachments.Count() > 0)
+                {
+                    json += ",\"attachments\":[";
+                    bool first = true;
+                    for (int i = 0; i < attachments.Count(); i++)
+                    {
+                        if (!first) json += ",";
+                        first = false;
+                        json += BuildItemDetailJson(attachments.Get(i), depth + 1);
+                    }
+                    json += "]";
+                }
+            }
+        }
+
+        json += "}";
+        return json;
     }
 
     static bool GetPlayerHandsData(string cmdJson, out string error, out string responseData)
@@ -229,8 +369,60 @@ class CitadelQueryActions
 
         float hp = handsItem.GetHealth("", "Health");
         float maxHp = handsItem.GetMaxHealth("", "Health");
+        float healthPercent = maxHp > 0 ? (hp / maxHp) * 100.0 : 0;
+        string displayName = handsItem.GetDisplayName();
+        string persistentId = CitGetNetworkIDString(handsItem);
 
-        responseData = "{\"hasItem\":true,\"className\":\"" + handsItem.GetType() + "\",\"health\":" + CitFloatToStr(hp, 1) + ",\"maxHealth\":" + CitFloatToStr(maxHp, 1) + "}";
+        responseData = "{\"hasItem\":true,";
+        responseData += "\"className\":\"" + handsItem.GetType() + "\",";
+        responseData += "\"displayName\":\"" + CitJsonEscape(displayName) + "\",";
+        responseData += "\"persistentId\":\"" + persistentId + "\",";
+        responseData += "\"health\":" + CitFloatToStr(hp, 1) + ",";
+        responseData += "\"maxHealth\":" + CitFloatToStr(maxHp, 1) + ",";
+        responseData += "\"healthPercent\":" + CitFloatToStr(healthPercent, 1);
+
+        Weapon_Base weapon = Weapon_Base.Cast(handsItem);
+        if (weapon)
+        {
+            int fireMode = weapon.GetFireMode();
+            int chamberCount = weapon.GetChamberCount();
+            int chamberedRounds = 0;
+            for (int i = 0; i < chamberCount; i++)
+            {
+                if (weapon.GetChamberRound(i)) chamberedRounds++;
+            }
+            float reloadTime = weapon.GetReloadTime();
+            float rateOfFire = 0;
+            if (reloadTime > 0) rateOfFire = 60.0 / reloadTime;
+            float weaponLength = 0;
+            BaseWeaponManagerModule weaponManager = weapon.GetWeaponManager();
+            if (weaponManager)
+                weaponLength = weaponManager.GetWeaponLength();
+
+            Magazine magazine = weapon.GetMagazine();
+            responseData += ",\"weapon\":{";
+            responseData += "\"fireMode\":" + fireMode.ToString() + ",";
+            responseData += "\"chamberCount\":" + chamberCount.ToString() + ",";
+            responseData += "\"chamberedRounds\":" + chamberedRounds.ToString() + ",";
+            responseData += "\"reloadTime\":" + CitFloatToStr(reloadTime, 2) + ",";
+            responseData += "\"rateOfFire\":" + CitFloatToStr(rateOfFire, 1) + ",";
+            responseData += "\"weaponLength\":" + CitFloatToStr(weaponLength, 2);
+
+            if (magazine)
+            {
+                int ammoCount = magazine.GetAmmoCount();
+                int ammoMax = magazine.GetAmmoMax();
+                string ammoType = magazine.GetAmmoType();
+                responseData += ",\"magazine\":{";
+                responseData += "\"ammoCount\":" + ammoCount.ToString() + ",";
+                responseData += "\"ammoMax\":" + ammoMax.ToString() + ",";
+                responseData += "\"ammoType\":\"" + ammoType + "\"";
+                responseData += "}";
+            }
+            responseData += "}";
+        }
+
+        responseData += "}";
         return true;
     }
 
@@ -268,8 +460,37 @@ class CitadelQueryActions
 
     static bool GetAllPlayers(out string error, out string responseData)
     {
-        // In-game mod only knows about currently connected players
-        return GetOnlinePlayers(error, responseData);
+        if (!GetCitadel()) { error = "CitadelCore not initialized"; return false; }
+        map<string, Man> activePlayers = GetCitadel().GetActivePlayers();
+
+        responseData = "{\"players\":[";
+        bool first = true;
+        for (int i = 0; i < activePlayers.Count(); i++)
+        {
+            string steamId = activePlayers.GetKey(i);
+            PlayerBase player = PlayerBase.Cast(activePlayers.GetElement(i));
+            if (!player) continue;
+
+            if (!first) responseData += ",";
+            first = false;
+
+            string name = "Survivor";
+            if (player.GetIdentity())
+                name = player.GetIdentity().GetName();
+
+            vector pos = player.GetPosition();
+            float health = player.GetHealth("GlobalHealth", "Health");
+            float blood = player.GetHealth("GlobalHealth", "Blood");
+            float shock = player.GetHealth("GlobalHealth", "Shock");
+            int direction = CitGetPlayerDirection(player);
+            string aliveStr = "false";
+            if (player.IsAlive()) aliveStr = "true";
+            int sessionDuration = GetCitadel().GetPlayerSessionDuration(steamId);
+
+            responseData += "{\"steamId\":\"" + steamId + "\",\"name\":\"" + CitJsonEscape(name) + "\",\"position\":" + CitVectorToJson(pos) + ",\"direction\":" + direction.ToString() + ",\"health\":" + CitFloatToStr(health, 1) + ",\"blood\":" + CitFloatToStr(blood, 1) + ",\"shock\":" + CitFloatToStr(shock, 1) + ",\"alive\":" + aliveStr + ",\"sessionSeconds\":" + sessionDuration.ToString() + "}";
+        }
+        responseData += "],\"count\":" + activePlayers.Count().ToString() + "}";
+        return true;
     }
 
     static bool GetServerInfo(out string error, out string responseData)
@@ -283,6 +504,45 @@ class CitadelQueryActions
         int vehicleCount = GetCitadel().GetVehicleCount();
         int entityCount = GetCitadel().GetEntityCount();
         float tickAvg = GetCitadel().GetTickTimeAvg();
+        float tickLow = GetCitadel().GetTickTimeLow();
+        float tickHigh = GetCitadel().GetTickTimeHigh();
+        int eventCount = GetCitadel().GetEventCount();
+
+        string mapName = "Unknown";
+        float worldSize = 0;
+        if (GetGame().GetWorld())
+        {
+            worldSize = GetGame().GetWorld().GetWorldSize();
+            mapName = GetGame().GetMissionName();
+        }
+
+        Weather weather = GetGame().GetWeather();
+        float overcast = 0;
+        float rain = 0;
+        float fog = 0;
+        float snowfall = 0;
+        float windSpeed = 0;
+        float windDirection = 0;
+        float windMagnitude = 0;
+        if (weather)
+        {
+            overcast = weather.GetOvercast();
+            rain = weather.GetRain().GetActual();
+            fog = weather.GetFog().GetActual();
+            snowfall = weather.GetSnowfall().GetActual();
+            windSpeed = weather.GetWindSpeed();
+            windDirection = weather.GetWindDirection();
+            windMagnitude = weather.GetWindMagnitude();
+        }
+
+        int gameTime = GetGame().GetTime();
+        int gameDate = GetGame().GetDate();
+        bool isNight = gameTime >= 18000 || gameTime < 6000;
+
+        int serverUptime = GetCitadel().GetServerUptime();
+        int uptimeHours = serverUptime / 3600;
+        int uptimeMinutes = (serverUptime % 3600) / 60;
+        int uptimeSeconds = serverUptime % 60;
 
         responseData = "{";
         responseData += "\"fps\":" + fps.ToString() + ",";
@@ -292,7 +552,29 @@ class CitadelQueryActions
         responseData += "\"animalCount\":" + animalCount.ToString() + ",";
         responseData += "\"vehicleCount\":" + vehicleCount.ToString() + ",";
         responseData += "\"entityCount\":" + entityCount.ToString() + ",";
+        responseData += "\"eventCount\":" + eventCount.ToString() + ",";
         responseData += "\"tickTimeAvg\":" + CitFloatToStr(tickAvg, 3) + ",";
+        responseData += "\"tickTimeLow\":" + CitFloatToStr(tickLow, 3) + ",";
+        responseData += "\"tickTimeHigh\":" + CitFloatToStr(tickHigh, 3) + ",";
+        responseData += "\"mapName\":\"" + mapName + "\",";
+        responseData += "\"worldSize\":" + CitFloatToStr(worldSize, 1) + ",";
+        responseData += "\"isNight\":" + (isNight ? "true" : "false") + ",";
+        responseData += "\"date\":" + gameDate + ",";
+        responseData += "\"time\":" + gameTime + ",";
+        responseData += "\"weather\":{";
+        responseData += "\"overcast\":" + CitFloatToStr(overcast, 2) + ",";
+        responseData += "\"rain\":" + CitFloatToStr(rain, 2) + ",";
+        responseData += "\"fog\":" + CitFloatToStr(fog, 2) + ",";
+        responseData += "\"snowfall\":" + CitFloatToStr(snowfall, 2) + ",";
+        responseData += "\"windSpeed\":" + CitFloatToStr(windSpeed, 2) + ",";
+        responseData += "\"windDirection\":" + CitFloatToStr(windDirection, 1) + ",";
+        responseData += "\"windMagnitude\":" + CitFloatToStr(windMagnitude, 2);
+        responseData += "},";
+        responseData += "\"uptime\":{";
+        responseData += "\"hours\":" + uptimeHours.ToString() + ",";
+        responseData += "\"minutes\":" + uptimeMinutes.ToString() + ",";
+        responseData += "\"seconds\":" + uptimeSeconds.ToString();
+        responseData += "},";
         responseData += "\"version\":\"" + GetCitadel().GetVersion() + "\"";
         responseData += "}";
         return true;

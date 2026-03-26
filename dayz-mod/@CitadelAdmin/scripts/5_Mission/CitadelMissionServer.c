@@ -39,6 +39,9 @@ modded class MissionServer
             GetCitadel().GetLogger().Info(string.Format("MapMarkerManager ready (%1 definitions)", GetMarkerManager().GetConfigCount().ToString()));
         }
 
+        // Initialize ban manager
+        GetCitadelBanManager().LoadBans();
+
         m_CitCommandRunner = new CitadelCommandRunner();
         m_CitPlayerTracker = new CitadelPlayerTracker();
         m_CitMetricsTracker = new CitadelMetricsTracker();
@@ -180,6 +183,16 @@ modded class MissionServer
         {
             string steamId = identity.GetPlainId();
             string name = identity.GetName();
+
+            // Check ban list BEFORE registering the player
+            if (GetCitadelBanManager().IsPlayerBanned(steamId))
+            {
+                string banReason = GetCitadelBanManager().GetBanReason(steamId);
+                GetCitadel().GetLogger().Warn("Banned player rejected: " + name + " (" + steamId + ") - " + banReason);
+                GetGame().AdminLog("[Citadel] Rejected banned player: " + name + " (" + steamId + ")");
+                GetGame().DisconnectPlayer(identity, steamId);
+                return;
+            }
 
             // Set identity on the player hooks
             player.CitSetIdentity(steamId, name);

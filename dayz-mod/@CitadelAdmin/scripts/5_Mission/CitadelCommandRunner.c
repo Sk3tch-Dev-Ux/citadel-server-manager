@@ -69,6 +69,9 @@
  *     player.respawn           — Kill and respawn
  *     player.clearInventory    — Remove all items
  *     player.fillMagazines     — Fill all magazines to max ammo
+ *     player.ban               — Ban player (adds to ban list)
+ *     player.unban             — Unban player (removes from ban list)
+ *     player.applyLoadout      — Apply saved loadout { steamId, loadoutName }
  *
  *   VEHICLE ACTIONS (params: { "vehicleId": "..." })
  *     vehicle.delete           — Delete vehicle
@@ -111,6 +114,7 @@
  *     spawn.smoke              — Spawn smoke { steamId, color: white|red|green|black }
  *     spawn.heliCrash          — Spawn heli crash { coords }
  *     spawn.gasZone            — Spawn gas zone { coords }
+ *     spawn.supplyCrateJson    — Spawn supply crate from JSON config
  *
  *   STRUCTURE ACTIONS
  *     structure.openDoors      — Open doors { steamId, radius }
@@ -144,6 +148,7 @@
  *     data.nearbyEntities      — Entities near player { steamId, radius }
  *     data.nearbyEntitiesAt    — Entities near coords { x, z, radius }
  *     data.nearbyLootAt        — Loot near coords { x, z, radius }
+ *     data.bans                — Get all banned players list
  *
  *   CONFIG
  *     config.reload            — Reload citadel.cfg from disk
@@ -339,6 +344,12 @@ class CitadelCommandRunner
             success = CitadelPlayerActions.ClearInventory(content, error);
         else if (action == "player.fillMagazines")
             success = CitadelPlayerActions.FillMagazines(content, error);
+        else if (action == "player.ban")
+            success = CitadelPlayerActions.BanPlayer(content, error);
+        else if (action == "player.unban")
+            success = CitadelPlayerActions.UnbanPlayer(content, error);
+        else if (action == "player.applyLoadout")
+            success = CitadelPlayerActions.ApplyLoadout(content, error);
 
         // ─── Vehicle Actions ────────────────────────
 
@@ -420,6 +431,8 @@ class CitadelCommandRunner
             success = CitadelWorldActions.SpawnHeliCrash(content, error);
         else if (action == "spawn.gasZone")
             success = CitadelWorldActions.SpawnGasZone(content, error);
+        else if (action == "spawn.supplyCrateJson")
+            success = CitadelWorldActions.SpawnSupplyCrateJson(content, error);
 
         // ─── Structure Actions ────────────────────────
 
@@ -504,6 +517,8 @@ class CitadelCommandRunner
             success = CitadelQueryActions.GetNearbyEntitiesAt(content, error, responseData);
         else if (action == "data.nearbyLootAt")
             success = CitadelQueryActions.GetNearbyLootAt(content, error, responseData);
+        else if (action == "data.bans")
+            success = CitadelPlayerActions.GetBans(content, error, responseData);
 
         else
         {

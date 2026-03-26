@@ -1,5 +1,93 @@
 [
   {
+    "id": "f7c74ae7-f0a5-4ac4-97dc-22a1be84d91f",
+    "timestamp": "2026-03-23T00:30:26.908Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "login",
+    "details": "User logged in"
+  },
+  {
+    "id": "efb95c9f-6c35-4245-82b3-6425f062d38b",
+    "timestamp": "2026-03-22T23:32:10.930Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "expansion.npc.delete",
+    "details": "Deleted NPC 4 on TestingHub"
+  },
+  {
+    "id": "938af038-f9df-4132-a683-faabd70a9103",
+    "timestamp": "2026-03-22T23:31:58.412Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "expansion.npc.create",
+    "details": "Created NPC 4 \"New NPC\" on TestingHub"
+  },
+  {
+    "id": "5b0d27b1-059e-4e5a-ba48-164fd21af560",
+    "timestamp": "2026-03-22T23:31:47.197Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "modconfig.save",
+    "details": "Saved expansion/settings/SafeZoneSettings.json for DayZ Expansion on TestingHub"
+  },
+  {
+    "id": "e682a6b2-ef1e-4475-b724-d5d5cd413b3b",
+    "timestamp": "2026-03-22T23:31:25.328Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "modconfig.save",
+    "details": "Saved expansion/settings/MapSettings.json for DayZ Expansion on TestingHub"
+  },
+  {
+    "id": "06692e41-7366-4469-afd3-0dc899890ade",
+    "timestamp": "2026-03-22T23:07:45.377Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: TestingHub"
+  },
+  {
+    "id": "6103b5ac-4edb-4dc2-aeef-61ff5a93ba3a",
+    "timestamp": "2026-03-22T23:05:24.252Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.start",
+    "details": "Starting: TestingHub"
+  },
+  {
+    "id": "6801db55-2a7f-40f2-b1ec-bb6dbfa8ca89",
+    "timestamp": "2026-03-22T23:05:09.212Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: DayZ Server"
+  },
+  {
+    "id": "870bc785-6a92-4ab9-8cbd-66132b3e0a3e",
+    "timestamp": "2026-03-22T22:53:31.920Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.stop",
+    "details": "Stopping: DayZ Server"
+  },
+  {
+    "id": "d3d0e377-cde1-431b-a367-d22d4de4d0f0",
+    "timestamp": "2026-03-22T22:53:29.015Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: TestingHub"
+  },
+  {
+    "id": "7226705b-6d84-49b6-a7e1-3a70f6897341",
+    "timestamp": "2026-03-22T22:41:22.625Z",
+    "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",
+    "username": "admin",
+    "action": "server.restart",
+    "details": "Restarting: TestingHub"
+  },
+  {
     "id": "7f019b19-b5ba-4b7e-a7d2-dbccc7203b09",
     "timestamp": "2026-03-22T01:39:54.347Z",
     "userId": "0430a978-f377-493a-afcd-77eb3a47ae6d",

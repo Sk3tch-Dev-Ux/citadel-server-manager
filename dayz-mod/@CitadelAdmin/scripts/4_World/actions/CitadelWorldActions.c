@@ -770,6 +770,79 @@ class CitadelWorldActions
         return false;
     }
 
+    static bool SpawnSupplyCrateJson(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string coords = CitadelJson.ExtractString(params, "coords");
+        string payload = CitadelJson.ExtractString(params, "payload");
+        if (payload == "") { error = "Empty payload for crate spawn"; return false; }
+
+        // Parse coordinates
+        array<string> parts = new array<string>();
+        coords.Split(",", parts);
+        if (parts.Count() < 3) { error = "Invalid coords (need x,y,z)"; return false; }
+        float x = parts.Get(0).ToFloat();
+        float y = parts.Get(1).ToFloat();
+        float z = parts.Get(2).ToFloat();
+        if (y <= 0) y = GetGame().SurfaceY(x, z);
+        vector pos = Vector(x, y, z);
+
+        // Get container class (default WoodenCrate)
+        string containerClass = CitadelJson.ExtractString(payload, "crate");
+        if (containerClass == "") containerClass = "WoodenCrate";
+        // Whitelist safe containers
+        if (containerClass != "WoodenCrate" && containerClass != "SeaChest" && containerClass != "MedicalCase" && containerClass != "AmmoBox")
+            containerClass = "WoodenCrate";
+
+        Object obj = GetGame().CreateObject(containerClass, pos, false, true);
+        if (!obj) { error = "Failed to create crate"; return false; }
+        obj.SetPosition(pos);
+        obj.Update();
+
+        Container_Base crate = Container_Base.Cast(obj);
+        if (!crate || !crate.GetInventory()) { error = "Crate has no inventory"; return false; }
+
+        // Parse items array - find "items":[ ... ]
+        int itemsIdx = payload.IndexOf("items");
+        if (itemsIdx == -1) { error = "Missing items[] in payload"; return false; }
+        int arrStart = payload.IndexOfFrom(itemsIdx, "[");
+        int arrEnd = payload.IndexOfFrom(itemsIdx, "]");
+        if (arrStart == -1 || arrEnd == -1) { error = "Invalid items[] format"; return false; }
+
+        string itemsStr = payload.Substring(arrStart + 1, arrEnd - arrStart - 1);
+        int parsePos = 0;
+        int maxItems = 50;
+        int created = 0;
+
+        while (parsePos < itemsStr.Length() && created < maxItems)
+        {
+            int objStart = itemsStr.IndexOfFrom(parsePos, "{");
+            if (objStart == -1) break;
+            int objEnd = itemsStr.IndexOfFrom(objStart, "}");
+            if (objEnd == -1) break;
+
+            string itemObj = itemsStr.Substring(objStart + 1, objEnd - objStart - 1);
+            string itemClass = CitadelJson.ExtractString(itemObj, "class");
+            int qty = CitadelJson.ExtractInt(itemObj, "qty");
+            if (qty <= 0) qty = 1;
+            if (qty > 20) qty = 20;
+
+            if (itemClass != "")
+            {
+                for (int k = 0; k < qty; k++)
+                {
+                    EntityAI item = crate.GetInventory().CreateInInventory(itemClass);
+                    if (!item) break;
+                }
+                created++;
+            }
+            parsePos = objEnd + 1;
+        }
+
+        Print("[Citadel] Spawned JSON crate: " + containerClass + " with " + created.ToString() + " item types");
+        return true;
+    }
+
     /**
      * Broadcast a message to all connected players.
      */

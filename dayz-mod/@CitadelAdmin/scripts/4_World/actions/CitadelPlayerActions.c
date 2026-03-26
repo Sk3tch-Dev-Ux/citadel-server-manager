@@ -740,4 +740,109 @@ class CitadelPlayerActions
         Print("[Citadel] Got loadout for: " + steamId + " (" + items.Count().ToString() + " items)");
         return true;
     }
+
+    // ─── Ban System ───────────────────────────────────
+
+    static bool BanPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string reason = CitadelJson.ExtractString(params, "reason");
+        if (reason == "") reason = "Banned by admin";
+
+        string playerName = "Unknown";
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (player && player.GetIdentity())
+            playerName = player.GetIdentity().GetName();
+
+        GetCitadelBanManager().AddBan(steamId, playerName, reason);
+
+        // Disconnect if currently online
+        if (player && player.GetIdentity())
+        {
+            Param1<string> msgParam = new Param1<string>("[Banned] " + reason);
+            GetGame().RPCSingleParam(player, ERPCs.RPC_USER_ACTION_MESSAGE, msgParam, true, player.GetIdentity());
+            GetGame().DisconnectPlayer(player.GetIdentity(), player.GetIdentity().GetPlainId());
+        }
+
+        Print("[Citadel] Banned: " + steamId + " reason: " + reason);
+        return true;
+    }
+
+    static bool UnbanPlayer(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+
+        if (!GetCitadelBanManager().RemoveBan(steamId))
+        {
+            error = "No ban found for: " + steamId;
+            return false;
+        }
+
+        Print("[Citadel] Unbanned: " + steamId);
+        return true;
+    }
+
+    static bool ApplyLoadout(string cmdJson, out string error)
+    {
+        string params = CitadelJson.ExtractParams(cmdJson);
+        string steamId = CitadelJson.ExtractString(params, "steamId");
+        string payload = CitadelJson.ExtractString(params, "loadout");
+        if (payload == "") { error = "Empty loadout payload"; return false; }
+        if (payload.Length() > 4096) { error = "Loadout payload too large"; return false; }
+
+        PlayerBase player = FindPlayerBySteamId(steamId);
+        if (!player) { error = "Player not found: " + steamId; return false; }
+
+        ApplyLoadoutSlot(player, payload, "head", InventorySlots.HEADGEAR);
+        ApplyLoadoutSlot(player, payload, "face", InventorySlots.MASK);
+        ApplyLoadoutSlot(player, payload, "eyes", InventorySlots.EYEWEAR);
+        ApplyLoadoutSlot(player, payload, "gloves", InventorySlots.GLOVES);
+        ApplyLoadoutSlot(player, payload, "feet", InventorySlots.FEET);
+        ApplyLoadoutSlot(player, payload, "body", InventorySlots.BODY);
+        ApplyLoadoutSlot(player, payload, "legs", InventorySlots.LEGS);
+        ApplyLoadoutSlot(player, payload, "back", InventorySlots.BACK);
+        ApplyLoadoutSlot(player, payload, "vest", InventorySlots.VEST);
+        ApplyLoadoutSlot(player, payload, "hips", InventorySlots.HIPS);
+        ApplyLoadoutSlot(player, payload, "melee", InventorySlots.MELEE);
+        ApplyLoadoutSlot(player, payload, "shoulder", InventorySlots.SHOULDER);
+
+        Print("[Citadel] Applied loadout for: " + steamId);
+        return true;
+    }
+
+    protected static void ApplyLoadoutSlot(PlayerBase player, string payload, string key, int slot)
+    {
+        string className = CitadelJson.ExtractString(payload, key);
+        if (className == "") return;
+        // Safety: block world objects from being spawned in inventory
+        if (className.IndexOf("Wreck_") == 0 || className.IndexOf("Land_") == 0) return;
+
+        EntityAI existing = player.GetInventory().FindAttachment(slot);
+        if (existing) GetGame().ObjectDelete(existing);
+
+        player.GetInventory().CreateInInventory(className);
+    }
+
+    static bool GetBans(string cmdJson, out string error, out string responseData)
+    {
+        ref array<ref CitadelBanEntry> bans = GetCitadelBanManager().GetAllBans();
+        int count = bans.Count();
+
+        string json = "{\"count\":" + count.ToString() + ",\"bans\":[";
+        for (int i = 0; i < count; i++)
+        {
+            CitadelBanEntry entry = bans.Get(i);
+            if (i > 0) json += ",";
+            json += "{\"player_id\":\"" + CitJsonEscape(entry.player_id) + "\"";
+            json += ",\"player_name\":\"" + CitJsonEscape(entry.player_name) + "\"";
+            json += ",\"reason\":\"" + CitJsonEscape(entry.reason) + "\"";
+            json += ",\"banned_at\":\"" + entry.banned_at + "\"}";
+        }
+        json += "]}";
+
+        responseData = json;
+        return true;
+    }
 };
