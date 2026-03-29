@@ -406,6 +406,7 @@ export default function InteractiveMap({
   onCircleMove,
   onCircleResize,
   onSelect,
+  onContextMenu: onContextMenuProp,
   selectedId = null,
   mode = 'view',
   height = 500,
@@ -450,9 +451,13 @@ export default function InteractiveMap({
 
   const handleContextMenu = useCallback(
     (targetId, clientX, clientY) => {
+      if (mode === 'view' && onContextMenuProp && targetId) {
+        onContextMenuProp(targetId, clientX, clientY);
+        return;
+      }
       setCtxMenu({ targetId, x: clientX, y: clientY });
     },
-    [],
+    [mode, onContextMenuProp],
   );
 
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);

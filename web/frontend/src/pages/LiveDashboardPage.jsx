@@ -14,6 +14,7 @@ import {
   Activity, Users, Cpu, Heart, Skull, Shield, Eye, MapPin, Truck,
   Search, Send, Sun, CloudRain, Wind, Zap, Globe, Clock, Target,
   Crosshair, Filter, MessageSquare, Haze, TreePine, Navigation, Bomb,
+  Wrench, Droplets, Power, LogOut, ArrowUpFromLine, Trash2, X,
 } from '../components/Icon';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
@@ -62,6 +63,17 @@ function eventColor(type) {
   return EVENT_COLORS[type] || '#9ca3af';
 }
 
+const VEHICLE_ACTIONS = [
+  { label: 'Repair',       action: 'vehicle.repair',      icon: <Wrench size={13} /> },
+  { label: 'Refuel',       action: 'vehicle.refuel',      icon: <Droplets size={13} /> },
+  { label: 'Unstuck',      action: 'vehicle.unstuck',     icon: <ArrowUpFromLine size={13} /> },
+  { label: 'Kill Engine',  action: 'vehicle.kill-engine',  icon: <Power size={13} /> },
+  { label: 'Eject Driver', action: 'vehicle.eject-driver', icon: <LogOut size={13} /> },
+  { label: 'Teleport',     action: 'vehicle.teleport',    icon: <Navigation size={13} /> },
+  { label: 'Explode',      action: 'vehicle.explode',     icon: <Bomb size={13} />,  danger: true },
+  { label: 'Delete',       action: 'vehicle.delete',      icon: <Trash2 size={13} />, danger: true },
+];
+
 // ─── Main Component ───────────────────────────────────────
 
 export default function LiveDashboardPage({ serverId }) {
@@ -75,6 +87,7 @@ export default function LiveDashboardPage({ serverId }) {
   const [worldEvents, setWorldEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [eventFilter, setEventFilter] = useState('all');
   const [commandResult, setCommandResult] = useState(null);
@@ -223,17 +236,18 @@ export default function LiveDashboardPage({ serverId }) {
       const z = pos.z ?? pos[2];
       if (x == null || z == null) continue;
 
+      const vid = v.id || v.vehicleId;
       markers.push({
-        id: `vehicle-${v.id || v.vehicleId}`,
+        id: `vehicle-${vid}`,
         x, z,
         color: '#8b5cf6',
         label: v.className || v.type || 'Vehicle',
-        size: 10,
+        size: selectedVehicle === vid ? 16 : 10,
       });
     }
 
     return markers;
-  }, [players, vehicles, selectedPlayer]);
+  }, [players, vehicles, selectedPlayer, selectedVehicle]);
 
   if (loading) return <PageLoader />;
 
@@ -274,7 +288,15 @@ export default function LiveDashboardPage({ serverId }) {
       {/* ─── Tab Content ─────────────────────────────────── */}
       <div className="live-tab-content">
         {tab === 'map' && (
-          <LiveMapTab markers={mapMarkers} players={players} onSelectPlayer={setSelectedPlayer} />
+          <LiveMapTab
+            markers={mapMarkers}
+            players={players}
+            vehicles={vehicles}
+            onSelectPlayer={setSelectedPlayer}
+            selectedVehicle={selectedVehicle}
+            setSelectedVehicle={setSelectedVehicle}
+            sendCommand={sendCommand}
+          />
         )}
         {tab === 'players' && (
           <PlayersTab
@@ -304,7 +326,50 @@ export default function LiveDashboardPage({ serverId }) {
 
 // ─── Tab: Live Map ────────────────────────────────────────
 
-function LiveMapTab({ markers, players, onSelectPlayer }) {
+function LiveMapTab({ markers, players, vehicles, onSelectPlayer, selectedVehicle, setSelectedVehicle, sendCommand }) {
+  const [vehicleCtx, setVehicleCtx] = useState(null);
+  const [teleportMode, setTeleportMode] = useState(null);
+
+  const selectedVehicleData = useMemo(() => {
+    if (!selectedVehicle) return null;
+    return vehicles.find(v => (v.id || v.vehicleId) === selectedVehicle) || null;
+  }, [vehicles, selectedVehicle]);
+
+  const handleSelect = useCallback((id) => {
+    setVehicleCtx(null);
+    if (id?.startsWith('player-')) {
+      setSelectedVehicle(null);
+      onSelectPlayer(id.replace('player-', ''));
+    } else if (id?.startsWith('vehicle-')) {
+      onSelectPlayer(null);
+      const vid = id.replace('vehicle-', '');
+      setSelectedVehicle(prev => prev === vid ? null : vid);
+    }
+  }, [onSelectPlayer, setSelectedVehicle]);
+
+  const handleContextMenu = useCallback((id, clientX, clientY) => {
+    if (!id?.startsWith('vehicle-')) return;
+    const vid = id.replace('vehicle-', '');
+    const veh = vehicles.find(v => (v.id || v.vehicleId) === vid);
+    if (veh) setVehicleCtx({ x: clientX, y: clientY, vehicle: veh, vehicleId: vid });
+  }, [vehicles]);
+
+  const handleVehicleAction = useCallback((action, vehicleId) => {
+    setVehicleCtx(null);
+    if (action === 'vehicle.teleport') {
+      setTeleportMode(vehicleId);
+      window.addToast?.('Click on the map to set teleport destination', 'info');
+      return;
+    }
+    sendCommand(action, { vehicleId });
+  }, [sendCommand]);
+
+  const handleTeleportPlace = useCallback((x, z) => {
+    if (!teleportMode) return;
+    sendCommand('vehicle.teleport', { vehicleId: teleportMode, x, y: 0, z });
+    setTeleportMode(null);
+  }, [teleportMode, sendCommand]);
+
   return (
     <div className="live-map-container">
       <Suspense fallback={<PageLoader />}>
@@ -312,18 +377,104 @@ function LiveMapTab({ markers, players, onSelectPlayer }) {
           mapName="chernarusplus"
           markers={markers}
           height={600}
-          mode="view"
-          onSelect={(id) => {
-            if (id?.startsWith('player-')) {
-              const steamId = id.replace('player-', '');
-              onSelectPlayer(steamId);
-            }
-          }}
+          mode={teleportMode ? 'addMarker' : 'view'}
+          selectedId={selectedVehicle ? `vehicle-${selectedVehicle}` : null}
+          onSelect={handleSelect}
+          onContextMenu={handleContextMenu}
+          onMarkerAdd={handleTeleportPlace}
         />
       </Suspense>
-      {players.length === 0 && (
+
+      {/* Teleport mode banner */}
+      {teleportMode && (
+        <div className="live-map-teleport-banner">
+          <Navigation size={14} />
+          <span>Click on the map to teleport vehicle</span>
+          <button onClick={() => setTeleportMode(null)}>Cancel</button>
+        </div>
+      )}
+
+      {/* Vehicle info panel */}
+      {selectedVehicleData && !teleportMode && (
+        <VehicleInfoPanel
+          vehicle={selectedVehicleData}
+          vehicleId={selectedVehicle}
+          onClose={() => setSelectedVehicle(null)}
+          onAction={(action) => handleVehicleAction(action, selectedVehicle)}
+        />
+      )}
+
+      {/* Vehicle context menu */}
+      {vehicleCtx && (
+        <>
+          <div className="live-context-overlay" onClick={() => setVehicleCtx(null)} />
+          <div className="live-context-menu" style={{ top: vehicleCtx.y, left: vehicleCtx.x }}>
+            <div className="live-context-header">
+              <Truck size={13} /> {vehicleCtx.vehicle.className || 'Vehicle'}
+            </div>
+            {VEHICLE_ACTIONS.map(item => (
+              <button
+                key={item.action}
+                className={`live-context-item ${item.danger ? 'live-context-danger' : ''}`}
+                onClick={() => handleVehicleAction(item.action, vehicleCtx.vehicleId)}
+              >
+                {item.icon} {item.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {players.length === 0 && !vehicles.length && (
         <div className="live-map-empty">No players online — markers will appear when players connect</div>
       )}
+    </div>
+  );
+}
+
+function VehicleInfoPanel({ vehicle, vehicleId, onClose, onAction }) {
+  const pos = vehicle.position || vehicle.pos || {};
+  const x = Math.round(pos.x ?? pos[0] ?? 0);
+  const z = Math.round(pos.z ?? pos[2] ?? 0);
+  const health = vehicle.health != null ? Math.round(vehicle.health) : '--';
+  const maxHealth = vehicle.maxHealth != null ? Math.round(vehicle.maxHealth) : '--';
+  const healthPct = (vehicle.maxHealth > 0) ? Math.round((vehicle.health / vehicle.maxHealth) * 100) : null;
+
+  return (
+    <div className="live-vehicle-info">
+      <div className="live-vehicle-info-header">
+        <Truck size={14} />
+        <span className="live-vehicle-info-name">{vehicle.className || vehicle.type || 'Vehicle'}</span>
+        <button className="live-vehicle-info-close" onClick={onClose}><X size={14} /></button>
+      </div>
+      <div className="live-vehicle-info-body">
+        <div className="live-vehicle-info-row">
+          <span>Health</span>
+          <span className={healthPct != null && healthPct < 50 ? 'live-health-low' : ''}>
+            {health} / {maxHealth} {healthPct != null && `(${healthPct}%)`}
+          </span>
+        </div>
+        <div className="live-vehicle-info-row">
+          <span>Position</span>
+          <span>{x}, {z}</span>
+        </div>
+        <div className="live-vehicle-info-row">
+          <span>Network ID</span>
+          <span>{vehicleId}</span>
+        </div>
+        {vehicle.type && (
+          <div className="live-vehicle-info-row">
+            <span>Type</span>
+            <span>{vehicle.type}</span>
+          </div>
+        )}
+      </div>
+      <div className="live-vehicle-info-actions">
+        <button className="btn btn-xs btn-blue" onClick={() => onAction('vehicle.repair')} title="Repair"><Wrench size={12} /> Repair</button>
+        <button className="btn btn-xs btn-blue" onClick={() => onAction('vehicle.refuel')} title="Refuel"><Droplets size={12} /> Refuel</button>
+        <button className="btn btn-xs btn-blue" onClick={() => onAction('vehicle.unstuck')} title="Unstuck"><ArrowUpFromLine size={12} /> Unstuck</button>
+        <button className="btn btn-xs btn-red" onClick={() => onAction('vehicle.delete')} title="Delete"><Trash2 size={12} /> Delete</button>
+      </div>
     </div>
   );
 }

@@ -587,3 +587,128 @@
   border: 1px solid rgba(224, 108, 117, 0.3);
   color: var(--accent-red);
 }
+
+/* ─── Vehicle Info Panel ──────────────────────────────── */
+
+.live-vehicle-info {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  background: var(--bg-elevated, var(--bg-card));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  width: 280px;
+  overflow: hidden;
+}
+
+.live-vehicle-info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(139, 92, 246, 0.1);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.live-vehicle-info-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-vehicle-info-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.live-vehicle-info-close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.live-vehicle-info-body {
+  padding: 8px 12px;
+}
+
+.live-vehicle-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.live-vehicle-info-row > span:first-child {
+  color: var(--text-secondary);
+}
+
+.live-vehicle-info-row > span:last-child {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.live-vehicle-info-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+/* ─── Teleport Mode Banner ────────────────────────────── */
+
+.live-map-teleport-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(139, 92, 246, 0.92);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+}
+
+.live-map-teleport-banner button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.live-map-teleport-banner button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ─── Context Menu Danger ─────────────────────────────── */
+
+.live-context-danger {
+  color: var(--accent-red) !important;
+}
+
+.live-context-danger:hover {
+  background: rgba(224, 108, 117, 0.12) !important;
+}
