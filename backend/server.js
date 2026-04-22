@@ -136,6 +136,7 @@ app.use(express.static(WEB_DIST));
 
 // ─── Routes ──────────────────────────────────────────────
 require('./routes/setup.routes')(app);
+require('./routes/citadel-license.routes')(app);
 require('./routes/auth.routes')(app);
 require('./routes/servers.routes')(app);
 require('./routes/server-control.routes')(app);
@@ -295,6 +296,11 @@ if (process.env.NODE_ENV !== 'test') {
     // Initialize restart scheduler (loads saved schedules, activates timers)
     try { require('./lib/restart-scheduler').initialize(); } catch (err) {
       logger.error({ err }, 'Failed to initialize restart scheduler');
+    }
+
+    // Start background license refresh (loads cached license, re-verifies on interval)
+    try { require('./lib/license').startBackgroundRefresh(); } catch (err) {
+      logger.error({ err }, 'Failed to start license background refresh');
     }
 
     // Listen

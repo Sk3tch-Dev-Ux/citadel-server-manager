@@ -46,6 +46,7 @@ const LiveDashboardPage = lazy(() => import('./pages/LiveDashboardPage'));
 const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
+const CitadelLicensePage = lazy(() => import('./pages/CitadelLicensePage'));
 
 function AuthGuard({ children }) {
   const { user } = useAuth();
@@ -137,6 +138,7 @@ export default function AppRouter() {
           <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><Lazy><WebhooksPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><SettingsPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><PriorityQueuePage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="citadel-license" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><CitadelLicensePage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ErrorBoundary><ServerPage Component={ServerOverviewPage} /></ErrorBoundary>} />

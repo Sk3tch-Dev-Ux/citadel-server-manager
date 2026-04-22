@@ -7,7 +7,8 @@ import API from '../api';
 import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown } from '../components/Icon';
+import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -95,9 +96,14 @@ export default function AppLayout() {
             <span className="nav-icon"><Crown size={16} /></span>Priority Queue
           </Link>
           {user.role === 'admin' && (
-            <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
-              <span className="nav-icon"><Settings size={16} /></span>Settings
-            </Link>
+            <>
+              <Link to="/citadel-license" className={`nav-item ${location.pathname === '/citadel-license' ? 'active' : ''}`}>
+                <span className="nav-icon"><Shield size={16} /></span>Subscription
+              </Link>
+              <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
+                <span className="nav-icon"><Settings size={16} /></span>Settings
+              </Link>
+            </>
           )}
 
           {/* Deploy */}
@@ -134,6 +140,9 @@ export default function AppLayout() {
       </div>
 
       <div className="main" role="main">
+        {/* Citadel subscription banner — only shows when license isn't fully active */}
+        <CitadelLicenseBanner />
+
         {/* Server status bar — shown on server pages */}
         {isServerPage && currentServer && (
           <div className="server-status-bar" aria-label="Server status">
