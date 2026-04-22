@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+<title>Citadel — Starting</title>
+<style>
+  :root {
+    --bg: #0b1120;
+    --bg-2: #0f172a;
+    --fg: #e2e8f0;
+    --fg-dim: #94a3b8;
+    --brand-a: #8b5cf6;
+    --brand-b: #3b82f6;
+    --border: #1e293b;
+    --danger: #f87171;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg-2) 100%);
+    color: var(--fg);
+    font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    overflow: hidden;
+  }
+  .splash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 32px;
+    box-sizing: border-box;
+  }
+  .logo-mark {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 40px rgba(139, 92, 246, 0.3);
+  }
+  .title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .tagline {
+    font-size: 13px;
+    color: var(--fg-dim);
+    margin-bottom: 36px;
+  }
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--brand-a);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .status {
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--fg-dim);
+    letter-spacing: 0.02em;
+  }
+  .error {
+    display: none;
+    max-width: 460px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .error.visible { display: block; }
+  .error h3 {
+    color: var(--danger);
+    margin-top: 0;
+    font-size: 16px;
+  }
+  .error ol {
+    text-align: left;
+    color: var(--fg-dim);
+    padding-left: 20px;
+  }
+  .error code {
+    background: var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--fg);
+  }
+  .retry {
+    margin-top: 20px;
+    background: var(--brand-a);
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .retry:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+  <div class="splash">
+    <div id="loading">
+      <div class="logo-mark">C</div>
+      <div class="title">Citadel</div>
+      <div class="tagline">Starting your DayZ Server Controller</div>
+      <div class="spinner"></div>
+      <div class="status">Connecting to backend service...</div>
+    </div>
+    <div id="error" class="error">
+      <div class="logo-mark" style="background: linear-gradient(135deg, #ef4444, #f59e0b);">!</div>
+      <h3>Citadel service isn't responding</h3>
+      <p>The Citadel Windows service may have crashed or failed to start.</p>
+      <p style="color: var(--fg-dim); margin-top: 18px;"><strong style="color: var(--fg)">What to try:</strong></p>
+      <ol>
+        <li>Open Services (<code>services.msc</code>)</li>
+        <li>Find <strong>Citadel DayZ Server Controller</strong></li>
+        <li>Right-click → <strong>Start</strong></li>
+        <li>If it won't start, check <code>C:\Citadel\data\service.log</code></li>
+      </ol>
+      <button class="retry" onclick="location.reload()">Retry Connection</button>
+    </div>
+  </div>
+  <script>
+    // Main process fires "backend:unavailable" when polling times out.
+    // Swap to the error state instead of spinning forever.
+    if (window.citadel && typeof window.citadel.onBackendUnavailable === 'function') {
+      window.citadel.onBackendUnavailable(() => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').classList.add('visible');
+      });
+    }
+  </script>
+</body>
+</html>

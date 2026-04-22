@@ -16,7 +16,8 @@
 | Device activation limit | **2 per account** |
 | Offline grace period | 7 days when license server unreachable |
 | Lapsed subscription behavior | Read-only mode + upgrade banner |
-| Code signing | **EV code-signing cert** (SSL.com ~$319/yr) — zero SmartScreen warnings |
+| Code signing | **Unsigned for v1.0** (user opted out of paid cert). Consider Azure Trusted Signing (~$10/mo) later. Docs will include a "what's the Windows warning?" page. |
+| Email provider | **Resend** (already set up for citadels.cc) — reuse existing account |
 
 ---
 
@@ -66,16 +67,23 @@ How paid users actually get the product.
 - [ ] Download gating: `/download` redirects to `/login` if not authenticated, then to `/account/download` with signed URL
 
 **In Citadel desktop app:**
-- [ ] Setup-wizard step: "Enter citadels.cc credentials"
-- [ ] License client in backend (`backend/lib/license-client.js`): activates on first run, refreshes every 24h
-- [ ] Machine ID binding (Windows `MachineGuid` from registry)
+- [ ] Sign-in screen (email + password) — replaces old "license key" UX; Paddle Billing doesn't have the license-key checkbox Paddle Classic had, so we authenticate against our own account system and verify subscription via Paddle API under the hood
+- [ ] License client in backend (`backend/lib/license-client.js`): activates on first sign-in, refreshes every 24h
+- [ ] Machine ID binding (Windows `MachineGuid` from registry) — sent with activation, gates 2-device limit
 - [ ] Graceful offline mode (7-day grace), lapsed state (read-only + upgrade banner)
+
+**Paddle webhooks to handle (on citadels.cc server):**
+- `transaction.completed` → create user account, send "set password" email via Resend/Postmark
+- `subscription.created` → persist subscription record
+- `subscription.updated` → reflect plan/status changes
+- `subscription.canceled` → mark user grace-period then lapsed
+- `subscription.past_due` → flag payment failure in account dashboard
 
 ### Phase 3 — Installer polish *(3 days)*
 Frictionless one-click install.
 
-- [ ] Purchase EV code-signing cert from SSL.com (~1-3 day approval)
-- [ ] Integrate `signtool` into `installer/build.js` (sign `CitadelSetup-*.exe` after NSIS build)
+- [ ] **Ship unsigned** — add a prominent "Windows SmartScreen warning?" docs page with screenshots and the "More info → Run anyway" click-through instructions
+- [ ] Later: consider Azure Trusted Signing (~$10/mo, Microsoft-backed, zero SmartScreen warnings) if support burden from the warning gets noisy
 - [ ] NSIS icon + custom branding
 - [ ] Port 3001 conflict detection at install time (fail fast with clear message)
 - [ ] Windows Firewall rule creation during install (inbound TCP 3001 for LAN access)
@@ -116,8 +124,8 @@ Prove it works before press release.
 | Dependency | Who | Lead time |
 |---|---|---|
 | Paddle merchant account | You | 1-3 days approval |
-| SSL.com EV cert + USB token | You | 1-3 days + shipping |
-| Resend/Postmark for transactional email | You | Same day |
+| ~~SSL.com EV cert~~ | Skipped (user opted out) | — |
+| ~~Resend signup~~ | Done (reusing existing citadels.cc Resend account) | — |
 | Price decision: $14.99 or $15.99? | You | Blocked until confirmed |
 
 ## Starting order

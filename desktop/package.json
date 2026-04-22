@@ -1,0 +1,56 @@
+{
+  "name": "citadel-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Citadel DayZ Server Controller — Desktop App",
+  "main": "src/main.js",
+  "author": "Sk3tch Dev",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "pack": "electron-builder --dir",
+    "build": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "build": {
+    "appId": "cc.citadels.desktop",
+    "productName": "Citadel",
+    "copyright": "Copyright © 2024-2026 Sk3tch Dev",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "splash/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico",
+      "artifactName": "CitadelDesktop-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Citadel"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Sk3tch-Dev-Ux",
+      "repo": "DayzServerController"
+    }
+  }
+}
