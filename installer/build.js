@@ -17,6 +17,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 const https = require('https');
 const { createWriteStream } = require('fs');
@@ -131,6 +132,64 @@ function download(url, dest) {
   });
 }
 
+/**
+ * Compute SHA256 of a file on disk as a lowercase hex string.
+ */
+function sha256File(filePath) {
+  const hash = crypto.createHash('sha256');
+  hash.update(fs.readFileSync(filePath));
+  return hash.digest('hex');
+}
+
+/**
+ * Fetch a small text resource over HTTPS with redirect support.
+ */
+function fetchText(url) {
+  return new Promise((resolve, reject) => {
+    const request = (u) => {
+      https.get(u, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return request(res.headers.location);
+        }
+        if (res.statusCode !== 200) {
+          return reject(new Error(`Fetch failed: HTTP ${res.statusCode} ${u}`));
+        }
+        let body = '';
+        res.on('data', (c) => { body += c; });
+        res.on('end', () => resolve(body));
+      }).on('error', reject);
+    };
+    request(url);
+  });
+}
+
+/**
+ * Verify a downloaded Node.js zip against the official SHASUMS256.txt that
+ * nodejs.org publishes alongside every release. Throws on mismatch so we
+ * never ship a tampered runtime.
+ */
+async function verifyNodeChecksum(zipPath) {
+  const shasumsUrl = `https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt`;
+  log(`  Verifying ${NODE_ZIP} against ${shasumsUrl}`);
+  const shasums = await fetchText(shasumsUrl);
+  const line = shasums.split('\n').find((l) => l.endsWith(`  ${NODE_ZIP}`));
+  if (!line) {
+    throw new Error(`Expected hash for ${NODE_ZIP} not found in SHASUMS256.txt`);
+  }
+  const expected = line.split(/\s+/)[0].toLowerCase();
+  const actual = sha256File(zipPath).toLowerCase();
+  if (expected !== actual) {
+    throw new Error(
+      `SHA256 mismatch for ${NODE_ZIP}!\n` +
+      `  expected: ${expected}\n` +
+      `  actual:   ${actual}\n` +
+      `  This could mean the download was corrupted or tampered with. Delete ` +
+      `  ${zipPath} and re-run the build.`
+    );
+  }
+  log(`  ✓ SHA256 verified`);
+}
+
 // ─── Build Steps ─────────────────────────────────────────
 
 async function main() {
@@ -141,12 +200,12 @@ async function main() {
   console.log('');
 
   // Step 1: Clean staging directory
-  log('Step 1/6: Cleaning build directory...');
+  log('Step 1/7: Cleaning build directory...');
   cleanDir(STAGING_DIR);
   ensureDir(CACHE_DIR);
 
   // Step 2: Download Node.js runtime
-  log('Step 2/6: Downloading Node.js runtime...');
+  log('Step 2/7: Downloading Node.js runtime...');
   const cachedZip = path.join(CACHE_DIR, NODE_ZIP);
   if (fs.existsSync(cachedZip)) {
     log(`  Using cached ${NODE_ZIP}`);
@@ -155,6 +214,10 @@ async function main() {
     await download(NODE_URL, cachedZip);
     log('  Download complete');
   }
+
+  // Verify checksum against Node.js's official SHASUMS256.txt — catches a
+  // corrupted download or a MITM-tampered zip. Always run, even on cached.
+  await verifyNodeChecksum(cachedZip);
 
   // Extract node.exe from the zip
   const runtimeDir = path.join(STAGING_DIR, 'runtime');
@@ -260,7 +323,7 @@ async function main() {
   }
 
   // Step 3: Copy application files
-  log('Step 3/6: Copying application files...');
+  log('Step 3/7: Copying application files...');
   const appDir = path.join(STAGING_DIR, 'app');
   ensureDir(appDir);
   for (const item of COPY_ITEMS) {
@@ -280,7 +343,7 @@ async function main() {
   }
 
   // Step 4: Build frontend
-  log('Step 4/6: Building frontend...');
+  log('Step 4/7: Building frontend...');
   const frontendDir = path.join(appDir, 'web', 'frontend');
   if (fs.existsSync(frontendDir)) {
     run('npm install', { cwd: frontendDir });
@@ -295,7 +358,7 @@ async function main() {
   }
 
   // Step 5: Install production dependencies
-  log('Step 5/6: Installing production dependencies...');
+  log('Step 5/7: Installing production dependencies...');
   // Install root-level deps
   run('npm install --production --ignore-scripts', { cwd: appDir });
   // Install backend deps
@@ -311,8 +374,33 @@ async function main() {
     log('  Discord bot dependencies installed');
   }
 
-  // Step 6: Build NSIS installer
-  log('Step 6/6: Building NSIS installer...');
+  // Step 6: Build Electron desktop app
+  log('Step 6/7: Building Electron desktop app...');
+  const desktopSrcDir = path.join(ROOT, 'desktop');
+  if (fs.existsSync(path.join(desktopSrcDir, 'package.json'))) {
+    const desktopNodeModules = path.join(desktopSrcDir, 'node_modules');
+    if (!fs.existsSync(desktopNodeModules)) {
+      log('  Installing desktop/ dependencies (first run — downloads Electron ~150MB)...');
+      run('npm install', { cwd: desktopSrcDir });
+    }
+    log('  Running electron-builder --dir...');
+    run('npm run pack', { cwd: desktopSrcDir });
+
+    // electron-builder --dir produces dist/win-unpacked/
+    const unpackedDir = path.join(desktopSrcDir, 'dist', 'win-unpacked');
+    if (!fs.existsSync(unpackedDir)) {
+      throw new Error(`Electron output not found at ${unpackedDir}`);
+    }
+    const stagingDesktop = path.join(STAGING_DIR, 'desktop');
+    ensureDir(stagingDesktop);
+    copyDir(unpackedDir, stagingDesktop);
+    log(`  Desktop app staged at ${stagingDesktop}`);
+  } else {
+    log('  desktop/ not found — skipping (backend-only build)');
+  }
+
+  // Step 7: Build NSIS installer
+  log('Step 7/7: Building NSIS installer...');
   const nsisScript = path.join(ROOT, 'installer', 'citadel.nsi');
   if (!fs.existsSync(nsisScript)) {
     throw new Error('citadel.nsi not found at ' + nsisScript);
