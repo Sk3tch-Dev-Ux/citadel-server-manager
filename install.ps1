@@ -42,6 +42,26 @@ try {
         }
     }
 
+    # Stop existing service BEFORE copying files (prevents file lock on node.exe during upgrade)
+    $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ($existingService -and $existingService.Status -eq 'Running') {
+        Write-Host "  Stopping existing service to allow file update..." -ForegroundColor Yellow
+        try {
+            Stop-Service -Name $ServiceName -Force -ErrorAction Stop
+            # Wait for node.exe to actually exit (stop can return before the process dies)
+            $deadline = (Get-Date).AddSeconds(30)
+            while ((Get-Date) -lt $deadline) {
+                $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+                if (-not $svc -or $svc.Status -ne 'Running') { break }
+                Start-Sleep -Milliseconds 500
+            }
+            Write-Host "  Service stopped." -ForegroundColor Green
+        } catch {
+            Write-Host "  Warning: could not stop service gracefully: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "  Continuing — file copy may fail if binaries are locked." -ForegroundColor Yellow
+        }
+    }
+
     # Copy files to install directory (if not already there)
     if ($SourceDir -ne $InstallDir) {
         Write-Host "  Installing to $InstallDir..." -ForegroundColor White
@@ -97,15 +117,14 @@ try {
     $NssmExe = Join-Path $InstallDir "nssm.exe"
     $LogFile = Join-Path $dataDir "service.log"
 
-    # Stop existing service if running
+    # Remove any existing service registration (already stopped above, if it existed)
     $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($existingService) {
-        Write-Host "  Stopping existing service..." -ForegroundColor Yellow
+        Write-Host "  Removing existing service registration..." -ForegroundColor Yellow
         $ErrorActionPreference = "Continue"
-        & $NssmExe stop $ServiceName 2>&1 | Out-Null
         & $NssmExe remove $ServiceName confirm 2>&1 | Out-Null
         $ErrorActionPreference = "Stop"
-        Start-Sleep -Seconds 2
+        Start-Sleep -Seconds 1
     }
 
     # Install the service (NSSM writes status to stderr, so relax error handling)

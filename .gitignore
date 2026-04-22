@@ -58,7 +58,8 @@ data/.jwt-secret
 tools/license-private.pem
 *.pem
 
+# Scratch/workbench directory
 /000_Scripts
-/data
-CHANGELOG_v2.1.0.md
-discord_changelog.txt
+
+# Installer build output
+/build/

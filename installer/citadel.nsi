@@ -154,6 +154,13 @@ SectionEnd
 ; Finish page — open dashboard
 ; ═══════════════════════════════════════════════════════════
 Function LaunchDashboard
+  ; Wait for the backend API to be ready before opening the browser.
+  ; Without this, users see "connection refused" because the service is
+  ; still starting when the browser is spawned.
+  DetailPrint "Waiting for Citadel API to respond..."
+  nsExec::ExecToLog '"$INSTDIR\runtime\node.exe" "$INSTDIR\backend\lib\wait-for-ready.js"'
+  Pop $0
+
   ; If setup hasn't been completed yet, go to /setup
   IfFileExists "$INSTDIR\data\setup_complete.json" 0 +3
     ExecShell "open" "http://localhost:3001"

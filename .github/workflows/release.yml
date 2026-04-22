@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Citadel Bundle
+    name: Build Citadel Installer
     runs-on: windows-latest
 
     steps:
@@ -23,30 +23,38 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
 
+      - name: Install NSIS (makensis)
+        run: choco install nsis -y --no-progress
+
       - name: Install NSSM
-        run: choco install nssm -y
+        run: choco install nssm -y --no-progress
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install root dependencies
+        run: npm ci --ignore-scripts
 
-      - name: Build bundle
-        run: node build/bundle.js
+      - name: Build installer
+        run: node installer/build.js
 
-      - name: Verify output exists
+      - name: Verify installer output
+        shell: pwsh
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
-          $zip = "dist/Citadel-v$version-win-x64.zip"
-          if (!(Test-Path $zip)) {
-            Write-Error "Zip not found at $zip"
+          $exe = "build/CitadelSetup-$version.exe"
+          if (!(Test-Path $exe)) {
+            Write-Error "Installer not found at $exe"
+            Get-ChildItem build -ErrorAction SilentlyContinue | Format-Table Name, Length
             exit 1
           }
-          $size = (Get-Item $zip).Length / 1MB
-          Write-Output "Bundle built: $zip ($([math]::Round($size, 1)) MB)"
+          $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+          Write-Output "Installer built: $exe ($size MB)"
+          # Emit for later steps
+          "INSTALLER_PATH=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "INSTALLER_SIZE_MB=$size" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/Citadel-*.zip
+          files: build/CitadelSetup-*.exe
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           name: Citadel ${{ github.ref_name }}
@@ -54,23 +62,23 @@ jobs:
             ## Citadel ${{ github.ref_name }}
 
             ### Installation
-            1. Download `Citadel-*-win-x64.zip` below
-            2. Extract the zip
-            3. Right-click `install.ps1` → **Run with PowerShell** (as Administrator)
-            4. Open **http://localhost:3001** to complete the setup wizard
+            1. Download **`CitadelSetup-*.exe`** below
+            2. Double-click to run — Windows will ask for admin permission
+            3. Follow the installer (next → next → install)
+            4. Browser opens automatically at **http://localhost:3001** for the setup wizard
 
             ### Upgrading
-            1. Download and extract the new zip
-            2. Run `install.ps1` — it preserves your existing `data/` and `.env`
+            Download and run the new `CitadelSetup-*.exe`. The installer preserves your existing `data/` and `.env` automatically.
 
             ### Uninstalling
-            - Run `uninstall.ps1` as Administrator
+            Windows Settings → Apps → **Citadel DayZ Server Controller** → Uninstall.
+            You'll be prompted to keep or delete your server configs.
 
             ### What's Included
-            - Web Dashboard + API server (bundled, no node_modules needed)
-            - Discord Bot (auto-starts if configured)
-            - @CitadelAdmin DayZ mod integration
-            - Windows Service (auto-start on boot)
+            - Web dashboard + backend API (bundled Node.js runtime — no separate install needed)
+            - Discord bot (auto-starts if configured in setup wizard)
+            - @CitadelAdmin in-game DayZ mod
+            - Windows service (auto-start on boot via NSSM)
 
             ---
             _Full changelog below:_

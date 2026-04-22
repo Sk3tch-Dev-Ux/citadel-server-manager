@@ -3,17 +3,17 @@ layout: home
 
 hero:
   name: Citadel
-  text: Enterprise DayZ Server Management
-  tagline: A unified platform for controlling, monitoring, and automating your DayZ servers — from the web, Discord, or in-game.
+  text: The All-In-One DayZ Server Controller
+  tagline: A unified local platform for controlling, monitoring, and automating your DayZ servers — from the desktop app, web dashboard, Discord, or in-game.
   image:
     src: /citadel-logo.svg
     alt: Citadel
   actions:
     - theme: brand
-      text: Purchase — $34.99
-      link: /purchase
+      text: Get Citadel — $14.99/mo
+      link: https://citadels.cc/pricing
     - theme: alt
-      text: Get Started
+      text: Getting Started
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub

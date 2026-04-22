@@ -67,9 +67,11 @@ function setup() {
 PORT=3001
 JWT_SECRET=${generateSecret()}
 
-# Default admin — change password on first login via the Setup Wizard
+# Default admin — the Setup Wizard will replace this on first run with the
+# password you choose. Keep this random placeholder so the app is never
+# installable with guessable credentials.
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin
+ADMIN_PASSWORD=${generateSecret(16)}
 
 # DayZ Server (configured via Setup Wizard)
 DAYZ_SERVER_IP=127.0.0.1

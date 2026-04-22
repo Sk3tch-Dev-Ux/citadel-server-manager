@@ -154,6 +154,27 @@ CONFIG.bans = {
 // Allowed CORS origins — structured config, with env override already applied
 CONFIG.allowedOrigins = structured.server.allowedOrigins;
 
+// ─── CORS safety check ─────────────────────────────────────
+// Flag wildcard or empty origins loudly — these are common misconfigurations
+// that undermine CSRF protection when combined with credentialed requests.
+if (!Array.isArray(CONFIG.allowedOrigins) || CONFIG.allowedOrigins.length === 0) {
+  logger.warn(
+    'SECURITY: allowedOrigins is empty. Browsers on other hosts (LAN access) will be blocked by CORS. ' +
+    'Set CORS_ORIGINS to a comma-separated list in .env if that is intentional.'
+  );
+} else {
+  const hasWildcard = CONFIG.allowedOrigins.some(
+    (o) => o === '*' || (typeof o === 'string' && o.includes('*'))
+  );
+  if (hasWildcard) {
+    logger.warn(
+      'SECURITY: allowedOrigins contains a wildcard (*). This exposes the API to any origin and ' +
+      'breaks CSRF protection. Narrow to specific hostnames in citadel.config.json or CORS_ORIGINS env ' +
+      '(e.g. "http://localhost:3001,https://manager.example.com").'
+    );
+  }
+}
+
 // ─── New structured config sections (accessible via CONFIG._structured) ────
 // These are additive — no existing code uses them yet.
 CONFIG._structured = structured;

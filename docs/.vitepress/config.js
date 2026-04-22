@@ -23,7 +23,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Reference', link: '/reference/api' },
       { text: 'Changelog', link: '/changelog' },
-      { text: 'Purchase', link: '/purchase' },
+      { text: 'Get Citadel', link: 'https://citadels.cc/pricing' },
     ],
 
     sidebar: {
