@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="g" x1="80" y1="32" x2="432" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#4f5bf6"/>
+    </linearGradient>
+    <mask id="m">
+      <rect width="512" height="512" fill="white"/>
+      <!-- C outer bounding box (hides entire C area) -->
+      <rect x="168" y="152" width="176" height="208" rx="40" fill="black"/>
+      <!-- C inner hole + opening (restores non-wall area) -->
+      <rect x="216" y="200" width="200" height="112" rx="24" fill="white"/>
+    </mask>
+  </defs>
+  <!-- Shield body with C cutout -->
+  <path d="M256 36L64 124v160c0 112 80 196 192 220 112-24 192-108 192-220V124Z" fill="url(#g)" mask="url(#m)"/>
+  <!-- Inner bevel highlight -->
+  <path d="M256 64L92 140v144c0 100 68 172 164 196 96-24 164-96 164-196V140Z" fill="none" stroke="#fff" stroke-width="3" opacity="0.18"/>
+</svg>

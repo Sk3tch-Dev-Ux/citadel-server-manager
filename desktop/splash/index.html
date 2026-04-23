@@ -10,8 +10,9 @@
     --bg-2: #0f172a;
     --fg: #e2e8f0;
     --fg-dim: #94a3b8;
-    --brand-a: #8b5cf6;
-    --brand-b: #3b82f6;
+    --brand-a: #a78bfa;
+    --brand-b: #7c3aed;
+    --brand-c: #4f5bf6;
     --border: #1e293b;
     --danger: #f87171;
   }
@@ -35,26 +36,18 @@
     padding: 32px;
     box-sizing: border-box;
   }
-  .logo-mark {
-    width: 72px;
-    height: 72px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 36px;
-    font-weight: 700;
-    color: white;
+  .logo {
+    width: 88px;
+    height: 88px;
     margin-bottom: 24px;
-    box-shadow: 0 10px 40px rgba(139, 92, 246, 0.3);
+    filter: drop-shadow(0 12px 32px rgba(124, 92, 237, 0.35));
   }
   .title {
     font-size: 32px;
     font-weight: 700;
     letter-spacing: -0.01em;
     margin-bottom: 6px;
-    background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+    background: linear-gradient(135deg, var(--brand-a), var(--brand-b), var(--brand-c));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -68,13 +61,11 @@
     width: 32px;
     height: 32px;
     border: 3px solid var(--border);
-    border-top-color: var(--brand-a);
+    border-top-color: var(--brand-b);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .status {
     margin-top: 20px;
     font-size: 12px;
@@ -109,7 +100,7 @@
   }
   .retry {
     margin-top: 20px;
-    background: var(--brand-a);
+    background: var(--brand-b);
     color: white;
     border: none;
     padding: 10px 22px;
@@ -119,20 +110,47 @@
     cursor: pointer;
     font-family: inherit;
   }
-  .retry:hover { filter: brightness(1.1); }
+  .retry:hover { filter: brightness(1.12); }
+  .error-icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 16px;
+    color: #ef4444;
+  }
 </style>
 </head>
 <body>
   <div class="splash">
     <div id="loading">
-      <div class="logo-mark">C</div>
+      <!-- Citadel shield logo -->
+      <svg class="logo" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g" x1="80" y1="32" x2="432" y2="480" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#a78bfa"/>
+            <stop offset="50%" stop-color="#7c3aed"/>
+            <stop offset="100%" stop-color="#4f5bf6"/>
+          </linearGradient>
+          <mask id="m">
+            <rect width="512" height="512" fill="white"/>
+            <rect x="168" y="152" width="176" height="208" rx="40" fill="black"/>
+            <rect x="216" y="200" width="200" height="112" rx="24" fill="white"/>
+          </mask>
+        </defs>
+        <path d="M256 36L64 124v160c0 112 80 196 192 220 112-24 192-108 192-220V124Z" fill="url(#g)" mask="url(#m)"/>
+        <path d="M256 64L92 140v144c0 100 68 172 164 196 96-24 164-96 164-196V140Z" fill="none" stroke="#fff" stroke-width="3" opacity="0.18"/>
+      </svg>
       <div class="title">Citadel</div>
       <div class="tagline">Starting your DayZ Server Controller</div>
       <div class="spinner"></div>
       <div class="status">Connecting to backend service...</div>
     </div>
+
     <div id="error" class="error">
-      <div class="logo-mark" style="background: linear-gradient(135deg, #ef4444, #f59e0b);">!</div>
+      <!-- Alert triangle (lucide) -->
+      <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+        <path d="M12 9v4"/><path d="M12 17h.01"/>
+      </svg>
       <h3>Citadel service isn't responding</h3>
       <p>The Citadel Windows service may have crashed or failed to start.</p>
       <p style="color: var(--fg-dim); margin-top: 18px;"><strong style="color: var(--fg)">What to try:</strong></p>
@@ -146,8 +164,6 @@
     </div>
   </div>
   <script>
-    // Main process fires "backend:unavailable" when polling times out.
-    // Swap to the error state instead of spinning forever.
     if (window.citadel && typeof window.citadel.onBackendUnavailable === 'function') {
       window.citadel.onBackendUnavailable(() => {
         document.getElementById('loading').style.display = 'none';

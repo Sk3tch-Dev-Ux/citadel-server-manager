@@ -1,34 +1,29 @@
 # Citadel Desktop — Assets
 
-Binary assets required for branding. These are generated in **Phase 3** (installer polish) once the EV code-signing cert ships.
+All icon files in this folder are **generated** from `citadel-logo.svg` by `scripts/build-icons.js`. Don't edit them by hand.
 
-## Required files
+## Files
 
-| File | Purpose | Spec |
+| File | Generated | Purpose |
 |---|---|---|
-| `icon.ico` | Windows app & installer icon | 256x256 multi-resolution ICO (contains 16/32/48/64/128/256 sizes) |
-| `tray.png` | System tray icon | 16x16 or 32x32 PNG, monochrome or subtly-colored so it reads on Windows 11 dark + light taskbars |
-| `icon.png` | Fallback app icon | 512x512 PNG |
+| `citadel-logo.svg` | Source (edit this) | Master logo — purple shield with C cut-out |
+| `icon.ico` | Auto | Multi-res Windows icon: 16/24/32/48/64/128/256. Used by the NSIS installer + Electron app.exe + Windows Explorer. |
+| `icon.png` | Auto | 512×512 fallback PNG. electron-builder uses it if ICO is missing. |
+| `tray.png` | Auto | 32×32 PNG for the system tray icon. |
 
-## Source of truth
+## Regenerating
 
-The brand mark lives at `web/frontend/public/citadel-logo.svg` (and a copy at `docs/public/citadel-logo.svg`). All icons below should derive from that SVG.
-
-## Generating
-
-Using ImageMagick (one option — any SVG-to-ICO pipeline works):
+After editing `citadel-logo.svg`, rerun:
 
 ```bash
-# icon.ico — multi-resolution
-magick citadel-logo.svg -define icon:auto-resize=16,32,48,64,128,256 icon.ico
-
-# tray.png — monochrome 32x32
-magick citadel-logo.svg -resize 32x32 -colorspace gray tray.png
-
-# icon.png — 512x512 fallback
-magick citadel-logo.svg -resize 512x512 icon.png
+npm run build:icons
 ```
 
-## Until these exist
+This also runs automatically as the `prepack` script whenever you `npm run build` or `npm run pack` the Electron app.
 
-`main.js` and `tray.js` gracefully handle missing assets — Electron falls back to the default OS icon. The app still launches, just without branding.
+## Tooling
+
+- **@resvg/resvg-js** — pure-JS SVG → PNG renderer (no native build step)
+- **png-to-ico** — tiny PNG → multi-resolution ICO packer
+
+Both are installed as devDependencies.
