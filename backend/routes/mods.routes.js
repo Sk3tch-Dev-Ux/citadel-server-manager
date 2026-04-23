@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Mod install, uninstall, toggle, reorder, type management, and cache routes.
  */
@@ -77,7 +78,7 @@ module.exports = function(app) {
       addNotification(srv.id, 'mod.removed', 'Mod Uninstalled', `${mod.name} removed from ${srv.name}`, 'info');
       fireWebhooks('mod.removed', { serverId: srv.id, serverName: srv.name, modName: mod.name, modId: mod.workshopId });
       res.json({ message: `${mod.name} uninstalled` });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 
   app.patch('/api/servers/:id/mods/:workshopId', authForServer('mods.install'), (req, res) => {

@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Spawn Points Editor routes — read/write cfgplayerspawnpoints.xml.
  *
@@ -44,7 +45,7 @@ module.exports = function(app) {
       res.json({ ...data, totalCount });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to load spawn points');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -77,7 +78,7 @@ module.exports = function(app) {
       res.json({ success: true, totalCount });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save spawn points');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

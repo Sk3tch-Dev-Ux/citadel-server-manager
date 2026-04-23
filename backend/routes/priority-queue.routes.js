@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Priority Queue CRUD + import/export routes.
  * Manages VIP/priority entries that sync to DayZ priority.txt.

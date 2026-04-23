@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Expansion Trader Editor Routes — CRUD API for Expansion Market system.
  *
@@ -240,7 +241,7 @@ module.exports = function(app) {
             res.json(categories);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to list market categories');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -259,7 +260,7 @@ module.exports = function(app) {
             res.json({ fileName, data });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to read market category');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -287,7 +288,7 @@ module.exports = function(app) {
             res.json({ success: true, fileName });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to save market category');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -319,7 +320,7 @@ module.exports = function(app) {
             res.status(201).json({ success: true, fileName: cleanName });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to create market category');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -342,7 +343,7 @@ module.exports = function(app) {
             res.json({ success: true });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to delete market category');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -363,7 +364,7 @@ module.exports = function(app) {
             res.json(traders);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to list trader configs');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -382,7 +383,7 @@ module.exports = function(app) {
             res.json({ fileName, data });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to read trader config');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -410,7 +411,7 @@ module.exports = function(app) {
             res.json({ success: true, fileName });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to save trader config');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -442,7 +443,7 @@ module.exports = function(app) {
             res.status(201).json({ success: true, fileName: cleanName });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to create trader config');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -465,7 +466,7 @@ module.exports = function(app) {
             res.json({ success: true });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to delete trader config');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -487,7 +488,7 @@ module.exports = function(app) {
             res.json(zones);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to list trader zones');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -517,7 +518,7 @@ module.exports = function(app) {
             res.json({ success: true, fileName });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to save trader zone');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -551,7 +552,7 @@ module.exports = function(app) {
             res.status(201).json({ success: true, fileName: cleanName });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to create trader zone');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -576,7 +577,7 @@ module.exports = function(app) {
             res.json({ success: true });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to delete trader zone');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -611,7 +612,7 @@ module.exports = function(app) {
             res.json(result);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to list trader spawns');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -652,7 +653,7 @@ module.exports = function(app) {
             res.json({ success: true, fileName });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to save trader spawn file');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 };

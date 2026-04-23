@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Legacy single-server backward compatibility routes.
  * Maps /api/xxx to /api/servers/:firstServerId/xxx for older clients.
@@ -54,7 +55,7 @@ module.exports = function(app) {
       const results = entries.map(e => { const fp = path.join(td, e.name); let size = 0, modified = 0; try { const s = fs.statSync(fp); size = s.size; modified = s.mtimeMs; } catch {} return { name: e.name, type: e.isDirectory() ? 'directory' : 'file', path: path.relative(bp, fp).replace(/\\/g, '/'), size, modified }; });
       results.sort((a, b) => a.type !== b.type ? (a.type === 'directory' ? -1 : 1) : a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
       res.json(results);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 
   app.get('/api/files/read', auth('files.edit'), (req, res) => {
@@ -68,7 +69,7 @@ module.exports = function(app) {
       const binaryExts = ['.exe','.dll','.pdb','.pbo','.pak','.bin','.so','.png','.jpg','.jpeg','.gif','.bmp','.ico','.wav','.ogg','.mp3','.zip','.rar','.7z','.bikey','.bisign'];
       if (binaryExts.includes(path.extname(fp).toLowerCase())) return res.status(400).json({ error: 'Binary file' });
       res.json({ content: fs.readFileSync(fp, 'utf8'), path: file, size: stat.size, modified: stat.mtimeMs });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 
   // Safe write extensions — must match files.routes.js to prevent writing dangerous file types
@@ -90,6 +91,6 @@ module.exports = function(app) {
       if (fs.existsSync(fp)) fs.copyFileSync(fp, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`));
       fs.writeFileSync(fp, content);
       res.json({ message: 'Saved' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 };

@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Backup routes — Config backup/restore + Game file backup management.
  */
@@ -118,7 +119,7 @@ module.exports = function (app) {
       addAudit(req.user?.id || 'system', req.user?.username || 'system', 'backup.manual', `Manual backup on server ${srv.name}`);
       res.json({ message: 'Backup created', ...result });
     } catch (err) {
-      res.status(500).json({ error: err.message || 'Backup failed' });
+      safeError(err, req, res, { status: 500, clientMessage: 'Backup failed — check server logs' });
     }
   });
 
@@ -191,7 +192,7 @@ module.exports = function (app) {
       );
       res.json({ message: 'Backup restored successfully', filename });
     } catch (err) {
-      res.status(500).json({ error: err.message || 'Restore failed' });
+      safeError(err, req, res, { status: 500, clientMessage: 'Restore failed — check server logs' });
     }
   });
 
@@ -212,7 +213,7 @@ module.exports = function (app) {
         res.json({ filename, type: found.type, entries: result.entries });
       })
       .catch(err => {
-        res.status(500).json({ error: err.message || 'Failed to list contents' });
+        safeError(err, req, res, { status: 500, clientMessage: 'Failed to list backup contents' });
       });
   });
 };

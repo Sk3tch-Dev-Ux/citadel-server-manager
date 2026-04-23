@@ -294,6 +294,14 @@ module.exports = function (app) {
         }
       }
 
+      // Reset the PvP leaderboard — a server wipe means the current
+      // "wipe cycle" is over and K/D stats should start fresh.
+      try {
+        require('../lib/pvp-stats').reset(ctx.CONFIG.dataDir, srv.id);
+      } catch (pvpErr) {
+        logger.warn({ err: pvpErr.message, serverId: srv.id }, 'Dangerzone: failed to reset pvp leaderboard');
+      }
+
       ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'complete', message: `${preset.name} complete! ${deletedCount} item(s) removed.` });
       addLog(srv.id, 'info', 'dangerzone', `${preset.name} completed by ${req.user.username}`);
       addNotification(srv.id, 'server.wipe', 'Server Wiped', `${srv.name}: ${preset.name} completed`, 'danger');

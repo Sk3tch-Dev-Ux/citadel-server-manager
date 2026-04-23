@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Admin Action routes — vendor-neutral server actions via the provider system.
  *
@@ -37,7 +38,7 @@ module.exports = function(app) {
         `Spawned ${itemClass} x${quantity || 1} on ${session.playerName}`);
       res.json({ message: `Spawned ${itemClass} x${quantity || 1}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -56,7 +57,7 @@ module.exports = function(app) {
         `Healed ${session.playerName}`);
       res.json({ message: `Healed ${session.playerName}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -75,7 +76,7 @@ module.exports = function(app) {
         `Killed ${session.playerName}`);
       res.json({ message: `Killed ${session.playerName}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -94,7 +95,7 @@ module.exports = function(app) {
         `Teleported ${session.playerName} to [${x}, ${y}, ${z || 0}]`);
       res.json({ message: `Teleported ${session.playerName}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -113,7 +114,7 @@ module.exports = function(app) {
         `Messaged ${session.playerName || session.name}: ${message.substring(0, 50)}`);
       res.json({ message: `Message sent to ${session.playerName || session.name}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -132,7 +133,7 @@ module.exports = function(app) {
         `Unstuck ${session.playerName || session.name}`);
       res.json({ message: `Unstuck ${session.playerName || session.name}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -154,7 +155,7 @@ module.exports = function(app) {
         `${label} ${session.playerName || session.name}`);
       res.json({ message: `${label} ${session.playerName || session.name}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -200,7 +201,7 @@ module.exports = function(app) {
       fireWebhooks('player.kick', { serverId: req.params.id, serverName: kickSrv?.name || 'Unknown', playerId: steamId, playerName: session.playerName || session.name, reason: kickReason });
       res.json({ message: `Kicked ${session.playerName || session.name}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -225,7 +226,7 @@ module.exports = function(app) {
       fireWebhooks('player.ban', { serverId: req.params.id, serverName: banSrv?.name || 'Unknown', playerId: steamId, playerName: session.playerName || session.name, reason: reason || 'Banned by admin' });
       res.json({ message: `Banned ${session.playerName || session.name}`, ban });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -247,7 +248,7 @@ module.exports = function(app) {
         `Teleported ${session.playerName || session.name} to ${targetSession.playerName || targetSession.name}`);
       res.json({ message: `Teleported to ${targetSession.playerName || targetSession.name}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -261,7 +262,7 @@ module.exports = function(app) {
       const result = await provider.getLoadout(req.params.id, steamId);
       res.json(result);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -280,7 +281,7 @@ module.exports = function(app) {
         `Stripped inventory of ${session.playerName}`);
       res.json({ message: `Stripped ${session.playerName}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -299,7 +300,7 @@ module.exports = function(app) {
         `Exploded ${session.playerName}`);
       res.json({ message: `Exploded ${session.playerName}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -317,7 +318,7 @@ module.exports = function(app) {
         `Teleported vehicle ${vehicleId} to [${x}, ${y || 0}, ${z}]`);
       res.json({ message: 'Vehicle teleported' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -337,7 +338,7 @@ module.exports = function(app) {
         `Vehicle ${action} on ${vehicleId}`);
       res.json({ message: `Vehicle ${action} executed` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -353,7 +354,7 @@ module.exports = function(app) {
         `Set time to ${hour}:${minute || '00'}`);
       res.json({ message: `Time set to ${hour}:${minute || '00'}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -368,7 +369,7 @@ module.exports = function(app) {
         'Weather updated');
       res.json({ message: 'Weather updated' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -381,7 +382,7 @@ module.exports = function(app) {
         'Weather set to sunny');
       res.json({ message: 'Weather set to sunny' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -394,7 +395,7 @@ module.exports = function(app) {
         'Wiped all AI');
       res.json({ message: 'All AI wiped' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -407,7 +408,7 @@ module.exports = function(app) {
         'Wiped all vehicles');
       res.json({ message: 'All vehicles wiped' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -418,7 +419,7 @@ module.exports = function(app) {
       const details = await provider.getPlayerDetails(req.params.id, req.params.steamId);
       res.json(details);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -431,7 +432,7 @@ module.exports = function(app) {
         'Reloaded server config');
       res.json({ message: 'Config reloaded' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -455,7 +456,7 @@ module.exports = function(app) {
           `${label} ${session.playerName || session.name}`);
         res.json({ message: `${label} ${session.playerName || session.name}` });
       } catch (err) {
-        res.status(500).json({ error: err.message });
+        safeError(err, req, res, { status: 500 });
       }
     });
   }
@@ -497,7 +498,7 @@ module.exports = function(app) {
         `Made ${session.playerName || session.name} sick (${diseaseType || 'cholera'})`);
       res.json({ message: `Made ${session.playerName || session.name} sick` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -516,7 +517,7 @@ module.exports = function(app) {
         `Set blood type of ${session.playerName || session.name} to ${bloodType}`);
       res.json({ message: `Blood type set to ${bloodType}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -535,7 +536,7 @@ module.exports = function(app) {
         `Set bleeding on ${session.playerName || session.name}`);
       res.json({ message: `Set bleeding on ${session.playerName || session.name}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -554,7 +555,7 @@ module.exports = function(app) {
         `Launched ${session.playerName || session.name}`);
       res.json({ message: `Launched ${session.playerName || session.name}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -573,7 +574,7 @@ module.exports = function(app) {
         `Set ${stat}=${value} on ${session.playerName || session.name}`);
       res.json({ message: `Set ${stat} to ${value}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -592,7 +593,7 @@ module.exports = function(app) {
         `Ragdolled ${session.playerName || session.name}`);
       res.json({ message: `Ragdolled ${session.playerName || session.name}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -607,7 +608,7 @@ module.exports = function(app) {
         `Set fog density to ${density || 0}`);
       res.json({ message: `Fog set to ${density || 0}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -620,7 +621,7 @@ module.exports = function(app) {
         `Set wind speed=${speed || 0}, direction=${direction || 0}`);
       res.json({ message: 'Wind updated' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -636,7 +637,7 @@ module.exports = function(app) {
         `Flattened trees near ${session.playerName || session.name} (radius: ${radius || 50})`);
       res.json({ message: 'Trees flattened' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -652,7 +653,7 @@ module.exports = function(app) {
         `Cleared zombies near ${session.playerName || session.name} (radius: ${radius || 100})`);
       res.json({ message: 'Zombies cleared' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -668,7 +669,7 @@ module.exports = function(app) {
         `Deleted ${objectType || 'all'} objects near ${session.playerName || session.name} (radius: ${radius || 50})`);
       res.json({ message: 'Objects deleted' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -686,7 +687,7 @@ module.exports = function(app) {
         `Spawned ${count || 1} zombie(s) near ${session.playerName || session.name}`);
       res.json({ message: `Spawned ${count || 1} zombie(s)` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -702,7 +703,7 @@ module.exports = function(app) {
         `Spawned ${animalType || 'deer'} near ${session.playerName || session.name}`);
       res.json({ message: `Spawned ${animalType || 'deer'}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -718,7 +719,7 @@ module.exports = function(app) {
         `Spawned vehicle ${vehicleClass} near ${session.playerName || session.name}`);
       res.json({ message: `Spawned ${vehicleClass}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -734,7 +735,7 @@ module.exports = function(app) {
         `Spawned building ${buildingClass}`);
       res.json({ message: `Spawned ${buildingClass}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -750,7 +751,7 @@ module.exports = function(app) {
         `Spawned horde (${count || 20}) near ${session.playerName || session.name}`);
       res.json({ message: `Spawned horde of ${count || 20}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -764,7 +765,7 @@ module.exports = function(app) {
         `Spawned supply crate (${crateType || 'military'})`);
       res.json({ message: 'Supply crate spawned' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -780,7 +781,7 @@ module.exports = function(app) {
         `Spawned loot pile (${lootType || 'military'}) near ${session.playerName || session.name}`);
       res.json({ message: 'Loot pile spawned' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -796,7 +797,7 @@ module.exports = function(app) {
         `Spawned ${itemClass} with attachments on ${session.playerName || session.name}`);
       res.json({ message: `Spawned ${itemClass} with attachments` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -810,7 +811,7 @@ module.exports = function(app) {
         `Spawned ${itemClass} at ${coords}`);
       res.json({ message: `Spawned ${itemClass}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -824,7 +825,7 @@ module.exports = function(app) {
         `Spawned ${count || 1} zombie(s) at ${coords}`);
       res.json({ message: `Spawned ${count || 1} zombie(s)` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -838,7 +839,7 @@ module.exports = function(app) {
         `Spawned ${animalType || 'deer'} at ${coords}`);
       res.json({ message: `Spawned ${animalType || 'deer'}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -854,7 +855,7 @@ module.exports = function(app) {
         `Spawned fire near ${session.playerName || session.name}`);
       res.json({ message: 'Fire spawned' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -870,7 +871,7 @@ module.exports = function(app) {
         `Spawned smoke near ${session.playerName || session.name}`);
       res.json({ message: 'Smoke spawned' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -884,7 +885,7 @@ module.exports = function(app) {
         `Spawned heli crash at ${coords}`);
       res.json({ message: 'Heli crash spawned' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -898,7 +899,7 @@ module.exports = function(app) {
         `Spawned gas zone at ${coords}`);
       res.json({ message: 'Gas zone spawned' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -916,7 +917,7 @@ module.exports = function(app) {
         `Opened doors near ${session.playerName || session.name}`);
       res.json({ message: 'Doors opened' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -932,7 +933,7 @@ module.exports = function(app) {
         `Closed doors near ${session.playerName || session.name}`);
       res.json({ message: 'Doors closed' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -948,7 +949,7 @@ module.exports = function(app) {
         `Loot magnet near ${session.playerName || session.name}`);
       res.json({ message: 'Loot magnet activated' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -964,7 +965,7 @@ module.exports = function(app) {
         `Deleted item ${persistentId}`);
       res.json({ message: 'Item deleted' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -978,7 +979,7 @@ module.exports = function(app) {
         `Repaired item ${persistentId}`);
       res.json({ message: 'Item repaired' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -990,7 +991,7 @@ module.exports = function(app) {
       const data = await provider.getOnlinePlayers(req.params.id);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1000,7 +1001,7 @@ module.exports = function(app) {
       const data = await provider.getAllPlayers(req.params.id);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1010,7 +1011,7 @@ module.exports = function(app) {
       const data = await provider.getServerInfo(req.params.id);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1020,7 +1021,7 @@ module.exports = function(app) {
       const data = await provider.getPlayerPosition(req.params.id, req.params.steamId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1030,7 +1031,7 @@ module.exports = function(app) {
       const data = await provider.getPlayerInfo(req.params.id, req.params.steamId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1040,7 +1041,7 @@ module.exports = function(app) {
       const data = await provider.getPlayerGear(req.params.id, req.params.steamId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1050,7 +1051,7 @@ module.exports = function(app) {
       const data = await provider.getPlayerInventory(req.params.id, req.params.steamId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1060,7 +1061,7 @@ module.exports = function(app) {
       const data = await provider.getPlayerStats(req.params.id, req.params.steamId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1070,7 +1071,7 @@ module.exports = function(app) {
       const data = await provider.getPlayerFull(req.params.id, req.params.steamId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1080,7 +1081,7 @@ module.exports = function(app) {
       const data = await provider.getPlayerGearFull(req.params.id, req.params.steamId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1090,7 +1091,7 @@ module.exports = function(app) {
       const data = await provider.getPlayerHandsData(req.params.id, req.params.steamId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1100,7 +1101,7 @@ module.exports = function(app) {
       const data = await provider.getNearbyVehicles(req.params.id, req.params.steamId, req.query.radius);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1110,7 +1111,7 @@ module.exports = function(app) {
       const data = await provider.getVehicleInfo(req.params.id, req.params.steamId, req.query.radius);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1120,7 +1121,7 @@ module.exports = function(app) {
       const data = await provider.getItemDetails(req.params.id, req.params.persistentId);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1130,7 +1131,7 @@ module.exports = function(app) {
       const data = await provider.getBaseObjects(req.params.id, req.params.steamId, req.query.radius);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1140,7 +1141,7 @@ module.exports = function(app) {
       const data = await provider.getStorageContents(req.params.id, req.query.persistentId, req.query.steamId, req.query.position);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1150,7 +1151,7 @@ module.exports = function(app) {
       const data = await provider.getAllStorageObjects(req.params.id);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1160,7 +1161,7 @@ module.exports = function(app) {
       const data = await provider.getNearbyPlayers(req.params.id, req.params.steamId, req.query.radius);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1170,7 +1171,7 @@ module.exports = function(app) {
       const data = await provider.getNearbyLoot(req.params.id, req.params.steamId, req.query.radius, req.query.limit);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1180,7 +1181,7 @@ module.exports = function(app) {
       const data = await provider.getNearbyEntities(req.params.id, req.params.steamId, req.query.radius);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1192,7 +1193,7 @@ module.exports = function(app) {
       const data = await provider.getNearbyEntitiesAt(req.params.id, coords, radius);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1204,7 +1205,7 @@ module.exports = function(app) {
       const data = await provider.getNearbyLootAt(req.params.id, coords, radius);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1214,7 +1215,7 @@ module.exports = function(app) {
       const data = await provider.getBans(req.params.id);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -1228,7 +1229,7 @@ module.exports = function(app) {
         `Unbanned ${steamId}`);
       res.json({ message: `Unbanned ${steamId}` });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 

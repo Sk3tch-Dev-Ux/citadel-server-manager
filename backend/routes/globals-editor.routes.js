@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Globals Editor routes — read and write globals.xml.
  *
@@ -43,7 +44,7 @@ module.exports = function(app) {
       res.json({ globals, metadata: GLOBALS_METADATA });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to read globals.xml');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -76,7 +77,7 @@ module.exports = function(app) {
       res.json({ success: true, count: globals.length });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save globals.xml');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

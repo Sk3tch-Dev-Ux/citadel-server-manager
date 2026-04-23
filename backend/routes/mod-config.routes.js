@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Mod Config Routes — Generic API for reading/writing mod configuration files.
  *
@@ -68,7 +69,7 @@ module.exports = function(app) {
       });
     } catch (err) {
       logger.error({ err, serverId: req.params.id }, 'Failed to detect mod configs');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -158,7 +159,7 @@ module.exports = function(app) {
       });
     } catch (err) {
       logger.error({ err, serverId: req.params.id, schemaId }, 'Failed to read mod configs');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -207,7 +208,7 @@ module.exports = function(app) {
       res.json({ success: true, fileName });
     } catch (err) {
       logger.error({ err, serverId: req.params.id, schemaId }, 'Failed to save mod config');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -254,7 +255,7 @@ module.exports = function(app) {
       res.json({ success: true, defaults });
     } catch (err) {
       logger.error({ err, serverId: req.params.id, schemaId }, 'Failed to reset mod config');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

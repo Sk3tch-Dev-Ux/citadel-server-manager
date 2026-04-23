@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Webhook CRUD, test, and event listing routes.
  */
@@ -245,6 +246,6 @@ module.exports = function(app) {
     const testServerId = Array.isArray(wh.serverIds) && wh.serverIds.length > 0 ? wh.serverIds[0] : 'test';
     const testServer = ctx.servers.find(s => s.id === testServerId);
     try { await fireWebhooks(wh.event, { serverId: testServerId, serverName: testServer?.name || 'Test Server' }); res.json({ message: 'Test fired' }); }
-    catch (err) { res.status(500).json({ error: err.message }); }
+    catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 };

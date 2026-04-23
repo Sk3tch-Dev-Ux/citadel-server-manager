@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Types Editor routes — full CRUD for types.xml editing.
  *
@@ -54,6 +55,29 @@ function findAllTypesFiles(missionDir) {
 }
 
 // ─── Load limits definitions ────────────────────────────────
+//
+// cfglimitsdefinition.xml and its user variant rarely change, but used to be
+// re-read + re-parsed on every editor request (GET, save, etc). On a large
+// mission folder each parse is ~50-100ms of sync I/O + regex. We cache the
+// parsed result per-path and invalidate when the file's mtime changes.
+
+/** @type {Map<string, { mtimeMs: number, value: object }>} */
+const _limitsCache = new Map();
+
+function _cachedParse(filePath, parseFn) {
+  if (!filePath || !fs.existsSync(filePath)) return null;
+  const stat = fs.statSync(filePath);
+  const cached = _limitsCache.get(filePath);
+  if (cached && cached.mtimeMs === stat.mtimeMs) return cached.value;
+  try {
+    const value = parseFn(fs.readFileSync(filePath, 'utf8'));
+    _limitsCache.set(filePath, { mtimeMs: stat.mtimeMs, value });
+    return value;
+  } catch (err) {
+    logger.warn({ err: err.message, filePath }, 'Failed to parse limits XML');
+    return null;
+  }
+}
 
 function loadLimits(missionDir) {
   let limits = { categories: [], usages: [], values: [], tags: [] };
@@ -65,13 +89,8 @@ function loadLimits(missionDir) {
     path.join(missionDir, 'db', 'cfglimitsdefinition.xml'),
   ];
   const limitsPath = limitsCandidates.find(p => fs.existsSync(p));
-  if (limitsPath) {
-    try {
-      limits = parseLimitsDefinition(fs.readFileSync(limitsPath, 'utf8'));
-    } catch (err) {
-      logger.warn({ err: err.message }, 'Failed to parse cfglimitsdefinition.xml');
-    }
-  }
+  const cachedLimits = _cachedParse(limitsPath, parseLimitsDefinition);
+  if (cachedLimits) limits = cachedLimits;
 
   // cfglimitsdefinitionuser.xml — check mission root first, then db/
   const userCandidates = [
@@ -79,13 +98,8 @@ function loadLimits(missionDir) {
     path.join(missionDir, 'db', 'cfglimitsdefinitionuser.xml'),
   ];
   const userPath = userCandidates.find(p => fs.existsSync(p));
-  if (userPath) {
-    try {
-      userDefs = parseUserDefinitions(fs.readFileSync(userPath, 'utf8'));
-    } catch (err) {
-      logger.warn({ err: err.message }, 'Failed to parse cfglimitsdefinitionuser.xml');
-    }
-  }
+  const cachedUser = _cachedParse(userPath, parseUserDefinitions);
+  if (cachedUser) userDefs = cachedUser;
 
   return { limits, userDefs };
 }
@@ -116,7 +130,7 @@ module.exports = function(app) {
       });
       res.json(result);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -145,7 +159,7 @@ module.exports = function(app) {
 
       res.json({ items: allItems, files: typesFiles });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -160,7 +174,7 @@ module.exports = function(app) {
       const { limits, userDefs } = loadLimits(missionDir);
       res.json({ ...limits, userDefinitions: Object.keys(userDefs).sort() });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -221,7 +235,7 @@ module.exports = function(app) {
       res.json({ success: true, savedFiles, itemCount: items.length });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save types');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -268,7 +282,7 @@ module.exports = function(app) {
       res.json({ success: true, item });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to add type item');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -311,7 +325,7 @@ module.exports = function(app) {
       res.json({ success: true });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to delete type item');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -375,7 +389,7 @@ module.exports = function(app) {
       res.json(allItems);
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to export types');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -446,7 +460,7 @@ module.exports = function(app) {
       res.json({ success: true, imported: items.length, updated, added });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to import types');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Limits Definition Editor routes — CRUD for cfglimitsdefinition.xml.
  *
@@ -43,7 +44,7 @@ module.exports = function(app) {
       res.json(data);
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to load limits definition');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -84,7 +85,7 @@ module.exports = function(app) {
       }});
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save limits definition');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

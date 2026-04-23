@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Item database routes — parses ALL types XML files for searchable item list.
  *
@@ -220,7 +221,7 @@ module.exports = function(app) {
       res.json(items);
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to collect items');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

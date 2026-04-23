@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import Modal from '../components/ui/Modal';
@@ -12,13 +13,16 @@ import {
   Trash2, Bomb, Skull, ShieldBan, Search, Locate, Lock,
   Navigation, Eye, Loader, Droplets, Pill, Coffee,
   UtensilsCrossed, ZapOff, Eraser, ArrowUpFromLine,
-  Shield, Zap, Infinity, Backpack, Wand2,
+  Shield, Zap, Infinity, Backpack, Wand2, Clock, User, X,
 } from '../components/Icon';
+import { useDebouncedValue, timeAgo } from '../utils';
 
 export default function PlayersPage({ serverId }) {
   const socket = useSocket();
   const { confirm, prompt, DialogComponent } = useConfirmDialog();
   const [players, setPlayers] = useState([]);
+  const [filterQuery, setFilterQuery] = useState('');
+  const [historySearchOpen, setHistorySearchOpen] = useState(false);
 
   // ─── Spawn Item Modal State ──────────────────────────────
   const [spawnTarget, setSpawnTarget] = useState(null);
@@ -194,19 +198,63 @@ export default function PlayersPage({ serverId }) {
     setLoadoutLoading(false);
   };
 
+  // ─── Filtered Online List ────────────────────────────────
+  const visiblePlayers = useMemo(() => {
+    const q = filterQuery.trim().toLowerCase();
+    if (!q) return players;
+    return players.filter((p) =>
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.steamId || p.id || '').includes(q) ||
+      (p.ip || '').includes(q)
+    );
+  }, [players, filterQuery]);
+
   // ─── Render ──────────────────────────────────────────────
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          {players.length} player(s) online
+          {filterQuery
+            ? `${visiblePlayers.length} of ${players.length} player(s) online`
+            : `${players.length} player(s) online`}
         </span>
+        <div style={{ flex: 1 }} />
+        <div style={{ position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            className="input"
+            placeholder="Filter online players…"
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+            style={{ paddingLeft: 30, paddingRight: filterQuery ? 28 : 10, minWidth: 220 }}
+          />
+          {filterQuery && (
+            <button
+              onClick={() => setFilterQuery('')}
+              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}
+              title="Clear"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <button
+          className="btn btn-sm btn-secondary"
+          onClick={() => setHistorySearchOpen(true)}
+          title="Search all players (including offline) — profile history"
+        >
+          <Clock size={14} /> Search history
+        </button>
       </div>
 
       {players.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon"><Users size={48} /></div>
-          <div className="empty-title">No Players Online</div>
+          <div className="empty-icon empty-state-icon-large"><Users size={48} /></div>
+          <div className="empty-title">No players online</div>
+          <p style={{ color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto' }}>
+            Players will appear here as they connect. If your server is running and players
+            are joining, check that RCON is configured correctly under Server Settings.
+          </p>
         </div>
       ) : (
         <div className="table-wrap">
@@ -221,9 +269,18 @@ export default function PlayersPage({ serverId }) {
               </tr>
             </thead>
             <tbody>
-              {players.map(p => (
+              {visiblePlayers.map(p => (
                 <tr key={p.id}>
-                  <td style={{ fontWeight: 600 }}>{p.name}</td>
+                  <td style={{ fontWeight: 600 }}>
+                    <Link
+                      to={`/servers/${serverId}/players/${p.steamId || p.id}`}
+                      style={{ color: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      title="View player profile & history"
+                    >
+                      {p.name}
+                      <User size={12} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
+                    </Link>
+                  </td>
                   <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{p.id}</td>
                   <td>{p.ip || '\u2014'}</td>
                   <td>{p.ping || '\u2014'}</td>
@@ -482,8 +539,119 @@ export default function PlayersPage({ serverId }) {
         </div>
       </Modal>
 
+      {historySearchOpen && (
+        <HistorySearchModal
+          serverId={serverId}
+          onClose={() => setHistorySearchOpen(false)}
+        />
+      )}
+
       {DialogComponent}
     </div>
+  );
+}
+
+// ─── History Search Modal ────────────────────────────────────
+
+function HistorySearchModal({ serverId, onClose }) {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const debouncedQ = useDebouncedValue(q, 200);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const params = new URLSearchParams({ limit: '50' });
+    if (debouncedQ) params.set('q', debouncedQ);
+    API.get(`/api/servers/${serverId}/players/search?${params.toString()}`)
+      .then((data) => {
+        if (cancelled) return;
+        setResults(data?.results || []);
+        setTotal(data?.total || 0);
+      })
+      .catch(() => { if (!cancelled) setResults([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [debouncedQ, serverId]);
+
+  const fmtMs = (ms) => {
+    if (!ms) return '—';
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  return (
+    <Modal open onClose={onClose} title="Player history search" large>
+      <div style={{ padding: 16 }}>
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            className="input"
+            placeholder="Search by name, alias, or SteamID…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            autoFocus
+            style={{ paddingLeft: 30, width: '100%' }}
+          />
+        </div>
+
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+          {loading ? 'Searching…' : `${results.length} of ${total} profile${total === 1 ? '' : 's'} shown. Click a row to view full history.`}
+        </div>
+
+        <div style={{ maxHeight: '55vh', overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
+          {results.length === 0 && !loading ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              {debouncedQ ? `No profiles match "${debouncedQ}"` : 'No profiles recorded yet — they build as players connect.'}
+            </div>
+          ) : (
+            <table>
+              <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-surface, var(--bg-card))', zIndex: 1 }}>
+                <tr>
+                  <th>Name</th>
+                  <th style={{ width: 120 }}>Last seen</th>
+                  <th style={{ width: 80 }}>Sessions</th>
+                  <th style={{ width: 90 }}>Play time</th>
+                  <th style={{ width: 70 }}>K/D</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((r) => (
+                  <tr key={r.steamId}>
+                    <td>
+                      <Link
+                        to={`/servers/${serverId}/players/${r.steamId}`}
+                        onClick={onClose}
+                        style={{ color: 'inherit', textDecoration: 'none' }}
+                      >
+                        <div style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {r.name}
+                          {r.online && <span style={{ fontSize: 9, padding: '1px 6px', background: 'color-mix(in srgb, #22c55e 15%, transparent)', color: '#22c55e', borderRadius: 3, fontWeight: 700 }}>ONLINE</span>}
+                          {r.notesCount > 0 && <span style={{ fontSize: 9, padding: '1px 6px', background: 'color-mix(in srgb, #f59e0b 15%, transparent)', color: '#f59e0b', borderRadius: 3, fontWeight: 700 }}>{r.notesCount} NOTE{r.notesCount === 1 ? '' : 'S'}</span>}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono, monospace)' }}>{r.steamId}</div>
+                        {r.aliases?.length > 1 && (
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                            aka {r.aliases.filter((a) => a !== r.name).slice(0, 3).join(', ')}
+                          </div>
+                        )}
+                      </Link>
+                    </td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.online ? 'Online now' : timeAgo(r.lastSeen)}</td>
+                    <td>{r.totalSessions}</td>
+                    <td>{fmtMs(r.totalPlayMs)}</td>
+                    <td>{r.lifetimeKills}/{r.lifetimeDeaths}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }
 

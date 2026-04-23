@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Economy Core Editor routes — CRUD for cfgeconomycore.xml.
  *
@@ -42,7 +43,7 @@ module.exports = function(app) {
       res.json({ folders: foldersWithExistence, validTypes: VALID_FILE_TYPES });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to load cfgeconomycore.xml');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -108,7 +109,7 @@ module.exports = function(app) {
       res.json({ ok: true, folders: foldersWithExistence });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save cfgeconomycore.xml');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

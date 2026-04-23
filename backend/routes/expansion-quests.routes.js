@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Expansion Quest Routes — CRUD API for Expansion Mod quests, NPCs, and objectives.
  *
@@ -67,7 +68,7 @@ module.exports = function(app) {
             res.json(summary);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to list quests');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -85,7 +86,7 @@ module.exports = function(app) {
             res.json(quest);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to get quest');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -109,7 +110,7 @@ module.exports = function(app) {
             res.status(201).json(quest);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to create quest');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -134,7 +135,7 @@ module.exports = function(app) {
             res.json(quest);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to update quest');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -156,7 +157,7 @@ module.exports = function(app) {
             res.json({ success: true });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to delete quest');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -183,7 +184,7 @@ module.exports = function(app) {
             res.json(summary);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to list NPCs');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -201,7 +202,7 @@ module.exports = function(app) {
             res.json(npc);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to get NPC');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -225,7 +226,7 @@ module.exports = function(app) {
             res.status(201).json(npc);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to create NPC');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -250,7 +251,7 @@ module.exports = function(app) {
             res.json(npc);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to update NPC');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -272,7 +273,7 @@ module.exports = function(app) {
             res.json({ success: true });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to delete NPC');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -311,7 +312,7 @@ module.exports = function(app) {
             res.json(grouped);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to list objectives');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -335,7 +336,7 @@ module.exports = function(app) {
             res.json(objective);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to get objective');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -369,7 +370,7 @@ module.exports = function(app) {
             res.status(201).json(objective);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to create objective');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -401,7 +402,7 @@ module.exports = function(app) {
             res.json(objective);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to update objective');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -430,7 +431,7 @@ module.exports = function(app) {
             res.json({ success: true });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to delete objective');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -482,7 +483,7 @@ module.exports = function(app) {
             res.json(chain);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to build quest chain');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -527,7 +528,7 @@ module.exports = function(app) {
             res.json({ ...quest, _resolvedObjectives: resolvedObjectives });
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to get full quest');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -572,7 +573,7 @@ module.exports = function(app) {
             res.json(finalQuest);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to save full quest');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 
@@ -619,7 +620,7 @@ module.exports = function(app) {
             res.status(201).json(finalQuest);
         } catch (err) {
             logger.error({ err, serverId: req.params.id }, 'Failed to create full quest');
-            res.status(500).json({ error: err.message });
+            safeError(err, req, res, { status: 500 });
         }
     });
 };

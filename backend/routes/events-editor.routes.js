@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Events Editor routes — CRUD for events.xml and cfgeventspawns.xml editing.
  *
@@ -62,7 +63,7 @@ module.exports = function(app) {
       res.json({ events });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to parse events.xml');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -94,7 +95,7 @@ module.exports = function(app) {
       res.json({ success: true, eventCount: events.length });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save events.xml');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -135,7 +136,7 @@ module.exports = function(app) {
       res.json({ success: true, event });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to add event');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -174,7 +175,7 @@ module.exports = function(app) {
       res.json({ success: true });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to delete event');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -197,7 +198,7 @@ module.exports = function(app) {
       res.json(data);
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to parse cfgeventspawns.xml');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -228,7 +229,7 @@ module.exports = function(app) {
       res.json({ success: true, eventCount: events.length });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save cfgeventspawns.xml');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -269,7 +270,7 @@ module.exports = function(app) {
       res.json({ success: true, event: eventEntry });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to update event spawns');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -320,7 +321,7 @@ module.exports = function(app) {
       res.json({ success: true, event: eventEntry, index: eventEntry.positions.length - 1 });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to add spawn position');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -362,7 +363,7 @@ module.exports = function(app) {
       res.json({ success: true, event: eventEntry });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to delete spawn position');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

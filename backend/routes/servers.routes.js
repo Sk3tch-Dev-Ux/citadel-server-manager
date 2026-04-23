@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Server CRUD routes (list, create, update, delete, detect).
  */

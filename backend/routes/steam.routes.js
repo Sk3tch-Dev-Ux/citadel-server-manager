@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Steam settings and credential management routes.
  */

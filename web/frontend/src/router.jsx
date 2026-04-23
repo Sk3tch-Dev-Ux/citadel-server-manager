@@ -47,6 +47,10 @@ const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
 const CitadelLicensePage = lazy(() => import('./pages/CitadelLicensePage'));
+const KillFeedPage = lazy(() => import('./pages/KillFeedPage'));
+const ChatLogPage = lazy(() => import('./pages/ChatLogPage'));
+const BackupsPage = lazy(() => import('./pages/BackupsPage'));
+const PlayerProfilePage = lazy(() => import('./pages/PlayerProfilePage'));
 
 function AuthGuard({ children }) {
   const { user } = useAuth();
@@ -145,6 +149,7 @@ export default function AppRouter() {
             <Route path="metrics" element={<ErrorBoundary><Lazy><ServerPage Component={ServerMetricsPage} /></Lazy></ErrorBoundary>} />
             <Route path="console" element={<PermGuard permission="chat.send"><ErrorBoundary><ServerPage Component={ConsolePage} /></ErrorBoundary></PermGuard>} />
             <Route path="players" element={<ErrorBoundary><ServerPage Component={PlayersPage} /></ErrorBoundary>} />
+            <Route path="players/:steamId" element={<ErrorBoundary><Lazy><PlayerProfilePage /></Lazy></ErrorBoundary>} />
             <Route path="mods" element={<ErrorBoundary><Lazy><ServerPage Component={ModsPage} /></Lazy></ErrorBoundary>} />
             <Route path="files" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={FilesPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="config" element={<PermGuard permission="config.manage"><ErrorBoundary><Lazy><ServerPage Component={ConfigPage} /></Lazy></ErrorBoundary></PermGuard>} />
@@ -163,6 +168,9 @@ export default function AppRouter() {
             <Route path="quest-creator" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={QuestCreatorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ErrorBoundary><Lazy><ServerPage Component={RestartSchedulerPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="live" element={<ErrorBoundary><Lazy><ServerPage Component={LiveDashboardPage} /></Lazy></ErrorBoundary>} />
+            <Route path="kill-feed" element={<ErrorBoundary><Lazy><ServerPage Component={KillFeedPage} /></Lazy></ErrorBoundary>} />
+            <Route path="chat-log" element={<ErrorBoundary><Lazy><ServerPage Component={ChatLogPage} /></Lazy></ErrorBoundary>} />
+            <Route path="backups" element={<PermGuard permission="server.restart"><ErrorBoundary><Lazy><ServerPage Component={BackupsPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
             <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />
             <Route path="settings" element={<PermGuard permission="server.settings"><ErrorBoundary><ServerPage Component={ServerSettingsPage} /></ErrorBoundary></PermGuard>} />

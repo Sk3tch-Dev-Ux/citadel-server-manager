@@ -37,17 +37,39 @@ let _derivedKey = null;
 /**
  * Derive (or return cached) the encryption key.
  *
- * Uses CREDENTIAL_ENCRYPTION_KEY if set (recommended for separation of concerns),
- * otherwise falls back to JWT_SECRET for backward compatibility.
+ * In PRODUCTION: requires CREDENTIAL_ENCRYPTION_KEY to be set. Refuses to
+ * derive from JWT_SECRET because that would mean a single leaked secret
+ * (the JWT) also decrypts every stored credential (RCON passwords, Steam
+ * logins, etc.). Defense in depth = two independent secrets.
+ *
+ * In DEVELOPMENT: falls back to JWT_SECRET with a loud warning so a fresh
+ * dev clone just works.
  *
  * @returns {Buffer} 32-byte key
  */
 function _getKey() {
   if (_derivedKey) return _derivedKey;
 
-  // Prefer dedicated encryption key over JWT_SECRET for defense in depth:
-  // compromising JWT_SECRET alone won't decrypt stored credentials.
-  const keySource = process.env.CREDENTIAL_ENCRYPTION_KEY || process.env.JWT_SECRET;
+  const isProd = process.env.NODE_ENV === 'production';
+  let keySource = process.env.CREDENTIAL_ENCRYPTION_KEY;
+
+  if (!keySource) {
+    if (isProd) {
+      throw new Error(
+        'CREDENTIAL_ENCRYPTION_KEY is required in production. ' +
+        'Generate one with: openssl rand -hex 32 — then add to .env. ' +
+        'Refusing to fall back to JWT_SECRET (would collapse two secrets into one).'
+      );
+    }
+    // Dev-only fallback. Warn loudly so nobody ships a prod build like this.
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[credential-encryption] CREDENTIAL_ENCRYPTION_KEY not set — ' +
+      'falling back to JWT_SECRET for dev convenience. DO NOT DEPLOY THIS WAY.'
+    );
+    keySource = process.env.JWT_SECRET;
+  }
+
   if (!keySource) {
     throw new Error('Neither CREDENTIAL_ENCRYPTION_KEY nor JWT_SECRET is set — cannot derive encryption key');
   }

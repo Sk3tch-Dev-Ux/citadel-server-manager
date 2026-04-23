@@ -1,9 +1,81 @@
 /**
  * serverDZ.cfg parser and writer for DayZ servers.
+ *
+ * Writes are validated against a whitelist — arbitrary keys from a compromised
+ * client can't inject new directives. Untrusted user input is coerced to
+ * string/number/boolean before substitution, and string values are scrubbed
+ * of characters that could break the .cfg grammar (quotes, semicolons,
+ * newlines).
  */
 const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
+
+// ─── Config key whitelist ──────────────────────────────────────────────
+// Every DayZ serverDZ.cfg key Citadel is allowed to write. Anything else
+// submitted by the client is dropped with a warning. Reference:
+//   https://community.bistudio.com/wiki/DayZ:Server_Configuration
+const ALLOWED_CONFIG_KEYS = new Set([
+  // Basic identity
+  'hostname', 'password', 'passwordAdmin', 'serverTime', 'serverTimeAcceleration',
+  'serverNightTimeAcceleration', 'serverTimePersistent',
+  // Slots + region
+  'maxPlayers', 'motd', 'motdInterval', 'respawnTime', 'timeStampFormat',
+  // Files + logging
+  'logAverageFps', 'logMemory', 'logPlayers', 'logFile', 'adminLogPlayerHitsOnly',
+  'adminLogPlacement', 'adminLogBuildActions', 'adminLogPlayerList',
+  // Anti-cheat + security
+  'disableBanlist', 'disableRespawnDialog', 'guaranteedUpdates', 'BattlEye',
+  'enableDebugMonitor', 'allowFilePatching', 'simulatedPlayersBatch', 'multithreadedReplication',
+  'speedhackDetection', 'networkRangeClose', 'networkRangeNear', 'networkRangeFar',
+  'networkRangeDistantEffect', 'networkObjectBatchLogSlow', 'networkObjectBatchSend',
+  'networkObjectBatchSendRest', 'networkObjectBatchCompute', 'defaultVisibility',
+  'defaultObjectViewDistance', 'lightingConfig',
+  // Missions + persistence
+  'class Missions', 'template', 'difficulty', 'instanceId', 'storageAutoFix',
+  'storeHouseStateDisabled', 'disablePersonalLight', 'disable3rdPerson', 'disableCrosshair',
+  'disableVoN', 'vonCodecQuality', 'useRespawnInventory',
+  // Economy tuning
+  'enableMouseAndKeyboard', 'forceSameBuild', 'forceRHWatchingOnly',
+  'serverFpsRating', 'dayTime', 'nightTime',
+  // Steam + query
+  'steamQueryPort', 'queryPort', 'port',
+  // Anti-cheat paths
+  'verifySignatures', 'serverPort',
+]);
+
+/**
+ * Filter + coerce the client-supplied updates to only allowed keys with
+ * safe values. Returns a new object of the updates that will actually be
+ * written, plus a list of rejected keys for logging.
+ */
+function sanitizeUpdates(updates) {
+  const safe = {};
+  const rejected = [];
+  for (const [key, value] of Object.entries(updates || {})) {
+    if (!ALLOWED_CONFIG_KEYS.has(key)) {
+      rejected.push(key);
+      continue;
+    }
+    if (value === null || value === undefined) {
+      safe[key] = value;
+      continue;
+    }
+    if (typeof value === 'boolean' || typeof value === 'number') {
+      safe[key] = value;
+      continue;
+    }
+    if (typeof value === 'string') {
+      // Strip characters that would let an attacker break out of the
+      // quoted value into sibling directives.
+      safe[key] = value.replace(/[\r\n";]/g, '').slice(0, 1024);
+      continue;
+    }
+    // Unknown types (objects, arrays) — reject
+    rejected.push(key);
+  }
+  return { safe, rejected };
+}
 
 function getServerCfgPath(installDir) {
   return path.join(installDir, 'serverDZ.cfg');
@@ -39,13 +111,20 @@ function readServerConfig(installDir) {
 function writeServerConfig(installDir, updates) {
   const cfgPath = getServerCfgPath(installDir);
   if (!fs.existsSync(cfgPath)) return false;
+
+  // Validate + coerce client-supplied values before touching disk.
+  const { safe, rejected } = sanitizeUpdates(updates);
+  if (rejected.length) {
+    logger.warn({ rejected, installDir }, 'Rejected unknown serverDZ.cfg keys');
+  }
+
   try {
     const backupDir = path.join(installDir, '.backups');
     if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
     fs.copyFileSync(cfgPath, path.join(backupDir, `serverDZ.cfg.${Date.now()}.bak`));
     let content = fs.readFileSync(cfgPath, 'utf8');
     const appended = [];
-    for (const [key, value] of Object.entries(updates)) {
+    for (const [key, value] of Object.entries(safe)) {
       if (value === null || value === undefined) continue;
       const strValue = typeof value === 'string' ? `"${value}"` : String(value);
       const regex = new RegExp(`^(\\s*${key}\\s*=\\s*).+?(\\s*;.*)$`, 'm');
@@ -73,4 +152,10 @@ function writeServerConfig(installDir, updates) {
   }
 }
 
-module.exports = { getServerCfgPath, readServerConfig, writeServerConfig };
+module.exports = {
+  getServerCfgPath,
+  readServerConfig,
+  writeServerConfig,
+  sanitizeUpdates,
+  ALLOWED_CONFIG_KEYS,
+};

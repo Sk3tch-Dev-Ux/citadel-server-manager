@@ -126,4 +126,7 @@ export {
   Truck,
   Haze,
   CircleX,
+  User,
+  LogIn,
+  StickyNote,
 } from 'lucide-react';

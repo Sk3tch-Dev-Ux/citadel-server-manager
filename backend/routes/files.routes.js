@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * File browser and editor routes (per server).
  *
@@ -28,7 +29,7 @@ const SAFE_WRITE_EXTENSIONS = new Set([
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 module.exports = function(app) {
-  app.get('/api/servers/:id/files', authForServer('files.browse'), (req, res) => {
+  app.get('/api/servers/:id/files', authForServer('files.browse'), async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const { dir } = req.query;
@@ -39,15 +40,31 @@ module.exports = function(app) {
     const basePath = isRemoteWindows ? srv.installDir.replace(/\\/g, '/') : fs.realpathSync(srv.installDir);
     try {
       const entries = fs.readdirSync(targetDir, { withFileTypes: true });
-      const results = entries.map(e => {
+      // Parallelize stat calls rather than blocking per-entry. Also skip stat
+      // entirely for directories (size doesn't matter for listing) — cheap win
+      // on mods folders with 50+ entries.
+      const results = await Promise.all(entries.map(async (e) => {
         const fullPath = path.join(targetDir, e.name);
+        const isDir = e.isDirectory();
         let size = 0, modified = 0;
-        try { const s = fs.statSync(fullPath); size = s.size; modified = s.mtimeMs; } catch {}
-        return { name: e.name, type: e.isDirectory() ? 'directory' : 'file', path: path.relative(basePath, fullPath).replace(/\\/g, '/'), size, modified };
-      });
+        if (!isDir) {
+          try {
+            const s = await fs.promises.stat(fullPath);
+            size = s.size;
+            modified = s.mtimeMs;
+          } catch { /* unreadable — report zero */ }
+        }
+        return {
+          name: e.name,
+          type: isDir ? 'directory' : 'file',
+          path: path.relative(basePath, fullPath).replace(/\\/g, '/'),
+          size,
+          modified,
+        };
+      }));
       results.sort((a, b) => a.type !== b.type ? (a.type === 'directory' ? -1 : 1) : a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
       res.json(results);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 
   app.get('/api/servers/:id/files/read', authForServer('files.edit'), (req, res) => {
@@ -63,7 +80,7 @@ module.exports = function(app) {
       const binaryExts = ['.exe','.dll','.pdb','.pbo','.pak','.bin','.so','.png','.jpg','.jpeg','.gif','.bmp','.ico','.wav','.ogg','.mp3','.zip','.rar','.7z','.bikey','.bisign'];
       if (binaryExts.includes(path.extname(filePath).toLowerCase())) return res.status(400).json({ error: 'Binary file' });
       res.json({ content: fs.readFileSync(filePath, 'utf8'), path: file, size: stat.size, modified: stat.mtimeMs });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 
   app.put('/api/servers/:id/files/write', authForServer('files.edit'), (req, res) => {
@@ -97,7 +114,7 @@ module.exports = function(app) {
       res.json({ message: 'Saved' });
     } catch (err) {
       logger.error({ err, file }, 'File write error');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

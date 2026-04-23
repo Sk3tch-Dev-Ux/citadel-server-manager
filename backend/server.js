@@ -156,6 +156,9 @@ require('./routes/workshop.routes')(app);
 require('./routes/discord.routes')(app);
 require('./routes/backup.routes')(app);
 require('./routes/dangerzone.routes')(app);
+require('./routes/pvp.routes')(app);
+require('./routes/chat.routes')(app);
+require('./routes/player-profiles.routes')(app);
 require('./routes/watchlist.routes')(app);
 require('./routes/priority-queue.routes')(app);
 require('./routes/bans.routes')(app);
@@ -199,24 +202,38 @@ io.use((socket, next) => {
 });
 
 // ─── WebSocket Rate Limiting ─────────────────────────────
-// Prevent message flooding: max 60 messages per 10 seconds per socket
+// Per-USER rate limit (not per-socket) so opening multiple tabs or reconnecting
+// can't reset the counter. Bucket is keyed by authenticated user ID; if the
+// socket has no user (shouldn't happen after auth middleware) we fall back to
+// the raw socket id so anonymous abuse still gets throttled.
 const WS_RATE_WINDOW_MS = 10_000;
-const WS_RATE_MAX_MESSAGES = 60;
+const WS_RATE_MAX_MESSAGES = 120; // bumped from 60 — legit use w/ many tabs could exceed
+
+/** @type {Map<string, { count: number, windowStart: number }>} */
+const _wsRateBuckets = new Map();
+
+// Sweep stale buckets every minute so the map doesn't grow unbounded
+setInterval(() => {
+  const cutoff = Date.now() - WS_RATE_WINDOW_MS * 6;
+  for (const [key, bucket] of _wsRateBuckets) {
+    if (bucket.windowStart < cutoff) _wsRateBuckets.delete(key);
+  }
+}, 60_000).unref();
 
 io.on('connection', (socket) => {
-  let _wsMessageCount = 0;
-  let _wsRateWindowStart = Date.now();
+  const rateKey = `u:${socket.user?.id || `s:${socket.id}`}`;
 
   const _originalOnEvent = socket.onevent;
   socket.onevent = function(packet) {
     const now = Date.now();
-    if (now - _wsRateWindowStart > WS_RATE_WINDOW_MS) {
-      _wsMessageCount = 0;
-      _wsRateWindowStart = now;
+    let bucket = _wsRateBuckets.get(rateKey);
+    if (!bucket || now - bucket.windowStart > WS_RATE_WINDOW_MS) {
+      bucket = { count: 0, windowStart: now };
+      _wsRateBuckets.set(rateKey, bucket);
     }
-    _wsMessageCount++;
-    if (_wsMessageCount > WS_RATE_MAX_MESSAGES) {
-      logger.warn({ userId: socket.user?.id, count: _wsMessageCount }, 'WebSocket rate limit exceeded');
+    bucket.count++;
+    if (bucket.count > WS_RATE_MAX_MESSAGES) {
+      logger.warn({ userId: socket.user?.id, rateKey, count: bucket.count }, 'WebSocket rate limit exceeded');
       socket.emit('error', { message: 'Rate limit exceeded' });
       return; // Drop the message
     }

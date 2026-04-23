@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useDebouncedValue } from '../utils';
 import API from '../api';
 import Modal from '../components/ui/Modal';
+import ShortcutHint from '../components/ui/ShortcutHint';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { Search, Save, Plus, Trash2, RefreshCw, Edit, FileCode, ChevronUp, ChevronDown, Filter, X, Copy, Download, Upload } from '../components/Icon';
 import './TypesEditorPage.css';
@@ -31,6 +33,9 @@ export default function TypesEditorPage({ serverId }) {
 
   // Filter state
   const [searchText, setSearchText] = useState('');
+  // Debounce the value used by the expensive filter so typing doesn't
+  // re-run filter+sort+render on every keystroke (200 rows × 14 cols)
+  const debouncedSearch = useDebouncedValue(searchText, 180);
   const [filterCategory, setFilterCategory] = useState('');
   const [filterUsage, setFilterUsage] = useState('');
   const [filterValue, setFilterValue] = useState('');
@@ -81,8 +86,8 @@ export default function TypesEditorPage({ serverId }) {
 
   const filtered = useMemo(() => {
     let result = items;
-    if (searchText) {
-      const s = searchText.toLowerCase();
+    if (debouncedSearch) {
+      const s = debouncedSearch.toLowerCase();
       result = result.filter(i => i.name.toLowerCase().includes(s));
     }
     if (filterCategory) result = result.filter(i => i.category === filterCategory);
@@ -90,7 +95,7 @@ export default function TypesEditorPage({ serverId }) {
     if (filterValue) result = result.filter(i => i.value.includes(filterValue));
     if (filterFile) result = result.filter(i => i.source_file === filterFile);
     return result;
-  }, [items, searchText, filterCategory, filterUsage, filterValue, filterFile]);
+  }, [items, debouncedSearch, filterCategory, filterUsage, filterValue, filterFile]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -108,7 +113,7 @@ export default function TypesEditorPage({ serverId }) {
 
   const paged = useMemo(() => sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [sorted, page]);
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  useEffect(() => setPage(0), [searchText, filterCategory, filterUsage, filterValue, filterFile]);
+  useEffect(() => setPage(0), [debouncedSearch, filterCategory, filterUsage, filterValue, filterFile]);
 
   const handleSort = (col) => {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -316,8 +321,9 @@ export default function TypesEditorPage({ serverId }) {
           <button className="btn btn-sm btn-secondary" onClick={loadData}>
             <RefreshCw size={14} /> Reload
           </button>
-          <button className="btn btn-sm btn-primary" onClick={handleSave} disabled={saving || modifiedCount === 0}>
+          <button className="btn btn-sm btn-primary" onClick={handleSave} disabled={saving || modifiedCount === 0} title="Save changes (Ctrl+S)">
             <Save size={14} /> {saving ? 'Saving...' : 'Save'}
+            {!saving && modifiedCount > 0 && <ShortcutHint combo="Ctrl+S" />}
           </button>
         </div>
       </div>

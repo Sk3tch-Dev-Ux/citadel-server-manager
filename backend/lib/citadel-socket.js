@@ -107,6 +107,14 @@ function _ensureBridgeListeners(bridge, serverId, io) {
 
   bridge.on('players', (players) => {
     io.to(room).emit('citadel:players', { serverId, players });
+    // Update player profile sessions (open/close based on roster diff)
+    try {
+      const playerProfiles = require('./player-profiles');
+      const CONFIG = require('./config');
+      playerProfiles.syncRoster(CONFIG.dataDir, serverId, players);
+    } catch (err) {
+      require('./logger').warn({ err: err.message, serverId }, 'player-profiles: roster sync failed');
+    }
   });
 
   bridge.on('metrics', (metrics) => {
@@ -123,6 +131,26 @@ function _ensureBridgeListeners(bridge, serverId, io) {
 
   bridge.on('events', (newEvents) => {
     io.to(room).emit('citadel:events', { serverId, events: newEvents, initial: false });
+    // Update PvP leaderboard + player profiles for any relevant events in the batch
+    try {
+      const pvpStats = require('./pvp-stats');
+      const playerProfiles = require('./player-profiles');
+      const CONFIG = require('./config');
+      for (const ev of newEvents) {
+        if (ev?.type === 'kill') {
+          pvpStats.recordKill(CONFIG.dataDir, serverId, ev);
+          playerProfiles.recordKill(CONFIG.dataDir, serverId, ev);
+        } else if (ev?.type === 'death' || ev?.type === 'suicide') {
+          pvpStats.recordDeath(CONFIG.dataDir, serverId, ev);
+          playerProfiles.recordDeath(CONFIG.dataDir, serverId, ev);
+        } else if (ev?.type === 'chat') {
+          playerProfiles.recordChat(CONFIG.dataDir, serverId, ev);
+        }
+      }
+    } catch (err) {
+      // Stats are best-effort — never fail the event stream
+      require('./logger').warn({ err: err.message, serverId }, 'stats: event ingest failed');
+    }
   });
 }
 

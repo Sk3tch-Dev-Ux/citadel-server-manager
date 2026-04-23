@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * RCON commands, player management, and per-server ban routes.
  *
@@ -36,7 +37,7 @@ module.exports = function(app) {
       res.json({ result });
     } catch (err) {
       logger.error({ err, command: sanitized }, 'RCON execution error');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -46,7 +47,7 @@ module.exports = function(app) {
     try {
       await state.rcon.say(req.body.message);
       res.json({ message: 'Sent' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 
   app.get('/api/servers/:id/players', authForServer('players.view'), (req, res) => {

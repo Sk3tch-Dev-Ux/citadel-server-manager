@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Discord bot action endpoint with API key authentication.
  *
@@ -135,7 +136,7 @@ module.exports = function(app) {
           await state.rcon.lock();
           addAudit(discordUserId, discordUser, 'server.lock', `Server locked via Discord`);
           return res.json({ message: 'Server locked' });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
 
       case 'unlock':
         if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
@@ -143,7 +144,7 @@ module.exports = function(app) {
           await state.rcon.unlock();
           addAudit(discordUserId, discordUser, 'server.unlock', `Server unlocked via Discord`);
           return res.json({ message: 'Server unlocked' });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
 
       case 'rcon':
         if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
@@ -151,7 +152,7 @@ module.exports = function(app) {
           const result = await state.rcon.send(params?.command || '');
           addAudit(discordUserId, discordUser, 'rcon.command', `RCON: ${sanitizeString(params?.command || '')}`);
           return res.json({ result });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
 
       case 'message':
         if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
@@ -159,7 +160,7 @@ module.exports = function(app) {
           await state.rcon.say(params?.message || '');
           addAudit(discordUserId, discordUser, 'server.broadcast', `Broadcast via Discord`);
           return res.json({ message: 'Sent' });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
 
       case 'kick':
         if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
@@ -174,7 +175,7 @@ module.exports = function(app) {
           addAudit(discordUserId, discordUser, 'player.kick', `Kicked ${kickPlayer?.name || params?.playerId}: ${kickReason}`);
           fireWebhooks('player.kick', { serverId: targetSrv.id, playerId: params?.playerId, reason: kickReason });
           return res.json({ message: 'Kicked' });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
 
       case 'mods':
         return res.json({ mods: state?.modList || [] });
@@ -297,7 +298,7 @@ module.exports = function(app) {
             longestShot: stats?.longestShot || 0,
             hits: stats?.hits || 0,
           });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionHeal': {
@@ -311,7 +312,7 @@ module.exports = function(app) {
           await provider.healPlayer(targetSrv.id, session);
           addAudit(discordUserId, discordUser, 'player.heal', `Healed ${session.playerName} via Discord`);
           return res.json({ message: `Healed ${session.playerName}` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionKill': {
@@ -325,7 +326,7 @@ module.exports = function(app) {
           await provider.killPlayer(targetSrv.id, session);
           addAudit(discordUserId, discordUser, 'player.kill', `Killed ${session.playerName} via Discord`);
           return res.json({ message: `Killed ${session.playerName}` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionTeleport': {
@@ -339,7 +340,7 @@ module.exports = function(app) {
           await provider.teleportPlayer(targetSrv.id, session, { x, y, z: z || 0 });
           addAudit(discordUserId, discordUser, 'player.teleport', `Teleported ${session.playerName} to [${x}, ${y}, ${z || 0}] via Discord`);
           return res.json({ message: `Teleported ${session.playerName} to [${x}, ${y}, ${z || 0}]` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionSpawnItem': {
@@ -353,7 +354,7 @@ module.exports = function(app) {
           await provider.spawnItem(targetSrv.id, session, itemClass, quantity || 1);
           addAudit(discordUserId, discordUser, 'player.spawnItem', `Spawned ${itemClass} x${quantity || 1} on ${session.playerName} via Discord`);
           return res.json({ message: `Spawned ${itemClass} x${quantity || 1} on ${session.playerName}` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionUnstuck': {
@@ -367,7 +368,7 @@ module.exports = function(app) {
           await provider.unstuckPlayer(targetSrv.id, session);
           addAudit(discordUserId, discordUser, 'action.unstuck', `Unstuck ${session.playerName || session.name} via Discord`);
           return res.json({ message: `Unstuck ${session.playerName || session.name}` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionFreeze': {
@@ -383,7 +384,7 @@ module.exports = function(app) {
           const label = isFrozen ? 'Froze' : 'Unfroze';
           addAudit(discordUserId, discordUser, 'action.freeze', `${label} ${session.playerName || session.name} via Discord`);
           return res.json({ message: `${label} ${session.playerName || session.name}` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionStrip': {
@@ -397,7 +398,7 @@ module.exports = function(app) {
           await provider.stripPlayer(targetSrv.id, steamId);
           addAudit(discordUserId, discordUser, 'action.strip', `Stripped ${session.playerName || session.name} via Discord`);
           return res.json({ message: `Stripped ${session.playerName || session.name}` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionExplode': {
@@ -411,7 +412,7 @@ module.exports = function(app) {
           await provider.explodePlayer(targetSrv.id, steamId);
           addAudit(discordUserId, discordUser, 'action.explode', `Exploded ${session.playerName || session.name} via Discord`);
           return res.json({ message: `Exploded ${session.playerName || session.name}` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       case 'actionMessage': {
@@ -425,7 +426,7 @@ module.exports = function(app) {
           await provider.messagePlayer(targetSrv.id, steamId, msg);
           addAudit(discordUserId, discordUser, 'action.message', `Messaged ${session.playerName || session.name} via Discord`);
           return res.json({ message: `Message sent to ${session.playerName || session.name}` });
-        } catch (err) { return res.status(500).json({ error: err.message }); }
+        } catch (err) { return safeError(err, req, res, { status: 500 }); }
       }
 
       default:

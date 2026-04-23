@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Spawnable Types Editor routes — CRUD for cfgspawnabletypes.xml editing.
  *
@@ -45,7 +46,7 @@ module.exports = function(app) {
       res.json({ items });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to load spawnable types');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -77,7 +78,7 @@ module.exports = function(app) {
       res.json({ success: true, itemCount: items.length });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save spawnable types');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -123,7 +124,7 @@ module.exports = function(app) {
       res.json({ success: true, item });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to add spawnable type');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 
@@ -162,7 +163,7 @@ module.exports = function(app) {
       res.json({ success: true });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to delete spawnable type');
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

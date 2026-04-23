@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Server deployment and rebuild (dangerzone) routes.
  *
@@ -428,7 +429,7 @@ module.exports = function(app) {
     } catch (err) {
       ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'error', message: err.message });
       addAudit(req.user.id, req.user.username, 'server.rebuild', `Rebuild failed for ${srv.name}: ${err.message}`);
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 };

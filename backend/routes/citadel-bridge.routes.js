@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * Citadel Bridge REST API routes.
  *
@@ -81,7 +82,7 @@ module.exports = function (app) {
         const response = await bridge.sendCommand(action, params || {});
         res.json({ success: response.ok, response });
       } catch (err) {
-        res.status(504).json({ error: err.message });
+        safeError(err, req, res, { status: 504 });
       }
     });
   });
@@ -103,7 +104,7 @@ module.exports = function (app) {
         const results = await bridge.sendBatch(commands);
         res.json({ results });
       } catch (err) {
-        res.status(500).json({ error: err.message });
+        safeError(err, req, res, { status: 500 });
       }
     });
   });

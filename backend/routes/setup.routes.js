@@ -1,3 +1,4 @@
+const { safeError } = require('../lib/http-errors');
 /**
  * First-run setup wizard routes.
  * These endpoints are ONLY accessible when the panel is in "needs setup" state.
@@ -316,7 +317,7 @@ module.exports = function(app) {
         res.status(422).json({ error: result.error || 'Steam login failed' });
       }
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      safeError(err, req, res, { status: 500 });
     }
   });
 

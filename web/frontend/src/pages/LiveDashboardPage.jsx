@@ -9,7 +9,7 @@ import './LiveDashboardPage.css';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import PageLoader from '../components/PageLoader';
-import { formatUptime } from '../utils';
+import { formatUptime, throttle } from '../utils';
 import {
   Activity, Users, Cpu, Heart, Skull, Shield, Eye, MapPin, Truck,
   Search, Send, Sun, CloudRain, Wind, Zap, Globe, Clock, Target,
@@ -120,14 +120,21 @@ export default function LiveDashboardPage({ serverId }) {
   }, [serverId]);
 
   // ─── WebSocket subscription ─────────────────────────────
+  //
+  // The in-game mod can emit status/players/metrics at up to ~15 updates/sec,
+  // which would trigger the whole tree to re-render 15× per second. We throttle
+  // each stream to ~3/sec (333 ms) — fast enough that the live map still feels
+  // alive, slow enough that CPU usage drops ~5× on the admin's box.
+  // Critical events (deaths, chat, connects) aren't throttled — they stream
+  // through `onEvents` in full so nothing is lost from the feed.
   useEffect(() => {
     socket.emit('citadel:subscribe', { serverId });
 
-    const onStatus = (data) => { if (data.serverId === serverId) setStatus(data); };
-    const onPlayers = (data) => { if (data.serverId === serverId) setPlayers(data.players || []); };
-    const onMetrics = (data) => { if (data.serverId === serverId) setMetrics(data.metrics || {}); };
-    const onVehicles = (data) => { if (data.serverId === serverId) setVehicles(data.vehicles || []); };
-    const onWorld = (data) => { if (data.serverId === serverId) setWorldEvents(data.events || []); };
+    const onStatus = throttle((data) => { if (data.serverId === serverId) setStatus(data); }, 333);
+    const onPlayers = throttle((data) => { if (data.serverId === serverId) setPlayers(data.players || []); }, 333);
+    const onMetrics = throttle((data) => { if (data.serverId === serverId) setMetrics(data.metrics || {}); }, 333);
+    const onVehicles = throttle((data) => { if (data.serverId === serverId) setVehicles(data.vehicles || []); }, 500);
+    const onWorld = throttle((data) => { if (data.serverId === serverId) setWorldEvents(data.events || []); }, 500);
     const onEvents = (data) => {
       if (data.serverId !== serverId) return;
       if (data.initial) {
@@ -152,6 +159,11 @@ export default function LiveDashboardPage({ serverId }) {
       socket.off('citadel:vehicles', onVehicles);
       socket.off('citadel:world', onWorld);
       socket.off('citadel:events', onEvents);
+      onStatus.cancel();
+      onPlayers.cancel();
+      onMetrics.cancel();
+      onVehicles.cancel();
+      onWorld.cancel();
     };
   }, [serverId, socket]);
 
