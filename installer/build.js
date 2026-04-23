@@ -78,6 +78,41 @@ function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+/**
+ * Locate makensis.exe. Checks PATH first, then common Windows install
+ * locations so the build works in shells where PATH is stale right after
+ * a fresh NSIS install (classic papercut).
+ *
+ * Returns absolute path to makensis.exe, or null if not found.
+ */
+function findMakensis() {
+  // 1. Try PATH via `where.exe` (Windows built-in)
+  try {
+    const out = execSync('where.exe makensis', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim().split(/\r?\n/)[0];
+    if (out && fs.existsSync(out)) return out;
+  } catch { /* fall through */ }
+
+  // 2. Try common install locations
+  const candidates = [
+    'C:\\Program Files (x86)\\NSIS\\makensis.exe',
+    'C:\\Program Files\\NSIS\\makensis.exe',
+    // Chocolatey sometimes shims here
+    process.env.ProgramData && path.join(process.env.ProgramData, 'chocolatey', 'bin', 'makensis.exe'),
+  ].filter(Boolean);
+
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      // Probe it with /VERSION to confirm it's executable
+      try {
+        execSync(`"${c}" /VERSION`, { stdio: 'pipe' });
+        return c;
+      } catch { /* not runnable, try next */ }
+    }
+  }
+  return null;
+}
+
 function cleanDir(dir) {
   if (fs.existsSync(dir)) {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -406,19 +441,22 @@ async function main() {
     throw new Error('citadel.nsi not found at ' + nsisScript);
   }
 
-  // Check if makensis is available
-  try {
-    execSync('makensis /VERSION', { stdio: 'pipe' });
-  } catch {
+  // Resolve makensis — try PATH first, then common Windows install locations.
+  // This keeps the build working across shells where PATH may be stale right
+  // after a fresh NSIS install.
+  const makensisExe = findMakensis();
+  if (!makensisExe) {
     throw new Error(
-      'makensis not found on PATH. Install NSIS:\n' +
+      'makensis not found. Install NSIS:\n' +
       '  choco install nsis\n' +
-      '  Or download from https://nsis.sourceforge.io/Download'
+      '  Or download from https://nsis.sourceforge.io/Download\n' +
+      'Checked: PATH, C:\\Program Files (x86)\\NSIS\\, C:\\Program Files\\NSIS\\'
     );
   }
+  log(`  Using NSIS at: ${makensisExe}`);
 
   run(
-    `makensis /DVERSION=${VERSION} /DSTAGING_DIR=${STAGING_DIR.replace(/\\/g, '\\\\')} /DOUTPUT_DIR=${BUILD_DIR.replace(/\\/g, '\\\\')} "${nsisScript}"`,
+    `"${makensisExe}" /DVERSION=${VERSION} /DSTAGING_DIR=${STAGING_DIR.replace(/\\/g, '\\\\')} /DOUTPUT_DIR=${BUILD_DIR.replace(/\\/g, '\\\\')} "${nsisScript}"`,
     { cwd: ROOT }
   );
 
