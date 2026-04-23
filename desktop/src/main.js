@@ -17,6 +17,7 @@ const { waitForBackend } = require('./service-manager');
 const { createTray } = require('./tray');
 const { buildMenu } = require('./menu');
 const { registerIpcHandlers } = require('./ipc');
+const autoUpdaterModule = require('./auto-updater');
 
 const DEV = process.argv.includes('--dev') || process.env.CITADEL_DEV === '1';
 const BACKEND_URL = process.env.CITADEL_URL || 'http://localhost:3001';
@@ -103,6 +104,12 @@ app.on('second-instance', () => {
 app.whenReady().then(() => {
   registerIpcHandlers({ getMainWindow: () => mainWindow });
 
+  // Auto-update lifecycle — polls public GitHub releases for latest.yml
+  // Skip in dev so `npm run dev` doesn't hit GitHub on every launch.
+  if (!DEV) {
+    autoUpdaterModule.initAutoUpdater({ getMainWindow: () => mainWindow });
+  }
+
   buildMenu({
     openExternal: (url) => shell.openExternal(url),
     quit: () => {
@@ -138,6 +145,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   app.isQuiting = true;
+  autoUpdaterModule.dispose();
 });
 
 // Don't quit when all windows close — stay resident in the tray.

@@ -422,9 +422,40 @@ async function main() {
     { cwd: ROOT }
   );
 
+  // ─── Generate latest.yml for electron-updater ──────────────
+  // electron-updater reads this file from the GitHub Release to discover
+  // new versions. Since we use a custom NSIS installer (not electron-builder's
+  // built-in one), we have to produce latest.yml ourselves.
+  const installerPath = path.join(BUILD_DIR, `CitadelSetup-${VERSION}.exe`);
+  if (!fs.existsSync(installerPath)) {
+    throw new Error(`Expected installer at ${installerPath} — NSIS build did not produce it.`);
+  }
+  log('Generating latest.yml for auto-updater...');
+  const installerBuffer = fs.readFileSync(installerPath);
+  const sha512 = crypto.createHash('sha512').update(installerBuffer).digest('base64');
+  const size = installerBuffer.length;
+  const releaseDate = new Date().toISOString();
+  const installerName = `CitadelSetup-${VERSION}.exe`;
+
+  // electron-updater's expected YAML shape. Keep indentation as-is — the parser
+  // is permissive but consistency helps debugging.
+  const latestYml =
+    `version: ${VERSION}\n` +
+    `files:\n` +
+    `  - url: ${installerName}\n` +
+    `    sha512: ${sha512}\n` +
+    `    size: ${size}\n` +
+    `path: ${installerName}\n` +
+    `sha512: ${sha512}\n` +
+    `releaseDate: '${releaseDate}'\n`;
+
+  const latestYmlPath = path.join(BUILD_DIR, 'latest.yml');
+  fs.writeFileSync(latestYmlPath, latestYml, 'utf-8');
+
   console.log('');
   log('Build complete!');
   log(`Installer: build/CitadelSetup-${VERSION}.exe`);
+  log(`Update manifest: build/latest.yml  (upload alongside the .exe to GitHub Releases)`);
   console.log('');
 }
 

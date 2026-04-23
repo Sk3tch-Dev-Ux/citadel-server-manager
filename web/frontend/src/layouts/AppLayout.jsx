@@ -8,6 +8,7 @@ import ToastContainer from '../components/ToastContainer';
 import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
 import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
+import AppUpdateBanner from '../components/AppUpdateBanner';
 import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
 
 export default function AppLayout() {
@@ -140,6 +141,9 @@ export default function AppLayout() {
       </div>
 
       <div className="main" role="main">
+        {/* Desktop auto-updater — hides when running in a browser or idle */}
+        <AppUpdateBanner />
+
         {/* Citadel subscription banner — only shows when license isn't fully active */}
         <CitadelLicenseBanner />
 

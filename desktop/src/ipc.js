@@ -11,6 +11,7 @@
 const { ipcMain, dialog, shell, Notification, app } = require('electron');
 const path = require('path');
 const licenseClient = require('./license-client');
+const autoUpdaterModule = require('./auto-updater');
 
 function registerIpcHandlers({ getMainWindow }) {
   // ── License client (stub in Phase 1; Phase 2 wires real network calls) ──
@@ -73,6 +74,13 @@ function registerIpcHandlers({ getMainWindow }) {
     arch: process.arch,
     electron: process.versions.electron,
   }));
+
+  // ── Auto-updater (renderer-controlled) ─────────────────────
+  // Events flow the other way (main → renderer) via autoUpdaterModule's
+  // emit path — these handlers are purely for pulls and user actions.
+  ipcMain.handle('updater:check', async () => autoUpdaterModule.check());
+  ipcMain.handle('updater:status', async () => autoUpdaterModule.getStatus());
+  ipcMain.handle('updater:install', async () => autoUpdaterModule.installNow());
 }
 
 module.exports = { registerIpcHandlers };

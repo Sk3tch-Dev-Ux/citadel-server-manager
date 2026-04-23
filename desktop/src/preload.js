@@ -47,4 +47,45 @@ contextBridge.exposeInMainWorld('citadel', {
     deactivate: () => Promise.resolve({ ok: true }),
     getStatus: () => ipcRenderer.invoke('license:get-status'),
   },
+
+  // ── Auto-updater ──
+  // The renderer can poll status, trigger checks, and request install.
+  // Main pushes progress events via `on*` subscriptions below — each
+  // returns an unsubscribe function so React can clean up on unmount.
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    getStatus: () => ipcRenderer.invoke('updater:status'),
+    install: () => ipcRenderer.invoke('updater:install'),
+
+    onChecking: (cb) => {
+      const h = () => cb();
+      ipcRenderer.on('updater:checking', h);
+      return () => ipcRenderer.removeListener('updater:checking', h);
+    },
+    onUpdateAvailable: (cb) => {
+      const h = (_evt, info) => cb(info);
+      ipcRenderer.on('updater:update-available', h);
+      return () => ipcRenderer.removeListener('updater:update-available', h);
+    },
+    onNotAvailable: (cb) => {
+      const h = (_evt, info) => cb(info);
+      ipcRenderer.on('updater:not-available', h);
+      return () => ipcRenderer.removeListener('updater:not-available', h);
+    },
+    onProgress: (cb) => {
+      const h = (_evt, progress) => cb(progress);
+      ipcRenderer.on('updater:download-progress', h);
+      return () => ipcRenderer.removeListener('updater:download-progress', h);
+    },
+    onDownloaded: (cb) => {
+      const h = (_evt, info) => cb(info);
+      ipcRenderer.on('updater:update-downloaded', h);
+      return () => ipcRenderer.removeListener('updater:update-downloaded', h);
+    },
+    onError: (cb) => {
+      const h = (_evt, info) => cb(info);
+      ipcRenderer.on('updater:error', h);
+      return () => ipcRenderer.removeListener('updater:error', h);
+    },
+  },
 });
