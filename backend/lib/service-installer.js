@@ -165,12 +165,13 @@ async function installService() {
   requireElevation('install');
   const nssm = requireNssm();
 
-  // Check if already installed
+  // If the service already exists (from a previous install), tear it down
+  // first so we can re-register with fresh paths. This makes `install`
+  // idempotent and lets the NSIS installer safely run over an existing install.
   const status = await getServiceStatus();
   if (status.installed) {
-    console.log(`Service "${SERVICE_NAME}" is already installed (state: ${status.state}).`);
-    console.log('Run "npm run service:uninstall" first if you want to reinstall.');
-    return { ok: true, alreadyInstalled: true };
+    console.log(`Service "${SERVICE_NAME}" already exists (state: ${status.state}) — re-registering with fresh paths...`);
+    await uninstallService();
   }
 
   // Verify node.exe and server.js exist

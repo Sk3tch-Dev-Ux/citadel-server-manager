@@ -107,7 +107,7 @@ Section "Citadel" SecMain
   ; ── Copy Electron desktop app (optional — skipped if staging/desktop is empty) ──
   DetailPrint "Installing desktop app..."
   SetOutPath "$INSTDIR\desktop"
-  File /r /nonfatal "${STAGING_DIR}\desktop\*.*"
+  File /nonfatal /r "${STAGING_DIR}\desktop\*.*"
 
   ; ── Create data directory ──
   CreateDirectory "$INSTDIR\data"
@@ -117,6 +117,12 @@ Section "Citadel" SecMain
   WriteRegStr HKLM "Software\Citadel" "Version" "${VERSION}"
 
   ; ── Register Windows Service ──
+  ; Uninstall first so a re-install over an existing install gets fresh paths
+  ; (service-installer.js's install step no-ops when the service already exists).
+  DetailPrint "Removing any previous Citadel service registration..."
+  nsExec::ExecToLog '"$INSTDIR\runtime\node.exe" "$INSTDIR\backend\lib\service-installer.js" uninstall'
+  Pop $0
+
   DetailPrint "Registering Windows Service..."
   nsExec::ExecToLog '"$INSTDIR\runtime\node.exe" "$INSTDIR\backend\lib\service-installer.js" install'
   Pop $0
