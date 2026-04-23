@@ -16,16 +16,11 @@ const STEPS = [
   { key: 'network', label: 'Network' },
   { key: 'steam', label: 'SteamCMD' },
   { key: 'server', label: 'First Server' },
-  { key: 'license', label: 'Citadel Cloud' },
   { key: 'done', label: 'Complete' },
 ];
-
-const TIER_INFO = {
-  free: { name: 'Free', servers: '1 server', color: 'var(--text-muted)' },
-  basic: { name: 'Basic', servers: '2 servers', color: 'var(--accent-blue)' },
-  pro: { name: 'Pro', servers: '5 servers', color: 'var(--accent-purple, #a78bfa)' },
-  community: { name: 'Community', servers: 'Unlimited', color: 'var(--accent-green)' },
-};
+// Note: The old "Citadel Cloud" license-key step was removed post-pivot.
+// Subscription activation now happens via /citadel-license after setup, using
+// email + password (not a license key).
 
 export default function SetupWizardPage() {
   const navigate = useNavigate();
@@ -260,7 +255,7 @@ export default function SetupWizardPage() {
 
   const handleDeployServer = async () => {
     if (serverMode === 'skip') {
-      goNext(); // Advance to license step
+      await completeSetup();
       return;
     }
 
@@ -955,7 +950,7 @@ export default function SetupWizardPage() {
               )}
 
               {deployProgress?.status === 'complete' && (
-                <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={goNext}>
+                <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => { setDeploying(false); completeSetup(); }}>
                   Continue <ArrowRight size={14} />
                 </button>
               )}
@@ -967,93 +962,8 @@ export default function SetupWizardPage() {
             </div>
           )}
 
-          {/* ─── License / Citadel Cloud ─── */}
-          {step === 5 && !deploying && (
-            <div>
-              <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                <Crown size={36} style={{ color: 'var(--accent-purple, #a78bfa)', marginBottom: 8 }} />
-                <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Connect to Citadel Cloud</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>
-                  Activate your license to unlock premium features. Skip if using the free tier.
-                </p>
-              </div>
-
-              {/* License activation */}
-              {!licenseStatus ? (
-                <div style={{ marginBottom: 16 }}>
-                  <div className="input-group">
-                    <label className="input-label">License Key</label>
-                    <textarea
-                      className="input"
-                      value={licenseKey}
-                      onChange={e => setLicenseKey(e.target.value)}
-                      placeholder="Paste your license key here..."
-                      rows={3}
-                      style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: 11 }}
-                    />
-                  </div>
-                  {licenseError && (
-                    <div style={{ color: 'var(--accent-red)', fontSize: 12, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <AlertTriangle size={13} /> {licenseError}
-                    </div>
-                  )}
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: '100%', marginTop: 10, justifyContent: 'center' }}
-                    onClick={handleActivateLicense}
-                    disabled={activating || !licenseKey.trim()}
-                  >
-                    {activating ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Activating...</> : <><KeyRound size={14} /> Activate License</>}
-                  </button>
-                </div>
-              ) : (
-                <div style={{
-                  padding: 16, borderRadius: 10, marginBottom: 16,
-                  background: 'rgba(92,184,92,0.08)', border: '1px solid rgba(92,184,92,0.2)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <BadgeCheck size={22} style={{ color: 'var(--accent-green)' }} />
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>License Activated</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                        {licenseStatus.licensee || 'Licensed User'}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
-                    <div style={{
-                      padding: '4px 10px', borderRadius: 6, fontWeight: 700,
-                      background: 'rgba(167,139,250,0.15)', color: 'var(--accent-purple, #a78bfa)',
-                    }}>
-                      {TIER_INFO[licenseStatus.tier]?.name || licenseStatus.tier} Plan
-                    </div>
-                    {licenseStatus.expiresAt && (
-                      <div style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-                        Expires {new Date(licenseStatus.expiresAt).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Tier comparison */}
-              <div className="btn-group" style={{ marginTop: 16 }}>
-                <button className="btn btn-secondary" onClick={goBack}>
-                  <ArrowLeft size={14} /> Back
-                </button>
-                <button
-                  className="btn btn-primary"
-                  style={{ flex: 1, justifyContent: 'center' }}
-                  onClick={completeSetup}
-                >
-                  {licenseStatus ? <>Continue <ArrowRight size={14} /></> : <>Skip — Free Tier <ArrowRight size={14} /></>}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* ─── Done ─── */}
-          {step === 6 && (
+          {step === 5 && (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ marginBottom: 16 }}>
                 <div style={{
@@ -1097,12 +1007,9 @@ export default function SetupWizardPage() {
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
-                  {licenseStatus ?
-                    <Crown size={15} style={{ color: 'var(--accent-purple, #a78bfa)', flexShrink: 0 }} /> :
-                    <CircleDashed size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                  }
-                  <span style={!licenseStatus ? { color: 'var(--text-muted)' } : {}}>
-                    {licenseStatus ? `${TIER_INFO[licenseStatus.tier]?.name || licenseStatus.tier} plan activated` : 'Free tier (upgrade anytime at /license)'}
+                  <CircleDashed size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    Next: activate your subscription at Subscription in the sidebar
                   </span>
                 </div>
               </div>

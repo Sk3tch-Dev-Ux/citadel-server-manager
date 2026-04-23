@@ -63,3 +63,4 @@ tools/license-private.pem
 
 # Installer build output
 /build/
+/desktop/dist
