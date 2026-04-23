@@ -145,9 +145,21 @@ function touchSeen(dataDir, serverId, steamId, name, ip) {
     p.ips = [ip, ...p.ips].slice(0, CAP_IPS);
   }
 
+  // Fresh session? This is a join. Check the watchlist for this player —
+  // done inside the "currentSessionStart is null" branch so we only fire
+  // once per session, not every poll tick.
   if (!p.currentSessionStart) {
     p.currentSessionStart = now;
     _pushEvent(p, { type: 'connect', timestamp: now });
+    try {
+      // Lazy require to avoid circular deps — watchlist pulls in notifications
+      // which pulls in context which pulls in logger…
+      const { alertOnWatchlistHit } = require('./watchlist');
+      alertOnWatchlistHit(serverId, { steamId, name });
+    } catch {
+      // Best-effort — never fail a session open because the watchlist
+      // module had a hiccup.
+    }
   }
 
   _scheduleWrite(store);

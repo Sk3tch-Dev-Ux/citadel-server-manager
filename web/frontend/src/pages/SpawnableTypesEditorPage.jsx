@@ -1,619 +1,637 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+/**
+ * Spawnable Types Editor — cfgspawnabletypes.xml full-feature editor.
+ *
+ * Reworked in v2.6:
+ *   - Side-panel detail view (was: accordion expand-row — unusable with 500+ types)
+ *   - Debounced search (180ms) + column sort
+ *   - 200 items/page (was: 100)
+ *   - Preset references: items within groups can be either direct class names
+ *     or references to cfgrandompresets.xml entries (preset="1")
+ *   - Damage min/max editor (was: silently dropped during save)
+ *   - Parser rewritten on fast-xml-parser — round-trip preserves all fields
+ */
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import API from '../api';
+import { useDebouncedValue } from '../utils';
+import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
+import {
+  Search, Save, Plus, Trash2, X, ChevronUp, ChevronDown, AlertTriangle,
+  Package, Layers, Crosshair, RefreshCw,
+} from '../components/Icon';
 
-// ─── Constants ──────────────────────────────────────────────
+const PAGE_SIZE = 200;
 
-const PAGE_SIZE = 100;
-
-const DEFAULT_TYPE = {
-  name: '',
-  hoarder: false,
-  attachments: [],
-  cargo: [],
-};
-
+const DEFAULT_TYPE = { name: '', hoarder: false, damage: null, attachments: [], cargo: [] };
 const DEFAULT_GROUP = { chance: 0.50, items: [] };
-const DEFAULT_GROUP_ITEM = { name: '', chance: 1.00 };
-
-// ─── Main Component ─────────────────────────────────────────
+const DEFAULT_ITEM = { name: '', chance: 1.00, preset: false };
 
 export default function SpawnableTypesEditorPage({ serverId }) {
   const [items, setItems] = useState([]);
+  const [presets, setPresets] = useState({ cargo: [], attachments: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [expandedName, setExpandedName] = useState(null);
+  const [selectedName, setSelectedName] = useState(null);
   const [page, setPage] = useState(0);
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [modifiedNames, setModifiedNames] = useState(new Set());
 
-  // ─── Data Loading ───────────────────────────────────────
+  const debouncedSearch = useDebouncedValue(searchText, 180);
+  const saveInFlight = useRef(false);
 
+  // ─── Load ────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await API.get(`/api/servers/${serverId}/spawnabletypes`);
-      if (data.error) {
-        window.addToast?.(data.error, 'error');
+      const [typesRes, presetsRes] = await Promise.all([
+        API.get(`/api/servers/${serverId}/spawnabletypes`),
+        API.get(`/api/servers/${serverId}/spawnabletypes/presets`).catch(() => ({ cargo: [], attachments: [] })),
+      ]);
+      if (typesRes?.error) {
+        window.addToast?.(typesRes.error, 'error');
       } else {
-        setItems(data.items || []);
+        setItems(Array.isArray(typesRes?.items) ? typesRes.items : []);
         setModifiedNames(new Set());
       }
-    } catch {
-      window.addToast?.('Failed to load spawnable types', 'error');
+      setPresets({
+        cargo: Array.isArray(presetsRes?.cargo) ? presetsRes.cargo : [],
+        attachments: Array.isArray(presetsRes?.attachments) ? presetsRes.attachments : [],
+      });
+    } catch (err) {
+      window.addToast?.(`Failed to load spawnable types: ${err.message}`, 'error');
     }
     setLoading(false);
   }, [serverId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ─── Filtering & Pagination ─────────────────────────────
-
+  // ─── Filter + sort + paginate ────────────────────────────
   const filtered = useMemo(() => {
-    if (!searchText) return items;
-    const s = searchText.toLowerCase();
-    return items.filter(i => i.name.toLowerCase().includes(s));
-  }, [items, searchText]);
+    let out = items;
+    const q = debouncedSearch.trim().toLowerCase();
+    if (q) out = out.filter((i) => i.name.toLowerCase().includes(q));
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const sorter = {
+      name: (a, b) => a.name.localeCompare(b.name),
+      attachments: (a, b) => (a.attachments?.length || 0) - (b.attachments?.length || 0),
+      cargo: (a, b) => (a.cargo?.length || 0) - (b.cargo?.length || 0),
+      hoarder: (a, b) => Number(!!b.hoarder) - Number(!!a.hoarder),
+    }[sortBy] || ((a, b) => a.name.localeCompare(b.name));
+    out = [...out].sort((a, b) => dir * sorter(a, b));
+    return out;
+  }, [items, debouncedSearch, sortBy, sortDir]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = useMemo(() => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), [filtered, page]);
+  useEffect(() => { setPage(0); }, [debouncedSearch, sortBy, sortDir]);
 
-  useEffect(() => setPage(0), [searchText]);
+  const selected = useMemo(
+    () => (selectedName ? items.find((i) => i.name === selectedName) : null),
+    [selectedName, items]
+  );
 
-  // ─── Modification Tracking ─────────────────────────────
+  // ─── Mutations ───────────────────────────────────────────
+  const markModified = (name) => setModifiedNames((prev) => new Set(prev).add(name));
 
-  const markModified = (name) => {
-    setModifiedNames(prev => new Set(prev).add(name));
+  const updateSelected = (patch) => {
+    if (!selectedName) return;
+    setItems((prev) => prev.map((it) => (it.name === selectedName ? { ...it, ...patch } : it)));
+    markModified(selectedName);
   };
 
-  const modifiedCount = modifiedNames.size;
-
-  // ─── Inline Editing Helpers ────────────────────────────
-
-  const updateItemField = (name, field, value) => {
-    setItems(prev => prev.map(item =>
-      item.name === name ? { ...item, [field]: value } : item
-    ));
-    markModified(name);
+  const setGroup = (kind, idx, patch) => {
+    if (!selected) return;
+    const groups = [...(selected[kind] || [])];
+    groups[idx] = { ...groups[idx], ...patch };
+    updateSelected({ [kind]: groups });
   };
 
-  const updateGroup = (typeName, groupType, groupIdx, changes) => {
-    setItems(prev => prev.map(item => {
-      if (item.name !== typeName) return item;
-      const groups = [...item[groupType]];
-      groups[groupIdx] = { ...groups[groupIdx], ...changes };
-      return { ...item, [groupType]: groups };
-    }));
-    markModified(typeName);
+  const addGroup = (kind) => {
+    if (!selected) return;
+    updateSelected({ [kind]: [...(selected[kind] || []), { ...DEFAULT_GROUP, items: [] }] });
   };
 
-  const addGroup = (typeName, groupType) => {
-    setItems(prev => prev.map(item => {
-      if (item.name !== typeName) return item;
-      return { ...item, [groupType]: [...item[groupType], { ...DEFAULT_GROUP, items: [] }] };
-    }));
-    markModified(typeName);
+  const removeGroup = (kind, idx) => {
+    if (!selected) return;
+    const groups = [...(selected[kind] || [])];
+    groups.splice(idx, 1);
+    updateSelected({ [kind]: groups });
   };
 
-  const removeGroup = (typeName, groupType, groupIdx) => {
-    setItems(prev => prev.map(item => {
-      if (item.name !== typeName) return item;
-      const groups = [...item[groupType]];
-      groups.splice(groupIdx, 1);
-      return { ...item, [groupType]: groups };
-    }));
-    markModified(typeName);
+  const setGroupItem = (kind, groupIdx, itemIdx, patch) => {
+    if (!selected) return;
+    const groups = [...(selected[kind] || [])];
+    const groupItems = [...(groups[groupIdx].items || [])];
+    groupItems[itemIdx] = { ...groupItems[itemIdx], ...patch };
+    groups[groupIdx] = { ...groups[groupIdx], items: groupItems };
+    updateSelected({ [kind]: groups });
   };
 
-  const addGroupItem = (typeName, groupType, groupIdx) => {
-    setItems(prev => prev.map(item => {
-      if (item.name !== typeName) return item;
-      const groups = [...item[groupType]];
-      groups[groupIdx] = {
-        ...groups[groupIdx],
-        items: [...groups[groupIdx].items, { ...DEFAULT_GROUP_ITEM }],
-      };
-      return { ...item, [groupType]: groups };
-    }));
-    markModified(typeName);
+  const addGroupItem = (kind, groupIdx) => {
+    if (!selected) return;
+    const groups = [...(selected[kind] || [])];
+    const groupItems = [...(groups[groupIdx].items || []), { ...DEFAULT_ITEM }];
+    groups[groupIdx] = { ...groups[groupIdx], items: groupItems };
+    updateSelected({ [kind]: groups });
   };
 
-  const updateGroupItem = (typeName, groupType, groupIdx, itemIdx, changes) => {
-    setItems(prev => prev.map(item => {
-      if (item.name !== typeName) return item;
-      const groups = [...item[groupType]];
-      const groupItems = [...groups[groupIdx].items];
-      groupItems[itemIdx] = { ...groupItems[itemIdx], ...changes };
-      groups[groupIdx] = { ...groups[groupIdx], items: groupItems };
-      return { ...item, [groupType]: groups };
-    }));
-    markModified(typeName);
+  const removeGroupItem = (kind, groupIdx, itemIdx) => {
+    if (!selected) return;
+    const groups = [...(selected[kind] || [])];
+    const groupItems = [...(groups[groupIdx].items || [])];
+    groupItems.splice(itemIdx, 1);
+    groups[groupIdx] = { ...groups[groupIdx], items: groupItems };
+    updateSelected({ [kind]: groups });
   };
 
-  const removeGroupItem = (typeName, groupType, groupIdx, itemIdx) => {
-    setItems(prev => prev.map(item => {
-      if (item.name !== typeName) return item;
-      const groups = [...item[groupType]];
-      const groupItems = [...groups[groupIdx].items];
-      groupItems.splice(itemIdx, 1);
-      groups[groupIdx] = { ...groups[groupIdx], items: groupItems };
-      return { ...item, [groupType]: groups };
-    }));
-    markModified(typeName);
-  };
-
-  // ─── Save ───────────────────────────────────────────────
-
+  // ─── Save ────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    if (modifiedNames.size === 0) {
-      window.addToast?.('No changes to save', 'info');
-      return;
-    }
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
     setSaving(true);
     try {
-      const result = await API.put(`/api/servers/${serverId}/spawnabletypes`, { items });
-      if (result.error) {
-        window.addToast?.(result.error, 'error');
-      } else {
-        window.addToast?.(`Saved ${result.itemCount} spawnable types`, 'success');
-        setModifiedNames(new Set());
-      }
-    } catch {
-      window.addToast?.('Failed to save', 'error');
+      const res = await API.put(`/api/servers/${serverId}/spawnabletypes`, { items });
+      if (res?.error) throw new Error(res.error);
+      setModifiedNames(new Set());
+      window.addToast?.(`Saved ${items.length} spawnable types`, 'success');
+    } catch (err) {
+      window.addToast?.(`Save failed: ${err.message}`, 'error');
+    } finally {
+      saveInFlight.current = false;
+      setSaving(false);
     }
-    setSaving(false);
-  }, [serverId, items, modifiedNames]);
+  }, [items, serverId]);
 
-  // Ctrl+S shortcut
-  useEffect(() => {
-    const handler = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [handleSave]);
+  useKeyboardShortcuts({
+    'ctrl+s': () => { if (modifiedNames.size > 0) handleSave(); },
+    'escape': () => setSelectedName(null),
+  });
 
-  // ─── Add Type ───────────────────────────────────────────
-
-  const handleAddType = async (newItem) => {
-    try {
-      const result = await API.post(`/api/servers/${serverId}/spawnabletypes/add`, { item: newItem });
-      if (result.error) {
-        window.addToast?.(result.error, 'error');
-        return false;
-      }
-      window.addToast?.(`Added "${newItem.name}"`, 'success');
-      await loadData();
-      setShowAddModal(false);
-      return true;
-    } catch {
-      window.addToast?.('Failed to add type', 'error');
-      return false;
+  const handleAddType = (name, hoarder) => {
+    const trimmed = name.trim();
+    if (!trimmed) return window.addToast?.('Name is required', 'error');
+    if (items.some((i) => i.name.toLowerCase() === trimmed.toLowerCase())) {
+      return window.addToast?.(`"${trimmed}" already exists`, 'error');
     }
+    const next = { ...DEFAULT_TYPE, name: trimmed, hoarder: !!hoarder };
+    setItems((prev) => [next, ...prev]);
+    markModified(trimmed);
+    setSelectedName(trimmed);
+    setShowAddModal(false);
   };
 
-  // ─── Delete Type ────────────────────────────────────────
-
-  const handleDeleteType = async (name) => {
-    try {
-      const result = await API.del(`/api/servers/${serverId}/spawnabletypes/item?name=${encodeURIComponent(name)}`);
-      if (result?.error) {
-        window.addToast?.(result.error, 'error');
-        return;
-      }
-      window.addToast?.(`Deleted "${name}"`, 'success');
-      setItems(prev => prev.filter(i => i.name !== name));
-      setDeleteConfirm(null);
-      if (expandedName === name) setExpandedName(null);
-    } catch {
-      window.addToast?.('Failed to delete type', 'error');
-    }
+  const handleDeleteType = (name) => {
+    setItems((prev) => prev.filter((i) => i.name !== name));
+    setModifiedNames((prev) => {
+      const next = new Set(prev);
+      next.add(name); // mark the deletion as dirty so Save flushes it
+      return next;
+    });
+    if (selectedName === name) setSelectedName(null);
+    setDeleteConfirm(null);
   };
 
-  // ─── Render ─────────────────────────────────────────────
+  const toggleSort = (col) => {
+    if (sortBy === col) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('asc'); }
+  };
 
-  if (loading) {
-    return (
-      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
-        Loading spawnable types...
-      </div>
-    );
-  }
-
+  // ─── Render ──────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ padding: 16, height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
       {/* Toolbar */}
-      <div className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <input
-          className="input"
-          placeholder="Search by name..."
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
-          style={{ flex: '1 1 200px', maxWidth: 300 }}
-        />
-        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          {filtered.length} items
-          {modifiedCount > 0 && (
-            <span style={{ marginLeft: 8, color: 'var(--warning)', fontWeight: 600 }}>
-              {modifiedCount} modified
-            </span>
-          )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Package size={20} style={{ color: 'var(--accent)' }} />
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Spawnable Types</h1>
+        </div>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {filtered.length} of {items.length} type{items.length === 1 ? '' : 's'}
+          {modifiedNames.size > 0 && <> · <span style={{ color: '#f59e0b' }}>{modifiedNames.size} modified</span></>}
         </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary" onClick={() => setShowAddModal(true)}>
-            + Add Type
-          </button>
-          <button className="btn btn-secondary" onClick={loadData}>
-            Reload
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleSave}
-            disabled={saving || modifiedCount === 0}
-          >
-            {saving ? 'Saving...' : 'Save All'}
-          </button>
+
+        <div style={{ flex: 1 }} />
+
+        <div style={{ position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            className="input"
+            placeholder="Filter by name…"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ paddingLeft: 30, minWidth: 220 }}
+          />
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="card" style={{ overflow: 'auto' }}>
-        <table className="table" style={{ width: '100%' }}>
-          <thead>
-            <tr>
-              <th style={{ width: '35%' }}>Name</th>
-              <th style={{ width: '12%', textAlign: 'center' }}>Hoarder</th>
-              <th style={{ width: '15%', textAlign: 'center' }}>Attachment Groups</th>
-              <th style={{ width: '15%', textAlign: 'center' }}>Cargo Groups</th>
-              <th style={{ width: '23%', textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paged.map(item => (
-              <SpawnableTypeRow
-                key={item.name}
-                item={item}
-                expanded={expandedName === item.name}
-                modified={modifiedNames.has(item.name)}
-                onToggleExpand={() => setExpandedName(expandedName === item.name ? null : item.name)}
-                onToggleHoarder={() => updateItemField(item.name, 'hoarder', !item.hoarder)}
-                onUpdateGroup={(groupType, groupIdx, changes) => updateGroup(item.name, groupType, groupIdx, changes)}
-                onAddGroup={(groupType) => addGroup(item.name, groupType)}
-                onRemoveGroup={(groupType, groupIdx) => removeGroup(item.name, groupType, groupIdx)}
-                onAddGroupItem={(groupType, groupIdx) => addGroupItem(item.name, groupType, groupIdx)}
-                onUpdateGroupItem={(groupType, groupIdx, itemIdx, changes) => updateGroupItem(item.name, groupType, groupIdx, itemIdx, changes)}
-                onRemoveGroupItem={(groupType, groupIdx, itemIdx) => removeGroupItem(item.name, groupType, groupIdx, itemIdx)}
-                onDelete={() => setDeleteConfirm(item.name)}
-              />
-            ))}
-            {paged.length === 0 && (
-              <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>
-                  {searchText ? 'No matching spawnable types found.' : 'No spawnable types loaded.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
-          <button className="btn btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Prev</button>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Page {page + 1} of {totalPages}</span>
-          <button className="btn btn-secondary" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next</button>
-        </div>
-      )}
-
-      {/* Add Modal */}
-      {showAddModal && (
-        <AddTypeModal
-          onAdd={handleAddType}
-          onClose={() => setShowAddModal(false)}
-        />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420, padding: 24 }}>
-            <h3 style={{ marginTop: 0 }}>Delete Spawnable Type</h3>
-            <p>Are you sure you want to delete <strong>{deleteConfirm}</strong>?</p>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>A backup will be created before deletion.</p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>Cancel</button>
-              <button className="btn btn-danger" onClick={() => handleDeleteType(deleteConfirm)}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Row Component ──────────────────────────────────────────
-
-function SpawnableTypeRow({
-  item, expanded, modified,
-  onToggleExpand, onToggleHoarder,
-  onUpdateGroup, onAddGroup, onRemoveGroup,
-  onAddGroupItem, onUpdateGroupItem, onRemoveGroupItem,
-  onDelete,
-}) {
-  return (
-    <>
-      <tr
-        onClick={onToggleExpand}
-        style={{
-          cursor: 'pointer',
-          background: modified ? 'var(--warning-bg, rgba(255, 193, 7, 0.08))' : undefined,
-        }}
-      >
-        <td style={{ fontWeight: 500 }}>
-          <span style={{ marginRight: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-            {expanded ? '\u25BC' : '\u25B6'}
-          </span>
-          {item.name}
-          {modified && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--warning)', fontWeight: 700 }}>*</span>}
-        </td>
-        <td style={{ textAlign: 'center' }}>
-          {item.hoarder && (
-            <span style={{
-              display: 'inline-block', padding: '2px 8px', fontSize: 11, fontWeight: 600,
-              borderRadius: 4, background: 'var(--accent-bg, rgba(99, 102, 241, 0.15))', color: 'var(--accent, #6366f1)',
-            }}>
-              HOARDER
-            </span>
-          )}
-        </td>
-        <td style={{ textAlign: 'center' }}>{item.attachments?.length || 0}</td>
-        <td style={{ textAlign: 'center' }}>{item.cargo?.length || 0}</td>
-        <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-          <button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={onDelete}>
-            Delete
-          </button>
-        </td>
-      </tr>
-      {expanded && (
-        <tr>
-          <td colSpan={5} style={{ padding: 0 }}>
-            <ExpandedDetails
-              item={item}
-              onToggleHoarder={onToggleHoarder}
-              onUpdateGroup={onUpdateGroup}
-              onAddGroup={onAddGroup}
-              onRemoveGroup={onRemoveGroup}
-              onAddGroupItem={onAddGroupItem}
-              onUpdateGroupItem={onUpdateGroupItem}
-              onRemoveGroupItem={onRemoveGroupItem}
-            />
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
-
-// ─── Expanded Details ───────────────────────────────────────
-
-function ExpandedDetails({
-  item, onToggleHoarder,
-  onUpdateGroup, onAddGroup, onRemoveGroup,
-  onAddGroupItem, onUpdateGroupItem, onRemoveGroupItem,
-}) {
-  return (
-    <div style={{ padding: '16px 24px', background: 'var(--bg-surface, var(--bg-card))', borderTop: '1px solid var(--border)' }}>
-      {/* Hoarder toggle */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
-          <input type="checkbox" checked={item.hoarder} onChange={onToggleHoarder} />
-          Hoarder
-        </label>
-      </div>
-
-      {/* Attachment Groups */}
-      <GroupEditor
-        title="Attachment Groups"
-        groups={item.attachments || []}
-        groupType="attachments"
-        onUpdateGroup={onUpdateGroup}
-        onAddGroup={onAddGroup}
-        onRemoveGroup={onRemoveGroup}
-        onAddGroupItem={onAddGroupItem}
-        onUpdateGroupItem={onUpdateGroupItem}
-        onRemoveGroupItem={onRemoveGroupItem}
-      />
-
-      {/* Cargo Groups */}
-      <GroupEditor
-        title="Cargo Groups"
-        groups={item.cargo || []}
-        groupType="cargo"
-        onUpdateGroup={onUpdateGroup}
-        onAddGroup={onAddGroup}
-        onRemoveGroup={onRemoveGroup}
-        onAddGroupItem={onAddGroupItem}
-        onUpdateGroupItem={onUpdateGroupItem}
-        onRemoveGroupItem={onRemoveGroupItem}
-      />
-    </div>
-  );
-}
-
-// ─── Group Editor ───────────────────────────────────────────
-
-function GroupEditor({
-  title, groups, groupType,
-  onUpdateGroup, onAddGroup, onRemoveGroup,
-  onAddGroupItem, onUpdateGroupItem, onRemoveGroupItem,
-}) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <h4 style={{ margin: 0, fontSize: 14 }}>{title} ({groups.length})</h4>
+        <button className="btn btn-sm btn-secondary" onClick={loadData} disabled={loading || saving}>
+          <RefreshCw size={13} /> Reload
+        </button>
+        <button className="btn btn-sm btn-secondary" onClick={() => setShowAddModal(true)}>
+          <Plus size={13} /> Add Type
+        </button>
         <button
-          className="btn btn-secondary"
-          style={{ padding: '3px 10px', fontSize: 12 }}
-          onClick={() => onAddGroup(groupType)}
+          className="btn btn-sm btn-primary"
+          onClick={handleSave}
+          disabled={saving || modifiedNames.size === 0}
+          title="Ctrl+S"
         >
-          + Add Group
+          <Save size={13} /> {saving ? 'Saving…' : `Save${modifiedNames.size > 0 ? ` (${modifiedNames.size})` : ''}`}
         </button>
       </div>
 
-      {groups.length === 0 && (
-        <div style={{ padding: '8px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-          No {groupType} groups defined.
-        </div>
-      )}
-
-      {groups.map((group, gIdx) => (
-        <div
-          key={gIdx}
-          style={{
-            border: '1px solid var(--border)',
-            borderRadius: 6,
-            padding: 12,
-            marginBottom: 8,
-            background: 'var(--bg-elevated, var(--bg-card))',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <label style={{ fontSize: 13, fontWeight: 500 }}>Group Chance:</label>
-            <input
-              type="number"
-              className="input"
-              min="0" max="1" step="0.01"
-              value={group.chance}
-              onChange={e => onUpdateGroup(groupType, gIdx, { chance: parseFloat(e.target.value) || 0 })}
-              style={{ width: 80 }}
-            />
-            <button
-              className="btn btn-secondary"
-              style={{ padding: '3px 10px', fontSize: 12 }}
-              onClick={() => onAddGroupItem(groupType, gIdx)}
-            >
-              + Item
-            </button>
-            <button
-              className="btn btn-danger"
-              style={{ padding: '3px 10px', fontSize: 12, marginLeft: 'auto' }}
-              onClick={() => onRemoveGroup(groupType, gIdx)}
-            >
-              Remove Group
-            </button>
-          </div>
-
-          {group.items.length > 0 && (
-            <table style={{ width: '100%', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 500 }}>Item Name</th>
-                  <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 500, width: 100 }}>Chance</th>
-                  <th style={{ width: 60 }}></th>
+      {/* Main split — table left, detail panel right */}
+      <div style={{ flex: 1, display: 'flex', gap: 12, minHeight: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="table-wrap" style={{ flex: 1, overflow: 'auto' }}>
+            <table>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-surface, var(--bg-card))' }}>
+                <tr>
+                  <SortableTh col="name" label="Name" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} />
+                  <SortableTh col="hoarder" label="Hoarder" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} style={{ width: 80 }} />
+                  <SortableTh col="attachments" label="Attachments" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} style={{ width: 120 }} />
+                  <SortableTh col="cargo" label="Cargo" sortBy={sortBy} sortDir={sortDir} onClick={toggleSort} style={{ width: 100 }} />
+                  <th style={{ width: 60 }}>&nbsp;</th>
                 </tr>
               </thead>
               <tbody>
-                {group.items.map((it, iIdx) => (
-                  <tr key={iIdx} style={{ borderBottom: '1px solid var(--border-light, var(--border))' }}>
-                    <td style={{ padding: '4px 8px' }}>
-                      <input
-                        className="input"
-                        value={it.name}
-                        onChange={e => onUpdateGroupItem(groupType, gIdx, iIdx, { name: e.target.value })}
-                        placeholder="Item classname"
-                        style={{ width: '100%', fontSize: 13 }}
-                      />
+                {loading ? (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading…</td></tr>
+                ) : paged.length === 0 ? (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+                    {items.length === 0 ? 'No spawnable types in this file.' : 'No matches for current filter.'}
+                  </td></tr>
+                ) : paged.map((item) => (
+                  <tr
+                    key={item.name}
+                    onClick={() => setSelectedName(item.name)}
+                    style={{
+                      cursor: 'pointer',
+                      background: selectedName === item.name ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : undefined,
+                    }}
+                  >
+                    <td style={{ fontWeight: 600 }}>
+                      {item.name}
+                      {modifiedNames.has(item.name) && <span style={{ color: '#f59e0b', marginLeft: 6 }}>•</span>}
                     </td>
-                    <td style={{ padding: '4px 8px' }}>
-                      <input
-                        type="number"
-                        className="input"
-                        min="0" max="1" step="0.01"
-                        value={it.chance}
-                        onChange={e => onUpdateGroupItem(groupType, gIdx, iIdx, { chance: parseFloat(e.target.value) || 0 })}
-                        style={{ width: 80, fontSize: 13 }}
-                      />
+                    <td>
+                      {item.hoarder ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', background: 'color-mix(in srgb, #22c55e 15%, transparent)', color: '#22c55e', borderRadius: 3 }}>HOARDER</span>
+                      ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                     </td>
-                    <td style={{ padding: '4px 8px', textAlign: 'center' }}>
+                    <td>{(item.attachments || []).length}</td>
+                    <td>{(item.cargo || []).length}</td>
+                    <td>
                       <button
-                        className="btn btn-danger"
-                        style={{ padding: '2px 8px', fontSize: 11 }}
-                        onClick={() => onRemoveGroupItem(groupType, gIdx, iIdx)}
+                        className="btn btn-xs btn-ghost"
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm(item.name); }}
+                        title="Delete type"
+                        style={{ color: 'var(--danger)' }}
                       >
-                        X
+                        <Trash2 size={12} />
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
+          </div>
 
-          {group.items.length === 0 && (
-            <div style={{ padding: '4px 0', color: 'var(--text-muted)', fontSize: 12 }}>
-              No items in this group. Click "+ Item" to add one.
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: 10 }}>
+              <button className="btn btn-xs btn-ghost" disabled={page === 0} onClick={() => setPage(page - 1)}>← Prev</button>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Page {page + 1} of {totalPages}</span>
+              <button className="btn btn-xs btn-ghost" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Next →</button>
             </div>
           )}
         </div>
-      ))}
+
+        {/* Detail panel */}
+        {selected && (
+          <DetailPanel
+            item={selected}
+            presets={presets}
+            onClose={() => setSelectedName(null)}
+            onPatch={updateSelected}
+            onGroupPatch={setGroup}
+            onGroupAdd={addGroup}
+            onGroupRemove={removeGroup}
+            onItemPatch={setGroupItem}
+            onItemAdd={addGroupItem}
+            onItemRemove={removeGroupItem}
+          />
+        )}
+      </div>
+
+      {showAddModal && <AddTypeModal onAdd={handleAddType} onClose={() => setShowAddModal(false)} />}
+      {deleteConfirm && (
+        <ConfirmDeleteModal
+          name={deleteConfirm}
+          onCancel={() => setDeleteConfirm(null)}
+          onConfirm={() => handleDeleteType(deleteConfirm)}
+        />
+      )}
     </div>
   );
 }
 
-// ─── Add Type Modal ─────────────────────────────────────────
+// ─── Sub-components ────────────────────────────────────────
+
+function SortableTh({ col, label, sortBy, sortDir, onClick, style }) {
+  const active = sortBy === col;
+  return (
+    <th
+      onClick={() => onClick(col)}
+      style={{ cursor: 'pointer', userSelect: 'none', ...style }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {label}
+        {active && (sortDir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}
+      </span>
+    </th>
+  );
+}
+
+function DetailPanel({ item, presets, onClose, onPatch, onGroupPatch, onGroupAdd, onGroupRemove, onItemPatch, onItemAdd, onItemRemove }) {
+  return (
+    <div style={{
+      width: 460, flexShrink: 0,
+      background: 'var(--bg-surface, var(--bg-card))',
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
+      <div style={{ padding: 12, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Crosshair size={14} style={{ color: 'var(--accent)' }} />
+        <strong style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</strong>
+        <button onClick={onClose} className="btn btn-xs btn-ghost" title="Close (Esc)"><X size={12} /></button>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Flags */}
+        <section>
+          <h4 style={{ margin: '0 0 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)' }}>Flags</h4>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={!!item.hoarder}
+              onChange={(e) => onPatch({ hoarder: e.target.checked })}
+            />
+            Hoarder <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>(this item may contain hoarded loot)</span>
+          </label>
+        </section>
+
+        {/* Damage */}
+        <section>
+          <h4 style={{ margin: '0 0 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)' }}>Damage range</h4>
+          <DamageEditor
+            damage={item.damage}
+            onChange={(damage) => onPatch({ damage })}
+          />
+        </section>
+
+        {/* Attachments */}
+        <GroupListEditor
+          kind="attachments"
+          label="Attachment Groups"
+          icon={<Layers size={12} />}
+          groups={item.attachments || []}
+          presets={presets.attachments}
+          onGroupPatch={(idx, patch) => onGroupPatch('attachments', idx, patch)}
+          onGroupAdd={() => onGroupAdd('attachments')}
+          onGroupRemove={(idx) => onGroupRemove('attachments', idx)}
+          onItemPatch={(gi, ii, patch) => onItemPatch('attachments', gi, ii, patch)}
+          onItemAdd={(gi) => onItemAdd('attachments', gi)}
+          onItemRemove={(gi, ii) => onItemRemove('attachments', gi, ii)}
+        />
+
+        {/* Cargo */}
+        <GroupListEditor
+          kind="cargo"
+          label="Cargo Groups"
+          icon={<Package size={12} />}
+          groups={item.cargo || []}
+          presets={presets.cargo}
+          onGroupPatch={(idx, patch) => onGroupPatch('cargo', idx, patch)}
+          onGroupAdd={() => onGroupAdd('cargo')}
+          onGroupRemove={(idx) => onGroupRemove('cargo', idx)}
+          onItemPatch={(gi, ii, patch) => onItemPatch('cargo', gi, ii, patch)}
+          onItemAdd={(gi) => onItemAdd('cargo', gi)}
+          onItemRemove={(gi, ii) => onItemRemove('cargo', gi, ii)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DamageEditor({ damage, onChange }) {
+  const enabled = !!damage;
+  const min = damage?.min ?? 0;
+  const max = damage?.max ?? 1;
+  return (
+    <div>
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => onChange(e.target.checked ? { min: 0, max: 1 } : null)}
+        />
+        Override spawn health range
+      </label>
+      {enabled && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+          <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', flex: 1 }}>
+            Min
+            <input
+              className="input"
+              type="number" step="0.05" min="0" max="1"
+              value={min}
+              onChange={(e) => onChange({ ...damage, min: parseFloat(e.target.value) || 0 })}
+              style={{ marginTop: 2 }}
+            />
+          </label>
+          <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', flex: 1 }}>
+            Max
+            <input
+              className="input"
+              type="number" step="0.05" min="0" max="1"
+              value={max}
+              onChange={(e) => onChange({ ...damage, max: parseFloat(e.target.value) || 1 })}
+              style={{ marginTop: 2 }}
+            />
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupListEditor({ kind, label, icon, groups, presets, onGroupPatch, onGroupAdd, onGroupRemove, onItemPatch, onItemAdd, onItemRemove }) {
+  const datalistId = `spawnable-presets-${kind}`;
+  return (
+    <section>
+      {/* Shared datalist for all preset pickers in this group section. */}
+      <datalist id={datalistId}>
+        {presets.map((p) => <option key={p.name} value={p.name}>{`${p.itemCount} items`}</option>)}
+      </datalist>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <h4 style={{ margin: 0, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          {icon} {label} ({groups.length})
+        </h4>
+        <button className="btn btn-xs btn-ghost" onClick={onGroupAdd}><Plus size={11} /> Add group</button>
+      </div>
+      {groups.length === 0 ? (
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>No groups.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {groups.map((group, gi) => (
+            <div key={gi} style={{ padding: 8, border: '1px solid var(--border)', borderRadius: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>chance</span>
+                <input
+                  className="input"
+                  type="number" step="0.05" min="0" max="1"
+                  value={group.chance}
+                  onChange={(e) => onGroupPatch(gi, { chance: parseFloat(e.target.value) || 0 })}
+                  style={{ width: 70, fontSize: 12 }}
+                />
+                <span style={{ flex: 1 }} />
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{(group.items || []).length} item{(group.items || []).length === 1 ? '' : 's'}</span>
+                <button className="btn btn-xs btn-ghost" onClick={() => onGroupRemove(gi)} title="Delete group" style={{ color: 'var(--danger)' }}>
+                  <Trash2 size={11} />
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {(group.items || []).map((it, ii) => (
+                  <ItemRow
+                    key={ii}
+                    item={it}
+                    presetDatalistId={datalistId}
+                    hasPresets={presets.length > 0}
+                    onChange={(patch) => onItemPatch(gi, ii, patch)}
+                    onRemove={() => onItemRemove(gi, ii)}
+                  />
+                ))}
+                <button
+                  className="btn btn-xs btn-ghost"
+                  onClick={() => onItemAdd(gi)}
+                  style={{ alignSelf: 'flex-start', color: 'var(--text-muted)' }}
+                >
+                  <Plus size={10} /> Add item
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ItemRow({ item, presetDatalistId, hasPresets, onChange, onRemove }) {
+  const isPreset = !!item.preset;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+      {/* Item type toggle — direct class vs preset reference */}
+      <select
+        className="input"
+        value={isPreset ? 'preset' : 'item'}
+        onChange={(e) => onChange({ preset: e.target.value === 'preset' })}
+        style={{ width: 70, fontSize: 11, padding: '2px 4px' }}
+        title={isPreset ? 'Resolves from cfgrandompresets.xml' : 'Direct item class'}
+      >
+        <option value="item">Item</option>
+        <option value="preset">Preset</option>
+      </select>
+
+      {/* Name — preset mode uses the shared datalist for autocomplete */}
+      <input
+        className="input"
+        list={isPreset && hasPresets ? presetDatalistId : undefined}
+        value={item.name}
+        onChange={(e) => onChange({ name: e.target.value })}
+        placeholder={isPreset ? 'preset name…' : 'item class…'}
+        style={{ flex: 1, fontSize: 12, padding: '2px 6px' }}
+      />
+
+      {/* Chance */}
+      <input
+        className="input"
+        type="number" step="0.05" min="0" max="1"
+        value={item.chance}
+        onChange={(e) => onChange({ chance: parseFloat(e.target.value) || 0 })}
+        style={{ width: 60, fontSize: 12, padding: '2px 4px' }}
+      />
+
+      <button className="btn btn-xs btn-ghost" onClick={onRemove} title="Remove item" style={{ color: 'var(--danger)' }}>
+        <X size={10} />
+      </button>
+    </div>
+  );
+}
 
 function AddTypeModal({ onAdd, onClose }) {
   const [name, setName] = useState('');
   const [hoarder, setHoarder] = useState(false);
-  const [adding, setAdding] = useState(false);
-
-  const handleSubmit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      window.addToast?.('Type name is required', 'error');
-      return;
-    }
-    setAdding(true);
-    await onAdd({
-      ...DEFAULT_TYPE,
-      name: trimmed,
-      hoarder,
-    });
-    setAdding(false);
-  };
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420, padding: 24 }}>
-        <h3 style={{ marginTop: 0 }}>Add Spawnable Type</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 13, marginBottom: 4, fontWeight: 500 }}>Type Name</label>
-            <input
-              className="input"
-              placeholder="e.g. AKM"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              autoFocus
-              style={{ width: '100%' }}
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            />
-          </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
-            <input type="checkbox" checked={hoarder} onChange={e => setHoarder(e.target.checked)} />
-            Hoarder
-          </label>
+    <div role="dialog" style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    }}
+      onClick={onClose}
+    >
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, width: 360,
+      }}>
+        <h3 style={{ margin: '0 0 12px' }}>Add Spawnable Type</h3>
+        <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Class name</label>
+        <input
+          className="input"
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. AKM"
+          style={{ width: '100%' }}
+          onKeyDown={(e) => { if (e.key === 'Enter') onAdd(name, hoarder); }}
+        />
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 13 }}>
+          <input type="checkbox" checked={hoarder} onChange={(e) => setHoarder(e.target.checked)} />
+          Hoarder
+        </label>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+          <button className="btn btn-sm btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-sm btn-primary" onClick={() => onAdd(name, hoarder)}>Add</button>
         </div>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSubmit} disabled={adding}>
-            {adding ? 'Adding...' : 'Add Type'}
-          </button>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDeleteModal({ name, onCancel, onConfirm }) {
+  return (
+    <div role="dialog" style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    }}
+      onClick={onCancel}
+    >
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, width: 380,
+      }}>
+        <h3 style={{ margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={16} style={{ color: 'var(--danger)' }} /> Delete type?
+        </h3>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-secondary)' }}>
+          Remove <code>{name}</code> from cfgspawnabletypes.xml? This only affects the in-memory edit —
+          changes aren&apos;t written until you press Save.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="btn btn-sm btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-sm btn-danger" onClick={onConfirm}>Delete</button>
         </div>
       </div>
     </div>

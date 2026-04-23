@@ -14,6 +14,7 @@ export default function FilesPage({ serverId }) {
   const [tabs, setTabs] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [monacoLoaded, setMonacoLoaded] = useState(!!window.monaco);
+  const [monacoError, setMonacoError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
 
@@ -148,10 +149,28 @@ export default function FilesPage({ serverId }) {
   }, [loadDir]);
 
   // -- Load Monaco editor --
+  //
+  // Monaco is loaded via the AMD loader in index.html from cdnjs. The loader
+  // runs asynchronously (require([...], cb)). We poll `window.monaco` to detect
+  // when it's finished, and fail loudly if it takes more than 15s — otherwise
+  // a silent CSP block or network failure renders a blank editor with no clue.
   useEffect(() => {
     if (window.monaco) { setMonacoLoaded(true); return; }
+    const start = Date.now();
+    const TIMEOUT_MS = 15000;
     const checkMonaco = setInterval(() => {
-      if (window.monaco) { setMonacoLoaded(true); clearInterval(checkMonaco); }
+      if (window.monaco) {
+        setMonacoLoaded(true);
+        clearInterval(checkMonaco);
+      } else if (Date.now() - start > TIMEOUT_MS) {
+        clearInterval(checkMonaco);
+        setMonacoError(
+          'The code editor (Monaco) failed to load after 15 seconds. ' +
+          'This usually means the app could not reach cdnjs.cloudflare.com, or a ' +
+          'browser extension / corporate firewall is blocking it. Check the ' +
+          'browser console (F12) for CSP or network errors.'
+        );
+      }
     }, 200);
     return () => clearInterval(checkMonaco);
   }, []);
@@ -304,6 +323,41 @@ export default function FilesPage({ serverId }) {
           )}
 
           <div className="editor-container" ref={containerRef} style={{ display: currentTab ? 'block' : 'none' }}></div>
+
+          {/* Visible failure state — replaces the silent blank pane when Monaco can't load. */}
+          {currentTab && monacoError && (
+            <div
+              role="alert"
+              style={{
+                padding: 20,
+                color: 'var(--danger)',
+                background: 'color-mix(in srgb, var(--danger) 8%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
+                borderRadius: 8,
+                margin: 16,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Code editor failed to load</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{monacoError}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                File content is safe — it wasn&apos;t modified. You can close this tab and reopen it
+                after resolving network/CSP issues, or restart Citadel.
+              </div>
+            </div>
+          )}
+
+          {/* Loading state — Monaco is still downloading/initializing. */}
+          {currentTab && !monacoLoaded && !monacoError && (
+            <div style={{
+              padding: 20, textAlign: 'center', color: 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13,
+            }}>
+              <Loader size={14} className="spin" /> Loading editor…
+            </div>
+          )}
 
           {currentTab && (
             <div className="editor-status-bar">

@@ -17,7 +17,7 @@ const { addAudit } = require('../lib/audit');
 const { authForServer } = require('../middleware/auth');
 const logger = require('../lib/logger');
 const { createBackup } = require('../lib/mission-folder');
-const { detectModConfigs, findModConfigFiles } = require('../lib/mod-config-detector');
+const { detectModConfigs, findModConfigFiles, scanProfileForConfigs, resolveDetectedConfigPath } = require('../lib/mod-config-detector');
 const { listAvailableSchemas, getModSchemaBundle, loadManifest } = require('../lib/mod-config-schema');
 
 module.exports = function(app) {
@@ -208,6 +208,104 @@ module.exports = function(app) {
       res.json({ success: true, fileName });
     } catch (err) {
       logger.error({ err, serverId: req.params.id, schemaId }, 'Failed to save mod config');
+      safeError(err, req, res, { status: 500 });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //   Auto-detected generic mod configs
+  //   Walks the server's profile dir for *.json files (no schema needed) and
+  //   exposes them for raw JSON editing. Any mod that drops config files into
+  //   profiles/<ModName>/ gets first-class UI without us having to write a
+  //   manifest. Expansion's subtree + runtime/anti-cheat state are excluded.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET — list every auto-detected JSON config under the profile dir,
+   * grouped by top-level folder.
+   */
+  app.get('/api/servers/:id/mod-configs/detected', authForServer('files.edit'), (req, res) => {
+    const srv = ctx.servers.find((s) => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    try {
+      const result = scanProfileForConfigs(srv);
+      if (!result.profileDir) {
+        return res.json({
+          profileDir: null,
+          groups: [],
+          truncated: false,
+          message: 'No profile directory configured or found for this server.',
+        });
+      }
+      res.json(result);
+    } catch (err) {
+      logger.error({ err, serverId: req.params.id }, 'Failed to scan profile configs');
+      safeError(err, req, res, { status: 500 });
+    }
+  });
+
+  /**
+   * GET — read a detected JSON config file. Query: ?path=<relativePath>
+   * The relative path is resolved against the server's profile dir and
+   * traversal is blocked.
+   */
+  app.get('/api/servers/:id/mod-configs/detected/content', authForServer('files.edit'), (req, res) => {
+    const srv = ctx.servers.find((s) => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const relPath = typeof req.query.path === 'string' ? req.query.path : '';
+    const abs = resolveDetectedConfigPath(srv, relPath);
+    if (!abs) return res.status(400).json({ error: 'Invalid path' });
+    try {
+      if (!fs.existsSync(abs)) return res.status(404).json({ error: 'File not found' });
+      const raw = fs.readFileSync(abs, 'utf-8');
+      let parsed = null;
+      let parseError = null;
+      try { parsed = JSON.parse(raw); } catch (e) { parseError = e.message; }
+      const stat = fs.statSync(abs);
+      res.json({
+        path: relPath,
+        content: raw,
+        parsed,
+        parseError,
+        size: stat.size,
+        modifiedAt: stat.mtime.toISOString(),
+      });
+    } catch (err) {
+      logger.error({ err, serverId: req.params.id, path: relPath }, 'Failed to read detected config');
+      safeError(err, req, res, { status: 500 });
+    }
+  });
+
+  /**
+   * PUT — save an auto-detected JSON config. Body: { path, content }
+   * `content` must be a string (the raw JSON text) — we validate it's
+   * parseable before writing so we don't corrupt a working config.
+   * A timestamped backup is written to the standard backup location first.
+   */
+  app.put('/api/servers/:id/mod-configs/detected/content', authForServer('files.edit'), (req, res) => {
+    const srv = ctx.servers.find((s) => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const { path: relPath, content } = req.body || {};
+    const abs = resolveDetectedConfigPath(srv, relPath);
+    if (!abs) return res.status(400).json({ error: 'Invalid path' });
+    if (typeof content !== 'string') {
+      return res.status(400).json({ error: 'content must be a string (raw JSON)' });
+    }
+    // Guard against corrupt writes — refuse to save if the content doesn't parse
+    try {
+      JSON.parse(content);
+    } catch (e) {
+      return res.status(400).json({ error: `Invalid JSON: ${e.message}` });
+    }
+    try {
+      if (!fs.existsSync(abs)) return res.status(404).json({ error: 'File not found' });
+      createBackup(srv.installDir, abs, path.basename(abs));
+      fs.writeFileSync(abs, content, 'utf-8');
+      addAudit(req.user.id, req.user.username, 'modconfig.detected.save',
+        `Saved auto-detected config ${relPath} on ${srv.name}`);
+      res.json({ ok: true, path: relPath });
+    } catch (err) {
+      logger.error({ err, serverId: req.params.id, path: relPath }, 'Failed to save detected config');
       safeError(err, req, res, { status: 500 });
     }
   });

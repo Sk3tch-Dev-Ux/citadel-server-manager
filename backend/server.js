@@ -99,11 +99,16 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       // Removed 'unsafe-inline' for scripts — React/Vite builds don't need it.
       // Styles keep unsafe-inline because CSS-in-JS libraries and Vite inject inline styles.
-      scriptSrc: ["'self'", 'https://cdnjs.cloudflare.com'],
+      // 'unsafe-eval' is required because Monaco's AMD loader uses new Function().
+      scriptSrc: ["'self'", "'unsafe-eval'", 'https://cdnjs.cloudflare.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https://*.xam.nu', 'https://xam.nu', 'https://unpkg.com'],
-      connectSrc: ["'self'", 'ws:', 'wss:', 'https://*.xam.nu', 'https://xam.nu'],
+      // cdnjs is in connectSrc so Monaco can fetch its language/worker modules at runtime.
+      connectSrc: ["'self'", 'ws:', 'wss:', 'https://*.xam.nu', 'https://xam.nu', 'https://cdnjs.cloudflare.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
+      // Monaco creates its web workers from blob: URLs; without this the Files editor silently fails.
+      workerSrc: ["'self'", 'blob:'],
+      childSrc: ["'self'", 'blob:'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
     },

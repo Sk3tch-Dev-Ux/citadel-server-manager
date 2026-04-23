@@ -183,8 +183,183 @@ function findModConfigFiles(srv, modDir, configFileNames) {
   return found;
 }
 
+/**
+ * Directories under profiles/ that are handled by dedicated editors or that
+ * shouldn't appear in generic mod-config auto-detection:
+ *   - ExpansionMod       — has its own editor at /servers/:id/expansion
+ *   - BattlEye / battleye — anti-cheat configs, not user-editable
+ *   - DayZServer          — server runtime state (rpt, bans, etc.)
+ *   - storage_*           — economy persistence, not config
+ *   - db                  — economy persistence
+ *   - `.`-prefixed         — dotfiles
+ */
+const AUTODETECT_IGNORE = new Set([
+  'expansionmod',
+  'battleye',
+  'dayzserver',
+  'db',
+  'logs',
+]);
+
+function _isIgnored(name) {
+  if (!name) return true;
+  if (name.startsWith('.')) return true;
+  const lower = name.toLowerCase();
+  if (AUTODETECT_IGNORE.has(lower)) return true;
+  if (lower.startsWith('storage_')) return true;
+  return false;
+}
+
+/**
+ * Resolve a server's profile dir the same way findModConfigFiles does.
+ * Returns an absolute path, or null if none can be determined.
+ */
+function _resolveProfileDir(srv) {
+  if (!srv || !srv.installDir) return null;
+  const candidates = [];
+  if (srv.profileDir) candidates.push(path.resolve(srv.installDir, srv.profileDir));
+  candidates.push(path.join(srv.installDir, 'profiles'));
+  candidates.push(path.join(srv.installDir, 'profile'));
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c) && fs.statSync(c).isDirectory()) return c;
+    } catch { /* ignore */ }
+  }
+  return null;
+}
+
+/**
+ * Walk a profile directory and return every `.json` config file, grouped by
+ * the top-level folder (which is treated as the mod name).
+ *
+ * Loose JSON files directly under profiles/ (no containing folder) are grouped
+ * under an "(unsorted)" bucket so they're still visible.
+ *
+ * Safety:
+ *   - Depth-limited to 4 levels below profiles/ (plenty for any real mod)
+ *   - Caps total scanned files at 2000 to prevent pathological trees
+ *   - Silently skips symlinks (avoids cycles)
+ *   - Skips `AUTODETECT_IGNORE` subtrees (Expansion has its own editor, etc.)
+ *
+ * @param {object} srv — server config
+ * @returns {{ profileDir: string|null, groups: Array<{ modName: string, files: Array<{fileName, relativePath, absolutePath, size, modifiedAt}> }>, truncated: boolean }}
+ */
+function scanProfileForConfigs(srv) {
+  const profileDir = _resolveProfileDir(srv);
+  if (!profileDir) return { profileDir: null, groups: [], truncated: false };
+
+  const MAX_DEPTH = 4;
+  const MAX_FILES = 2000;
+  let totalScanned = 0;
+  let truncated = false;
+
+  /** @type {Map<string, Array<{fileName, relativePath, absolutePath, size, modifiedAt}>>} */
+  const byMod = new Map();
+
+  function walk(dir, modGroup, depth) {
+    if (depth > MAX_DEPTH) return;
+    if (totalScanned >= MAX_FILES) { truncated = true; return; }
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch { return; }
+    for (const entry of entries) {
+      if (totalScanned >= MAX_FILES) { truncated = true; return; }
+      if (entry.isSymbolicLink()) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full, modGroup, depth + 1);
+      } else if (entry.isFile()) {
+        totalScanned++;
+        if (!entry.name.toLowerCase().endsWith('.json')) continue;
+        let stat;
+        try { stat = fs.statSync(full); } catch { continue; }
+        const rel = path.relative(profileDir, full).replace(/\\/g, '/');
+        const arr = byMod.get(modGroup) || [];
+        arr.push({
+          fileName: entry.name,
+          relativePath: rel,
+          absolutePath: full,
+          size: stat.size,
+          modifiedAt: stat.mtime.toISOString(),
+        });
+        byMod.set(modGroup, arr);
+      }
+    }
+  }
+
+  // Top-level: every subdir of profileDir is a potential "mod". Loose JSONs go to (unsorted).
+  let topEntries;
+  try {
+    topEntries = fs.readdirSync(profileDir, { withFileTypes: true });
+  } catch {
+    return { profileDir, groups: [], truncated: false };
+  }
+
+  for (const entry of topEntries) {
+    if (totalScanned >= MAX_FILES) { truncated = true; break; }
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) {
+      if (_isIgnored(entry.name)) continue;
+      walk(path.join(profileDir, entry.name), entry.name, 1);
+    } else if (entry.isFile()) {
+      totalScanned++;
+      if (!entry.name.toLowerCase().endsWith('.json')) continue;
+      if (_isIgnored(entry.name)) continue;
+      let stat;
+      try { stat = fs.statSync(path.join(profileDir, entry.name)); } catch { continue; }
+      const arr = byMod.get('(unsorted)') || [];
+      arr.push({
+        fileName: entry.name,
+        relativePath: entry.name,
+        absolutePath: path.join(profileDir, entry.name),
+        size: stat.size,
+        modifiedAt: stat.mtime.toISOString(),
+      });
+      byMod.set('(unsorted)', arr);
+    }
+  }
+
+  // Sort files within each group by relativePath for stable display
+  const groups = Array.from(byMod.entries())
+    .map(([modName, files]) => ({
+      modName,
+      files: files.sort((a, b) => a.relativePath.localeCompare(b.relativePath)),
+    }))
+    .sort((a, b) => {
+      // (unsorted) goes last; otherwise alphabetical
+      if (a.modName === '(unsorted)') return 1;
+      if (b.modName === '(unsorted)') return -1;
+      return a.modName.localeCompare(b.modName);
+    })
+    .filter((g) => g.files.length > 0);
+
+  return { profileDir, groups, truncated };
+}
+
+/**
+ * Validate that a relative path stays inside the server's profile dir.
+ * Returns the absolute path if safe, or null if traversal is attempted.
+ */
+function resolveDetectedConfigPath(srv, relativePath) {
+  if (typeof relativePath !== 'string' || relativePath.length === 0) return null;
+  const profileDir = _resolveProfileDir(srv);
+  if (!profileDir) return null;
+  const abs = path.resolve(profileDir, relativePath);
+  const rel = path.relative(profileDir, abs);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) return null;
+  // Reject ignored subtrees even if the caller passes them explicitly
+  const topSegment = rel.split(/[\\/]/)[0];
+  if (_isIgnored(topSegment)) return null;
+  // Only JSON files are editable through this surface
+  if (!abs.toLowerCase().endsWith('.json')) return null;
+  return abs;
+}
+
 module.exports = {
   MOD_IDENTIFIERS,
   detectModConfigs,
   findModConfigFiles,
+  scanProfileForConfigs,
+  resolveDetectedConfigPath,
 };

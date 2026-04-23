@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import SchemaEditor from '../components/SchemaEditor';
 import JsonConfigEditor from '../components/JsonConfigEditor';
-import { Puzzle, ArrowLeft, Save, RotateCcw } from '../components/Icon';
+import { Puzzle, ArrowLeft, Save, RotateCcw, RefreshCw, FileCode, FolderOpen, AlertTriangle } from '../components/Icon';
+import { formatBytes, timeAgo } from '../utils';
 
 /**
  * ModConfigsPage — the main mod config hub page.
@@ -27,6 +28,36 @@ export default function ModConfigsPage({ serverId }) {
   const [saving, setSaving] = useState(false);
   const saveRef = useRef(null);
 
+  // ─── Auto-detected configs (generic JSON files in profiles/) ─────
+  const [detected, setDetected] = useState({ profileDir: null, groups: [], truncated: false });
+  const [detectedLoading, setDetectedLoading] = useState(true);
+  const [detectedError, setDetectedError] = useState(null);
+  const [selectedDetectedFile, setSelectedDetectedFile] = useState(null); // { relativePath, fileName, modName }
+  const [detectedFileContent, setDetectedFileContent] = useState(null);    // parsed JSON
+  const [detectedFileRaw, setDetectedFileRaw] = useState(null);            // raw text
+  const [detectedFileParseError, setDetectedFileParseError] = useState(null);
+  const [detectedFileLoading, setDetectedFileLoading] = useState(false);
+  const [detectedFileDirty, setDetectedFileDirty] = useState(false);
+
+  const loadDetected = useCallback(() => {
+    setDetectedLoading(true);
+    setDetectedError(null);
+    API.get(`/api/servers/${serverId}/mod-configs/detected`)
+      .then((data) => {
+        if (data && !data.error) {
+          setDetected({
+            profileDir: data.profileDir || null,
+            groups: Array.isArray(data.groups) ? data.groups : [],
+            truncated: !!data.truncated,
+          });
+        } else {
+          setDetectedError(data?.error || 'Failed to load');
+        }
+      })
+      .catch((err) => setDetectedError(err?.message || 'Failed to load detected configs'))
+      .finally(() => setDetectedLoading(false));
+  }, [serverId]);
+
   // Load mod list on mount
   useEffect(() => {
     setLoading(true);
@@ -41,7 +72,61 @@ export default function ModConfigsPage({ serverId }) {
       })
       .catch(() => window.addToast?.('Failed to load mod configs', 'error'))
       .finally(() => setLoading(false));
-  }, [serverId]);
+    loadDetected();
+  }, [serverId, loadDetected]);
+
+  // Load a detected file's contents when one is selected
+  useEffect(() => {
+    if (!selectedDetectedFile) {
+      setDetectedFileContent(null);
+      setDetectedFileRaw(null);
+      setDetectedFileParseError(null);
+      setDetectedFileDirty(false);
+      return;
+    }
+    setDetectedFileLoading(true);
+    API.get(`/api/servers/${serverId}/mod-configs/detected/content?path=${encodeURIComponent(selectedDetectedFile.relativePath)}`)
+      .then((data) => {
+        if (data && !data.error) {
+          setDetectedFileRaw(data.content || '');
+          setDetectedFileContent(data.parsed);
+          setDetectedFileParseError(data.parseError || null);
+          setDetectedFileDirty(false);
+        } else {
+          window.addToast?.(data?.error || 'Failed to load config', 'error');
+          setSelectedDetectedFile(null);
+        }
+      })
+      .catch((err) => {
+        window.addToast?.(`Failed to load config: ${err.message}`, 'error');
+        setSelectedDetectedFile(null);
+      })
+      .finally(() => setDetectedFileLoading(false));
+  }, [selectedDetectedFile, serverId]);
+
+  const handleSaveDetectedFile = useCallback(async () => {
+    if (!selectedDetectedFile || !detectedFileDirty) return;
+    // JsonConfigEditor edits the parsed object; stringify with 4-space indent
+    // to match DayZ's conventional formatting
+    const text = typeof detectedFileRaw === 'string'
+      ? detectedFileRaw
+      : JSON.stringify(detectedFileContent, null, 4);
+    setSaving(true);
+    try {
+      // Validate JSON before sending
+      JSON.parse(text);
+      await API.put(`/api/servers/${serverId}/mod-configs/detected/content`, {
+        path: selectedDetectedFile.relativePath,
+        content: text,
+      });
+      setDetectedFileDirty(false);
+      window.addToast?.(`Saved ${selectedDetectedFile.fileName}`, 'success');
+    } catch (err) {
+      window.addToast?.(`Save failed: ${err.message}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedDetectedFile, detectedFileDirty, detectedFileRaw, detectedFileContent, serverId]);
 
   // Load mod data when a mod is selected
   useEffect(() => {
@@ -79,7 +164,9 @@ export default function ModConfigsPage({ serverId }) {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        if (selectedMod && activeTab && modified[activeTab]) {
+        if (selectedDetectedFile && detectedFileDirty) {
+          handleSaveDetectedFile();
+        } else if (selectedMod && activeTab && modified[activeTab]) {
           handleSave();
         }
       }
@@ -156,6 +243,76 @@ export default function ModConfigsPage({ serverId }) {
       window.addToast?.('Failed to reset config', 'error');
     }
   }, [activeTab, selectedMod, serverId]);
+
+  // ── Detected File Editor View (generic JSON config editor for auto-detected files) ──
+  if (selectedDetectedFile) {
+    return (
+      <div style={{ padding: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <button
+            onClick={() => {
+              if (detectedFileDirty && !window.confirm('You have unsaved changes. Discard them?')) return;
+              setSelectedDetectedFile(null);
+            }}
+            className="btn btn-ghost"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <ArrowLeft size={16} /> Back to Mod Configs
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileCode size={18} style={{ color: 'var(--accent)' }} />
+              {selectedDetectedFile.fileName}
+              {detectedFileDirty && <span style={{ color: '#ffd700', fontSize: 13 }}>{'\u25CF'} Modified</span>}
+            </h2>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'var(--font-mono, monospace)' }}>
+              {selectedDetectedFile.modName} › {selectedDetectedFile.relativePath}
+            </div>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleSaveDetectedFile}
+            disabled={!detectedFileDirty || saving}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <Save size={14} /> {saving ? 'Saving…' : 'Save (Ctrl+S)'}
+          </button>
+        </div>
+
+        {detectedFileLoading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading config file…</div>
+        ) : detectedFileParseError ? (
+          <div style={{
+            padding: 16, background: 'color-mix(in srgb, var(--danger) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)', borderRadius: 8, marginBottom: 12,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--danger)', fontWeight: 600 }}>
+              <AlertTriangle size={14} /> File is not valid JSON
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              {detectedFileParseError}. You can still view + save the raw content below, but make sure it parses before saving — save is blocked otherwise.
+            </div>
+            <textarea
+              className="input"
+              value={detectedFileRaw || ''}
+              onChange={(e) => { setDetectedFileRaw(e.target.value); setDetectedFileDirty(true); }}
+              spellCheck={false}
+              style={{ width: '100%', minHeight: '60vh', marginTop: 12, fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+            />
+          </div>
+        ) : (
+          <JsonConfigEditor
+            data={detectedFileContent}
+            onChange={(newData) => {
+              setDetectedFileContent(newData);
+              setDetectedFileRaw(JSON.stringify(newData, null, 4));
+              setDetectedFileDirty(true);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
   // ── Hub View ──
   if (!selectedMod) {
@@ -261,6 +418,104 @@ export default function ModConfigsPage({ serverId }) {
             )}
           </>
         )}
+
+        {/* ─── Auto-detected configs ──────────────────────────────────
+            Generic JSON files found in the server's profile directory.
+            Grouped by top-level folder (= mod name). For mods without a
+            schema-based editor — any mod that writes configs into
+            profiles/ gets first-class UI for free. */}
+        <div style={{ marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FolderOpen size={16} style={{ color: 'var(--accent)' }} /> Auto-detected Configs
+              </h3>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
+                JSON config files discovered in your server&apos;s profile directory.
+                {detected.profileDir && (
+                  <> Scan root: <code style={{ fontSize: 11 }}>{detected.profileDir}</code></>
+                )}
+              </p>
+            </div>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={loadDetected}
+              disabled={detectedLoading}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <RefreshCw size={13} /> {detectedLoading ? 'Scanning…' : 'Rescan'}
+            </button>
+          </div>
+
+          {detected.truncated && (
+            <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <AlertTriangle size={12} /> Scan hit the 2,000-file safety cap — some configs may be missing.
+            </div>
+          )}
+
+          {detectedLoading ? (
+            <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>Scanning profile directory…</div>
+          ) : detectedError ? (
+            <div style={{ padding: 12, color: 'var(--danger)', fontSize: 13 }}>
+              <AlertTriangle size={13} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+              {detectedError}
+            </div>
+          ) : !detected.profileDir ? (
+            <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              No profile directory configured for this server. Set one under Settings → Server Paths, then rescan.
+            </div>
+          ) : detected.groups.length === 0 ? (
+            <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              No JSON configs found. Start your server once so mods can generate their default configs, then rescan.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {detected.groups.map((group) => (
+                <div key={group.modName} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div style={{
+                    padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                    display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-surface, var(--bg-card))',
+                  }}>
+                    <Puzzle size={14} style={{ color: 'var(--accent)' }} />
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{group.modName}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      {group.files.length} file{group.files.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div>
+                    {group.files.map((f) => (
+                      <button
+                        key={f.relativePath}
+                        onClick={() => setSelectedDetectedFile({
+                          relativePath: f.relativePath,
+                          fileName: f.fileName,
+                          modName: group.modName,
+                        })}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '8px 14px',
+                          background: 'none', border: 'none', borderTop: '1px solid var(--border)',
+                          cursor: 'pointer', color: 'inherit',
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          fontSize: 13,
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 5%, transparent)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                      >
+                        <FileCode size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}>
+                          {f.relativePath}
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          {formatBytes(f.size)} · {timeAgo(f.modifiedAt)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }

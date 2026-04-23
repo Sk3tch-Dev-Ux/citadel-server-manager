@@ -15,6 +15,7 @@ const { authForServer } = require('../middleware/auth');
 const logger = require('../lib/logger');
 const { getMissionDir, createBackup } = require('../lib/mission-folder');
 const { parseSpawnableTypes, buildSpawnableTypes } = require('../lib/spawnabletypes-parser');
+const { readRandomPresets } = require('../lib/randompresets-parser');
 
 // ─── Find cfgspawnabletypes.xml ──────────────────────────────
 
@@ -29,6 +30,22 @@ function findSpawnableTypesFile(missionDir) {
 // ─── Routes ──────────────────────────────────────────────────
 
 module.exports = function(app) {
+
+  // List available random presets (cargo + attachments) from cfgrandompresets.xml
+  // so the UI can offer them as a dropdown when adding a preset-ref item.
+  app.get('/api/servers/:id/spawnabletypes/presets', authForServer('files.edit'), (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const missionDir = getMissionDir(srv);
+    if (!missionDir) return res.status(404).json({ error: 'Mission folder not found' });
+    try {
+      const presets = readRandomPresets(missionDir);
+      res.json(presets);
+    } catch (err) {
+      logger.error({ err, serverId: srv.id }, 'Failed to load random presets');
+      safeError(err, req, res, { status: 500 });
+    }
+  });
 
   // Load and parse cfgspawnabletypes.xml
   app.get('/api/servers/:id/spawnabletypes', authForServer('files.edit'), (req, res) => {

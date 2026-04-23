@@ -9,7 +9,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
 import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
 import AppUpdateBanner from '../components/AppUpdateBanner';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield, Eye } from '../components/Icon';
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -95,6 +95,9 @@ export default function AppLayout() {
           </Link>
           <Link to="/priority-queue" className={`nav-item ${location.pathname === '/priority-queue' ? 'active' : ''}`}>
             <span className="nav-icon"><Crown size={16} /></span>Priority Queue
+          </Link>
+          <Link to="/watchlist" className={`nav-item ${location.pathname === '/watchlist' ? 'active' : ''}`}>
+            <span className="nav-icon"><Eye size={16} /></span>Watchlist
           </Link>
           {user.role === 'admin' && (
             <>

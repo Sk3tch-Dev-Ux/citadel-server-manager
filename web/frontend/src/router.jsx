@@ -51,6 +51,7 @@ const KillFeedPage = lazy(() => import('./pages/KillFeedPage'));
 const ChatLogPage = lazy(() => import('./pages/ChatLogPage'));
 const BackupsPage = lazy(() => import('./pages/BackupsPage'));
 const PlayerProfilePage = lazy(() => import('./pages/PlayerProfilePage'));
+const WatchlistPage = lazy(() => import('./pages/WatchlistPage'));
 
 function AuthGuard({ children }) {
   const { user } = useAuth();
@@ -140,6 +141,7 @@ export default function AppRouter() {
           <Route path="deploy" element={<PermGuard permission="server.deploy"><ErrorBoundary><Lazy><DeployPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="users" element={<PermGuard permission="users.manage"><ErrorBoundary><Lazy><UsersPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><Lazy><WebhooksPage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="watchlist" element={<ErrorBoundary><Lazy><WatchlistPage /></Lazy></ErrorBoundary>} />
           <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><SettingsPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><PriorityQueuePage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="citadel-license" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><CitadelLicensePage /></Lazy></ErrorBoundary></PermGuard>} />
