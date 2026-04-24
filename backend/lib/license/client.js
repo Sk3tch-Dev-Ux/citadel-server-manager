@@ -1,7 +1,10 @@
 /**
  * HTTP client for the citadels.cc license API.
  *
- * All three endpoints live at https://citadels.cc/api/v1/license/*.
+ * All three endpoints live at https://api.citadels.cc/api/v1/license/*
+ * (the Fastify API is on the `api.` subdomain; the marketing Next.js site
+ * is at the apex `citadels.cc` and does NOT serve /api routes).
+ *
  * The base URL is overridable via CITADEL_LICENSE_API for local development
  * against a dev citadels.cc server.
  */
@@ -9,7 +12,7 @@ const https = require('https');
 const http = require('http');
 const { URL } = require('url');
 
-const DEFAULT_BASE = 'https://citadels.cc';
+const DEFAULT_BASE = 'https://api.citadels.cc';
 
 function apiBase() {
   return (process.env.CITADEL_LICENSE_API || DEFAULT_BASE).replace(/\/$/, '');
