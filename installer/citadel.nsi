@@ -72,16 +72,34 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 ; Pre-install checks
 ; ═══════════════════════════════════════════════════════════
 Function .onInit
-  ; ── Port conflict check ──
+  ; ── Detect an existing Citadel install ──
+  ; If we're upgrading in place, skip the port-conflict check entirely —
+  ; port 3001 is held by the existing Citadel service, which we're about
+  ; to stop in the install Section. Without this skip, silent updates
+  ; (electron-updater /S) abort because /SD IDNO defaults the message box
+  ; to "No, don't continue".
+  ReadRegStr $0 HKLM "Software\Citadel" "InstallDir"
+  ${If} $0 != ""
+  ${AndIf} ${FileExists} "$0\runtime\nssm.exe"
+    DetailPrint "Existing Citadel install detected at $0 — skipping port check"
+    Goto skipPortCheck
+  ${EndIf}
+
+  ; ── Port conflict check (fresh install only) ──
   ; If something else is already listening on :3001, fail fast with a clear
   ; message rather than silently producing a broken install.
   nsExec::ExecToStack 'powershell -NoProfile -WindowStyle Hidden -Command "if (Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }"'
   Pop $0
   ${If} $0 == 1
-    MessageBox MB_ICONEXCLAMATION|MB_YESNO "Port 3001 is already in use on this machine.$\n$\nCitadel uses port 3001 for its dashboard and API. Another application is currently listening on this port.$\n$\nRecommended: Cancel, stop the other service, and run the installer again.$\n$\nContinue anyway?" /SD IDNO IDYES continueInstall
+    ; In silent mode, default to YES (continue) rather than NO. The "skip
+    ; on existing install" check above already handles the common upgrade
+    ; case; this is just defensive for fresh-install silent runs that
+    ; happen while another service briefly holds the port.
+    MessageBox MB_ICONEXCLAMATION|MB_YESNO "Port 3001 is already in use on this machine.$\n$\nCitadel uses port 3001 for its dashboard and API. Another application is currently listening on this port.$\n$\nRecommended: Cancel, stop the other service, and run the installer again.$\n$\nContinue anyway?" /SD IDYES IDYES continueInstall
     Abort "Installation cancelled — port 3001 is in use."
     continueInstall:
   ${EndIf}
+  skipPortCheck:
 FunctionEnd
 
 ; ═══════════════════════════════════════════════════════════
