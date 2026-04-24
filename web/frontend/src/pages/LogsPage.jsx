@@ -16,7 +16,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { useDebouncedValue, timeAgo } from '../utils';
 import {
   FileCode, Search, Download, RefreshCw, X, AlertTriangle,
-  Info, CheckCircle, Activity, Pause, Play,
+  Activity, Pause, Play,
 } from '../components/Icon';
 
 const PAGE_LIMIT = 1000; // fetched
