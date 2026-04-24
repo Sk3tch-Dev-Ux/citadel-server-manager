@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import API from '../api';
 import { timeAgo } from '../utils';
 import { Bell, Info } from './Icon';
+
+// Severities that should pop a toast on arrival. Info is chatty (every
+// player join, every backup, etc.) so it stays silent — users check the
+// bell when they want to review. Warning and error deserve immediate
+// attention (watchlist hits, crashes, failed backups, etc.).
+const TOAST_SEVERITIES = new Set(['warning', 'error']);
 
 export default function NotificationCenter() {
   const socket = useSocket();
@@ -14,7 +21,15 @@ export default function NotificationCenter() {
   }, []);
 
   useEffect(() => {
-    const handler = (n) => { setItems(prev => [n, ...prev].slice(0, 200)); };
+    const handler = (n) => {
+      setItems(prev => [n, ...prev].slice(0, 200));
+      // Fire a toast for high-severity arrivals so the admin doesn't have to
+      // be staring at the bell to notice a watchlist hit or a crash.
+      if (n && TOAST_SEVERITIES.has(n.severity)) {
+        const label = n.title ? `${n.title} — ${n.message}` : n.message;
+        window.addToast?.(label, n.severity, n.severity === 'error' ? 10000 : 6000);
+      }
+    };
     socket.on('notification', handler);
     return () => socket.off('notification', handler);
   }, [socket]);
@@ -61,7 +76,7 @@ export default function NotificationCenter() {
                 <div className="notif-empty-icon"><Bell size={28} /></div>
                 <div>No notifications yet</div>
               </div>
-            ) : items.map(n => (
+            ) : items.slice(0, 20).map(n => (
               <div
                 key={n.id}
                 className={'notif-item' + (!n.read ? ' unread' : '') + (n.severity ? ' severity-' + n.severity : '')}
@@ -76,6 +91,20 @@ export default function NotificationCenter() {
               </div>
             ))}
           </div>
+          {items.length > 0 && (
+            <div style={{
+              padding: '8px 12px', borderTop: '1px solid var(--border)',
+              textAlign: 'center',
+            }}>
+              <Link
+                to="/notifications"
+                onClick={() => setOpen(false)}
+                style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}
+              >
+                View all notifications →
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

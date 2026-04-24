@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import API from '../api';
 import { timeAgo } from '../utils';
 
@@ -6,14 +7,13 @@ export default function UsersPage() {
   const [tab, setTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [audit, setAudit] = useState([]);
   const [showAddUser, setShowAddUser] = useState(false);
   const [showAddRole, setShowAddRole] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', description: '' });
   const [newRole, setNewRole] = useState({ name: '', color: '#8b919a', permissions: [] });
 
   useEffect(() => { API.get('/api/users').then(d => setUsers(Array.isArray(d) ? d : [])); API.get('/api/roles').then(d => setRoles(Array.isArray(d) ? d : [])); }, []);
-  useEffect(() => { if (tab === 'audit') API.get('/api/audit?limit=200').then(d => setAudit(d.entries || [])); }, [tab]);
+  // Audit log moved to its own dedicated page at /audit (full filters + CSV export)
 
   const addUser = async () => {
     if (!newUser.username || !newUser.password) return;
@@ -56,10 +56,13 @@ export default function UsersPage() {
 
   return (
     <div>
-      <div className="tabs">
+      <div className="tabs" style={{ display: 'flex', alignItems: 'center' }}>
         <div className={`tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Users</div>
         <div className={`tab ${tab === 'roles' ? 'active' : ''}`} onClick={() => setTab('roles')}>Roles</div>
-        <div className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit Log</div>
+        <div style={{ flex: 1 }} />
+        <Link to="/audit" className="btn btn-sm btn-ghost" style={{ marginRight: 8 }}>
+          Audit Log →
+        </Link>
       </div>
 
       {tab === 'users' && (
@@ -144,19 +147,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {tab === 'audit' && (
-        <div className="table-wrap"><table>
-          <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
-          <tbody>{audit.map(a => (
-            <tr key={a.id}>
-              <td style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(a.timestamp).toLocaleString()}</td>
-              <td style={{ fontWeight: 600 }}>{a.username}</td>
-              <td><span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{a.action}</span></td>
-              <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{a.details}</td>
-            </tr>
-          ))}</tbody>
-        </table></div>
-      )}
     </div>
   );
 }

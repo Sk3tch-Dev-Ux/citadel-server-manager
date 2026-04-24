@@ -9,7 +9,8 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
 import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
 import AppUpdateBanner from '../components/AppUpdateBanner';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield, Eye } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
+// `Eye` is imported at the bottom of the file for the server nav — reuse that import in the JSX below via hoisting.
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -99,6 +100,11 @@ export default function AppLayout() {
           <Link to="/watchlist" className={`nav-item ${location.pathname === '/watchlist' ? 'active' : ''}`}>
             <span className="nav-icon"><Eye size={16} /></span>Watchlist
           </Link>
+          {(user.role === 'admin' || user.role === 'owner') && (
+            <Link to="/audit" className={`nav-item ${location.pathname === '/audit' ? 'active' : ''}`}>
+              <span className="nav-icon"><FileText size={16} /></span>Audit Log
+            </Link>
+          )}
           {user.role === 'admin' && (
             <>
               <Link to="/citadel-license" className={`nav-item ${location.pathname === '/citadel-license' ? 'active' : ''}`}>
