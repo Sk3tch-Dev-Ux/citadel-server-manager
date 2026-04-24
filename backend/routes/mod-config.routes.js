@@ -164,6 +164,118 @@ module.exports = function(app) {
   });
 
   /**
+   * GET — lightweight manifest: config file list with schemas + an "exists on
+   * disk" flag per file. Returns NO file content, so it's fast (under 50 KB
+   * even for Expansion's 32 files).
+   *
+   * The frontend uses this to render the sidebar + decide which sections to
+   * disable (missing files), then lazily fetches each file's content via
+   * `/file?fileName=...` only when the user opens that section.
+   *
+   * Matches the response shape of the full endpoint but with empty `data` —
+   * callers that previously used the whole response can populate `data` via
+   * `/file?...` calls and everything else just works.
+   */
+  app.get('/api/servers/:id/mod-configs/:schemaId/meta', authForServer('files.edit'), (req, res) => {
+    const srv = ctx.servers.find((s) => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const { schemaId } = req.params;
+    try {
+      const bundle = getModSchemaBundle(schemaId);
+      if (!bundle) return res.status(404).json({ error: `No schema found for mod: ${schemaId}` });
+      const detected = detectModConfigs(req.params.id);
+      const modInfo = detected.find((d) => d.schemaId === schemaId);
+      if (!modInfo) return res.status(404).json({ error: `Mod ${schemaId} not detected on this server` });
+
+      const fileNames = bundle.manifest.configFiles.map((c) => c.fileName);
+      const filePaths = findModConfigFiles(srv, modInfo.modDir, fileNames);
+
+      const configs = {};
+      for (const cfg of bundle.manifest.configFiles) {
+        configs[cfg.fileName] = {
+          // data intentionally omitted — fetch via /file?fileName=…
+          data: null,
+          path: filePaths[cfg.fileName] || null,
+          found: !!filePaths[cfg.fileName],
+          schema: bundle.schemas[cfg.fileName] || null,
+          displayName: cfg.displayName || cfg.fileName,
+          description: cfg.description || '',
+        };
+      }
+
+      res.json({
+        schemaId,
+        modName: bundle.manifest.modName,
+        modDir: modInfo.modName,
+        configs,
+      });
+    } catch (err) {
+      logger.error({ err, serverId: req.params.id, schemaId }, 'Failed to read mod config meta');
+      safeError(err, req, res, { status: 500 });
+    }
+  });
+
+  /**
+   * GET — single config file content (lazy-load for the Expansion editor).
+   * Query: ?fileName=ExpansionMod/Settings/GeneralSettings.json
+   *
+   * Response matches the shape of a single entry in the big GET endpoint's
+   * `configs` map, so the frontend can slot it directly into state.
+   */
+  app.get('/api/servers/:id/mod-configs/:schemaId/file', authForServer('files.edit'), (req, res) => {
+    const srv = ctx.servers.find((s) => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const { schemaId } = req.params;
+    const fileName = typeof req.query.fileName === 'string' ? req.query.fileName : '';
+    if (!fileName) return res.status(400).json({ error: 'fileName required' });
+
+    try {
+      const bundle = getModSchemaBundle(schemaId);
+      if (!bundle) return res.status(404).json({ error: `No schema found for mod: ${schemaId}` });
+      // Validate fileName is in the manifest — prevents arbitrary file reads
+      const cfg = bundle.manifest.configFiles.find((c) => c.fileName === fileName);
+      if (!cfg) return res.status(400).json({ error: `Unknown config file: ${fileName}` });
+
+      const detected = detectModConfigs(req.params.id);
+      const modInfo = detected.find((d) => d.schemaId === schemaId);
+      if (!modInfo) return res.status(404).json({ error: `Mod ${schemaId} not detected on this server` });
+
+      const filePaths = findModConfigFiles(srv, modInfo.modDir, [fileName]);
+      const filePath = filePaths[fileName];
+      if (!filePath) {
+        return res.json({
+          fileName,
+          data: null,
+          path: null,
+          found: false,
+          schema: bundle.schemas[fileName] || null,
+          displayName: cfg.displayName || fileName,
+          description: cfg.description || '',
+        });
+      }
+
+      const raw = fs.readFileSync(filePath, 'utf8');
+      let data = null, parseError = null, rawOut;
+      try { data = JSON.parse(raw); } catch (e) { parseError = e.message; rawOut = raw; }
+
+      res.json({
+        fileName,
+        data,
+        raw: parseError ? rawOut : undefined,
+        path: filePath,
+        found: true,
+        schema: bundle.schemas[fileName] || null,
+        displayName: cfg.displayName || fileName,
+        description: cfg.description || '',
+        parseError: parseError ? 'File is not valid JSON' : undefined,
+      });
+    } catch (err) {
+      logger.error({ err, serverId: req.params.id, schemaId, fileName }, 'Failed to read mod config file');
+      safeError(err, req, res, { status: 500 });
+    }
+  });
+
+  /**
    * Save a modified mod config file.
    * Body: { fileName: string, data: object }
    */
