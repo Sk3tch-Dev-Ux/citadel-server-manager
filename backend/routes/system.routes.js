@@ -9,6 +9,7 @@ const auth = require('../middleware/auth');
 const { getServiceStatus, SERVICE_NAME } = require('../lib/service-installer');
 const ctx = require('../lib/context');
 const logger = require('../lib/logger');
+const systemMetrics = require('../lib/system-metrics-sampler');
 
 module.exports = function (app) {
   /**
@@ -67,6 +68,32 @@ module.exports = function (app) {
       res.json(metrics);
     } catch (err) {
       res.status(500).json({ error: 'Failed to get system metrics' });
+    }
+  });
+
+  /**
+   * GET /api/system/metrics/history?range=1h|6h|24h — Historical trend data.
+   *
+   * Returns downsampled CPU/RAM/Disk samples from the sampler's rolling
+   * buffer. Also includes the current thresholds so the client can draw
+   * warning bands on the chart.
+   */
+  app.get('/api/system/metrics/history', auth(), (req, res) => {
+    const rangeParam = (req.query.range || '1h').toString();
+    const minutesMap = { '15m': 15, '1h': 60, '6h': 360, '24h': 1440 };
+    const rangeMinutes = minutesMap[rangeParam] || 60;
+    try {
+      const samples = systemMetrics.getHistory({ rangeMinutes, targetPoints: 180 });
+      res.json({
+        range: rangeParam,
+        rangeMinutes,
+        samples,
+        thresholds: systemMetrics.getThresholds(),
+        current: systemMetrics.getCurrent(),
+      });
+    } catch (err) {
+      logger.error({ err: err.message }, 'system-metrics: history fetch failed');
+      res.status(500).json({ error: 'Failed to load metrics history' });
     }
   });
 

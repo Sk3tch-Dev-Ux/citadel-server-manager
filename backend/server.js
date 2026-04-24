@@ -183,6 +183,15 @@ require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);
 require('./routes/restart-scheduler.routes')(app);
 require('./routes/system.routes')(app);
+
+// Start the host-metrics sampler so history is available as soon as the
+// System Dashboard opens, and so threshold alerts fire regardless of
+// whether anyone is viewing the dashboard.
+try {
+  require('./lib/system-metrics-sampler').start();
+} catch (err) {
+  require('./lib/logger').warn({ err: err.message }, 'system-metrics: failed to start sampler');
+}
 require('./routes/citadel-bridge.routes')(app);
 
 // ─── WebSocket (authenticated) ───────────────────────────

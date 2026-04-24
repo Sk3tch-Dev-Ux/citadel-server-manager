@@ -10,12 +10,19 @@ const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
 const { banPlayer, listBans, removeBan } = require('../lib/ban-engine');
-const { validateCommand, sanitizeCommand } = require('../lib/rcon-validator');
+const { validateCommand, sanitizeCommand, getAllowedCommands } = require('../lib/rcon-validator');
 const auth = require('../middleware/auth');
 const { authForServer } = require('../middleware/auth');
 const logger = require('../lib/logger');
 
 module.exports = function(app) {
+  // List allowed RCON commands (for the Console page's autocomplete).
+  // Always returns the current whitelist with descriptions — no server
+  // state needed, but permission-gated the same as `/rcon` itself.
+  app.get('/api/servers/:id/rcon/commands', authForServer('server.rcon'), (_req, res) => {
+    res.json({ commands: getAllowedCommands() });
+  });
+
   app.post('/api/servers/:id/rcon', authForServer('server.rcon'), async (req, res) => {
     const state = ctx.serverStates[req.params.id];
     if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
