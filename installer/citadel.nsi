@@ -86,12 +86,56 @@ FunctionEnd
 
 ; ═══════════════════════════════════════════════════════════
 ; Installation
+;
+; UPGRADE SAFETY:
+;   On a re-install over an existing Citadel install, the following files
+;   are preserved WITHOUT being overwritten or deleted:
+;     - data/          (server configs, backups, license cache, user DB)
+;     - .env           (user-customized env vars like CITADEL_LICENSE_API)
+;     - users.json / role defs (if present at install root)
+;
+;   The service is stopped BEFORE copying files so code files aren't locked
+;   by node.exe. The old service registration is removed + re-registered
+;   to pick up the new paths (harmless even on identical paths).
 ; ═══════════════════════════════════════════════════════════
 Section "Citadel" SecMain
   SectionIn RO
 
   SetOutPath "$INSTDIR"
   DetailPrint "Installing Citadel v${VERSION}..."
+
+  ; ══════════════════════════════════════════════════════════
+  ;  Upgrade path — stop existing service + back up user files
+  ; ══════════════════════════════════════════════════════════
+
+  ; Detect existing install
+  ${If} ${FileExists} "$INSTDIR\runtime\nssm.exe"
+    DetailPrint "Existing Citadel install detected — upgrading in place..."
+
+    ; Stop the service first so File /r can overwrite code files that
+    ; would otherwise be locked by the running node.exe.
+    DetailPrint "Stopping Citadel service before file copy (up to 30s)..."
+    nsExec::ExecToLog '"$INSTDIR\runtime\nssm.exe" stop CitadelServer'
+    Pop $0
+    Sleep 2000
+
+    ; Force-kill any stubborn node.exe still holding files from our install dir
+    nsExec::ExecToLog 'powershell -NoProfile -WindowStyle Hidden -Command "Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.Path -like ''$INSTDIR\runtime\node.exe*'' } | Stop-Process -Force -ErrorAction SilentlyContinue"'
+    Pop $0
+    Sleep 500
+
+    ; Also quit any running Citadel desktop window so its app.asar isn't locked
+    nsExec::ExecToLog 'powershell -NoProfile -WindowStyle Hidden -Command "Get-Process Citadel -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"'
+    Pop $0
+    Sleep 500
+
+    ; Back up the user .env so we can restore it if the installer overwrites.
+    ; This lets us write the new default .env.example without losing custom vars.
+    ${If} ${FileExists} "$INSTDIR\.env"
+      DetailPrint "Backing up existing .env to .env.upgrade-backup..."
+      CopyFiles /SILENT "$INSTDIR\.env" "$INSTDIR\.env.upgrade-backup"
+    ${EndIf}
+  ${EndIf}
 
   ; ── Copy Node.js runtime and NSSM service wrapper ──
   DetailPrint "Installing Node.js runtime and NSSM..."
@@ -109,7 +153,16 @@ Section "Citadel" SecMain
   SetOutPath "$INSTDIR\desktop"
   File /nonfatal /r "${STAGING_DIR}\desktop\*.*"
 
-  ; ── Create data directory ──
+  ; ── Restore user .env if we backed one up ──
+  ; The File /r above may have overwritten .env with the fresh .env.example.
+  ; Put the user's version back.
+  ${If} ${FileExists} "$INSTDIR\.env.upgrade-backup"
+    DetailPrint "Restoring your existing .env (user-customized env vars preserved)..."
+    CopyFiles /SILENT "$INSTDIR\.env.upgrade-backup" "$INSTDIR\.env"
+    Delete "$INSTDIR\.env.upgrade-backup"
+  ${EndIf}
+
+  ; ── Create data directory (preserves contents on upgrade) ──
   CreateDirectory "$INSTDIR\data"
 
   ; ── Write install directory to registry ──

@@ -118,6 +118,7 @@ app.whenReady().then(() => {
     },
     reload: () => mainWindow && mainWindow.reload(),
     toggleDevTools: () => mainWindow && mainWindow.webContents.toggleDevTools(),
+    getMainWindow: () => mainWindow,
   });
 
   createWindow();
