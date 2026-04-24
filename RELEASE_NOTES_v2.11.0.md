@@ -20,6 +20,17 @@ Re-installing Citadel over an existing install now preserves your customizations
 
 Also added an **About Citadel** dialog showing version + Electron/Node/Chromium versions.
 
+### Fixed — Auto-updater "ENOENT app-update.yml" error
+electron-updater hard-codes a lookup for `<install>/desktop/resources/app-update.yml` to determine which release feed to query. Our custom NSIS installer wasn&apos;t generating that file (it&apos;s normally produced by electron-builder&apos;s full installer mode, which we don&apos;t use). The build script now writes a deterministic `app-update.yml` into the staging output, so every fresh install ships with the right config baked in.
+
+If you&apos;re upgrading FROM v2.10.0 and seeing the ENOENT error in the update banner, run this PowerShell as administrator to manually create the file (one-time fix; v2.11.0 includes it automatically):
+
+```powershell
+$ymlPath = "C:\Citadel\desktop\resources\app-update.yml"
+New-Item -ItemType Directory -Force -Path (Split-Path $ymlPath) | Out-Null
+"provider: github`nowner: Sk3tch-Dev-Ux`nrepo: DayzServerController`nupdaterCacheDirName: citadel-updater" | Set-Content -Path $ymlPath -Encoding UTF8
+```
+
 ### Notes on upgrade
 - Automatic updates via electron-updater continue to work — they just download the new NSIS installer and run it silently with `/S`. Same safety logic applies.
 - If you&apos;re already on v2.10.0 with a custom `.env` you set for the activation workaround, you can delete the `CITADEL_LICENSE_API` line after upgrading to v2.11.0 — the new default URL is correct.
