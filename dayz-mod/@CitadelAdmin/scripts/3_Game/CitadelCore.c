@@ -365,6 +365,7 @@ class CitadelCore
     // ─── Event Registry ──────────────────────────────
 
     array<ref CitadelTrackedEvent> GetTrackedEvents() { return m_TrackedEvents; }
+    int GetEventCount() { return m_TrackedEvents.Count(); }
 
     void RegisterEvent(CitadelTrackedEvent tracked)
     {
