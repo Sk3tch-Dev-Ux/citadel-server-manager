@@ -13,21 +13,95 @@
 const VALID_FILE_TYPES = ['types', 'spawnabletypes', 'globals', 'economy', 'events', 'messages'];
 
 /**
+ * Strict regex for valid CE folder names.
+ * Allows alphanumeric, hyphens, underscores, and single-level subdirectories.
+ * Blocks path traversal (../), absolute paths, and special characters.
+ */
+const VALID_FOLDER_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_\-]*(\/[a-zA-Z0-9][a-zA-Z0-9_\-]*)*$/;
+
+/**
+ * Strict regex for valid XML file names.
+ * Must end in .xml, only allows safe characters.
+ */
+const VALID_FILENAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_\-. ]*\.xml$/i;
+
+/**
+ * Validate a CE folder name against path traversal and injection attacks.
+ * @param {string} name
+ * @returns {{ valid: boolean, reason?: string }}
+ */
+function validateFolderName(name) {
+  if (!name || typeof name !== 'string') {
+    return { valid: false, reason: 'Folder name is required' };
+  }
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return { valid: false, reason: 'Folder name cannot be empty' };
+  }
+  if (trimmed.length > 128) {
+    return { valid: false, reason: 'Folder name too long (max 128 characters)' };
+  }
+  if (trimmed.includes('..')) {
+    return { valid: false, reason: 'Folder name cannot contain ".."' };
+  }
+  if (trimmed.startsWith('/') || trimmed.startsWith('\\') || /^[A-Z]:/i.test(trimmed)) {
+    return { valid: false, reason: 'Folder name cannot be an absolute path' };
+  }
+  if (!VALID_FOLDER_REGEX.test(trimmed)) {
+    return { valid: false, reason: 'Folder name contains invalid characters (use letters, numbers, hyphens, underscores)' };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate a file name.
+ * @param {string} name
+ * @returns {{ valid: boolean, reason?: string }}
+ */
+function validateFileName(name) {
+  if (!name || typeof name !== 'string') {
+    return { valid: false, reason: 'File name is required' };
+  }
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return { valid: false, reason: 'File name cannot be empty' };
+  }
+  if (trimmed.length > 128) {
+    return { valid: false, reason: 'File name too long (max 128 characters)' };
+  }
+  if (trimmed.includes('/') || trimmed.includes('\\') || trimmed.includes('..')) {
+    return { valid: false, reason: 'File name cannot contain path separators' };
+  }
+  if (!VALID_FILENAME_REGEX.test(trimmed)) {
+    return { valid: false, reason: 'File name must end in .xml and contain only letters, numbers, hyphens, underscores, dots, or spaces' };
+  }
+  return { valid: true };
+}
+
+/**
  * Parse cfgeconomycore.xml content into a structured object.
+ *
+ * Uses bounded matching to avoid ReDoS on malformed XML.
  *
  * @param {string} xmlContent - Raw XML string
  * @returns {{ folders: Array, rawClasses: string|null, rawDefaults: string|null }}
  */
 function parseEconomyCoreXml(xmlContent) {
+  if (!xmlContent || typeof xmlContent !== 'string') {
+    return { folders: [], rawClasses: null, rawDefaults: null };
+  }
+
+  // Limit input size to prevent DoS (10MB should cover any real config)
+  if (xmlContent.length > 10 * 1024 * 1024) {
+    throw new Error('cfgeconomycore.xml is too large to parse (>10MB)');
+  }
+
   const folders = [];
 
-  // Extract the <classes>...</classes> block verbatim (to preserve on rebuild)
-  const classesMatch = xmlContent.match(/<classes[\s\S]*?<\/classes>/i);
-  const rawClasses = classesMatch ? classesMatch[0] : null;
-
-  // Extract the <defaults>...</defaults> block verbatim
-  const defaultsMatch = xmlContent.match(/<defaults[\s\S]*?<\/defaults>/i);
-  const rawDefaults = defaultsMatch ? defaultsMatch[0] : null;
+  // Extract the <classes>...</classes> block verbatim (to preserve on rebuild).
+  // Use indexOf-based extraction instead of [\s\S]*? regex to avoid ReDoS.
+  const rawClasses = extractBlock(xmlContent, 'classes');
+  const rawDefaults = extractBlock(xmlContent, 'defaults');
 
   // Match each <ce folder="..."> ... </ce> block (or self-closing)
   const ceRegex = /<ce\s+folder="([^"]*)"([^>]*?)(?:\/>|>([\s\S]*?)<\/ce>)/gi;
@@ -57,6 +131,24 @@ function parseEconomyCoreXml(xmlContent) {
 }
 
 /**
+ * Extract a top-level XML block by tag name using indexOf (ReDoS-safe).
+ * Returns the full block including tags, or null if not found.
+ *
+ * @param {string} xml
+ * @param {string} tagName
+ * @returns {string|null}
+ */
+function extractBlock(xml, tagName) {
+  const openTag = `<${tagName}`;
+  const closeTag = `</${tagName}>`;
+  const startIdx = xml.indexOf(openTag);
+  if (startIdx === -1) return null;
+  const endIdx = xml.indexOf(closeTag, startIdx);
+  if (endIdx === -1) return null; // Unclosed tag — don't attempt greedy match
+  return xml.substring(startIdx, endIdx + closeTag.length);
+}
+
+/**
  * Build cfgeconomycore.xml from structured data.
  * Preserves the original <classes> and <defaults> sections verbatim.
  *
@@ -71,21 +163,23 @@ function buildEconomyCoreXml(folders, rawClasses, rawDefaults) {
 
   // Preserve the original <classes> section
   if (rawClasses) {
-    xml += '    ' + rawClasses.split('\n').join('\n    ').trim() + '\n';
+    xml += '    ' + normalizeIndent(rawClasses) + '\n';
   }
 
   // Preserve the original <defaults> section
   if (rawDefaults) {
-    xml += '    ' + rawDefaults.split('\n').join('\n    ').trim() + '\n';
+    xml += '    ' + normalizeIndent(rawDefaults) + '\n';
   }
 
   // Write the CE folder blocks (editable part)
   for (const ce of folders) {
+    const safeFolderName = escapeXml(ce.folder);
+
     if (!ce.files || ce.files.length === 0) {
-      xml += `    <ce folder="${escapeXml(ce.folder)}" />\n`;
+      xml += `    <ce folder="${safeFolderName}" />\n`;
       continue;
     }
-    xml += `    <ce folder="${escapeXml(ce.folder)}">\n`;
+    xml += `    <ce folder="${safeFolderName}">\n`;
     for (const file of ce.files) {
       xml += `        <file name="${escapeXml(file.name)}" type="${escapeXml(file.type)}" />\n`;
     }
@@ -96,13 +190,35 @@ function buildEconomyCoreXml(folders, rawClasses, rawDefaults) {
   return xml;
 }
 
-/** Escape special XML characters in attribute values */
+/**
+ * Normalize indentation for a block being re-inserted.
+ * Handles both \r\n and \n line endings.
+ */
+function normalizeIndent(block) {
+  return block.replace(/\r\n/g, '\n').split('\n').join('\n    ').trim();
+}
+
+/**
+ * Escape special XML characters in attribute values.
+ * Covers all five predefined XML entities.
+ */
 function escapeXml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/[\r\n\t]/g, ' '); // Collapse whitespace in attribute values
 }
 
-module.exports = { parseEconomyCoreXml, buildEconomyCoreXml, VALID_FILE_TYPES };
+module.exports = {
+  parseEconomyCoreXml,
+  buildEconomyCoreXml,
+  escapeXml,
+  validateFolderName,
+  validateFileName,
+  VALID_FILE_TYPES,
+  VALID_FOLDER_REGEX,
+  VALID_FILENAME_REGEX,
+};
