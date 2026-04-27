@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { ArrowLeft, Save, ChevronRight, Plus, X, Puzzle } from '../components/Icon';
+import useServerMap from '../hooks/useServerMap';
 
 // Lazy-load InteractiveMap to avoid loading leaflet on initial render
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
@@ -1603,7 +1604,8 @@ function AirdropSection({ data, onChange }) {
 
 // ─── Mission-folder section renderers ────────────────────────────────
 
-function MapSection({ data, onChange }) {
+function MapSection({ data, onChange, serverId }) {
+  const serverMap = useServerMap(serverId);
   if (!data) return <NoData />;
   const update = (key, val) => onChange({ ...data, [key]: val });
   const [mapMode, setMapMode] = useState('view');
@@ -1689,7 +1691,7 @@ function MapSection({ data, onChange }) {
         <div style={{ padding: 8 }}>
           <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               height={500}
               markers={(data.ServerMarkers || []).map((m, i) => ({
                 id: m.m_UID || `marker-${i}`,
@@ -1843,7 +1845,8 @@ function BaseBuildingSection({ data, onChange }) {
   );
 }
 
-function SafeZonesSection({ data, onChange }) {
+function SafeZonesSection({ data, onChange, serverId }) {
+  const serverMap = useServerMap(serverId);
   if (!data) return <NoData />;
   const update = (key, val) => onChange({ ...data, [key]: val });
   const [mapMode, setMapMode] = useState('view');
@@ -1908,7 +1911,7 @@ function SafeZonesSection({ data, onChange }) {
         <div style={{ padding: 8 }}>
           <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               height={500}
               circles={(data.CircleZones || []).map((z, i) => ({
                 id: `circle-${i}`,
@@ -2476,6 +2479,7 @@ function QuestEditorView({ quest, quests, npcs, objectives, onSave, onCancel }) 
 /* ── NPC Manager Sub-view ────────────────────────────────────────── */
 
 function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
+  const serverMap = useServerMap(serverId);
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState(null);
   const [search, setSearch] = useState('');
@@ -2512,7 +2516,7 @@ function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
 
       <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
         <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}><InteractiveMap
-          mapName="chernarusplus"
+          mapName={serverMap}
           markers={markers}
           selectedId={editingId != null ? String(editingId) : null}
           onSelect={(id) => {

@@ -182,6 +182,7 @@ require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);
 require('./routes/restart-scheduler.routes')(app);
 require('./routes/system.routes')(app);
+require('./routes/updates.routes')(app);
 
 // Start the host-metrics sampler so history is available as soon as the
 // System Dashboard opens, and so threshold alerts fire regardless of
@@ -331,6 +332,11 @@ if (process.env.NODE_ENV !== 'test') {
     // Start background license refresh (loads cached license, re-verifies on interval)
     try { require('./lib/license').startBackgroundRefresh(); } catch (err) {
       logger.error({ err }, 'Failed to start license background refresh');
+    }
+
+    // Start Citadel self-update checker (polls citadels.cc for new versions)
+    try { require('./lib/update-checker').startUpdateChecker(); } catch (err) {
+      logger.error({ err }, 'Failed to start update checker');
     }
 
     // Listen

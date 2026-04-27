@@ -18,9 +18,15 @@ const { exec } = require('child_process');
 const ctx = require('../lib/context');
 const logger = require('../lib/logger');
 /**
- * Application version (from package.json)
+ * Application version (read from package.json at startup)
  */
-const APP_VERSION = '2.0.0';
+const APP_VERSION = (() => {
+  try {
+    return JSON.parse(require('fs').readFileSync(require('path').resolve(__dirname, '../../package.json'), 'utf-8')).version;
+  } catch {
+    return 'unknown';
+  }
+})();
 
 /**
  * Server startup timestamp (recorded at first module load)

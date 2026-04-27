@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import './LiveDashboardPage.css';
 import { useSocket } from '../contexts/SocketContext';
+import useServerMap from '../hooks/useServerMap';
 import API from '../api';
 import PageLoader from '../components/PageLoader';
 import { formatUptime, throttle } from '../utils';
@@ -78,6 +79,7 @@ const VEHICLE_ACTIONS = [
 
 export default function LiveDashboardPage({ serverId }) {
   const socket = useSocket();
+  const serverMap = useServerMap(serverId);
   const [tab, setTab] = useState('map');
   const [status, setStatus] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -386,7 +388,7 @@ function LiveMapTab({ markers, players, vehicles, onSelectPlayer, selectedVehicl
     <div className="live-map-container">
       <Suspense fallback={<PageLoader />}>
         <InteractiveMap
-          mapName="chernarusplus"
+          mapName={serverMap}
           markers={markers}
           height={600}
           mode={teleportMode ? 'addMarker' : 'view'}

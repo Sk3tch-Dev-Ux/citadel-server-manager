@@ -127,8 +127,15 @@ function forceFlush(dataDir, filename) {
     clearTimeout(entry.timeout);
     pendingWrites.delete(filename);
 
+    // Use the latest data from the writeQueue if available (more recent than pendingWrites)
+    let dataToWrite = entry.data;
+    const queue = writeQueue.get(filename);
+    if (queue && queue.length > 0) {
+      dataToWrite = queue[queue.length - 1].data;
+    }
+
     try {
-      fs.writeFileSync(filePath, JSON.stringify(entry.data, null, 2));
+      fs.writeFileSync(filePath, JSON.stringify(dataToWrite, null, 2));
       logger.info({ file: filename }, 'Force-flushed pending write');
     } catch (err) {
       logger.error({ err, file: filename }, 'Failed to force-flush pending write');

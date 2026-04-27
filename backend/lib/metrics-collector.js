@@ -14,7 +14,7 @@
  */
 const logger = require('./logger');
 const ctx = require('./context');
-const { getProcessMetrics, getProcessCPU } = require('./process-manager');
+const { getProcessMetrics } = require('./process-manager');
 const { scrapeRPTForFPS } = require('./rpt-scraper');
 const { fetchPlayers, fetchModMetrics, fetchModVehicles } = require('./player-data');
 const { addLog } = require('./audit');
@@ -35,16 +35,31 @@ const { HEALTH_ALERT_COOLDOWN_MS } = require('./constants');
  * @param {number} pid - Verified alive PID for this server
  */
 async function collectMetrics(srv, state, pid) {
-  // ─── CPU / RAM / FPS sampling ──────────────────────────
+  // ─── CPU / RAM sampling (single PowerShell call) ───────
+  // getProcessMetrics now returns { cpu, ram, ramMB } in one PS call
+  // (previously was two separate PS spawns per tick — halved overhead)
   const metrics = await getProcessMetrics(pid);
-  const cpu = await getProcessCPU(pid);
-  if (metrics) metrics.cpu = cpu;
+
+  // ─── Parallel I/O: fetch FPS, players, and vehicles concurrently ──
+  // These are independent network calls to the sidecar / RCON — no reason
+  // to await them sequentially. On a server with 60+ players this saves
+  // hundreds of milliseconds per tick.
+  const [modMetrics, players, vehicles] = await Promise.all([
+    fetchModMetrics(srv.id).catch(() => null),
+    fetchPlayers(srv.id).catch((err) => {
+      logger.debug({ err, serverId: srv.id }, 'Player poll failed');
+      return null;
+    }),
+    fetchModVehicles(srv.id).catch((err) => {
+      logger.debug({ err, serverId: srv.id }, 'Vehicle poll failed');
+      return [];
+    }),
+  ]);
 
   // ─── FPS: prefer sidecar /metrics, fallback to RPT/RCON ──
   let fps = 0;
-  const modMetrics = await fetchModMetrics(srv.id);
   if (modMetrics && typeof modMetrics.fps === 'number') {
-    fps = modMetrics.fps; // sidecar returns fps already divided by 100
+    fps = modMetrics.fps;
     state.modMetrics = modMetrics;
   } else {
     fps = scrapeRPTForFPS(srv);
@@ -58,23 +73,15 @@ async function collectMetrics(srv, state, pid) {
 
   if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps);
 
-  // ─── Player list polling ───────────────────────────────
-  try {
-    const players = await fetchPlayers(srv.id);
+  // ─── Player list ───────────────────────────────────────
+  if (players !== null) {
     state.players = players;
-    // Always emit — positions change even when count doesn't (needed for live map)
-    ctx.io.emit('players', { serverId: srv.id, players: state.players });
-  } catch (err) {
-    logger.debug({ err, serverId: srv.id }, 'Player poll failed');
   }
+  // Always emit — positions change even when count doesn't (needed for live map)
+  ctx.io.emit('players', { serverId: srv.id, players: state.players });
 
-  // ─── Vehicle data from sidecar ────────────────────────
-  try {
-    const vehicles = await fetchModVehicles(srv.id);
-    if (vehicles.length > 0) state.vehicles = vehicles;
-  } catch (err) {
-    logger.debug({ err, serverId: srv.id }, 'Vehicle poll failed');
-  }
+  // ─── Vehicle data ─────────────────────────────────────
+  if (vehicles.length > 0) state.vehicles = vehicles;
 
   // ─── Health monitoring ─────────────────────────────────
   checkHealthThresholds(srv, state, metrics, fps);

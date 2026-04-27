@@ -4,6 +4,7 @@ import API from '../api';
 import { ArrowLeft, Save, Plus, X, Search, ChevronRight, ChevronDown, ShoppingCart, Trash2, Check, Edit, Copy } from '../components/Icon';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
+import useServerMap from '../hooks/useServerMap';
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -1173,6 +1174,7 @@ function TradersTab({ serverId }) {
 // ─── Tab 3: Trader Zones ────────────────────────────────────────────
 
 function TraderZonesTab({ serverId }) {
+  const serverMap = useServerMap(serverId);
   const [zones, setZones] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -1300,7 +1302,7 @@ function TraderZonesTab({ serverId }) {
         <div style={{ padding: 8 }}>
           <Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               height={500}
               circles={zoneIds.map(id => {
                 const z = editData[id];
@@ -1447,6 +1449,7 @@ function TraderZonesTab({ serverId }) {
 // ─── Tab 4: NPC Spawns ──────────────────────────────────────────────
 
 function NPCSpawnsTab({ serverId }) {
+  const serverMap = useServerMap(serverId);
   // spawnFiles: [{ fileName, spawns: [{ entityClass, traderFile, position: {x,y,z}, orientation: {yaw,pitch,roll}, gear: [] }], raw, dirty }]
   // All data comes from /trader-editor/spawns which parses the Expansion .map
   // format server-side and returns structured objects. The prior version of
@@ -1666,7 +1669,7 @@ function NPCSpawnsTab({ serverId }) {
         <div style={{ padding: 8 }}>
           <Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               height={500}
               markers={allMarkers}
               selectedId={selectedFile && expandedNpcIdx != null ? `${selectedFile}::${expandedNpcIdx}` : null}

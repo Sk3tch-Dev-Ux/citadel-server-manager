@@ -31,18 +31,97 @@ import './InteractiveMap.css';
 // Map configurations
 // ---------------------------------------------------------------------------
 
+/**
+ * Map configurations for all supported DayZ maps.
+ *
+ * Each entry contains:
+ *   - name: Human-readable display name
+ *   - size: World size in meters (used for CRS transformation and grid overlay)
+ *   - tileUrl: Tile URL pattern (xam.nu CDN with webp tiles)
+ *   - maxZoom/minZoom: Tile zoom range
+ *   - aliases: Alternative template names that map to this config (for auto-detection)
+ *
+ * Tile version is set to "latest" which xam.nu redirects to the current DayZ version.
+ * If tiles are unavailable for a map, the grid overlay still provides usable coordinates.
+ */
+const TILE_VERSION = '1.28';
+const TILE_BASE = 'https://static.xam.nu/dayz/maps';
+
 const MAP_CONFIGS = {
   chernarusplus: {
     name: 'Chernarus+',
     size: 15360,
-    tileUrl: 'https://static.xam.nu/dayz/maps/chernarusplus/1.27/satellite/{z}/{x}/{y}.webp',
+    tileUrl: `${TILE_BASE}/chernarusplus/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
     maxZoom: 7,
     minZoom: 0,
   },
   enoch: {
     name: 'Livonia',
     size: 12800,
-    tileUrl: 'https://static.xam.nu/dayz/maps/enoch/1.27/satellite/{z}/{x}/{y}.webp',
+    tileUrl: `${TILE_BASE}/enoch/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  sakhal: {
+    name: 'Sakhal',
+    size: 12800,
+    tileUrl: `${TILE_BASE}/sakhal/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  deerisle: {
+    name: 'Deer Isle',
+    size: 16384,
+    tileUrl: `${TILE_BASE}/deerisle/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  namalsk: {
+    name: 'Namalsk',
+    size: 12544,
+    tileUrl: `${TILE_BASE}/namalsk/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  banov: {
+    name: 'Banov',
+    size: 16384,
+    tileUrl: `${TILE_BASE}/banov/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  esseker: {
+    name: 'Esseker',
+    size: 12800,
+    tileUrl: `${TILE_BASE}/esseker/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  takistanplus: {
+    name: 'Takistan+',
+    size: 12800,
+    tileUrl: `${TILE_BASE}/takistanplus/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  rostow: {
+    name: 'Rostow',
+    size: 14336,
+    tileUrl: `${TILE_BASE}/rostow/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  alteria: {
+    name: 'Alteria',
+    size: 8192,
+    tileUrl: `${TILE_BASE}/alteria/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
+    maxZoom: 7,
+    minZoom: 0,
+  },
+  pripyat: {
+    name: 'Pripyat',
+    size: 20480,
+    tileUrl: `${TILE_BASE}/pripyat/${TILE_VERSION}/satellite/{z}/{x}/{y}.webp`,
     maxZoom: 7,
     minZoom: 0,
   },
