@@ -54,7 +54,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/CitadelSetup-*.exe
+          files: |
+            build/CitadelSetup-*.exe
+            build/latest.yml
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           name: Citadel ${{ github.ref_name }}
