@@ -72,6 +72,47 @@ async function ensureCeFolder(missionDir, folderName) {
   }
 }
 
+/**
+ * Skeleton XML templates for each CE file type.
+ * Created on disk when a user adds a file entry that doesn't exist yet.
+ * DayZ will crash if cfgeconomycore.xml references a missing file.
+ */
+const SKELETON_XML = {
+  types: `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n<types>\n    <!-- Add <type> entries here -->\n</types>\n`,
+  spawnabletypes: `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n<spawnabletypes>\n    <!-- Add <type> entries here -->\n</spawnabletypes>\n`,
+  globals: `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n<variables>\n    <!-- Add <var> entries here -->\n</variables>\n`,
+  economy: `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n<economy>\n    <!-- Add economy entries here -->\n</economy>\n`,
+  events: `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n<events>\n    <!-- Add <event> entries here -->\n</events>\n`,
+  messages: `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n<messages>\n    <!-- Add <message> entries here -->\n</messages>\n`,
+};
+
+/**
+ * Ensure all file entries exist on disk. Creates skeleton XML files for any
+ * entries that don't exist yet. Returns list of created filenames.
+ */
+async function ensureCeFiles(missionDir, folderName, files) {
+  const folderPath = safeCeFolderPath(missionDir, folderName);
+  if (!folderPath) return [];
+
+  const created = [];
+  for (const file of files) {
+    const filePath = path.join(folderPath, file.name);
+    // Safety: verify path is still inside the folder
+    if (!path.resolve(filePath).startsWith(path.resolve(folderPath) + path.sep)) continue;
+
+    try {
+      await fsp.access(filePath);
+      // File already exists — don't overwrite
+    } catch {
+      // File doesn't exist — create skeleton
+      const skeleton = SKELETON_XML[file.type] || SKELETON_XML.types;
+      await fsp.writeFile(filePath, skeleton, 'utf8');
+      created.push(file.name);
+    }
+  }
+  return created;
+}
+
 // ─── Routes ─────────────────────────────────────────────────
 
 module.exports = function (app) {
@@ -211,21 +252,31 @@ module.exports = function (app) {
         files: f.files.map(file => ({ name: file.name.trim(), type: file.type })),
       }));
 
-      // ── Auto-create folders on disk ───────────────────────
-      const created = [];
+      // ── Auto-create folders AND files on disk ─────────────
+      const createdFolders = [];
+      const createdFiles = [];
       for (const ce of cleanedFolders) {
         const wasCreated = await ensureCeFolder(missionDir, ce.folder);
-        if (wasCreated) created.push(ce.folder);
+        if (wasCreated) createdFolders.push(ce.folder);
+
+        // Create skeleton XML files for any entries that don't exist on disk
+        if (ce.files.length > 0) {
+          const newFiles = await ensureCeFiles(missionDir, ce.folder, ce.files);
+          createdFiles.push(...newFiles.map(f => `${ce.folder}/${f}`));
+        }
       }
-      if (created.length > 0) {
-        logger.info({ serverId: srv.id, created }, 'Auto-created CE folders on disk');
+      if (createdFolders.length > 0) {
+        logger.info({ serverId: srv.id, createdFolders }, 'Auto-created CE folders on disk');
+      }
+      if (createdFiles.length > 0) {
+        logger.info({ serverId: srv.id, createdFiles }, 'Auto-created skeleton XML files on disk');
       }
 
       const xml = buildEconomyCoreXml(cleanedFolders, rawClasses, rawDefaults);
       await fsp.writeFile(filePath, xml, 'utf8');
 
       addAudit(req.user.id, req.user.username, 'economycore.update',
-        `Updated cfgeconomycore.xml (${cleanedFolders.length} CE folders)${created.length ? ` — created: ${created.join(', ')}` : ''}`
+        `Updated cfgeconomycore.xml (${cleanedFolders.length} CE folders)${createdFolders.length ? ` — folders: ${createdFolders.join(', ')}` : ''}${createdFiles.length ? ` — files: ${createdFiles.join(', ')}` : ''}`
       );
       logger.info({ serverId: srv.id, folderCount: cleanedFolders.length }, 'cfgeconomycore.xml saved');
 
@@ -237,7 +288,7 @@ module.exports = function (app) {
         })
       );
 
-      res.json({ ok: true, folders: enriched, created });
+      res.json({ ok: true, folders: enriched, createdFolders, createdFiles });
     } catch (err) {
       logger.error({ err, serverId: srv.id }, 'Failed to save cfgeconomycore.xml');
       safeError(err, req, res, { status: 500 });

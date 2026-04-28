@@ -26,6 +26,9 @@
  * `updater:check`.
  */
 const { autoUpdater } = require('electron-updater');
+const { app } = require('electron');
+const fs = require('fs');
+const path = require('path');
 
 // GitHub repo that hosts the releases. Public repo — no token required.
 const FEED_OWNER = 'Sk3tch-Dev-Ux';
@@ -34,6 +37,37 @@ const FEED_REPO = 'DayzServerController';
 // Periodic check interval (6 hours). We also check once ~10 s after launch.
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const INITIAL_CHECK_DELAY_MS = 10 * 1000;
+
+// ── File-based debug log ──────────────────────────────────
+// Writes to <installDir>/data/updater.log so users can share the log when
+// reporting update issues. We keep it small — only key lifecycle events.
+const LOG_FILE = (() => {
+  try {
+    // In production the exe is at <installDir>/desktop/Citadel.exe
+    // → data/ is at <installDir>/data/
+    const exeDir = path.dirname(app.getPath('exe'));
+    const installDir = path.dirname(exeDir);
+    const dataDir = path.join(installDir, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    return path.join(dataDir, 'updater.log');
+  } catch {
+    return null;
+  }
+})();
+
+function fileLog(level, msg) {
+  if (!LOG_FILE) return;
+  try {
+    const ts = new Date().toISOString();
+    fs.appendFileSync(LOG_FILE, `${ts} [${level}] ${msg}\n`);
+    // Keep the log file from growing unbounded — truncate if > 500 KB
+    const stat = fs.statSync(LOG_FILE);
+    if (stat.size > 512 * 1024) {
+      const lines = fs.readFileSync(LOG_FILE, 'utf-8').split('\n');
+      fs.writeFileSync(LOG_FILE, lines.slice(-200).join('\n'), 'utf-8');
+    }
+  } catch { /* best-effort */ }
+}
 
 /** Internal state cached for `updater:status` queries from the renderer. */
 let lastState = {
@@ -50,11 +84,13 @@ let sendToRenderer = () => {};
 function log(...args) {
   // eslint-disable-next-line no-console
   console.log('[updater]', ...args);
+  fileLog('INFO', args.join(' '));
 }
 
 function warn(...args) {
   // eslint-disable-next-line no-console
   console.warn('[updater]', ...args);
+  fileLog('WARN', args.join(' '));
 }
 
 function emit(channel, payload) {
@@ -78,6 +114,8 @@ function initAutoUpdater({ getMainWindow }) {
       win.webContents.send(channel, payload);
     }
   };
+
+  log(`auto-updater init — app version: ${app.getVersion()}, feed: ${FEED_OWNER}/${FEED_REPO}`);
 
   // Config — point at our public GitHub releases. Keeps the logic out of
   // app-update.yml (which our custom NSIS installer doesn't generate).
@@ -197,8 +235,17 @@ function installNow() {
     warn('installNow called but no update is downloaded');
     return { ok: false, reason: 'no-update-downloaded' };
   }
+  log('installing update — quitting app and running installer...');
+
+  // CRITICAL: Set app.isQuiting BEFORE quitAndInstall(). The main window's
+  // 'close' handler hides to tray unless this flag is true. Without it,
+  // quitAndInstall's internal app.quit() call just hides the window and
+  // the app never actually exits — so the installer can't overwrite files.
+  app.isQuiting = true;
+
   // isSilent=true → runs the NSIS /S switch → no UI, just elevation prompt
-  // isForceRunAfter=true → the new app version auto-launches on completion
+  // isForceRunAfter=true → hints that the app should relaunch after install
+  // Our NSIS .onInstSuccess callback handles the actual relaunch in /S mode.
   autoUpdater.quitAndInstall(true, true);
   return { ok: true };
 }

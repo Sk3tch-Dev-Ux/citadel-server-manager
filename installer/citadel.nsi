@@ -261,6 +261,30 @@ Section "Citadel" SecMain
 SectionEnd
 
 ; ═══════════════════════════════════════════════════════════
+; Silent-mode auto-launch
+;
+; When electron-updater runs the installer with /S (silent), all MUI pages
+; are skipped — including the Finish page that calls LaunchDashboard.
+; This callback fires after a successful install regardless of mode.
+; In silent mode it waits for the backend API, then launches the desktop
+; app so the user sees Citadel come back after "Restart & Install".
+; ═══════════════════════════════════════════════════════════
+Function .onInstSuccess
+  IfSilent 0 notSilent
+    DetailPrint "Silent install complete — launching Citadel..."
+    ; Wait for the backend service to be ready before launching the app.
+    ; Without this the desktop app's splash screen would sit on "connecting"
+    ; for a long time on slower machines.
+    IfFileExists "$INSTDIR\backend\lib\wait-for-ready.js" 0 skipWait
+      nsExec::ExecToLog '"$INSTDIR\runtime\node.exe" "$INSTDIR\backend\lib\wait-for-ready.js"'
+      Pop $0
+    skipWait:
+    IfFileExists "$INSTDIR\desktop\Citadel.exe" 0 notSilent
+      Exec '"$INSTDIR\desktop\Citadel.exe"'
+  notSilent:
+FunctionEnd
+
+; ═══════════════════════════════════════════════════════════
 ; Finish page — open dashboard
 ; ═══════════════════════════════════════════════════════════
 Function LaunchDashboard

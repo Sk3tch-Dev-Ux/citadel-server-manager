@@ -178,9 +178,10 @@ export default function EconomyCoreEditorPage({ serverId }) {
           : result.error;
         window.addToast?.(msg, 'error');
       } else {
-        const createdMsg = result.created?.length
-          ? ` (created folder${result.created.length > 1 ? 's' : ''}: ${result.created.join(', ')})`
-          : '';
+        const parts = [];
+        if (result.createdFolders?.length) parts.push(`${result.createdFolders.length} folder(s)`);
+        if (result.createdFiles?.length) parts.push(`${result.createdFiles.length} file(s)`);
+        const createdMsg = parts.length ? ` — created ${parts.join(' and ')} on disk` : '';
         window.addToast?.(`Economy core config saved${createdMsg}`, 'success');
         const data = result.folders || payload;
         setFolders(data);
