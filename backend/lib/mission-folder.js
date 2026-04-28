@@ -9,12 +9,23 @@ const { readServerConfig } = require('./dayz-config');
 const TEMPLATE_TO_FOLDER = {
   'dayzoffline.chernarusplus': 'dayzOffline.chernarusplus',
   'chernarusplus': 'dayzOffline.chernarusplus',
+  'chernarus': 'dayzOffline.chernarusplus',
   'dayzoffline.enoch': 'dayzOffline.enoch',
   'enoch': 'dayzOffline.enoch',
+  'livonia': 'dayzOffline.enoch',
+  'dayzoffline.sakhal': 'dayzOffline.sakhal',
+  'sakhal': 'dayzOffline.sakhal',
   'deerisle': 'deerisle',
+  'deer_isle': 'deerisle',
   'namalsk': 'namalsk',
-  'sakhal': 'sakhal',
+  'namalskisland': 'namalsk',
   'takistanplus': 'takistanplus',
+  'takistan': 'takistanplus',
+  'banov': 'banov',
+  'esseker': 'esseker',
+  'rostow': 'rostow',
+  'alteria': 'alteria',
+  'pripyat': 'pripyat',
 };
 
 /**

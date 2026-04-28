@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import API from '../api';
 import {
   FolderOpen, Plus, Trash2, Search, ChevronDown, ChevronRight,
-  Copy, FileText, CircleCheck, AlertTriangle, X,
+  Copy, FileText, CircleCheck, AlertTriangle, X, Upload,
 } from '../components/Icon';
 
 // ─── Constants ───────────────────────────────────────────────
@@ -52,7 +52,11 @@ export default function EconomyCoreEditorPage({ serverId }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [collapsed, setCollapsed] = useState({});   // { [folderIdx]: bool }
   const [creatingFolder, setCreatingFolder] = useState(null); // folder name being created on disk
+  const [uploadingFolder, setUploadingFolder] = useState(null); // folder currently receiving uploads
+  const [missionFolder, setMissionFolder] = useState(''); // mission directory name for display
   const saveTimerRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const uploadTargetRef = useRef(null); // which folder index is the upload target
 
   // ─── Data Loading ────────────────────────────────────────
 
@@ -67,6 +71,7 @@ export default function EconomyCoreEditorPage({ serverId }) {
         setFolders(data);
         setOriginal(JSON.parse(JSON.stringify(data)));
         setValidTypes(result.validTypes || []);
+        if (result.missionDir) setMissionFolder(result.missionDir);
       }
     } catch {
       window.addToast?.('Failed to load cfgeconomycore.xml', 'error');
@@ -173,7 +178,10 @@ export default function EconomyCoreEditorPage({ serverId }) {
           : result.error;
         window.addToast?.(msg, 'error');
       } else {
-        window.addToast?.('Economy core config saved', 'success');
+        const createdMsg = result.created?.length
+          ? ` (created folder${result.created.length > 1 ? 's' : ''}: ${result.created.join(', ')})`
+          : '';
+        window.addToast?.(`Economy core config saved${createdMsg}`, 'success');
         const data = result.folders || payload;
         setFolders(data);
         setOriginal(JSON.parse(JSON.stringify(data)));
@@ -280,6 +288,79 @@ export default function EconomyCoreEditorPage({ serverId }) {
     setCreatingFolder(null);
   };
 
+  // ─── File upload ────────────────────────────────────
+
+  const triggerUpload = (folderIdx) => {
+    uploadTargetRef.current = folderIdx;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = async (e) => {
+    const folderIdx = uploadTargetRef.current;
+    if (folderIdx == null || !e.target.files?.length) return;
+    const ce = folders[folderIdx];
+    if (!ce?.folder?.trim()) {
+      window.addToast?.('Set a folder name before uploading', 'error');
+      return;
+    }
+
+    const filesToUpload = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.xml'));
+    if (filesToUpload.length === 0) {
+      window.addToast?.('Only .xml files can be uploaded', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingFolder(ce.folder.trim());
+
+    try {
+      // Read all files as base64
+      const filePayloads = await Promise.all(
+        filesToUpload.map(f => new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(',')[1]; // strip data:...;base64, prefix
+            resolve({ name: f.name, content: base64 });
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(f);
+        }))
+      );
+
+      const result = await API.post(`/api/servers/${serverId}/economycore/upload`, {
+        folder: ce.folder.trim(),
+        files: filePayloads,
+      });
+
+      if (result.error) {
+        const msg = result.details ? result.details.join('\n') : result.error;
+        window.addToast?.(msg, 'error');
+      } else {
+        window.addToast?.(`Uploaded ${result.written.length} file(s) to "${ce.folder.trim()}"`, 'success');
+
+        // Add uploaded files to the config entries if they're not already there
+        setFolders(prev => prev.map((f, i) => {
+          if (i !== folderIdx) return f;
+          const existingNames = new Set(f.files.map(file => file.name.toLowerCase()));
+          const newFiles = result.written
+            .filter(name => !existingNames.has(name.toLowerCase()))
+            .map(name => ({ name, type: guessFileType(name) }));
+          return {
+            ...f,
+            files: [...f.files, ...newFiles],
+            exists: true,
+            diskFiles: result.diskFiles || f.diskFiles,
+          };
+        }));
+      }
+    } catch {
+      window.addToast?.('File upload failed', 'error');
+    }
+
+    setUploadingFolder(null);
+    e.target.value = ''; // Reset input so same file can be re-uploaded
+  };
+
   // ─── Toggle collapse ──────────────────────────────────
 
   const toggleCollapse = (idx) => {
@@ -329,12 +410,22 @@ export default function EconomyCoreEditorPage({ serverId }) {
 
   return (
     <div style={{ padding: 24, maxWidth: 1040, margin: '0 auto' }}>
+      {/* Hidden file input for uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xml"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileUpload}
+      />
+
       {/* ── Header ─────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: 20, fontWeight: 600 }}>Economy Core Config</h2>
           <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>
-            cfgeconomycore.xml — Defines which CE folders and XML files the DayZ economy engine loads.
+            cfgeconomycore.xml{missionFolder ? ` — ${missionFolder}` : ''} — Defines which CE folders and XML files the DayZ economy engine loads.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
@@ -535,6 +626,15 @@ export default function EconomyCoreEditorPage({ serverId }) {
                 <button className="btn btn-secondary" style={{ fontSize: 11, padding: '3px 6px' }} onClick={() => moveFolder(folderIdx, 1)} disabled={folderIdx === folders.length - 1} title="Move down">
                   ▼
                 </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: 11, padding: '3px 6px' }}
+                  onClick={() => triggerUpload(folderIdx)}
+                  disabled={!ce.folder?.trim() || uploadingFolder === ce.folder?.trim()}
+                  title="Upload XML files to this folder"
+                >
+                  <Upload size={12} /> {uploadingFolder === ce.folder?.trim() ? '...' : ''}
+                </button>
                 <button className="btn btn-secondary" style={{ fontSize: 11, padding: '3px 6px' }} onClick={() => duplicateFolder(folderIdx)} title="Duplicate folder">
                   <Copy size={12} />
                 </button>
@@ -616,9 +716,17 @@ export default function EconomyCoreEditorPage({ serverId }) {
                   </div>
                 )}
 
-                <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => addFile(folderIdx)}>
-                    <Plus size={12} /> Add File
+                    <Plus size={12} /> Add Entry
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ fontSize: 12 }}
+                    onClick={() => triggerUpload(folderIdx)}
+                    disabled={!ce.folder?.trim() || uploadingFolder === ce.folder?.trim()}
+                  >
+                    <Upload size={12} /> {uploadingFolder === ce.folder?.trim() ? 'Uploading...' : 'Upload XML'}
                   </button>
 
                   {/* Quick-add common files if folder is empty */}
