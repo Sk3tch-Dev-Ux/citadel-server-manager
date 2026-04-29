@@ -28,6 +28,50 @@ const client = require('./client');
 const MAX_IMPORT_BANS = 100_000;
 const PREVIEW_SAMPLE_SIZE = 5;
 
+// 17-digit number starting with 7656 — Steam64 format. Tight enough that
+// false positives in the recursive scanner below are vanishingly rare:
+// Steam64s sit in a very narrow numeric range and aren't easily confused
+// with timestamps, IDs in other formats, or unrelated counters.
+const STEAM64_RE = /^7656\d{13}$/;
+
+/**
+ * Recursively scan any object/array for the first string matching the
+ * Steam64 format. Used as a shape-agnostic fallback when none of the
+ * explicit field paths in normalizeBan() yield a Steam64.
+ *
+ * Why this works defensively: the only string in a CFTools ban record
+ * that matches `^7656\d{13}$` is a Steam64. Other identifiers (CFTools
+ * IDs, BattlEye GUIDs, BIS UIDs, server IDs, ban IDs) don't fit that
+ * shape. So we can scan freely without worrying about grabbing the
+ * wrong value.
+ *
+ * Cycle protection: a `seen` Set prevents infinite recursion if the
+ * record contains circular references (rare but possible after JSON
+ * deserialization of objects with $ref-style backlinks).
+ */
+function findSteam64Anywhere(value, seen = new Set()) {
+  if (value == null) return null;
+  if (typeof value === 'string') {
+    return STEAM64_RE.test(value) ? value : null;
+  }
+  if (typeof value !== 'object') return null;
+  if (seen.has(value)) return null;
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findSteam64Anywhere(item, seen);
+      if (found) return found;
+    }
+    return null;
+  }
+  for (const key of Object.keys(value)) {
+    const found = findSteam64Anywhere(value[key], seen);
+    if (found) return found;
+  }
+  return null;
+}
+
 /**
  * Normalize a CFTools ban record into our local shape.
  *
@@ -68,15 +112,30 @@ function normalizeBan(raw) {
   // Extract any Steam64 the record happens to carry. CFTools' ban records
   // may include this in the player metadata even when format=cftools_id,
   // because the original ban event captured the Steam side.
+  //
+  // Two-stage lookup:
+  //   1. Try the obvious explicit field paths first (fast, deterministic
+  //      preference for the most semantically meaningful location).
+  //   2. Fall back to a recursive scan of the entire record. Steam64s
+  //      have a tight format (^7656\d{13}$) that nothing else in CFTools'
+  //      data model uses, so this is safe.
+  //
+  // Stage 2 is the safety net for response shapes I haven't seen yet —
+  // it makes the importer robust to any field-naming convention CFTools
+  // might use without us having to enumerate them.
   const steamCandidates = [
     raw.steam_id, raw.steam64, raw.steamid,
     raw.identifier?.steam64, raw.identifier?.steam_id,
     raw.player?.steam64, raw.player?.steam_id,
     raw.profile?.steam64, raw.profile?.steam_id,
   ];
-  const steamId = steamCandidates.find(
-    (v) => typeof v === 'string' && /^7656\d{13}$/.test(v),
+  let steamId = steamCandidates.find(
+    (v) => typeof v === 'string' && STEAM64_RE.test(v),
   );
+  if (!steamId) {
+    // Stage 2: recursive scan as a shape-agnostic fallback.
+    steamId = findSteam64Anywhere(raw);
+  }
 
   if (steamId) {
     return {
@@ -299,6 +358,7 @@ module.exports = {
   preview,
   importAll,
   normalizeBan,
+  findSteam64Anywhere,
   MAX_IMPORT_BANS,
   PREVIEW_SAMPLE_SIZE,
 };
