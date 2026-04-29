@@ -10,7 +10,11 @@ import NotificationCenter from '../components/NotificationCenter';
 import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
 import AppUpdateBanner from '../components/AppUpdateBanner';
 import CitadelUpdateBanner from '../components/CitadelUpdateBanner';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield, ShieldBan } from '../components/Icon';
+// Note: ShieldBan is imported alongside the ServerNav icons further down
+// in this file — the second import statement covers both the top-level
+// sidebar nav and the per-server sub-navigation. Keeping it in one place
+// avoids the "symbol already declared" error.
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
 // `Eye` is imported at the bottom of the file for the server nav — reuse that import in the JSX below via hoisting.
 
 export default function AppLayout() {
