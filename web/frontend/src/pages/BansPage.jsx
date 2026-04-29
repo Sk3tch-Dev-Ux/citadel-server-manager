@@ -3,8 +3,9 @@ import API from '../api';
 import { timeAgo } from '../utils';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
-import { ShieldBan, Plus, Search, Download, Upload, Copy, Check, Trash2, Sparkles } from '../components/Icon';
+import { ShieldBan, Plus, Search, Download, Upload, Copy, Check, Trash2, Sparkles, ExternalLink } from '../components/Icon';
 import useLicenseStatus from '../hooks/useLicenseStatus';
+import CFToolsImportModal from '../components/CFToolsImportModal';
 
 // Phase 3 — community ban categories. Mirrors the allowlist on both
 // backend/routes/bans.routes.js and the citadels.cc cloud-bans.routes.ts.
@@ -126,6 +127,7 @@ export default function BansPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importPreview, setImportPreview] = useState(null); // { filename, format, entries, newCount, dupeCount }
+  const [showCFToolsImport, setShowCFToolsImport] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const fileRef = useRef(null);
   const { confirm, DialogComponent } = useConfirmDialog();
@@ -265,9 +267,16 @@ export default function BansPage() {
             <Download size={14} /> Export
           </button>
           <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()} disabled={importing} title="Import bans from JSON, CSV, or TXT file">
-            <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
+            <Upload size={14} /> {importing ? 'Importing...' : 'Import file'}
           </button>
           <input ref={fileRef} type="file" accept=".json,.csv,.txt" onChange={handleFileSelect} style={{ display: 'none' }} />
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowCFToolsImport(true)}
+            title="Import an existing banlist from CFTools Cloud via their API"
+          >
+            <ExternalLink size={14} /> From CFTools
+          </button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
             <Plus size={14} /> Add Ban
           </button>
@@ -392,6 +401,22 @@ export default function BansPage() {
           </div>
         )}
       </Modal>
+
+      {/* ─── CFTools Import Modal ───────────────────────────── */}
+      <CFToolsImportModal
+        open={showCFToolsImport}
+        onClose={() => setShowCFToolsImport(false)}
+        onImported={async () => {
+          // Refresh the local ban list after a successful CFTools import.
+          try {
+            const refreshed = await API.get('/api/bans');
+            setBans(Array.isArray(refreshed) ? refreshed : []);
+          } catch {
+            // The toast in the modal already reported the result; failure
+            // to refresh is purely a UI-staleness issue.
+          }
+        }}
+      />
 
       {DialogComponent}
     </div>

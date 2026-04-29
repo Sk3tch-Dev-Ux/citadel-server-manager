@@ -142,6 +142,7 @@ app.use(express.static(WEB_DIST));
 require('./routes/setup.routes')(app);
 require('./routes/citadel-license.routes')(app);
 require('./routes/cloud-bans.routes')(app);
+require('./routes/cftools-import.routes')(app);
 require('./routes/auth.routes')(app);
 require('./routes/servers.routes')(app);
 require('./routes/server-control.routes')(app);
