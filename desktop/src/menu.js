@@ -8,7 +8,7 @@
  */
 const { Menu } = require('electron');
 
-function buildMenu({ openExternal, quit, reload, toggleDevTools }) {
+function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }) {
   const template = [
     {
       label: '&File',
@@ -33,8 +33,13 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools }) {
       label: '&Help',
       submenu: [
         { label: 'Documentation', click: () => openExternal('https://citadels.cc/docs') },
-        { label: 'Pricing & Account', click: () => openExternal('https://citadels.cc/account') },
+        { label: 'Citadel Cloud Account', click: () => openExternal('https://citadels.cc/account') },
         { label: 'Discord', click: () => openExternal('https://citadels.cc/discord') },
+        { type: 'separator' },
+        // P1.5 — surfaces %APPDATA%/Citadel/update.log in the user's default
+        // text editor. Lets us tell a customer "send me your update log" in
+        // one sentence instead of explaining where the file lives.
+        { label: 'Show Update Log', click: () => showUpdateLog && showUpdateLog() },
         { type: 'separator' },
         { label: 'Report an Issue', click: () => openExternal('https://github.com/Sk3tch-Dev-Ux/DayzServerController/issues') },
       ],

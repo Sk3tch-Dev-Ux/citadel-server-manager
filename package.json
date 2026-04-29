@@ -24,6 +24,7 @@
     "service:status": "node backend/lib/service-installer.js status",
     "service:start": "node backend/lib/service-installer.js start",
     "service:stop": "node backend/lib/service-installer.js stop",
+    "service:repair": "node backend/lib/service-installer.js repair",
     "build:installer": "node installer/build.js",
     "install:desktop": "cd desktop && npm install",
     "dev:desktop": "cd desktop && npm start",

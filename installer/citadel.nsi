@@ -93,6 +93,32 @@ Section "Citadel" SecMain
   SetOutPath "$INSTDIR"
   DetailPrint "Installing Citadel v${VERSION}..."
 
+  ; ─────────────────────────────────────────────────────────
+  ; P1.2 — Stop any running Citadel service BEFORE file overwrites.
+  ;
+  ; The auto-updater (desktop/src/auto-updater.js) also stops the service
+  ; before launching us, but this section is a defensive belt-and-braces
+  ; in case (a) the auto-updater path was bypassed (manual installer run)
+  ; or (b) the desktop-side stop didn't fully complete before NSIS started.
+  ;
+  ; Steps: nssm stop → 3s wait → force-kill any node.exe still rooted in
+  ; this install dir. After this, all file handles on $INSTDIR\backend\*
+  ; should be released and we can safely overwrite.
+  ;
+  ; All commands tolerate a missing service / missing nssm.exe (they just
+  ; return non-zero, which we ignore — fresh installs go straight through).
+  ; ─────────────────────────────────────────────────────────
+  IfFileExists "$INSTDIR\runtime\nssm.exe" stopExistingService skipServiceStop
+  stopExistingService:
+    DetailPrint "Stopping Citadel service before applying update..."
+    nsExec::ExecToLog '"$INSTDIR\runtime\nssm.exe" stop CitadelServer'
+    Pop $0
+    Sleep 3000
+    DetailPrint "Force-stopping any orphaned node.exe processes from this install..."
+    nsExec::ExecToLog 'powershell -NoProfile -WindowStyle Hidden -Command "Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.Path -like \"$INSTDIR\runtime\node.exe\" } | Stop-Process -Force -ErrorAction SilentlyContinue"'
+    Pop $0
+  skipServiceStop:
+
   ; ── Copy Node.js runtime and NSSM service wrapper ──
   DetailPrint "Installing Node.js runtime and NSSM..."
   SetOutPath "$INSTDIR\runtime"

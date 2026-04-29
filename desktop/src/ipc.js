@@ -10,13 +10,13 @@
  */
 const { ipcMain, dialog, shell, Notification, app } = require('electron');
 const path = require('path');
-const licenseClient = require('./license-client');
 const autoUpdaterModule = require('./auto-updater');
 
 function registerIpcHandlers({ getMainWindow }) {
-  // ── License client (stub in Phase 1; Phase 2 wires real network calls) ──
-  ipcMain.handle('license:get-status', async () => licenseClient.getStatus());
   // ── Native file / folder pickers ───────────────────────────
+  // (Note: license activation is handled by the backend at /api/citadel-license/*
+  //  and consumed by the React dashboard directly. The desktop wrapper does
+  //  not need its own license surface.)
   ipcMain.handle('dialog:open-directory', async (_evt, opts = {}) => {
     const win = getMainWindow();
     const result = await dialog.showOpenDialog(win, {

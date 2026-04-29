@@ -6,7 +6,11 @@
  * intentionally NOT exposed — the renderer is sandboxed and untrusted.
  *
  * When new native features are needed (file pickers, notifications,
- * license info, service control), add them here + in src/ipc.js (main).
+ * service control), add them here + in src/ipc.js (main).
+ *
+ * Note: License activation is NOT exposed here. The React dashboard talks
+ * to the backend's REST API (/api/citadel-license/*) directly, which calls
+ * citadels.cc. The desktop wrapper is intentionally thin.
  */
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -37,16 +41,6 @@ contextBridge.exposeInMainWorld('citadel', {
 
   // ── Native toast notifications ──
   notify: (opts) => ipcRenderer.invoke('notify', opts || {}),
-
-  // ── License surface (stub in Phase 1; Phase 2 fills these out) ──
-  // These are exposed now so the React sign-in screen can be built against
-  // this contract before the network code is wired up.
-  license: {
-    activate: (_creds) => Promise.reject(new Error('license.activate — Phase 2')),
-    verify: () => Promise.resolve({ valid: false, reason: 'not-implemented' }),
-    deactivate: () => Promise.resolve({ ok: true }),
-    getStatus: () => ipcRenderer.invoke('license:get-status'),
-  },
 
   // ── Auto-updater ──
   // The renderer can poll status, trigger checks, and request install.

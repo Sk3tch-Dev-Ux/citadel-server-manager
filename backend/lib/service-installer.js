@@ -240,9 +240,15 @@ async function installService() {
   //    AppThrottle: ms the app must run before NSSM considers it a "successful" start.
   //    Default is 1500ms — if Node crashes within that window repeatedly, NSSM
   //    pauses the service and it becomes unrecoverable without manual intervention.
-  //    We set 5000ms to give the app time to initialize.
-  run(`"${nssm}" set "${SERVICE_NAME}" AppThrottle 5000`);
-  console.log('  [OK] Startup throttle set to 5000ms');
+  //
+  //    We use 15000ms (P1.3, raised from 5000ms in v2.7.0). Cold-starting Node
+  //    after a fresh disk write — especially right after an auto-update overwrites
+  //    the install dir — can easily exceed 5s on slow disks/AV-scanned machines,
+  //    which left some users with a service that NSSM had marked as "failed to
+  //    start" even though it was just slow. 15s gives plenty of headroom without
+  //    materially slowing the legitimate-failure recovery path.
+  run(`"${nssm}" set "${SERVICE_NAME}" AppThrottle 15000`);
+  console.log('  [OK] Startup throttle set to 15000ms');
 
   //    AppRestartDelay: ms to wait before restarting after an exit (prevents rapid loops)
   run(`"${nssm}" set "${SERVICE_NAME}" AppRestartDelay 3000`);
@@ -344,6 +350,57 @@ async function startService() {
 }
 
 /**
+ * Reset NSSM's failure counter and restart the service. Use this when a
+ * service has been marked as "failed to start" too many times in a row
+ * (NSSM enters a back-off state that survives reboots) and you want to
+ * give it a clean slate without uninstalling/reinstalling.
+ *
+ * Equivalent to: sc.exe failure CitadelServer reset= 0  →  net start.
+ *
+ * Common scenario: a slow update where the AppThrottle expired before
+ * Node finished booting, NSSM marked it failed, the user is now stuck.
+ */
+async function repairService() {
+  requireElevation('repair');
+
+  const status = await getServiceStatus();
+  if (!status.installed) {
+    console.error(`Service "${SERVICE_NAME}" is not installed. Run "npm run service:install" first.`);
+    return { ok: false, error: 'not-installed' };
+  }
+
+  console.log(`Resetting failure counter for "${SERVICE_NAME}"...`);
+  // sc.exe failure ... reset=0 clears the per-failure counter immediately.
+  run(`sc.exe failure "${SERVICE_NAME}" reset= 0 actions= restart/60000/restart/60000/restart/60000`);
+  console.log('  [OK] Failure counter reset');
+
+  // Re-apply the standard recovery policy so a future failure still triggers retries.
+  run(
+    `sc.exe failure "${SERVICE_NAME}" ` +
+    `reset= 86400 ` +
+    `actions= restart/60000/restart/60000/restart/60000`
+  );
+  console.log('  [OK] Recovery policy re-applied (3 restarts, 60s delay)');
+
+  // If it's stopped, try to bring it up.
+  if (status.state !== 'running') {
+    console.log(`Starting service...`);
+    const result = run(`sc.exe start "${SERVICE_NAME}"`);
+    if (result.ok) {
+      console.log(`  [OK] Service "${SERVICE_NAME}" start signal sent.`);
+    } else {
+      console.warn('  [WARN] Service did not start cleanly:');
+      console.warn(`         ${result.stderr || result.stdout}`);
+      console.warn('         Check data/service.log for details.');
+    }
+  } else {
+    console.log(`Service is already running — no restart needed.`);
+  }
+
+  return { ok: true };
+}
+
+/**
  * Stop the Windows service.
  */
 async function stopService() {
@@ -395,6 +452,7 @@ if (require.main === module) {
     },
     start: startService,
     stop: stopService,
+    repair: repairService,
   };
 
   if (!command || !commands[command]) {
@@ -411,11 +469,13 @@ if (require.main === module) {
     console.log('  status     Check current service status');
     console.log('  start      Start the service (requires Administrator)');
     console.log('  stop       Stop the service (requires Administrator)');
+    console.log('  repair     Reset NSSM failure counter and (re)start the service (requires Administrator)');
     console.log('');
     console.log('npm script shortcuts:');
     console.log('  npm run service:install');
     console.log('  npm run service:uninstall');
     console.log('  npm run service:status');
+    console.log('  npm run service:repair');
     console.log('');
     process.exit(command ? 1 : 0);
   }
@@ -434,4 +494,5 @@ module.exports = {
   getServiceStatus,
   startService,
   stopService,
+  repairService,
 };

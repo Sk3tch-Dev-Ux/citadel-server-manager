@@ -118,6 +118,25 @@ app.whenReady().then(() => {
     },
     reload: () => mainWindow && mainWindow.reload(),
     toggleDevTools: () => mainWindow && mainWindow.webContents.toggleDevTools(),
+    // P1.5 — Help → Show Update Log opens %APPDATA%/Citadel/update.log
+    showUpdateLog: async () => {
+      const logPath = autoUpdaterModule.getUpdateLogPath && autoUpdaterModule.getUpdateLogPath();
+      if (!logPath) return;
+      // shell.openPath returns '' on success, error string on failure.
+      // If the log doesn't exist yet (first launch, no update events), fall
+      // back to revealing the userData folder so the user isn't left with
+      // a silent no-op.
+      try {
+        const fs = require('fs');
+        if (fs.existsSync(logPath)) {
+          await shell.openPath(logPath);
+        } else {
+          shell.showItemInFolder(logPath);
+        }
+      } catch {
+        // best-effort
+      }
+    },
   });
 
   createWindow();
