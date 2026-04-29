@@ -373,23 +373,272 @@ If Phase 1 didn't already remove `desktop/src/license-client.js`, do it here.
 
 ## Open questions for Kurt
 
-All Phase 1 / Phase 2 decisions are resolved. Remaining open questions are forward-looking only.
+Phase 1, Phase 2, and Phase 3 product decisions are all resolved. See "Phase 3" below for the resolved Phase 3 product shape. Remaining open questions are policy-level decisions that surface during Phase 3 implementation.
 
-1. **Phase 3 first feature** — Global ban DB was the chosen direction during planning. Confirm that's still the call once Phase 2 lands, or revisit then based on what real customers ask for once they're activated and we have telemetry.
-2. **Pricing** — Citadel Cloud is paid only (D2). What's the actual monthly price? $5? $10? $15? Per-server pricing or flat? Not blocking Phase 2 since the Paddle test product covers smoke testing, but needed before any public launch in Phase 3.
-3. **Free trial?** — Optional 7- or 14-day free trial of Citadel Cloud. Not the same as a "free tier" — it's a time-limited paid-tier experience that converts to paid or expires. Common in SaaS; reduces sign-up friction. Decide during Phase 3 pricing work, doesn't block Phase 2.
-4. **Multi-tier pricing?** — Single "Citadel Cloud" tier vs Pro/Team/Enterprise. Single tier is simpler and matches your customer base (small server communities). Multi-tier only makes sense if you find a feature large communities will pay 5–10x more for. Defer to Phase 3+.
+1. **Multi-tier pricing?** — Single "Citadel Cloud" tier at $10/mo vs Pro/Team/Enterprise. Single tier matches the small-community customer base. Multi-tier only makes sense if a future feature justifies a 5–10× higher price point for larger communities. Defer.
+2. **Trust & safety appeals reviewer** — Phase 3 ships an appeals queue. Who reviews? You alone (manageable at low volume), Kurt + 1–2 trusted community admins, or hold appeals for batched review? Defer until customer volume tells us the appeal rate.
+3. **Ban category granularity** — Phase 3 ships with `cheating | griefing | exploiting | other` as the four categories. May need to split (DayZ has its own taxonomy: combat-logging, bambi-killing, base-griefing, dupe-exploits, hacking…). Watch what categories get used and split if needed.
 
 ---
 
-## Out of scope (deferred to later plans)
+## Out of scope for Phases 1 & 2 (handled separately)
 
-- Phase 3: first paid feature (global ban database).
-- Phase 4: any further paid features (off-site backups, cross-machine config sync, etc.).
+- Phase 3: Global Ban Database (full plan below).
+- Phase 4+: any further paid features (off-site backups, cross-machine config sync, etc.).
 - Citadel Agent + cloud panel architectural rewrite (the "Pterodactyl model" discussed in chat). Not on the roadmap. Revisit only if customer demand for cloud-hosted shifts that calculus.
 - Linux support for Citadel itself.
 - Code signing of the NSIS installer.
 - 2FA for Citadels.cc accounts.
+
+---
+
+# Phase 3 — Global Ban Database (first paid feature)
+
+**Goal:** Ship a feature people actually pay for. Citadel Cloud customers contribute their local server bans to a shared community pool; their servers are then automatically protected against everyone else's known cheaters. The classic network-effect feature — every new subscriber makes the product better for every existing subscriber.
+
+**Target ship:** 4–6 weeks after Phase 2 lands. Larger and riskier than Phase 1 or 2 because of the trust & safety surface.
+
+## Decisions (resolved 2026-04-29)
+
+**Pricing → $10 USD / month.** Single tier. Per-account, not per-server (a customer with 5 servers pays once and gets protection on all of them). Paddle product needs to be configured to match; the existing test product (D4) suffices for development.
+
+**Trial → 7 days, time-only, full access.** Standard SaaS trial pattern. New signups get unrestricted ban DB access (read + submit) for 7 days, then the feature locks unless they convert. No payment-method-required gate for signup — keep friction low; convert via product value, not commitment psychology.
+
+**Vouching threshold → 3 independent submissions.** A SteamID is added to the community ban list only after 3 different customer accounts have banned that player on their own server. This filters most bad-faith bans because coordinating 3 servers is real effort. Trial users' submissions count toward the threshold (they're real DayZ admins, just unpaid for now), but only paying customers can pull the full community list.
+
+**Trust & Safety policy is a first-class concern, not a backlog item.** The full trust model lives in this plan, not in a "we'll figure it out" comment. See the dedicated section below.
+
+## Product surfaces
+
+**Customer-facing in the Citadel dashboard:**
+- New page: `/global-bans` — protected by `<LicenseGate feature="Global Ban Database">`. Shows: total community bans currently protecting this server, recent additions, the customer's own contribution count, sync status. CTA to citadels.cc/cloud for non-subscribers.
+- Existing per-server `/bans` page gets a "Submit to community ban DB" toggle on each ban (defaults on for paying customers). Each ban shows whether it's been propagated and how many vouches it has.
+- Subscription card on `/citadel-license` adds "Global Ban Database — Active / In trial / Not subscribed" with days-remaining countdown during trial.
+- Banner appears for `lapsed` subscribers showing how many community bans were keeping their server clean ("X cheaters auto-blocked this month") with a re-subscribe CTA. Loss-aversion is the strongest conversion lever for SaaS churn.
+
+**Banned-player-facing on citadels.cc:**
+- `/appeal/<token>` — public page where a banned player can submit an appeal. Token is the SteamID hash so they can find it without authentication. Auto-replies on submission. No exposed customer/admin identity in the appeal flow.
+
+**Admin-facing on citadels.cc:**
+- `/admin/cloud-bans/queue` — moderation queue showing bans that have been appealed, bans flagged by automation, and any ban with vouches > 50 (community-wide impact threshold). You decide upheld / overturned.
+- `/admin/cloud-bans/customer/<id>` — submitter reputation page. Shows a customer's submission history, overturn rate, current vouch_weight. Key for catching bad-faith mass-banners before they poison the well.
+
+## Trust & Safety policy (this is the spec, not a wishlist)
+
+Every paid customer's submissions carry a `vouch_weight` decimal that starts at `1.0`. The vouching threshold is `3.0` cumulative vouch_weight, not 3 raw submissions. This lets us de-rank bad-faith submitters without binary-banning them.
+
+**Vouch weight starts at 1.0 and adjusts as follows:**
+- Submission successfully propagates and never gets appealed: no change (still 1.0).
+- Submission gets appealed-and-overturned: that submission's vouch_weight drops to 0 retroactively (so the community ban may un-meet the threshold and auto-revert), and the customer's *future* submissions multiply by 0.7. Three overturns drops them to 0.343 (effectively requires 9+ co-signers per submission to reach threshold).
+- Submission gets appealed-and-upheld: no change.
+- Customer's overturn rate exceeds 30% over their last 20 submissions: vouch_weight clamped to 0 indefinitely, requires manual reinstatement.
+
+**Per-customer rate limits:**
+- 50 submissions per rolling 24h. Catches mass-ban abuse without inconveniencing legit busy admins.
+- 1000 submissions per month. Backstop for slow-drip bad actors.
+- Configurable per customer if a legit big-server community needs more — done via citadels.cc admin.
+
+**Ban categories** (`reason_category`): `cheating`, `griefing`, `exploiting`, `other`. The category is shared, but the customer's free-text "notes" field is private to that customer — it never enters the community feed. Avoids accidental PII (customer notes often contain "this player keeps killing my friend Mark on Tuesdays" — that's not network-shareable).
+
+**Auto-expiry:** community bans drop off after 12 months of no fresh submissions. Cheaters get banned by some new admin almost immediately if they're still active; bans that go stale are usually reformed players. Reduces the false-positive blast radius over time.
+
+**Audit log:** every submission, every appeal, every moderator action goes into an immutable `ban_audit_log` table. Retention: forever. This is the ground truth if a customer ever disputes an action.
+
+**Appeals process:**
+1. Banned player visits `citadels.cc/appeal/<steamid_hash>`. Page shows: ban category, vouch count, how to appeal. No customer identities exposed.
+2. They submit reason + evidence + reply email.
+3. Appeal goes into `ban_appeals` table with status `open`. Auto-replies "we'll get back to you within 7 days."
+4. Moderator (initially you) reviews. Can mark `upheld` or `overturned`.
+5. If overturned: ban status flips to `overturned`, propagates back to all customer servers via the next sync, vouch_weights of contributing submissions get adjusted per the policy above.
+6. Auto-reply to appellant with the decision.
+
+**Customer can unenroll their own submission** at any time without penalty. UI on `/global-bans` shows their submitted bans with an "Unsubmit" button. Use case: customer realizes they wrongly banned someone — they can fix it instantly without filing an appeal.
+
+## Schema additions on citadels.cc
+
+```ts
+// packages/api/src/db/schema/community-bans.ts
+community_bans (
+  id uuid pk,
+  steam_id varchar(20) not null unique,        // No PII; SteamIDs are public.
+  reason_category varchar(32) not null,        // 'cheating' | 'griefing' | 'exploiting' | 'other'
+  vouch_count_total int not null default 0,    // Denormalized count of accepted submissions
+  vouch_weight_total decimal(8,3) not null default 0,  // Sum of submitter weights
+  status varchar(32) not null default 'pending', // 'pending' | 'active' | 'overturned' | 'expired'
+  first_submitted_at timestamptz not null,
+  last_submitted_at timestamptz not null,
+  activated_at timestamptz,                    // When threshold first reached
+  expires_at timestamptz,                      // 12 months after last submission
+  manual_review_required boolean default false, // Auto-set when vouch_count > 50
+)
+
+ban_submissions (
+  id uuid pk,
+  community_ban_id uuid fk -> community_bans.id,
+  user_id uuid fk -> users.id,
+  device_id uuid fk -> devices.id,
+  steam_id varchar(20) not null,
+  reason_category varchar(32) not null,
+  notes_local text,                            // Customer's private note, NEVER shared
+  vouch_weight_at_submit decimal(5,3) not null,
+  submitted_at timestamptz not null,
+  unenrolled_at timestamptz,                   // Set when customer revokes
+)
+
+ban_appeals (
+  id uuid pk,
+  community_ban_id uuid fk,
+  appellant_steam_id varchar(20),
+  appellant_email varchar(255),
+  reason text,
+  evidence text,
+  status varchar(32) default 'open',           // 'open' | 'upheld' | 'overturned' | 'dismissed'
+  reviewer_user_id uuid fk -> users.id,
+  reviewed_at timestamptz,
+  decision_notes text,
+  created_at timestamptz default now(),
+)
+
+ban_audit_log (
+  id uuid pk,
+  actor_type varchar(32),                      // 'customer' | 'moderator' | 'system' | 'appeal'
+  actor_id uuid,                               // user_id or null
+  action varchar(64),                          // 'submit' | 'unenroll' | 'overturn' | 'auto-expire' | etc.
+  community_ban_id uuid,
+  payload jsonb,                               // Full snapshot for forensics
+  occurred_at timestamptz default now(),
+)
+
+customer_submission_stats (                    // Denormalized for fast lookup
+  user_id uuid pk fk,
+  vouch_weight decimal(5,3) not null default 1.0,
+  total_submissions int default 0,
+  total_overturns int default 0,
+  submissions_last_24h int default 0,
+  submissions_last_30d int default 0,
+  weight_locked boolean default false,         // Manually set during moderation
+  updated_at timestamptz default now(),
+)
+```
+
+## API endpoints
+
+**citadels.cc → desktop (paid customers):**
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/api/v1/cloud-bans/submit` | Body: `{ steamId, reasonCategory, notesLocal? }`. Auth: license JWT. Rate-limited per the policy. Returns the resulting `community_ban` record. |
+| `POST` | `/api/v1/cloud-bans/unenroll` | Body: `{ steamId }`. Auth: license JWT. Soft-deletes the customer's submission, recalculates threshold, propagates if necessary. |
+| `GET`  | `/api/v1/cloud-bans/sync` | Returns all `status='active'` bans. Paginated (cursor-based). Auth: license JWT. Trial users get unrestricted access. |
+| `GET`  | `/api/v1/cloud-bans/check?steamId=X` | Single-record lookup, used for on-demand checks during player connect. |
+| `GET`  | `/api/v1/cloud-bans/stats` | Public-ish — total bans, contributing servers, bans-per-week trend. Used for marketing on citadels.cc/cloud. |
+
+**citadels.cc → public (no auth):**
+
+| `POST` | `/api/v1/appeals` | Banned player submits appeal. |
+| `GET`  | `/api/v1/appeals/<token>` | Status check by token. |
+
+**citadels.cc → admin (admin role required):**
+
+| `GET`  | `/api/v1/admin/cloud-bans/queue` | Moderation queue. |
+| `POST` | `/api/v1/admin/cloud-bans/<id>/review` | Body: `{ decision, notes }`. Triggers downstream propagation. |
+| `GET`  | `/api/v1/admin/customers/<id>/reputation` | Per-customer reputation page. |
+
+**Desktop (DayzServerController) → its dashboard:**
+
+| `GET`  | `/api/cloud-bans/status` | Sync state + stats. |
+| `POST` | `/api/cloud-bans/sync` | Force-trigger a sync from citadels.cc. |
+| Existing `/api/bans/*` | Augmented to merge community bans into local enforcement. |
+
+## Desktop integration
+
+The local backend gets a new module `backend/lib/cloud-bans/`:
+
+- `index.js` — public API, exposes `getCommunityBans()`, `submitBan(steamId, category, notes)`, `unenrollBan(steamId)`, `startBackgroundSync()`.
+- `client.js` — HTTP client to citadels.cc cloud-bans endpoints (mirrors the pattern of `lib/license/client.js`).
+- `cache.js` — persists pulled bans to `data/cloud-bans-cache.json`. Fetches the full list on first sync, then deltas hourly. Cache survives restarts.
+- `enforcer.js` — hooks into the existing ban manager. When a player connects, check both local bans and community bans. Inject community bans into the BattlEye `bans.txt` at server start.
+
+Sync cadence: every 1 hour by default, configurable per customer. Cached locally so a temporary network outage doesn't unprotect the server. Expired/overturned bans are removed from the cache on the next successful sync.
+
+Submission is automatic for paying customers when they ban a player via the dashboard's `/bans` page (toggle defaults on; can be turned off per-ban for sensitive cases). Trial users get a prompt: "Submit this ban to the community DB? It'll help other servers protect themselves." opt-in during trial.
+
+## Dashboard UI work
+
+- New page at `/global-bans` (lazy-loaded, gated with `<LicenseGate feature="Global Ban Database">`).
+- Augment `/bans/*` per-server pages with community-ban indicator + "submitted by you" / "submitted via community" / "overturned" badges.
+- Banner additions for the customer-card on `/citadel-license`: trial countdown, "X bans currently active on your server."
+
+## Pricing & Paddle setup
+
+- Configure a $10/mo product on Paddle (production, not just test).
+- Configure a 7-day trial on the subscription product.
+- Citadels.cc Paddle webhook needs to handle `subscription.trialing` → mark user's `subscription_status='trialing'` (treated as `active` by `canUseLicense`).
+- Webhook needs to handle `subscription.trial_ended_no_payment` → flip to `lapsed`.
+- License JWT gains a claim `entitlements: ['cloud-bans']`. Phase 3 adds the entitlement check in `require-license` middleware: `requireLicense({ feature: 'cloud-bans' })`. Future paid features add to the entitlements list.
+
+## Marketing surface (citadels.cc/cloud)
+
+The CTA the Phase 2 banner already points at needs to actually exist:
+
+- Hero: "Citadel Cloud — block known cheaters across the entire DayZ admin network."
+- 3-bullet feature explanation.
+- Live stats from `/api/v1/cloud-bans/stats` (X bans, Y servers, Z cheaters blocked this week).
+- Pricing card: $10/mo, 7-day free trial, no credit card required to start.
+- "How it works" section explaining the vouching model in plain English.
+- Trust & safety section explaining the appeals process — important for legitimacy.
+- Sign-up CTA → existing citadels.cc auth flow.
+
+## Operational runbook (you'll need this on day 1)
+
+- **A customer reports their player was wrongfully banned community-wide.** Tell them to direct the player to `citadels.cc/appeal/<steamid_hash>`. Don't intervene as the customer; appeals must come from the affected player or the policy stops working.
+- **An appeal lands in the queue.** Default SLA: 7 days. Aim for 48h during early stages when appeal volume is low. Decision flows through `POST /admin/cloud-bans/<id>/review`.
+- **A customer mass-bans 50 innocents in a day.** Rate limit catches them at submission 51. Their next 49 submissions get queued for manual review automatically. Investigate via `/admin/customers/<id>/reputation`. If confirmed bad-faith: lock their `vouch_weight` to 0 and consider ToS termination.
+- **Citadel Cloud is unavailable for >1 hour.** Customer servers continue protecting against the cached community ban list. New bans don't propagate until the cloud is back. No customer impact for the unavailability window itself.
+
+## Acceptance criteria
+
+- [ ] $10/mo Paddle production product live + 7-day trial configured.
+- [ ] All five new tables migrated on citadels.cc.
+- [ ] Submit/unenroll/sync/check endpoints implemented + rate-limited.
+- [ ] Appeals public submission flow + admin review queue functional.
+- [ ] Audit log captures every submission, unenroll, appeal, moderator decision.
+- [ ] Vouch_weight adjustment logic + per-customer rate limits implemented and tested.
+- [ ] Customer reputation page renders correctly for at least 3 test users.
+- [ ] Local `backend/lib/cloud-bans/` module syncs hourly + enforces against local + community list.
+- [ ] `/global-bans` page exists, gated, shows real numbers.
+- [ ] `citadels.cc/cloud` marketing page exists and converts.
+- [ ] Telemetry events added for `cloud-bans.submit`, `cloud-bans.sync.*`, `cloud-bans.unenroll`. (And the desktop `update.*` events deferred from P2.3 finally land.)
+- [ ] One paying customer end-to-end: signs up, takes 7-day trial, converts, submits a ban, sees it propagate, receives an appeal on it, decision flows through.
+
+## Risks & mitigations
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| Bad-faith mass-banners poison the DB | Medium | High | 3-vouch threshold + per-customer rate limits + reputation system + manual review for high-vouch bans |
+| First overturn-of-an-active-ban is operationally messy | High | Medium | Simulate the overturn flow in staging before launch; runbook above; auto-replies to appellants and submitters |
+| Customers submit bans containing PII in notes | Medium | High | `notes_local` is never shared; only `reason_category` propagates. Schema enforces this at the DB level. |
+| Appeal volume exceeds reviewer capacity | Low at launch, Medium later | Medium | Auto-batch appeals weekly initially; if volume grows, hire 1–2 trusted community admins as moderators; eventually consider reputation-weighted automated decisions for low-stakes categories |
+| A subscriber cancels and loses ban DB → cheaters return | Expected | Conversion lever | Loss-aversion banner on `lapsed` (already in plan); telemetry on the cancel→return cycle |
+| Steam IDs change format / Steam API changes | Low | Medium | Store SteamIDs as `varchar(20)` (handles both Steam2 and Steam64); convert at boundaries |
+| EU GDPR concerns with shared ban data | Medium | Medium | SteamIDs are public-by-design (Steam itself publishes them). Privacy review during Phase 3 — may need a "right-to-be-forgotten" deletion path tied to the appeal flow. |
+
+## Milestones
+
+| Milestone | Target | Blocker |
+|---|---|---|
+| Schema + migrations on citadels.cc | Day 5 | None |
+| Submit/sync/check endpoints + rate limits | Day 12 | Schema |
+| Audit log + reputation system | Day 16 | Endpoints |
+| Local `backend/lib/cloud-bans/` module + enforcement | Day 22 | Endpoints |
+| `/global-bans` dashboard page + LicenseGate | Day 26 | Local module |
+| Appeals public flow | Day 30 | Schema |
+| Admin moderation queue | Day 34 | Appeals |
+| Marketing page (`citadels.cc/cloud`) | Day 38 | None — can run in parallel |
+| Paddle production product configured | Day 38 | None — small task |
+| Desktop update telemetry wired (deferred from P2.3) | Day 40 | None |
+| End-to-end paying-customer scenario | Day 42 | All above |
+| Phase 3 acceptance criteria met | Day 42 | All above |
 
 ---
 

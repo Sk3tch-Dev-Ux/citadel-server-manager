@@ -76,6 +76,11 @@ const EVENT_SCHEMA = {
   'license.activate.success':  [],
   'license.activate.failure':  ['statusCode', 'errorCode'],
   'license.refresh.failure':   ['statusCode', 'errorCode'],
+  // Phase 3 — Cloud Bans
+  'cloud-bans.submit':         [],
+  'cloud-bans.unenroll':       [],
+  'cloud-bans.sync.success':   [],
+  'cloud-bans.sync.failure':   ['statusCode', 'errorCode'],
 };
 
 // ─── Persistent state (toggle + machine-id-hash) ───────────────

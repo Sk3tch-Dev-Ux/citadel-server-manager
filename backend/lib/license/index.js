@@ -172,6 +172,7 @@ async function deactivate() {
   if (!_state.token) {
     storage.clear();
     _state.status = 'unactivated';
+    notifyDeactivated();
     return { ok: true };
   }
   try {
@@ -185,7 +186,21 @@ async function deactivate() {
   _state.subscription = null;
   _state.lastVerifiedAt = null;
   _state.status = 'unactivated';
+  notifyDeactivated();
   return { ok: true };
+}
+
+/**
+ * Tell other modules (cloud-bans, future paid features) that the customer
+ * has deactivated. They should wipe any cloud-only state from this machine.
+ * Best-effort — failures don't block the local deactivate flow.
+ */
+function notifyDeactivated() {
+  try {
+    require('../cloud-bans').onLicenseDeactivated();
+  } catch {
+    // cloud-bans not loaded yet, or failed to import — fine.
+  }
 }
 
 /** Periodic background verify so status stays fresh. Call once at boot. */

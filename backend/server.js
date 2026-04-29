@@ -141,6 +141,7 @@ app.use(express.static(WEB_DIST));
 // ─── Routes ──────────────────────────────────────────────
 require('./routes/setup.routes')(app);
 require('./routes/citadel-license.routes')(app);
+require('./routes/cloud-bans.routes')(app);
 require('./routes/auth.routes')(app);
 require('./routes/servers.routes')(app);
 require('./routes/server-control.routes')(app);
@@ -339,6 +340,13 @@ if (process.env.NODE_ENV !== 'test') {
     // enabled. No-op when telemetry is disabled in data/telemetry.json.
     try { require('./lib/telemetry').startBackgroundFlush(); } catch (err) {
       logger.error({ err }, 'Failed to start telemetry flush loop');
+    }
+
+    // Start Cloud Bans sync loop (P3.6) — pulls the community ban list
+    // from citadels.cc hourly when an active Citadel Cloud subscription
+    // is present. No-op for free / unactivated installs.
+    try { require('./lib/cloud-bans').startBackgroundSync(); } catch (err) {
+      logger.error({ err }, 'Failed to start cloud-bans sync loop');
     }
 
     // Start Citadel self-update checker (polls citadels.cc for new versions)
