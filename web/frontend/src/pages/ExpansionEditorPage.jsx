@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { ArrowLeft, Save, ChevronRight, Plus, X, Puzzle } from '../components/Icon';
+import useServerMap from '../hooks/useServerMap';
 
 // Lazy-load InteractiveMap to avoid loading leaflet on initial render
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
@@ -1603,7 +1604,8 @@ function AirdropSection({ data, onChange }) {
 
 // ─── Mission-folder section renderers ────────────────────────────────
 
-function MapSection({ data, onChange }) {
+function MapSection({ data, onChange, serverId }) {
+  const serverMap = useServerMap(serverId);
   if (!data) return <NoData />;
   const update = (key, val) => onChange({ ...data, [key]: val });
   const [mapMode, setMapMode] = useState('view');
@@ -1689,7 +1691,7 @@ function MapSection({ data, onChange }) {
         <div style={{ padding: 8 }}>
           <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               height={500}
               markers={(data.ServerMarkers || []).map((m, i) => ({
                 id: m.m_UID || `marker-${i}`,
@@ -1843,7 +1845,8 @@ function BaseBuildingSection({ data, onChange }) {
   );
 }
 
-function SafeZonesSection({ data, onChange }) {
+function SafeZonesSection({ data, onChange, serverId }) {
+  const serverMap = useServerMap(serverId);
   if (!data) return <NoData />;
   const update = (key, val) => onChange({ ...data, [key]: val });
   const [mapMode, setMapMode] = useState('view');
@@ -1908,7 +1911,7 @@ function SafeZonesSection({ data, onChange }) {
         <div style={{ padding: 8 }}>
           <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               height={500}
               circles={(data.CircleZones || []).map((z, i) => ({
                 id: `circle-${i}`,
@@ -2476,6 +2479,7 @@ function QuestEditorView({ quest, quests, npcs, objectives, onSave, onCancel }) 
 /* ── NPC Manager Sub-view ────────────────────────────────────────── */
 
 function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
+  const serverMap = useServerMap(serverId);
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState(null);
   const [search, setSearch] = useState('');
@@ -2512,7 +2516,7 @@ function NPCManagerView({ npcs, serverId, onSave, onDelete, onCreate }) {
 
       <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
         <Suspense fallback={<div style={{padding:20,textAlign:'center',color:'var(--text-muted)'}}>Loading map...</div>}><InteractiveMap
-          mapName="chernarusplus"
+          mapName={serverMap}
           markers={markers}
           selectedId={editingId != null ? String(editingId) : null}
           onSelect={(id) => {
@@ -3304,25 +3308,36 @@ const SECTION_RENDERERS = {
 
 export default function ExpansionEditorPage({ serverId }) {
   const navigate = useNavigate();
+  // configs holds only the *content* of files that have been loaded so far.
+  // A missing key means "not loaded yet" — triggers a lazy fetch.
   const [configs, setConfigs] = useState({});
   const [originalConfigs, setOriginalConfigs] = useState({});
   const [activeCategory, setActiveCategory] = useState('general');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);           // initial meta load
+  const [sectionLoading, setSectionLoading] = useState(false); // per-section lazy fetch
   const [saving, setSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState('');
 
-  // Load all expansion configs
-  const loadData = useCallback(async () => {
+  // File metadata from the cheap /meta endpoint — available keys, found flags,
+  // display names, schemas. Populated on mount, ~5 KB response vs. the old
+  // "all 32 file contents" fetch which was 100-500 KB and slow.
+  const [rawConfigMeta, setRawConfigMeta] = useState({});
+
+  // ─── Initial load — meta only (no file content) ──────────
+  const loadMeta = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await API.get(`/api/servers/${serverId}/mod-configs/expansion`);
+      const data = await API.get(`/api/servers/${serverId}/mod-configs/expansion/meta`);
       if (data && !data.error && data.configs) {
-        const configData = {};
+        const meta = {};
         for (const [fileName, cfg] of Object.entries(data.configs)) {
-          configData[fileName] = cfg.data || {};
+          meta[fileName] = {
+            found: cfg.found,
+            displayName: cfg.displayName,
+            schema: cfg.schema || null,
+          };
         }
-        setConfigs(configData);
-        setOriginalConfigs(JSON.parse(JSON.stringify(configData)));
+        setRawConfigMeta(meta);
       } else {
         window.addToast?.('Failed to load Expansion configs', 'error');
       }
@@ -3332,9 +3347,48 @@ export default function ExpansionEditorPage({ serverId }) {
     setLoading(false);
   }, [serverId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadMeta(); }, [loadMeta]);
 
-  // Track which configs are modified
+  // ─── Lazy-load one file by name ──────────────────────────
+  const loadFile = useCallback(async (fileName) => {
+    if (!fileName) return;
+    // Already loaded — no-op (cache hit)
+    if (configs[fileName] !== undefined) return;
+    setSectionLoading(true);
+    try {
+      const data = await API.get(`/api/servers/${serverId}/mod-configs/expansion/file?fileName=${encodeURIComponent(fileName)}`);
+      if (data && !data.error) {
+        const content = data.data || {};
+        setConfigs((prev) => ({ ...prev, [fileName]: content }));
+        setOriginalConfigs((prev) => ({ ...prev, [fileName]: JSON.parse(JSON.stringify(content)) }));
+      } else {
+        window.addToast?.(`Failed to load ${fileName.split('/').pop()}`, 'error');
+      }
+    } catch (err) {
+      window.addToast?.(`Failed to load config: ${err.message}`, 'error');
+    }
+    setSectionLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverId]);
+
+  // Resolve file keys for each category (uses meta — available even before
+  // any content has been loaded, unlike the old fileMap derived from configs)
+  const fileMap = useMemo(() => {
+    const map = {};
+    for (const cat of CATEGORIES) {
+      map[cat.id] = resolveFileKey(rawConfigMeta, cat.fileKey);
+    }
+    return map;
+  }, [rawConfigMeta]);
+
+  // When activeCategory changes, lazy-load the file if not cached
+  useEffect(() => {
+    const fileName = fileMap[activeCategory];
+    if (fileName) loadFile(fileName);
+  }, [activeCategory, fileMap, loadFile]);
+
+  // Track which configs are modified (only compare files that are loaded —
+  // unloaded files can't be modified)
   const modifiedFiles = useMemo(() => {
     const modified = new Set();
     for (const fileName of Object.keys(configs)) {
@@ -3347,31 +3401,17 @@ export default function ExpansionEditorPage({ serverId }) {
 
   const totalModified = modifiedFiles.size;
 
-  // Resolve file keys for each category
-  const fileMap = useMemo(() => {
-    const map = {};
-    for (const cat of CATEGORIES) {
-      map[cat.id] = resolveFileKey(configs, cat.fileKey);
-    }
-    return map;
-  }, [configs]);
-
-  // Raw config data lookup from the API response for "found" status
-  const [rawConfigMeta, setRawConfigMeta] = useState({});
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await API.get(`/api/servers/${serverId}/mod-configs/expansion`);
-        if (data && data.configs) {
-          const meta = {};
-          for (const [fileName, cfg] of Object.entries(data.configs)) {
-            meta[fileName] = { found: cfg.found, displayName: cfg.displayName };
-          }
-          setRawConfigMeta(meta);
-        }
-      } catch { /* ignore */ }
-    })();
-  }, [serverId]);
+  // ─── Sidebar search — filters sections by label + fileKey match ──
+  const [sidebarSearch, setSidebarSearch] = useState('');
+  const filteredCategories = useMemo(() => {
+    const q = sidebarSearch.trim().toLowerCase();
+    if (!q) return CATEGORIES;
+    return CATEGORIES.filter((cat) =>
+      cat.label.toLowerCase().includes(q) ||
+      (cat.fileKey || '').toLowerCase().includes(q) ||
+      cat.id.toLowerCase().includes(q)
+    );
+  }, [sidebarSearch]);
 
   // Update a config file
   const updateConfig = useCallback((categoryId, newData) => {
@@ -3487,13 +3527,28 @@ export default function ExpansionEditorPage({ serverId }) {
           flexDirection: 'column',
           gap: 2,
         }}>
-          {CATEGORIES.map((cat, idx) => {
+          {/* Sidebar search — filters the category list by label / file key */}
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <input
+              className="input"
+              placeholder="Search sections…"
+              value={sidebarSearch}
+              onChange={(e) => setSidebarSearch(e.target.value)}
+              style={{ width: '100%', fontSize: 12, padding: '4px 8px' }}
+            />
+          </div>
+          {filteredCategories.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '8px 12px', textAlign: 'center' }}>
+              No sections match &ldquo;{sidebarSearch}&rdquo;.
+            </div>
+          )}
+          {filteredCategories.map((cat, idx) => {
             const fileName = fileMap[cat.id];
             const isActive = activeCategory === cat.id;
             const isModified = fileName && modifiedFiles.has(fileName);
             const meta = fileName ? rawConfigMeta[fileName] : null;
             const notFound = meta && meta.found === false;
-            const prevCat = idx > 0 ? CATEGORIES[idx - 1] : null;
+            const prevCat = idx > 0 ? filteredCategories[idx - 1] : null;
             const showSectionDivider = cat.section === 'Mission' && (!prevCat || prevCat.section !== 'Mission');
 
             return (
@@ -3543,7 +3598,11 @@ export default function ExpansionEditorPage({ serverId }) {
 
         {/* Content area */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {SectionRenderer ? (
+          {sectionLoading && !activeData ? (
+            <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
+              Loading {activeCat?.label || 'section'}…
+            </div>
+          ) : SectionRenderer ? (
             <SectionRenderer
               data={activeData}
               onChange={(newData) => updateConfig(activeCategory, newData)}

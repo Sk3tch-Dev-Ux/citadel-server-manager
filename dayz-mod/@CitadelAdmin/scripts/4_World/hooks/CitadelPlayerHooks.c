@@ -249,7 +249,7 @@ modded class PlayerBase extends ManBase
             // Capture ammo type from cached damage tracking
             string ammoType = m_CitLastDamageAmmo;
 
-            CitadelEventLogger.LogKill(killerSteamId, killerName, victimSteamId, victimName, distance, weaponType, zone, killerPos, victimPos, ammoType);
+            CitadelEventLogger.LogKill(killerSteamId, killerName, victimSteamId, victimName, distance, weaponType, zone, killerPos, victimPos);
 
             // Update killer stats
             CitadelPlayerStats killerStats = GetCitadel().GetPlayerStats(killerSteamId);

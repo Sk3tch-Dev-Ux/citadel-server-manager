@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react
 import API from '../api';
 import Modal from '../components/ui/Modal';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
+import useServerMap from '../hooks/useServerMap';
 import {
   Search, Save, Plus, Trash2, RefreshCw, Edit, ChevronUp, ChevronDown, X,
   Map, MapPin, Layers, Filter, Crosshair, MousePointerClick, Target,
@@ -105,7 +106,8 @@ export default function EventsEditorPage({ serverId }) {
   const [selectedEventName, setSelectedEventName] = useState(null);
   const [selectedPositionIdx, setSelectedPositionIdx] = useState(null);
   const [mapMode, setMapMode] = useState('view'); // 'view' | 'addMarker'
-  const [mapName, setMapName] = useState('chernarusplus');
+  const defaultMap = useServerMap(serverId);
+  const [mapName, setMapName] = useState(defaultMap);
 
   // ─── Data Loading ───────────────────────────────────────
 

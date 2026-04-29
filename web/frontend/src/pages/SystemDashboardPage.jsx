@@ -1,16 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useServers } from '../contexts/ServersContext';
 import API from '../api';
-import { Cpu, MemoryStick, HardDrive, Network, Monitor, Users, Clock, Server, Wifi, WifiOff } from '../components/Icon';
+import { Cpu, MemoryStick, HardDrive, Network, Monitor, Users, Clock, Server, Wifi, WifiOff, AlertTriangle } from '../components/Icon';
 import MiniChart from '../components/MiniChart';
+
+const TIME_RANGES = [
+  { id: '15m', label: '15m' },
+  { id: '1h', label: '1h' },
+  { id: '6h', label: '6h' },
+  { id: '24h', label: '24h' },
+];
 
 export default function SystemDashboardPage() {
   const { servers } = useServers();
   const [info, setInfo] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [cloudStatus, setCloudStatus] = useState(null);
-  const [metricsHistory, setMetricsHistory] = useState([]);
+  const [range, setRange] = useState('1h');
+  const [history, setHistory] = useState({ samples: [], thresholds: null });
 
   const loadInfo = useCallback(async () => {
     try {
@@ -22,19 +30,44 @@ export default function SystemDashboardPage() {
   const loadMetrics = useCallback(async () => {
     try {
       const data = await API.get('/api/system/metrics');
-      if (data && !data.error) {
-        setMetrics(data);
-        setMetricsHistory(prev => [...prev.slice(-59), { cpu: data.cpu, mem: data.memory.percent, ts: Date.now() }]);
-      }
+      if (data && !data.error) setMetrics(data);
     } catch {}
   }, []);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const data = await API.get(`/api/system/metrics/history?range=${range}`);
+      if (data && !data.error) {
+        setHistory({
+          samples: Array.isArray(data.samples) ? data.samples : [],
+          thresholds: data.thresholds || null,
+        });
+      }
+    } catch {}
+  }, [range]);
 
   useEffect(() => {
     loadInfo();
     loadMetrics();
-    const i = setInterval(loadMetrics, 10000);
-    return () => clearInterval(i);
-  }, [loadInfo, loadMetrics]);
+    loadHistory();
+    const metricsInterval = setInterval(loadMetrics, 10000);
+    const historyInterval = setInterval(loadHistory, 30000);
+    return () => { clearInterval(metricsInterval); clearInterval(historyInterval); };
+  }, [loadInfo, loadMetrics, loadHistory]);
+
+  // Threshold detection — aggregate warnings for the top banner
+  const activeWarnings = useMemo(() => {
+    const out = [];
+    const th = history.thresholds;
+    if (!th) return out;
+    const cpu = metrics?.cpu;
+    const mem = metrics?.memory?.percent;
+    if (cpu != null && cpu >= (th.cpu?.warn ?? 90)) out.push({ label: th.cpu.label, value: cpu, threshold: th.cpu.warn });
+    if (mem != null && mem >= (th.mem?.warn ?? 90)) out.push({ label: th.mem.label, value: mem, threshold: th.mem.warn });
+    const diskPct = info?.disk?.totalGB > 0 ? (info.disk.usedGB / info.disk.totalGB) * 100 : 0;
+    if (diskPct >= (th.disk?.warn ?? 95)) out.push({ label: th.disk.label, value: diskPct, threshold: th.disk.warn });
+    return out;
+  }, [metrics, info, history.thresholds]);
 
   const runningCount = servers.filter(s => s.status === 'running').length;
   const totalPlayers = servers.reduce((a, s) => a + (s.playerCount || 0), 0);
@@ -52,11 +85,67 @@ export default function SystemDashboardPage() {
         </div>
         <div className="system-host-badges">
           {cloudStatus?.connected ? (
-            <span className="cloud-badge connected"><Wifi size={12} /> Cloud Connected</span>
+            <span className="cloud-badge connected" title="Citadel is talking to the citadels.cc subscription service (licence check-in)">
+              <Wifi size={12} /> Cloud Connected
+            </span>
           ) : (
-            <span className="cloud-badge disconnected"><WifiOff size={12} /> Cloud Offline</span>
+            <Link
+              to="/citadel-license"
+              className="cloud-badge disconnected"
+              title="Citadel can't reach citadels.cc right now. Click to check your licence + network settings."
+              style={{ textDecoration: 'none' }}
+            >
+              <WifiOff size={12} /> Cloud Offline
+            </Link>
           )}
         </div>
+      </div>
+
+      {/* Threshold warnings — always visible when a metric is over its limit.
+          Duplicates what the per-card pulsing does, but guarantees the user
+          sees the alert at the top of the dashboard even if they've scrolled. */}
+      {activeWarnings.length > 0 && (
+        <div style={{
+          margin: '0 0 16px', padding: '10px 14px',
+          background: 'color-mix(in srgb, #f59e0b 10%, transparent)',
+          border: '1px solid color-mix(in srgb, #f59e0b 40%, transparent)',
+          borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        }}>
+          <AlertTriangle size={16} style={{ color: '#f59e0b' }} />
+          <strong style={{ fontSize: 13, color: '#f59e0b' }}>
+            Resource threshold{activeWarnings.length === 1 ? '' : 's'} exceeded
+          </strong>
+          {activeWarnings.map((w) => (
+            <span key={w.label} style={{
+              fontSize: 11, padding: '2px 8px',
+              background: 'color-mix(in srgb, #f59e0b 20%, transparent)',
+              color: '#f59e0b', borderRadius: 3, fontWeight: 700,
+            }}>
+              {w.label}: {w.value.toFixed(1)}% (limit {w.threshold}%)
+            </span>
+          ))}
+          <span style={{ flex: 1 }} />
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            Alerts also fire in the notification bell (15-min cooldown per metric).
+          </span>
+        </div>
+      )}
+
+      {/* Time range picker */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Trend range:</span>
+        {TIME_RANGES.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => setRange(r.id)}
+            className={`btn btn-xs ${range === r.id ? 'btn-primary' : 'btn-ghost'}`}
+          >
+            {r.label}
+          </button>
+        ))}
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>
+          {history.samples.length} sample{history.samples.length === 1 ? '' : 's'}
+        </span>
       </div>
 
       {/* System Info Cards */}
@@ -93,13 +182,16 @@ export default function SystemDashboardPage() {
           <div className="system-metric-header">
             <Cpu size={16} />
             <span>CPU</span>
+            {history.thresholds?.cpu && (metrics?.cpu || 0) >= history.thresholds.cpu.warn && (
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>⚠ High</span>
+            )}
           </div>
-          <div className={`system-metric-value ${(metrics?.cpu || 0) > 80 ? 'warning' : ''}`}>
+          <div className={`system-metric-value ${(metrics?.cpu || 0) > (history.thresholds?.cpu?.warn || 90) ? 'warning' : ''}`}>
             {metrics?.cpu?.toFixed(1) || '0.0'}%
           </div>
-          {metricsHistory.length > 1 && (
+          {history.samples.length > 1 && (
             <div className="system-metric-chart">
-              <MiniChart data={metricsHistory.map(m => m.cpu)} max={100} color="var(--accent-blue)" />
+              <MiniChart data={history.samples.map((s) => s.cpu || 0)} max={100} color="var(--accent-blue)" />
             </div>
           )}
         </div>
@@ -108,14 +200,17 @@ export default function SystemDashboardPage() {
           <div className="system-metric-header">
             <MemoryStick size={16} />
             <span>Memory</span>
+            {history.thresholds?.mem && (metrics?.memory?.percent || 0) >= history.thresholds.mem.warn && (
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>⚠ High</span>
+            )}
           </div>
-          <div className={`system-metric-value ${(metrics?.memory?.percent || 0) > 80 ? 'warning' : ''}`}>
+          <div className={`system-metric-value ${(metrics?.memory?.percent || 0) > (history.thresholds?.mem?.warn || 90) ? 'warning' : ''}`}>
             {metrics?.memory?.percent?.toFixed(1) || '0.0'}%
           </div>
           <div className="system-metric-sub">{metrics?.memory?.usedGB || 0} GB used</div>
-          {metricsHistory.length > 1 && (
+          {history.samples.length > 1 && (
             <div className="system-metric-chart">
-              <MiniChart data={metricsHistory.map(m => m.mem)} max={100} color="var(--accent-purple)" />
+              <MiniChart data={history.samples.map((s) => s.mem || 0)} max={100} color="var(--accent-purple)" />
             </div>
           )}
         </div>

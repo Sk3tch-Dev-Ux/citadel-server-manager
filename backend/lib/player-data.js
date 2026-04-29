@@ -7,6 +7,9 @@
 const logger = require('./logger');
 const ctx = require('./context');
 
+/** Sidecar HTTP timeout (ms) — prevents hung connections from blocking the metrics tick */
+const SIDECAR_FETCH_TIMEOUT_MS = 8_000;
+
 /**
  * Parse BattlEye RCON `players` command output.
  * Format:
@@ -73,7 +76,7 @@ async function fetchPlayers(serverId) {
     const headers = { 'Content-Type': 'application/json' };
     if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
 
-    const res = await fetch(`${baseUrl}/players`, { headers });
+    const res = await fetch(`${baseUrl}/players`, { headers, signal: AbortSignal.timeout(SIDECAR_FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const json = await res.json();
@@ -126,7 +129,7 @@ async function fetchModMetrics(serverId) {
     const headers = { 'Content-Type': 'application/json' };
     if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
 
-    const res = await fetch(`${baseUrl}/metrics`, { headers });
+    const res = await fetch(`${baseUrl}/metrics`, { headers, signal: AbortSignal.timeout(SIDECAR_FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const json = await res.json();
@@ -153,7 +156,7 @@ async function fetchModVehicles(serverId) {
     const headers = { 'Content-Type': 'application/json' };
     if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
 
-    const res = await fetch(`${baseUrl}/vehicles`, { headers });
+    const res = await fetch(`${baseUrl}/vehicles`, { headers, signal: AbortSignal.timeout(SIDECAR_FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const json = await res.json();
@@ -180,7 +183,7 @@ async function fetchModWorldEvents(serverId) {
     const headers = { 'Content-Type': 'application/json' };
     if (srv.inHouseApiKey) headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
 
-    const res = await fetch(`${baseUrl}/world-events`, { headers });
+    const res = await fetch(`${baseUrl}/world-events`, { headers, signal: AbortSignal.timeout(SIDECAR_FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const json = await res.json();

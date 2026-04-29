@@ -113,6 +113,7 @@ function log(...args) {
   appendUpdateLog('INFO', args);
   // eslint-disable-next-line no-console
   console.log('[updater]', ...args);
+  fileLog('INFO', args.join(' '));
 }
 
 function warn(...args) {
@@ -197,6 +198,8 @@ function initAutoUpdater({ getMainWindow }) {
       win.webContents.send(channel, payload);
     }
   };
+
+  log(`auto-updater init — app version: ${app.getVersion()}, feed: ${FEED_OWNER}/${FEED_REPO}`);
 
   // Config — point at our public GitHub releases. Keeps the logic out of
   // app-update.yml (which our custom NSIS installer doesn't generate).

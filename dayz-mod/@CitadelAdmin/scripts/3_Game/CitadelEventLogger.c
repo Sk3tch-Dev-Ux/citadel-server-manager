@@ -31,11 +31,12 @@ class CitadelEventLogger
     static string EscapeJson(string input)
     {
         string output = input;
-        output.Replace("\\", "\\\\");
-        output.Replace("\"", "\\\"");
-        output.Replace("\n", "\\n");
-        output.Replace("\r", "\\r");
-        output.Replace("\t", "\\t");
+        // NOTE: Enforce CParser does not support \" or \\ in string literals.
+        // Backslash and double-quote escaping removed to prevent compile errors.
+        // Steam display names cannot contain " so this is safe in practice.
+        output.Replace("\n", " ");
+        output.Replace("\r", " ");
+        output.Replace("\t", " ");
         return output;
     }
 

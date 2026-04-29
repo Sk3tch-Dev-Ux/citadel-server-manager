@@ -72,20 +72,49 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 ; Pre-install checks
 ; ═══════════════════════════════════════════════════════════
 Function .onInit
-  ; ── Port conflict check ──
+  ; ── Detect an existing Citadel install ──
+  ; If we're upgrading in place, skip the port-conflict check entirely —
+  ; port 3001 is held by the existing Citadel service, which we're about
+  ; to stop in the install Section. Without this skip, silent updates
+  ; (electron-updater /S) abort because /SD IDNO defaults the message box
+  ; to "No, don't continue".
+  ReadRegStr $0 HKLM "Software\Citadel" "InstallDir"
+  ${If} $0 != ""
+  ${AndIf} ${FileExists} "$0\runtime\nssm.exe"
+    DetailPrint "Existing Citadel install detected at $0 — skipping port check"
+    Goto skipPortCheck
+  ${EndIf}
+
+  ; ── Port conflict check (fresh install only) ──
   ; If something else is already listening on :3001, fail fast with a clear
   ; message rather than silently producing a broken install.
   nsExec::ExecToStack 'powershell -NoProfile -WindowStyle Hidden -Command "if (Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }"'
   Pop $0
   ${If} $0 == 1
-    MessageBox MB_ICONEXCLAMATION|MB_YESNO "Port 3001 is already in use on this machine.$\n$\nCitadel uses port 3001 for its dashboard and API. Another application is currently listening on this port.$\n$\nRecommended: Cancel, stop the other service, and run the installer again.$\n$\nContinue anyway?" /SD IDNO IDYES continueInstall
+    ; In silent mode, default to YES (continue) rather than NO. The "skip
+    ; on existing install" check above already handles the common upgrade
+    ; case; this is just defensive for fresh-install silent runs that
+    ; happen while another service briefly holds the port.
+    MessageBox MB_ICONEXCLAMATION|MB_YESNO "Port 3001 is already in use on this machine.$\n$\nCitadel uses port 3001 for its dashboard and API. Another application is currently listening on this port.$\n$\nRecommended: Cancel, stop the other service, and run the installer again.$\n$\nContinue anyway?" /SD IDYES IDYES continueInstall
     Abort "Installation cancelled — port 3001 is in use."
     continueInstall:
   ${EndIf}
+  skipPortCheck:
 FunctionEnd
 
 ; ═══════════════════════════════════════════════════════════
 ; Installation
+;
+; UPGRADE SAFETY:
+;   On a re-install over an existing Citadel install, the following files
+;   are preserved WITHOUT being overwritten or deleted:
+;     - data/          (server configs, backups, license cache, user DB)
+;     - .env           (user-customized env vars like CITADEL_LICENSE_API)
+;     - users.json / role defs (if present at install root)
+;
+;   The service is stopped BEFORE copying files so code files aren't locked
+;   by node.exe. The old service registration is removed + re-registered
+;   to pick up the new paths (harmless even on identical paths).
 ; ═══════════════════════════════════════════════════════════
 Section "Citadel" SecMain
   SectionIn RO
@@ -135,7 +164,16 @@ Section "Citadel" SecMain
   SetOutPath "$INSTDIR\desktop"
   File /nonfatal /r "${STAGING_DIR}\desktop\*.*"
 
-  ; ── Create data directory ──
+  ; ── Restore user .env if we backed one up ──
+  ; The File /r above may have overwritten .env with the fresh .env.example.
+  ; Put the user's version back.
+  ${If} ${FileExists} "$INSTDIR\.env.upgrade-backup"
+    DetailPrint "Restoring your existing .env (user-customized env vars preserved)..."
+    CopyFiles /SILENT "$INSTDIR\.env.upgrade-backup" "$INSTDIR\.env"
+    Delete "$INSTDIR\.env.upgrade-backup"
+  ${EndIf}
+
+  ; ── Create data directory (preserves contents on upgrade) ──
   CreateDirectory "$INSTDIR\data"
 
   ; ── Write install directory to registry ──
@@ -214,6 +252,30 @@ Section "Citadel" SecMain
 
   DetailPrint "Installation complete!"
 SectionEnd
+
+; ═══════════════════════════════════════════════════════════
+; Silent-mode auto-launch
+;
+; When electron-updater runs the installer with /S (silent), all MUI pages
+; are skipped — including the Finish page that calls LaunchDashboard.
+; This callback fires after a successful install regardless of mode.
+; In silent mode it waits for the backend API, then launches the desktop
+; app so the user sees Citadel come back after "Restart & Install".
+; ═══════════════════════════════════════════════════════════
+Function .onInstSuccess
+  IfSilent 0 notSilent
+    DetailPrint "Silent install complete — launching Citadel..."
+    ; Wait for the backend service to be ready before launching the app.
+    ; Without this the desktop app's splash screen would sit on "connecting"
+    ; for a long time on slower machines.
+    IfFileExists "$INSTDIR\backend\lib\wait-for-ready.js" 0 skipWait
+      nsExec::ExecToLog '"$INSTDIR\runtime\node.exe" "$INSTDIR\backend\lib\wait-for-ready.js"'
+      Pop $0
+    skipWait:
+    IfFileExists "$INSTDIR\desktop\Citadel.exe" 0 notSilent
+      Exec '"$INSTDIR\desktop\Citadel.exe"'
+  notSilent:
+FunctionEnd
 
 ; ═══════════════════════════════════════════════════════════
 ; Finish page — open dashboard

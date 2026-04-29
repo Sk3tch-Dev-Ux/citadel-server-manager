@@ -126,12 +126,23 @@ class RCONClient {
         try {
           const result = await this.send('');
           if (result === '[No response]' || (typeof result === 'string' && result.startsWith('[Error]'))) {
-            logger.warn({ serverId: this.serverId }, 'RCON keepalive got no response — marking connection stale');
-            this.loggedIn = false;
+            logger.warn({ serverId: this.serverId }, 'RCON keepalive got no response — reconnecting');
+            this.disconnect();
+            // Schedule reconnect after a short delay to avoid tight loops
+            setTimeout(() => {
+              this.connect().catch(err => {
+                logger.debug({ err: err.message, serverId: this.serverId }, 'RCON auto-reconnect failed');
+              });
+            }, 3000);
           }
         } catch (err) {
-          logger.warn({ err, serverId: this.serverId }, 'RCON keepalive error — marking connection stale');
-          this.loggedIn = false;
+          logger.warn({ err, serverId: this.serverId }, 'RCON keepalive error — reconnecting');
+          this.disconnect();
+          setTimeout(() => {
+            this.connect().catch(reconnErr => {
+              logger.debug({ err: reconnErr.message, serverId: this.serverId }, 'RCON auto-reconnect failed');
+            });
+          }, 3000);
         }
       }
     }, RCON_KEEPALIVE_INTERVAL_MS);

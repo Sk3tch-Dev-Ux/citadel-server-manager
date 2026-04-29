@@ -1,0 +1,8 @@
+version: 2.14.0
+files:
+  - url: CitadelSetup-2.14.0.exe
+    sha512: As2MtFNQeRRcpWo2e/35ccd/MPyKA7ollNKFH+Qx4vlxA3/yL5J979qVIeGKQ5PEfBv/fQaN79S3FvravBqzHA==
+    size: 156061241
+path: CitadelSetup-2.14.0.exe
+sha512: As2MtFNQeRRcpWo2e/35ccd/MPyKA7ollNKFH+Qx4vlxA3/yL5J979qVIeGKQ5PEfBv/fQaN79S3FvravBqzHA==
+releaseDate: '2026-04-28T01:36:39.149Z'

@@ -99,11 +99,59 @@ async function getWorkshopModVersion(workshopId) {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `itemcount=1&publishedfileids[0]=${workshopId}`,
+      signal: AbortSignal.timeout(15_000),
     });
     const data = await resp.json();
     const file = data?.response?.publishedfiledetails?.[0];
     return file ? file.time_updated : null;
   } catch { return null; }
+}
+
+/**
+ * Batch-fetch workshop mod versions in a single API call.
+ * The Steam API supports up to ~100 items per request.
+ * Falls back to individual calls if the batch request fails.
+ *
+ * @param {string[]} workshopIds - Array of workshop IDs to check
+ * @returns {Promise<Map<string, number>>} Map of workshopId -> time_updated
+ */
+async function getWorkshopModVersionsBatch(workshopIds) {
+  if (!workshopIds.length) return new Map();
+
+  // Steam API supports batch queries — encode all IDs in one request
+  const BATCH_SIZE = 100;
+  const results = new Map();
+
+  for (let i = 0; i < workshopIds.length; i += BATCH_SIZE) {
+    const batch = workshopIds.slice(i, i + BATCH_SIZE);
+    try {
+      const bodyParts = [`itemcount=${batch.length}`];
+      batch.forEach((id, idx) => bodyParts.push(`publishedfileids[${idx}]=${id}`));
+
+      const resp = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: bodyParts.join('&'),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const data = await resp.json();
+      const details = data?.response?.publishedfiledetails || [];
+      for (const file of details) {
+        if (file.publishedfileid && file.time_updated) {
+          results.set(file.publishedfileid, file.time_updated);
+        }
+      }
+    } catch (err) {
+      logger.debug({ err: err.message, batchSize: batch.length }, 'Batch workshop version check failed, falling back to individual');
+      // Fallback to individual calls for this batch
+      for (const id of batch) {
+        const ver = await getWorkshopModVersion(id);
+        if (ver) results.set(id, ver);
+      }
+    }
+  }
+
+  return results;
 }
 
 /**
@@ -271,47 +319,80 @@ async function runStartupDetection() {
 function startSteamUpdatePolling() {
   _ensureTrackingLoaded();
   return setInterval(async () => {
+    // ─── Batch mod version check across ALL servers ───────────
+    // Collect all unique workshopIds from all servers, then make ONE batched
+    // Steam API call instead of N sequential calls. A typical server with
+    // 40+ mods previously made 40+ HTTP requests; now it's 1.
+    const modsByWorkshopId = new Map(); // workshopId -> { name, serverIds[] }
     for (const srv of ctx.servers) {
       const state = ctx.serverStates[srv.id];
       if (!state) continue;
-      // Mod update polling
       const ignoreModUpdates = srv.ignoreModUpdates ?? srv.ignoreServerModUpdates ?? false;
-      if (!ignoreModUpdates && Array.isArray(state.modList)) {
-        for (const mod of state.modList) {
-          if (!mod.workshopId) continue;
-          const remoteVersion = await getWorkshopModVersion(mod.workshopId);
-          if (remoteVersion && lastModVersions[mod.workshopId] && remoteVersion > lastModVersions[mod.workshopId]) {
-            addLog(srv.id, 'info', 'updates', `Workshop mod ${mod.name} update detected (${lastModVersions[mod.workshopId]} -> ${remoteVersion})`);
-            addNotification(srv.id, 'mod.update', 'Mod Update Available', `Workshop mod ${mod.name} has a new version available.`, 'warning');
-            fireWebhooks('mod.updated', { serverId: srv.id, serverName: srv.name, modName: mod.name });
-            ctx.io.emit('modUpdate', { serverId: srv.id, mod: mod.name, workshopId: mod.workshopId });
-            // Track as pending update for frontend badges
-            pendingModUpdates[mod.workshopId] = { name: mod.name, detectedAt: new Date().toISOString(), remoteVersion };
-            // Auto-updater integration: trigger update pipeline when enabled and shutdown for mods is allowed
+      if (ignoreModUpdates || !Array.isArray(state.modList)) continue;
+      for (const mod of state.modList) {
+        if (!mod.workshopId) continue;
+        if (!modsByWorkshopId.has(mod.workshopId)) {
+          modsByWorkshopId.set(mod.workshopId, { name: mod.name, serverIds: [] });
+        }
+        modsByWorkshopId.get(mod.workshopId).serverIds.push(srv.id);
+      }
+    }
+
+    if (modsByWorkshopId.size > 0) {
+      const batchResults = await getWorkshopModVersionsBatch([...modsByWorkshopId.keys()]);
+
+      for (const [workshopId, remoteVersion] of batchResults) {
+        const modInfo = modsByWorkshopId.get(workshopId);
+        if (!modInfo) continue;
+
+        if (remoteVersion && lastModVersions[workshopId] && remoteVersion > lastModVersions[workshopId]) {
+          // Notify each server that uses this mod
+          for (const serverId of modInfo.serverIds) {
+            const srv = ctx.servers.find(s => s.id === serverId);
+            if (!srv) continue;
+            addLog(serverId, 'info', 'updates', `Workshop mod ${modInfo.name} update detected (${lastModVersions[workshopId]} -> ${remoteVersion})`);
+            addNotification(serverId, 'mod.update', 'Mod Update Available', `Workshop mod ${modInfo.name} has a new version available.`, 'warning');
+            fireWebhooks('mod.updated', { serverId, serverName: srv.name, modName: modInfo.name });
+            ctx.io.emit('modUpdate', { serverId, mod: modInfo.name, workshopId });
             if (srv.autoUpdateEnabled && srv.shutdownForModUpdates !== false) {
-              triggerAutoUpdate(srv.id, 'mod', { modId: mod.workshopId, modName: mod.name });
+              triggerAutoUpdate(serverId, 'mod', { modId: workshopId, modName: modInfo.name });
             }
           }
-          if (remoteVersion) lastModVersions[mod.workshopId] = remoteVersion;
+          pendingModUpdates[workshopId] = { name: modInfo.name, detectedAt: new Date().toISOString(), remoteVersion };
         }
+        if (remoteVersion) lastModVersions[workshopId] = remoteVersion;
       }
-      // Game build update polling
+    }
+
+    // ─── Game build update polling (once, not per-server) ────
+    // Only need to check each app ID once, not once per server
+    const checkedAppIds = new Set();
+    for (const srv of ctx.servers) {
+      const state = ctx.serverStates[srv.id];
+      if (!state) continue;
       const srvAppId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
+      if (checkedAppIds.has(srvAppId)) continue;
+      checkedAppIds.add(srvAppId);
+
       const remoteBuild = await getDayZBuildVersion(srvAppId);
       if (remoteBuild && lastGameBuild && remoteBuild !== lastGameBuild) {
-        addLog(srv.id, 'info', 'updates', `DayZ game build updated (${lastGameBuild} -> ${remoteBuild})`);
-        addNotification(srv.id, 'game.update', 'Game Update Available', `DayZ game build ${remoteBuild} is available.`, 'warning');
-        fireWebhooks('title.updated', { serverId: srv.id, serverName: srv.name, build: remoteBuild });
-        ctx.io.emit('gameUpdate', { serverId: srv.id, build: remoteBuild });
-        // Auto-updater integration: trigger update pipeline when enabled and shutdown for title is allowed
-        if (srv.autoUpdateEnabled && srv.shutdownForTitleUpdates !== false) {
-          triggerAutoUpdate(srv.id, 'game', { build: remoteBuild });
+        // Notify all servers using this app ID
+        for (const s of ctx.servers) {
+          const appId = s.gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
+          if (appId !== srvAppId) continue;
+          addLog(s.id, 'info', 'updates', `DayZ game build updated (${lastGameBuild} -> ${remoteBuild})`);
+          addNotification(s.id, 'game.update', 'Game Update Available', `DayZ game build ${remoteBuild} is available.`, 'warning');
+          fireWebhooks('title.updated', { serverId: s.id, serverName: s.name, build: remoteBuild });
+          ctx.io.emit('gameUpdate', { serverId: s.id, build: remoteBuild });
+          if (s.autoUpdateEnabled && s.shutdownForTitleUpdates !== false) {
+            triggerAutoUpdate(s.id, 'game', { build: remoteBuild });
+          }
         }
       }
       if (remoteBuild) lastGameBuild = remoteBuild;
-      // Persist tracking data to disk after each poll cycle
-      _persistTracking();
     }
+
+    _persistTracking();
   }, STEAM_UPDATE_POLL_INTERVAL_MS);
 }
 

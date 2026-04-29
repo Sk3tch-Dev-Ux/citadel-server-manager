@@ -130,4 +130,5 @@ export {
   LogIn,
   StickyNote,
   Trophy,
+  Pause,
 } from 'lucide-react';

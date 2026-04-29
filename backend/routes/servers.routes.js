@@ -17,16 +17,37 @@ const { stopTailing } = require('../lib/rpt-tailer');
 const auth = require('../middleware/auth');
 const { ensureFirewallRules, removeFirewallRules } = require('../lib/firewall-manager');
 
-// Map template names from serverDZ.cfg to our map values
+/**
+ * Map template names from serverDZ.cfg to our map config keys.
+ *
+ * The `template` field in serverDZ.cfg varies across servers — some use
+ * the full "dayzoffline.X" prefix, others just the map name, and modded
+ * maps often use their own naming convention. This table covers all
+ * known variants so the interactive map auto-selects correctly.
+ */
 const TEMPLATE_TO_MAP = {
+  // ─── Official Maps ───────────────────────────────────────
   'dayzoffline.chernarusplus': 'chernarusplus',
-  'dayzoffline.enoch': 'enoch',
-  'chernarusplus': 'chernarusplus',
-  'enoch': 'enoch',
-  'deerisle': 'deerisle',
-  'namalsk': 'namalsk',
-  'sakhal': 'sakhal',
-  'takistanplus': 'takistanplus',
+  'chernarusplus':             'chernarusplus',
+  'chernarus':                 'chernarusplus',
+  'dayzoffline.enoch':         'enoch',
+  'enoch':                     'enoch',
+  'livonia':                   'enoch',
+  'dayzoffline.sakhal':        'sakhal',
+  'sakhal':                    'sakhal',
+
+  // ─── Popular Community Maps ──────────────────────────────
+  'deerisle':                  'deerisle',
+  'deer_isle':                 'deerisle',
+  'namalsk':                   'namalsk',
+  'namalskisland':             'namalsk',
+  'takistanplus':              'takistanplus',
+  'takistan':                  'takistanplus',
+  'banov':                     'banov',
+  'esseker':                   'esseker',
+  'rostow':                    'rostow',
+  'alteria':                   'alteria',
+  'pripyat':                   'pripyat',
 };
 
 module.exports = function(app) {

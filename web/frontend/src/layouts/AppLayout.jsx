@@ -9,6 +9,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import NotificationCenter from '../components/NotificationCenter';
 import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
 import AppUpdateBanner from '../components/AppUpdateBanner';
+import CitadelUpdateBanner from '../components/CitadelUpdateBanner';
 import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
 // `Eye` is imported at the bottom of the file for the server nav — reuse that import in the JSX below via hoisting.
 
@@ -152,6 +153,9 @@ export default function AppLayout() {
       <div className="main" role="main">
         {/* Desktop auto-updater — hides when running in a browser or idle */}
         <AppUpdateBanner />
+
+        {/* Citadel version update banner — shows when a new version is available (web UI only) */}
+        <CitadelUpdateBanner />
 
         {/* Citadel subscription banner — only shows when license isn't fully active */}
         <CitadelLicenseBanner />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
-import { FileCode, Zap, Globe, Layers } from '../components/Icon';
+import { FileCode, Zap, Globe, Layers, FolderOpen } from '../components/Icon';
 
 const CARDS = [
   {
@@ -44,6 +44,16 @@ const CARDS = [
     unit: 'items',
     fetch: (serverId) => API.get(`/api/servers/${serverId}/spawnabletypes`).then(d => d.items?.length ?? 0),
   },
+  {
+    key: 'economycore',
+    title: 'Economy Core',
+    icon: FolderOpen,
+    color: 'var(--accent)',
+    route: 'economycore',
+    description: 'CE folder paths and XML file mappings — the root config that ties everything together',
+    unit: 'folders',
+    fetch: (serverId) => API.get(`/api/servers/${serverId}/economycore`).then(d => d.folders?.length ?? 0),
+  },
 ];
 
 function formatCount(n) {
@@ -66,13 +76,15 @@ export default function EconomyHubPage({ serverId }) {
     ).then(results => {
       if (cancelled) return;
       const next = {};
-      for (const r of results) {
+      // Use index-based access instead of indexOf (fixes the original bug
+      // where indexOf could return wrong index for rejected promises)
+      results.forEach((r, i) => {
         if (r.status === 'fulfilled') {
           next[r.value.key] = { count: r.value.count, error: false };
         } else {
-          next[CARDS[results.indexOf(r)].key] = { count: 0, error: true };
+          next[CARDS[i].key] = { count: 0, error: true };
         }
-      }
+      });
       setCounts(next);
       setLoading(false);
     });
@@ -91,7 +103,7 @@ export default function EconomyHubPage({ serverId }) {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: 16,
       }}>
         {CARDS.map(card => {
@@ -104,14 +116,25 @@ export default function EconomyHubPage({ serverId }) {
             <div
               key={card.key}
               className="card"
+              onClick={() => navigate(`/servers/${serverId}/${card.route}`)}
               style={{
                 padding: 24,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 12,
-                border: `1px solid var(--border)`,
+                border: '1px solid var(--border)',
                 background: 'var(--bg-card)',
                 borderRadius: 8,
+                cursor: 'pointer',
+                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = card.color;
+                e.currentTarget.style.boxShadow = `0 0 0 1px ${card.color}30`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -143,7 +166,7 @@ export default function EconomyHubPage({ serverId }) {
                     animation: 'pulse 1.5s ease-in-out infinite',
                   }} />
                 ) : hasError ? (
-                  <span style={{ fontSize: 16, color: 'var(--text-muted)' }}>Not found</span>
+                  <span style={{ fontSize: 16, color: 'var(--text-muted)' }}>Not configured</span>
                 ) : (
                   <>
                     {formatCount(data.count)}{' '}
@@ -161,7 +184,7 @@ export default function EconomyHubPage({ serverId }) {
               <button
                 className="btn btn-primary"
                 style={{ alignSelf: 'flex-start', marginTop: 4 }}
-                onClick={() => navigate(`/servers/${serverId}/${card.route}`)}
+                onClick={(e) => { e.stopPropagation(); navigate(`/servers/${serverId}/${card.route}`); }}
               >
                 Open Editor
               </button>

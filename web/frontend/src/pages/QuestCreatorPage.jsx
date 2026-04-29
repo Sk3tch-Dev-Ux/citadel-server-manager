@@ -7,6 +7,7 @@ import {
 } from '../components/Icon';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
+import useServerMap from '../hooks/useServerMap';
 
 // ─── Constants ────────────────────────────────────────────────────────
 
@@ -950,7 +951,8 @@ function QuestBuilderPanel({ quest, quests, npcs, objectives, onObjectivesChange
 //  RIGHT PANEL — Map Preview & Quest Flow
 // ═══════════════════════════════════════════════════════════════════════
 
-function QuestPreviewPanel({ quest, objectives, npcs, collapsed, onToggle }) {
+function QuestPreviewPanel({ quest, objectives, npcs, collapsed, onToggle, serverId }) {
+  const serverMap = useServerMap(serverId);
   if (collapsed) {
     return (
       <div style={{
@@ -1018,7 +1020,7 @@ function QuestPreviewPanel({ quest, objectives, npcs, collapsed, onToggle }) {
         <div style={{ height: 300, borderBottom: '1px solid var(--border)' }}>
           <Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               markers={markers}
               height={300}
               mode="view"
@@ -1256,6 +1258,7 @@ export default function QuestCreatorPage({ serverId }) {
             npcs={npcs}
             collapsed={previewCollapsed}
             onToggle={() => setPreviewCollapsed(!previewCollapsed)}
+            serverId={serverId}
           />
         </>
       ) : (

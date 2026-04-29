@@ -4,6 +4,7 @@ import API from '../api';
 import { ArrowLeft, Save, Plus, X, Search, ChevronRight, ChevronDown, ShoppingCart, Trash2, Check, Edit, Copy } from '../components/Icon';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
+import useServerMap from '../hooks/useServerMap';
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -95,6 +96,10 @@ function MarketCategoriesTab({ serverId }) {
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkValues, setBulkValues] = useState({ MinPriceThreshold: '', MaxPriceThreshold: '', MinStockThreshold: '', MaxStockThreshold: '' });
+  // bulkOp: 'set' (direct value), 'multiply' (×factor), 'add' (+offset)
+  // Applied to ALL four bulkValues columns uniformly so an admin can e.g.
+  // "multiply every selected item's Min + Max price by 1.5" in one shot.
+  const [bulkOp, setBulkOp] = useState('set');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
 
@@ -269,24 +274,41 @@ function MarketCategoriesTab({ serverId }) {
   };
 
   const applyBulkEdit = () => {
-    setCategoryData(prev => {
+    // Apply the current bulkOp to each selected item. For 'set' we replace
+    // the field outright. For 'multiply' / 'add' we use the current value
+    // as the base — if a field is empty in bulkValues we skip it, so admins
+    // can e.g. multiply only prices (leave stock columns blank).
+    const keys = ['MinPriceThreshold', 'MaxPriceThreshold', 'MinStockThreshold', 'MaxStockThreshold'];
+    setCategoryData((prev) => {
       const items = [...(prev.Items || [])];
       for (const idx of selectedItems) {
-        if (items[idx]) {
-          const updated = { ...items[idx] };
-          if (bulkValues.MinPriceThreshold !== '') updated.MinPriceThreshold = Number(bulkValues.MinPriceThreshold);
-          if (bulkValues.MaxPriceThreshold !== '') updated.MaxPriceThreshold = Number(bulkValues.MaxPriceThreshold);
-          if (bulkValues.MinStockThreshold !== '') updated.MinStockThreshold = Number(bulkValues.MinStockThreshold);
-          if (bulkValues.MaxStockThreshold !== '') updated.MaxStockThreshold = Number(bulkValues.MaxStockThreshold);
-          items[idx] = updated;
+        if (!items[idx]) continue;
+        const updated = { ...items[idx] };
+        for (const key of keys) {
+          const raw = bulkValues[key];
+          if (raw === '' || raw == null) continue;
+          const v = Number(raw);
+          if (!Number.isFinite(v)) continue;
+          if (bulkOp === 'set') {
+            updated[key] = v;
+          } else if (bulkOp === 'multiply') {
+            const current = Number(updated[key]) || 0;
+            updated[key] = Math.round(current * v);
+          } else if (bulkOp === 'add') {
+            const current = Number(updated[key]) || 0;
+            updated[key] = Math.round(current + v);
+          }
         }
+        items[idx] = updated;
       }
       return { ...prev, Items: items };
     });
+    const opLabel = bulkOp === 'multiply' ? 'multiplied' : bulkOp === 'add' ? 'adjusted' : 'updated';
+    window.addToast?.(`${opLabel} ${selectedItems.size} item${selectedItems.size === 1 ? '' : 's'}`, 'success');
     setBulkMode(false);
     setSelectedItems(new Set());
     setBulkValues({ MinPriceThreshold: '', MaxPriceThreshold: '', MinStockThreshold: '', MaxStockThreshold: '' });
-    window.addToast?.(`Updated ${selectedItems.size} items`, 'success');
+    setBulkOp('set');
   };
 
   const getFilteredItems = () => {
@@ -459,17 +481,47 @@ function MarketCategoriesTab({ serverId }) {
             {/* Bulk edit bar */}
             {bulkMode && selectedItems.size > 0 && (
               <div className="card" style={{ padding: 12, marginBottom: 12, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-blue)' }}>Bulk edit {selectedItems.size} items:</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-blue)' }}>
+                    Bulk edit {selectedItems.size} item{selectedItems.size === 1 ? '' : 's'}
+                  </div>
+                  <div style={{ display: 'flex', gap: 2, marginTop: 4 }}>
+                    {[
+                      { id: 'set', label: 'Set to', hint: 'Replace with value' },
+                      { id: 'multiply', label: '× Factor', hint: 'Multiply current by value (e.g. 1.5)' },
+                      { id: 'add', label: '+ Offset', hint: 'Add value to current (e.g. -100)' },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => setBulkOp(m.id)}
+                        className={`btn btn-xs ${bulkOp === m.id ? 'btn-primary' : 'btn-ghost'}`}
+                        title={m.hint}
+                        style={{ fontSize: 10 }}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {[
                   { key: 'MinPriceThreshold', label: 'Min Price' },
                   { key: 'MaxPriceThreshold', label: 'Max Price' },
                   { key: 'MinStockThreshold', label: 'Min Stock' },
                   { key: 'MaxStockThreshold', label: 'Max Stock' },
-                ].map(f => (
+                ].map((f) => (
                   <div key={f.key}>
-                    <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>{f.label}</label>
-                    <input className="input" type="number" value={bulkValues[f.key]} onChange={e => setBulkValues(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      placeholder="--" style={{ width: 80, fontSize: 12 }} />
+                    <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>
+                      {f.label}{bulkOp === 'multiply' ? ' ×' : bulkOp === 'add' ? ' +/−' : ''}
+                    </label>
+                    <input
+                      className="input"
+                      type="number"
+                      step={bulkOp === 'multiply' ? '0.1' : '1'}
+                      value={bulkValues[f.key]}
+                      onChange={(e) => setBulkValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                      placeholder={bulkOp === 'multiply' ? '1.5' : bulkOp === 'add' ? '+100' : '--'}
+                      style={{ width: 80, fontSize: 12 }}
+                    />
                   </div>
                 ))}
                 <button className="btn btn-primary" onClick={applyBulkEdit} style={{ padding: '4px 12px', fontSize: 12 }}>
@@ -661,6 +713,7 @@ function TradersTab({ serverId }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showNewTrader, setShowNewTrader] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState('');
   const [newTraderName, setNewTraderName] = useState('');
   const [newCurrency, setNewCurrency] = useState('');
   const [newItemOverride, setNewItemOverride] = useState({ className: '', mode: 0 });
@@ -853,11 +906,28 @@ function TradersTab({ serverId }) {
           </div>
         )}
 
+        <input
+          className="input"
+          value={sidebarSearch}
+          onChange={(e) => setSidebarSearch(e.target.value)}
+          placeholder="Search traders…"
+          style={{ width: '100%', fontSize: 12, padding: '4px 8px', marginBottom: 6 }}
+        />
         <div style={{ overflow: 'auto', flex: 1 }}>
-          {traders.length === 0 ? (
-            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>No traders found</div>
-          ) : (
-            traders.map(trader => {
+          {(() => {
+            const q = sidebarSearch.trim().toLowerCase();
+            const filtered = !q ? traders : traders.filter((t) => {
+              const s = (typeof t === 'string' ? t : (t.displayName || t.DisplayName || t.fileName || t.name || '')).toLowerCase();
+              return s.includes(q);
+            });
+            if (filtered.length === 0) {
+              return (
+                <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                  {q ? `No traders match "${sidebarSearch}"` : 'No traders found'}
+                </div>
+              );
+            }
+            return filtered.map((trader) => {
               const fileName = typeof trader === 'string' ? trader : (trader.fileName || trader.name || trader);
               const displayName = typeof trader === 'object' ? (trader.displayName || trader.DisplayName || trader.fileName || trader.name) : trader;
               const isActive = selectedFile === fileName;
@@ -873,8 +943,8 @@ function TradersTab({ serverId }) {
                   {String(displayName).replace(/_/g, ' ').replace(/\.json$/i, '')}
                 </div>
               );
-            })
-          )}
+            });
+          })()}
         </div>
       </div>
 
@@ -1104,7 +1174,9 @@ function TradersTab({ serverId }) {
 // ─── Tab 3: Trader Zones ────────────────────────────────────────────
 
 function TraderZonesTab({ serverId }) {
+  const serverMap = useServerMap(serverId);
   const [zones, setZones] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
@@ -1230,7 +1302,7 @@ function TraderZonesTab({ serverId }) {
         <div style={{ padding: 8 }}>
           <Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               height={500}
               circles={zoneIds.map(id => {
                 const z = editData[id];
@@ -1274,8 +1346,18 @@ function TraderZonesTab({ serverId }) {
           padding: '10px 16px', fontWeight: 700, fontSize: 14,
           borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-blue)',
           background: 'var(--bg-surface, var(--bg-deep))',
+          display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between',
         }}>
-          Zone Details
+          <span>Zone Details</span>
+          {zoneIds.length > 4 && (
+            <input
+              className="input"
+              placeholder="Search zones…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 220, fontSize: 12, padding: '4px 8px' }}
+            />
+          )}
         </div>
         {zoneIds.length === 0 ? (
           <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
@@ -1295,7 +1377,16 @@ function TraderZonesTab({ serverId }) {
               </tr>
             </thead>
             <tbody>
-              {zoneIds.map(id => {
+              {(() => {
+                const q = search.trim().toLowerCase();
+                const visibleIds = !q ? zoneIds : zoneIds.filter((id) => {
+                  const z = editData[id];
+                  return id.toLowerCase().includes(q) || (z?.DisplayName || '').toLowerCase().includes(q);
+                });
+                if (visibleIds.length === 0) {
+                  return <tr><td colSpan={7} style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>No zones match &ldquo;{search}&rdquo;</td></tr>;
+                }
+                return visibleIds.map(id => {
                 const z = editData[id];
                 const pos = z.Position || [0, 0, 0];
                 const isSelected = selectedZone === id;
@@ -1345,7 +1436,8 @@ function TraderZonesTab({ serverId }) {
                     </td>
                   </tr>
                 );
-              })}
+              });
+              })()}
             </tbody>
           </table>
         )}
@@ -1357,60 +1449,199 @@ function TraderZonesTab({ serverId }) {
 // ─── Tab 4: NPC Spawns ──────────────────────────────────────────────
 
 function NPCSpawnsTab({ serverId }) {
+  const serverMap = useServerMap(serverId);
+  // spawnFiles: [{ fileName, spawns: [{ entityClass, traderFile, position: {x,y,z}, orientation: {yaw,pitch,roll}, gear: [] }], raw, dirty }]
+  // All data comes from /trader-editor/spawns which parses the Expansion .map
+  // format server-side and returns structured objects. The prior version of
+  // this tab pulled from /traders (the JSON trader configs) which don't have
+  // the same fields — positions were wrong and gear was untouchable.
   const [spawnFiles, setSpawnFiles] = useState([]);
+  const [sidebarSearch, setSidebarSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [expandedNpc, setExpandedNpc] = useState(null);
+  const [expandedNpcIdx, setExpandedNpcIdx] = useState(null);
+  const [mapMode, setMapMode] = useState('view'); // 'view' | 'addMarker'
 
   const loadSpawns = useCallback(async () => {
     setLoading(true);
     try {
-      // NPC spawns are typically loaded from the traders endpoint
-      const data = await API.get(`/api/servers/${serverId}/trader-editor/traders`);
-      if (data && !data.error) {
-        const traders = Array.isArray(data) ? data : data.traders || [];
-        // Build spawn files from trader data with position info
-        const files = traders.map(t => {
-          const fileName = typeof t === 'string' ? t : (t.fileName || t.name || t);
-          const displayName = typeof t === 'object' ? (t.displayName || t.DisplayName || t.fileName) : t;
-          const npcs = typeof t === 'object' ? (t.npcs || t.Traders || []) : [];
-          return { fileName, displayName, npcs };
-        });
-        setSpawnFiles(files);
+      const data = await API.get(`/api/servers/${serverId}/trader-editor/spawns`);
+      if (Array.isArray(data)) {
+        setSpawnFiles(data.map((f) => ({
+          fileName: f.fileName,
+          displayName: f.fileName,
+          spawns: Array.isArray(f.spawns) ? f.spawns : [],
+          raw: f.raw || '',
+          dirty: false,
+        })));
+      } else if (data?.error) {
+        window.addToast?.(data.error, 'error');
       }
-    } catch {
-      window.addToast?.('Failed to load NPC spawns', 'error');
+    } catch (err) {
+      window.addToast?.(`Failed to load NPC spawns: ${err.message}`, 'error');
     }
     setLoading(false);
   }, [serverId]);
 
   useEffect(() => { loadSpawns(); }, [loadSpawns]);
 
-  // Collect all NPCs with positions for map
-  const allNpcs = useMemo(() => {
-    const result = [];
-    spawnFiles.forEach(file => {
-      (file.npcs || []).forEach((npc, idx) => {
-        if (npc.Position && (npc.Position[0] || npc.Position[2])) {
-          result.push({
-            id: `${file.fileName}-npc-${idx}`,
-            x: npc.Position[0] || 0,
-            z: npc.Position[2] || 0,
-            label: npc.DisplayName || npc.EntityClass || npc.TraderFile || `NPC ${idx + 1}`,
-            color: '#3b82f6',
-            file: file.fileName,
-            npc,
-            idx,
-          });
-        }
+  // ─── Mutation helpers ──────────────────────────────────
+  // Each mutation goes through updateFile which marks the file dirty.
+  const updateFile = useCallback((fileName, mutator) => {
+    setSpawnFiles((prev) => prev.map((f) => {
+      if (f.fileName !== fileName) return f;
+      const next = mutator({ ...f, spawns: [...f.spawns] });
+      return { ...next, dirty: true };
+    }));
+  }, []);
+
+  const updateSpawn = useCallback((fileName, idx, patch) => {
+    updateFile(fileName, (f) => {
+      const spawns = [...f.spawns];
+      if (!spawns[idx]) return f;
+      spawns[idx] = { ...spawns[idx], ...patch };
+      return { ...f, spawns };
+    });
+  }, [updateFile]);
+
+  const updatePosition = useCallback((fileName, idx, axis, value) => {
+    updateFile(fileName, (f) => {
+      const spawns = [...f.spawns];
+      if (!spawns[idx]) return f;
+      const pos = { ...(spawns[idx].position || { x: 0, y: 0, z: 0 }) };
+      pos[axis] = Number(value) || 0;
+      spawns[idx] = { ...spawns[idx], position: pos };
+      return { ...f, spawns };
+    });
+  }, [updateFile]);
+
+  const updateOrientation = useCallback((fileName, idx, axis, value) => {
+    updateFile(fileName, (f) => {
+      const spawns = [...f.spawns];
+      if (!spawns[idx]) return f;
+      const ori = { ...(spawns[idx].orientation || { yaw: 0, pitch: 0, roll: 0 }) };
+      ori[axis] = Number(value) || 0;
+      spawns[idx] = { ...spawns[idx], orientation: ori };
+      return { ...f, spawns };
+    });
+  }, [updateFile]);
+
+  const addSpawn = useCallback((fileName, x, z) => {
+    updateFile(fileName, (f) => ({
+      ...f,
+      spawns: [...f.spawns, {
+        entityClass: '',
+        traderFile: '',
+        position: { x: Math.round(x || 0), y: 0, z: Math.round(z || 0) },
+        orientation: { yaw: 0, pitch: 0, roll: 0 },
+        gear: [],
+      }],
+    }));
+  }, [updateFile]);
+
+  const deleteSpawn = useCallback((fileName, idx) => {
+    updateFile(fileName, (f) => {
+      const spawns = [...f.spawns];
+      spawns.splice(idx, 1);
+      return { ...f, spawns };
+    });
+    // Clear expanded state if we just deleted the expanded row
+    setExpandedNpcIdx((prev) => (prev === idx ? null : (prev > idx ? prev - 1 : prev)));
+  }, [updateFile]);
+
+  const addGearItem = useCallback((fileName, idx, className) => {
+    const cn = (className || '').trim();
+    if (!cn) return;
+    updateFile(fileName, (f) => {
+      const spawns = [...f.spawns];
+      if (!spawns[idx]) return f;
+      spawns[idx] = { ...spawns[idx], gear: [...(spawns[idx].gear || []), cn] };
+      return { ...f, spawns };
+    });
+  }, [updateFile]);
+
+  const removeGearItem = useCallback((fileName, idx, gearIdx) => {
+    updateFile(fileName, (f) => {
+      const spawns = [...f.spawns];
+      if (!spawns[idx]) return f;
+      const gear = [...(spawns[idx].gear || [])];
+      gear.splice(gearIdx, 1);
+      spawns[idx] = { ...spawns[idx], gear };
+      return { ...f, spawns };
+    });
+  }, [updateFile]);
+
+  const saveFile = useCallback(async (fileName) => {
+    const file = spawnFiles.find((f) => f.fileName === fileName);
+    if (!file || !file.dirty) return;
+    setSaving(true);
+    try {
+      await API.put(`/api/servers/${serverId}/trader-editor/spawns/${encodeURIComponent(fileName)}`, {
+        spawns: file.spawns,
+      });
+      setSpawnFiles((prev) => prev.map((f) => (f.fileName === fileName ? { ...f, dirty: false } : f)));
+      window.addToast?.(`Saved ${fileName}`, 'success');
+    } catch (err) {
+      window.addToast?.(`Save failed: ${err.message}`, 'error');
+    }
+    setSaving(false);
+  }, [spawnFiles, serverId]);
+
+  // ─── Map markers ───────────────────────────────────────
+  // One marker per spawn across all files — selected file's spawns get a
+  // contrasting color so the user can see "which file am I editing?" at a
+  // glance. Marker IDs are `${fileName}::${idx}` so drag handlers can
+  // unambiguously route the position update.
+  const allMarkers = useMemo(() => {
+    const out = [];
+    spawnFiles.forEach((file) => {
+      file.spawns.forEach((spawn, idx) => {
+        const p = spawn.position || { x: 0, z: 0 };
+        if (!p.x && !p.z) return;
+        const isInSelectedFile = file.fileName === selectedFile;
+        out.push({
+          id: `${file.fileName}::${idx}`,
+          x: p.x,
+          z: p.z,
+          label: spawn.entityClass || spawn.traderFile || `NPC ${idx + 1}`,
+          color: isInSelectedFile ? '#f59e0b' : '#3b82f6',
+          draggable: true,
+        });
       });
     });
-    return result;
-  }, [spawnFiles]);
+    return out;
+  }, [spawnFiles, selectedFile]);
+
+  const handleMarkerMove = useCallback((id, x, z) => {
+    const [fileName, idxStr] = id.split('::');
+    const idx = Number(idxStr);
+    if (Number.isNaN(idx)) return;
+    updatePosition(fileName, idx, 'x', Math.round(x));
+    updatePosition(fileName, idx, 'z', Math.round(z));
+  }, [updatePosition]);
+
+  const handleMarkerSelect = useCallback((id) => {
+    const [fileName, idxStr] = id.split('::');
+    const idx = Number(idxStr);
+    setSelectedFile(fileName);
+    setExpandedNpcIdx(idx);
+  }, []);
+
+  const handleMarkerAdd = useCallback((x, z) => {
+    if (!selectedFile) {
+      window.addToast?.('Select a spawn file first', 'warning');
+      return;
+    }
+    addSpawn(selectedFile, x, z);
+    setMapMode('view');
+  }, [selectedFile, addSpawn]);
 
   if (loading) {
     return <div className="card" style={{ padding: 40, textAlign: 'center' }}><span style={{ color: 'var(--text-muted)' }}>Loading NPC spawns...</span></div>;
   }
+
+  const selectedFileData = spawnFiles.find((f) => f.fileName === selectedFile);
 
   return (
     <div>
@@ -1420,26 +1651,42 @@ function NPCSpawnsTab({ serverId }) {
           padding: '10px 16px', fontWeight: 700, fontSize: 14,
           borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-blue)',
           background: 'var(--bg-surface, var(--bg-deep))',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          NPC Positions ({allNpcs.length})
+          <span>NPC Positions ({allMarkers.length})</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              className={`btn ${mapMode === 'addMarker' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ padding: '3px 10px', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={() => setMapMode(mapMode === 'addMarker' ? 'view' : 'addMarker')}
+              disabled={!selectedFile}
+              title={selectedFile ? 'Click the map to place a new NPC in the selected file' : 'Select a spawn file first'}
+            >
+              <Plus size={12} /> {mapMode === 'addMarker' ? 'Cancel' : 'Click to Place'}
+            </button>
+          </div>
         </div>
         <div style={{ padding: 8 }}>
           <Suspense fallback={<div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>Loading map...</div>}>
             <InteractiveMap
-              mapName="chernarusplus"
+              mapName={serverMap}
               height={500}
-              markers={allNpcs.map(n => ({
-                id: n.id,
-                x: n.x,
-                z: n.z,
-                label: n.label,
-                color: selectedFile && n.file === selectedFile ? '#f59e0b' : '#3b82f6',
-              }))}
-              selectedId={expandedNpc}
-              onSelect={setExpandedNpc}
-              mode="view"
+              markers={allMarkers}
+              selectedId={selectedFile && expandedNpcIdx != null ? `${selectedFile}::${expandedNpcIdx}` : null}
+              onSelect={handleMarkerSelect}
+              onMarkerMove={handleMarkerMove}
+              onMarkerAdd={handleMarkerAdd}
+              mode={mapMode}
             />
           </Suspense>
+        </div>
+        {mapMode === 'addMarker' && (
+          <div style={{ padding: '8px 16px', background: 'rgba(34,197,94,0.1)', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--accent-green)' }}>
+            Click anywhere on the map to place a new NPC in <strong>{selectedFile}</strong>.
+          </div>
+        )}
+        <div style={{ padding: '6px 16px', fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border)' }}>
+          Orange markers = selected file&apos;s NPCs. Drag any marker to move that NPC. Click to select + expand its details below.
         </div>
       </div>
 
@@ -1450,141 +1697,324 @@ function NPCSpawnsTab({ serverId }) {
           <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, letterSpacing: '0.05em' }}>
             Spawn Files
           </div>
-          {spawnFiles.length === 0 ? (
-            <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>No spawn files found</div>
-          ) : (
-            spawnFiles.map(file => {
+          <input
+            className="input"
+            value={sidebarSearch}
+            onChange={(e) => setSidebarSearch(e.target.value)}
+            placeholder="Search files + NPC classes…"
+            style={{ width: '100%', fontSize: 12, padding: '4px 8px', marginBottom: 6 }}
+          />
+          {(() => {
+            if (spawnFiles.length === 0) {
+              return <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>No spawn files found</div>;
+            }
+            const q = sidebarSearch.trim().toLowerCase();
+            const filtered = !q ? spawnFiles : spawnFiles.filter((file) => {
+              const name = String(file.displayName || file.fileName).toLowerCase();
+              if (name.includes(q)) return true;
+              // Also match on NPC EntityClass names so admins can find "where does Hermit spawn?"
+              return (file.npcs || []).some((npc) =>
+                (npc.EntityClass || npc.entityClass || '').toLowerCase().includes(q)
+              );
+            });
+            if (filtered.length === 0) {
+              return <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>No files match &ldquo;{sidebarSearch}&rdquo;</div>;
+            }
+            return filtered.map((file) => {
               const isActive = selectedFile === file.fileName;
               return (
                 <div key={file.fileName} onClick={() => setSelectedFile(isActive ? null : file.fileName)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
+                    display: 'flex', alignItems: 'center', gap: 6,
                     padding: '8px 12px', borderRadius: 6, cursor: 'pointer',
                     background: isActive ? 'var(--accent-blue)' : 'transparent',
                     color: isActive ? '#fff' : 'var(--text-primary)',
                     transition: 'all 0.15s', marginBottom: 1,
                   }}>
                   <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {String(file.displayName || file.fileName).replace(/_/g, ' ').replace(/\.json$/i, '')}
+                    {String(file.displayName || file.fileName).replace(/_/g, ' ').replace(/\.map$/i, '')}
                   </span>
-                  <Badge count={(file.npcs || []).length} color={isActive ? 'rgba(255,255,255,0.25)' : undefined} />
+                  {file.dirty && <span style={{ color: isActive ? '#fde68a' : '#f59e0b', fontWeight: 700, fontSize: 12 }} title="Unsaved changes">●</span>}
+                  <Badge count={(file.spawns || []).length} color={isActive ? 'rgba(255,255,255,0.25)' : undefined} />
                 </div>
               );
-            })
-          )}
-        </div>
-
-        {/* NPC Details */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {!selectedFile ? (
-            <NoData message="Select a spawn file from the sidebar to view NPCs" />
-          ) : (() => {
-            const file = spawnFiles.find(f => f.fileName === selectedFile);
-            const npcs = file?.npcs || [];
-            return (
-              <div className="card" style={{ overflow: 'hidden' }}>
-                <div style={{
-                  padding: '10px 16px', fontWeight: 700, fontSize: 14,
-                  borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-blue)',
-                  background: 'var(--bg-surface, var(--bg-deep))',
-                }}>
-                  NPCs in {String(file?.displayName || selectedFile).replace(/_/g, ' ').replace(/\.json$/i, '')} ({npcs.length})
-                </div>
-                {npcs.length === 0 ? (
-                  <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                    No NPC spawn data found in this file
-                  </div>
-                ) : (
-                  <table className="table" style={{ width: '100%', fontSize: 12 }}>
-                    <thead>
-                      <tr>
-                        <th style={{ padding: '8px 10px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Entity Class</th>
-                        <th style={{ padding: '8px 10px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Trader File</th>
-                        <th style={{ padding: '8px 10px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Position</th>
-                        <th style={{ padding: '8px 10px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Orientation</th>
-                        <th style={{ padding: '8px 10px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Gear</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {npcs.map((npc, idx) => {
-                        const npcId = `${selectedFile}-npc-${idx}`;
-                        const isExpanded = expandedNpc === npcId;
-                        return (
-                          <React.Fragment key={idx}>
-                            <tr onClick={() => setExpandedNpc(isExpanded ? null : npcId)}
-                              style={{ cursor: 'pointer', background: isExpanded ? 'var(--bg-elevated, var(--bg-deep))' : undefined }}>
-                              <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono, monospace)' }}>
-                                {npc.EntityClass || npc.ClassName || '-'}
-                              </td>
-                              <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono, monospace)' }}>
-                                {npc.TraderFile || npc.traderFile || '-'}
-                              </td>
-                              <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-muted)', fontSize: 11 }}>
-                                {npc.Position ? `${(npc.Position[0] || 0).toFixed(0)}, ${(npc.Position[1] || 0).toFixed(0)}, ${(npc.Position[2] || 0).toFixed(0)}` : '-'}
-                              </td>
-                              <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-muted)', fontSize: 11 }}>
-                                {npc.Orientation ? `${(npc.Orientation[0] || 0).toFixed(0)}, ${(npc.Orientation[1] || 0).toFixed(0)}, ${(npc.Orientation[2] || 0).toFixed(0)}` : '-'}
-                              </td>
-                              <td style={{ padding: '6px 10px', fontSize: 11, color: 'var(--text-muted)' }}>
-                                {Array.isArray(npc.Gear) ? `${npc.Gear.length} items` : (npc.Gear || '-')}
-                              </td>
-                            </tr>
-                            {isExpanded && (
-                              <tr>
-                                <td colSpan={5} style={{ padding: 0 }}>
-                                  <div style={{ padding: 16, background: 'var(--bg-deep)', borderTop: '1px solid var(--border)' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                      <div>
-                                        <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Full Position</label>
-                                        <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, padding: '6px 10px', background: 'var(--bg-elevated, var(--bg-card))', borderRadius: 4, border: '1px solid var(--border)' }}>
-                                          {JSON.stringify(npc.Position || [])}
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Full Orientation</label>
-                                        <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, padding: '6px 10px', background: 'var(--bg-elevated, var(--bg-card))', borderRadius: 4, border: '1px solid var(--border)' }}>
-                                          {JSON.stringify(npc.Orientation || [])}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    {Array.isArray(npc.Gear) && npc.Gear.length > 0 && (
-                                      <div style={{ marginTop: 12 }}>
-                                        <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Gear Items</label>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                          {npc.Gear.map((g, gIdx) => (
-                                            <span key={gIdx} style={{
-                                              padding: '3px 8px', borderRadius: 4, fontSize: 11,
-                                              background: 'var(--bg-elevated, var(--bg-card))', border: '1px solid var(--border)',
-                                              fontFamily: 'var(--font-mono, monospace)',
-                                            }}>
-                                              {typeof g === 'string' ? g : JSON.stringify(g)}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                    {npc.Loadout && (
-                                      <div style={{ marginTop: 12 }}>
-                                        <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Loadout</label>
-                                        <pre style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, padding: '8px 10px', background: 'var(--bg-elevated, var(--bg-card))', borderRadius: 4, border: '1px solid var(--border)', overflow: 'auto', maxHeight: 200, margin: 0 }}>
-                                          {typeof npc.Loadout === 'string' ? npc.Loadout : JSON.stringify(npc.Loadout, null, 2)}
-                                        </pre>
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            );
+            });
           })()}
         </div>
+
+        {/* NPC Details — editable */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {!selectedFile || !selectedFileData ? (
+            <NoData message="Select a spawn file from the sidebar to view + edit its NPCs" />
+          ) : (
+            <SpawnFileEditor
+              file={selectedFileData}
+              saving={saving}
+              expandedIdx={expandedNpcIdx}
+              onExpand={setExpandedNpcIdx}
+              onUpdateSpawn={(idx, patch) => updateSpawn(selectedFile, idx, patch)}
+              onUpdatePosition={(idx, axis, val) => updatePosition(selectedFile, idx, axis, val)}
+              onUpdateOrientation={(idx, axis, val) => updateOrientation(selectedFile, idx, axis, val)}
+              onAddSpawn={() => addSpawn(selectedFile, 7500, 7500)}
+              onDeleteSpawn={(idx) => deleteSpawn(selectedFile, idx)}
+              onAddGear={(idx, cn) => addGearItem(selectedFile, idx, cn)}
+              onRemoveGear={(idx, gIdx) => removeGearItem(selectedFile, idx, gIdx)}
+              onSave={() => saveFile(selectedFile)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Editable single-file spawn editor ─────────────────────────────
+
+/**
+ * Table of an .map file's NPCs with inline editing. Collapsed rows show
+ * the common fields (class, X, Z, Yaw, gear count); expanded rows add
+ * TraderFile, full position/orientation, and the gear list.
+ */
+function SpawnFileEditor({
+  file, saving, expandedIdx, onExpand,
+  onUpdateSpawn, onUpdatePosition, onUpdateOrientation,
+  onAddSpawn, onDeleteSpawn, onAddGear, onRemoveGear, onSave,
+}) {
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div style={{
+        padding: '10px 16px', fontWeight: 700, fontSize: 14,
+        borderBottom: '1px solid var(--border)', borderLeft: '3px solid var(--accent-blue)',
+        background: 'var(--bg-surface, var(--bg-deep))',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
+      }}>
+        <span>
+          NPCs in {String(file.fileName).replace(/_/g, ' ').replace(/\.map$/i, '')} ({file.spawns.length})
+          {file.dirty && <span style={{ color: '#f59e0b', marginLeft: 8, fontSize: 12 }}>● unsaved</span>}
+        </span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="btn btn-secondary" onClick={onAddSpawn} style={{ padding: '3px 10px', fontSize: 11 }}>
+            <Plus size={12} /> Add NPC
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={onSave}
+            disabled={!file.dirty || saving}
+            style={{ padding: '3px 10px', fontSize: 11 }}
+          >
+            <Save size={12} /> {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+      {file.spawns.length === 0 ? (
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+          No NPCs in this file yet. Use <strong>Add NPC</strong> or <strong>Click to Place</strong> on the map.
+        </div>
+      ) : (
+        <table className="table" style={{ width: '100%', fontSize: 12 }}>
+          <thead>
+            <tr>
+              <th style={{ padding: '8px 10px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Entity Class</th>
+              <th style={{ padding: '8px 10px', width: 90, fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>X</th>
+              <th style={{ padding: '8px 10px', width: 90, fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Z</th>
+              <th style={{ padding: '8px 10px', width: 70, fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Yaw</th>
+              <th style={{ padding: '8px 10px', width: 90, fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Gear</th>
+              <th style={{ padding: '8px 10px', width: 70 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {file.spawns.map((spawn, idx) => {
+              const isExpanded = expandedIdx === idx;
+              const pos = spawn.position || { x: 0, y: 0, z: 0 };
+              const ori = spawn.orientation || { yaw: 0, pitch: 0, roll: 0 };
+              const gear = Array.isArray(spawn.gear) ? spawn.gear : [];
+              return (
+                <React.Fragment key={idx}>
+                  <tr
+                    onClick={() => onExpand(isExpanded ? null : idx)}
+                    style={{ cursor: 'pointer', background: isExpanded ? 'var(--bg-elevated, var(--bg-deep))' : undefined }}
+                  >
+                    <td style={{ padding: '6px 10px' }}>
+                      <input
+                        className="input"
+                        value={spawn.entityClass || ''}
+                        onChange={(e) => onUpdateSpawn(idx, { entityClass: e.target.value })}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder="e.g. TraderNPC"
+                        style={{ width: '100%', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 10px' }}>
+                      <input
+                        className="input"
+                        type="number"
+                        value={pos.x}
+                        onChange={(e) => onUpdatePosition(idx, 'x', e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ width: '100%', fontSize: 12 }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 10px' }}>
+                      <input
+                        className="input"
+                        type="number"
+                        value={pos.z}
+                        onChange={(e) => onUpdatePosition(idx, 'z', e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ width: '100%', fontSize: 12 }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 10px' }}>
+                      <input
+                        className="input"
+                        type="number"
+                        value={ori.yaw}
+                        onChange={(e) => onUpdateOrientation(idx, 'yaw', e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ width: '100%', fontSize: 12 }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 10px', fontSize: 11, color: 'var(--text-muted)' }}>
+                      {gear.length} item{gear.length === 1 ? '' : 's'}
+                    </td>
+                    <td style={{ padding: '6px 10px' }}>
+                      <button
+                        className="btn btn-danger"
+                        onClick={(e) => { e.stopPropagation(); onDeleteSpawn(idx); }}
+                        style={{ padding: '2px 8px', fontSize: 11 }}
+                        title="Delete this NPC"
+                      >
+                        <X size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: 0 }}>
+                        <div style={{ padding: 16, background: 'var(--bg-deep)', borderTop: '1px solid var(--border)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                                Trader file reference
+                              </label>
+                              <input
+                                className="input"
+                                value={spawn.traderFile || ''}
+                                onChange={(e) => onUpdateSpawn(idx, { traderFile: e.target.value })}
+                                placeholder="TraderWeapons (matches a .json in /traders)"
+                                style={{ width: '100%', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}
+                              />
+                              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                                Name (no .json) of the trader config this NPC sells.
+                              </div>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                                Y (terrain height — usually 0 for auto-snap)
+                              </label>
+                              <input
+                                className="input"
+                                type="number"
+                                value={pos.y}
+                                onChange={(e) => onUpdatePosition(idx, 'y', e.target.value)}
+                                style={{ width: '100%', fontSize: 12 }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Pitch</label>
+                              <input
+                                className="input"
+                                type="number"
+                                value={ori.pitch}
+                                onChange={(e) => onUpdateOrientation(idx, 'pitch', e.target.value)}
+                                style={{ width: '100%', fontSize: 12 }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Roll</label>
+                              <input
+                                className="input"
+                                type="number"
+                                value={ori.roll}
+                                onChange={(e) => onUpdateOrientation(idx, 'roll', e.target.value)}
+                                style={{ width: '100%', fontSize: 12 }}
+                              />
+                            </div>
+                          </div>
+
+                          <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                            Gear ({gear.length})
+                          </label>
+                          <GearEditor
+                            gear={gear}
+                            onAdd={(cn) => onAddGear(idx, cn)}
+                            onRemove={(gIdx) => onRemoveGear(idx, gIdx)}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Gear list editor — chip row of item class names + an input that appends
+ * on Enter. Gear is the 4th field of a trader .map line (comma-separated
+ * class names of what the NPC wears/holds when spawned).
+ */
+function GearEditor({ gear, onAdd, onRemove }) {
+  const [draft, setDraft] = useState('');
+  const commit = () => {
+    if (!draft.trim()) return;
+    onAdd(draft.trim());
+    setDraft('');
+  };
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+        {gear.length === 0 ? (
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            No gear — NPC spawns with default loadout.
+          </span>
+        ) : gear.map((g, i) => (
+          <span key={i} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '3px 6px 3px 8px',
+            background: 'var(--bg-elevated, var(--bg-card))',
+            borderRadius: 4, fontSize: 11,
+            fontFamily: 'var(--font-mono, monospace)',
+            border: '1px solid var(--border)',
+          }}>
+            {g}
+            <button
+              onClick={() => onRemove(i)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--accent-red)' }}
+              title="Remove"
+            >
+              <X size={10} />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 4 }}>
+        <input
+          className="input"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
+          placeholder="Add item class + Enter (e.g. CombatKnife)"
+          style={{ flex: 1, fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}
+        />
+        <button className="btn btn-secondary" onClick={commit} style={{ padding: '4px 10px', fontSize: 11 }}>
+          <Plus size={12} /> Add
+        </button>
       </div>
     </div>
   );

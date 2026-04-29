@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useSocket } from '../contexts/SocketContext';
+import useServerMap from '../hooks/useServerMap';
 import API from '../api';
 import EmptyState from '../components/ui/EmptyState';
 import PageLoader from '../components/PageLoader';
@@ -21,6 +22,7 @@ const SORT_OPTIONS = [
 
 export default function KillFeedPage({ serverId }) {
   const socket = useSocket();
+  const serverMap = useServerMap(serverId);
   const [tab, setTab] = useState('feed'); // feed | leaderboard | map
   const [kills, setKills] = useState([]);
   const [leaderboard, setLeaderboard] = useState(null);
@@ -157,7 +159,7 @@ export default function KillFeedPage({ serverId }) {
       {!loading && tab === 'map' && (
         <Suspense fallback={<PageLoader />}>
           <div style={{ height: 'calc(100vh - 340px)', minHeight: 400, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-            <InteractiveMap markers={killMarkers} showGrid />
+            <InteractiveMap mapName={serverMap} markers={killMarkers} showGrid />
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
             Red markers = headshots · Orange = body shots · Hover for details

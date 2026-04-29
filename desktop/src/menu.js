@@ -3,10 +3,11 @@
  *
  * Kept deliberately thin — most functionality lives inside the web dashboard.
  * Menu items here should either be (a) native things the web UI can't do
- * (reload, devtools, external links) or (b) shortcuts the user expects to find
- * in a Windows app's menu bar (Quit, About).
+ * (reload, devtools, external links, update check) or (b) shortcuts the user
+ * expects to find in a Windows app's menu bar (Quit, About).
  */
-const { Menu } = require('electron');
+const { Menu, dialog, app } = require('electron');
+const autoUpdaterModule = require('./auto-updater');
 
 function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }) {
   const template = [
@@ -42,6 +43,19 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }
         { label: 'Show Update Log', click: () => showUpdateLog && showUpdateLog() },
         { type: 'separator' },
         { label: 'Report an Issue', click: () => openExternal('https://github.com/Sk3tch-Dev-Ux/DayzServerController/issues') },
+        {
+          label: 'About Citadel',
+          click: () => {
+            const win = getMainWindow && getMainWindow();
+            dialog.showMessageBox(win, {
+              type: 'info',
+              title: 'About Citadel',
+              message: `Citadel DayZ Manager v${app.getVersion()}`,
+              detail: `Electron: ${process.versions.electron}\nNode: ${process.versions.node}\nChromium: ${process.versions.chrome}\n\nhttps://citadels.cc`,
+              buttons: ['OK'],
+            });
+          },
+        },
       ],
     },
   ];
