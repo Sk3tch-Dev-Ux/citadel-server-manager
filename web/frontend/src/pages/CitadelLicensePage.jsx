@@ -10,12 +10,17 @@ import {
   LogOut,
   Eye,
   EyeOff,
+  Activity,
 } from '../components/Icon';
 
 /**
- * Citadel subscription management page — where the server admin signs
- * this installation in to their citadels.cc account to activate the
- * license that gates this Citadel copy.
+ * Citadel Cloud activation page — where the server admin links this
+ * installation to their paid citadels.cc account.
+ *
+ * Citadel itself (the local app) is free and runs without ever signing
+ * in. This page is for the optional Citadel Cloud paid service: once
+ * activated, cloud features (global ban DB, off-site backups, etc.)
+ * unlock on this machine.
  */
 export default function CitadelLicensePage() {
   const [status, setStatus] = useState(null);
@@ -56,16 +61,27 @@ export default function CitadelLicensePage() {
         name: suggestedName,
       });
       if (res.error) {
-        setError(res.message || res.error);
+        // Map server-side error codes to UX-friendly messages. The most
+        // common one for a brand-new prospect is SUBSCRIPTION_INACTIVE
+        // (their email exists but no Paddle subscription) — point them at
+        // the marketing/pricing page.
+        if (res.error === 'SUBSCRIPTION_INACTIVE' || res.message?.includes('SUBSCRIPTION_INACTIVE')) {
+          setError({
+            kind: 'no-subscription',
+            message: 'No active Citadel Cloud subscription found on this account.',
+          });
+        } else {
+          setError({ kind: 'generic', message: res.message || res.error });
+        }
       } else {
         setEmail('');
         setPassword('');
         setName('');
         await loadStatus();
-        window.addToast?.('Citadel activated — subscription is now active on this machine.', 'success');
+        window.addToast?.('Citadel Cloud activated on this machine.', 'success');
       }
     } catch (err) {
-      setError(err.message);
+      setError({ kind: 'generic', message: err.message });
     } finally {
       setActivating(false);
     }
@@ -85,12 +101,12 @@ export default function CitadelLicensePage() {
   }
 
   async function handleDeactivate() {
-    if (!confirm('Deactivate Citadel on this machine?\n\nThis frees up one of your two device slots. The app will stop working until you activate again.')) return;
+    if (!confirm('Deactivate Citadel Cloud on this machine?\n\nThis frees a device slot on your account. The local Citadel app keeps working — only Citadel Cloud features will turn off until you activate again.')) return;
     setDeactivating(true);
     try {
       await API.del('/api/citadel-license/deactivate');
       await loadStatus();
-      window.addToast?.('Citadel deactivated on this machine.', 'info');
+      window.addToast?.('Citadel Cloud deactivated on this machine.', 'info');
     } catch (err) {
       window.addToast?.(`Deactivate failed: ${err.message}`, 'error');
     } finally {
@@ -114,9 +130,9 @@ export default function CitadelLicensePage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <Shield size={28} style={{ color: 'var(--accent)' }} />
         <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>Citadel Subscription</h1>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>Citadel Cloud</h1>
           <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--text-muted)' }}>
-            Link this installation to your citadels.cc account.
+            Optional paid service. Sign in to unlock cloud features on this machine.
           </p>
         </div>
       </div>
@@ -141,6 +157,8 @@ export default function CitadelLicensePage() {
           onSubmit={handleActivate}
         />
       )}
+
+      <TelemetryCard />
 
       <InfoBox />
     </div>
@@ -243,10 +261,19 @@ function ActivationForm({
       marginBottom: 24,
     }}>
       <h2 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600 }}>
-        {needsActivation ? 'Activate Citadel' : 'Re-activate Citadel'}
+        {needsActivation ? 'Sign in to Citadel Cloud' : 'Re-activate Citadel Cloud'}
       </h2>
       <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)' }}>
-        Enter your <strong>citadels.cc</strong> email and password. This machine will take one of your two activated device slots.
+        Sign in with your <strong>citadels.cc</strong> account. This machine will take one of your activated device slots.
+        {' '}
+        <a
+          href="https://citadels.cc/cloud"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--accent)', textDecoration: 'none' }}
+        >
+          New here? Learn about Citadel Cloud →
+        </a>
       </p>
 
       <label style={{ display: 'block', marginBottom: 14 }}>
@@ -312,26 +339,49 @@ function ActivationForm({
           role="alert"
           style={{
             fontSize: 13,
-            color: 'var(--danger)',
-            background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
+            color: error.kind === 'no-subscription' ? 'var(--text-primary)' : 'var(--danger)',
+            background: error.kind === 'no-subscription'
+              ? 'color-mix(in srgb, var(--accent) 10%, transparent)'
+              : 'color-mix(in srgb, var(--danger) 10%, transparent)',
+            border: `1px solid color-mix(in srgb, ${error.kind === 'no-subscription' ? 'var(--accent)' : 'var(--danger)'} 30%, transparent)`,
             borderRadius: 8,
-            padding: '10px 12px',
+            padding: '12px 14px',
             marginBottom: 16,
+            lineHeight: 1.55,
           }}
         >
-          {error}
+          {error.kind === 'no-subscription' ? (
+            <>
+              <strong style={{ display: 'block', marginBottom: 4 }}>{error.message}</strong>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                Citadel itself stays free either way. To unlock cloud features on this machine, subscribe at{' '}
+                <a
+                  href="https://citadels.cc/cloud"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--accent)', fontWeight: 500 }}
+                >
+                  citadels.cc/cloud
+                </a>
+                {' '}and sign in here once you have an active subscription.
+              </span>
+            </>
+          ) : (
+            // Older error shapes (string) flow through the renderer too —
+            // tolerate either { message } or a bare string from upstream.
+            (typeof error === 'string' ? error : error.message)
+          )}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <button
           type="submit"
           className="btn btn-primary"
           disabled={activating}
           style={{ minWidth: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
-          {activating ? <><Loader size={14} className="spin" /> Activating…</> : 'Activate'}
+          {activating ? <><Loader size={14} className="spin" /> Activating…</> : 'Sign in'}
         </button>
         <a
           href="https://citadels.cc/account"
@@ -360,6 +410,7 @@ function ActivatedCard({ status, onDeactivate, deactivating }) {
       <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600 }}>This machine</h3>
       <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-muted)' }}>
         Deactivate to free the slot on your account. You can always re-activate with the same credentials.
+        The local Citadel app keeps working either way.
       </p>
       <button
         type="button"
@@ -371,6 +422,142 @@ function ActivatedCard({ status, onDeactivate, deactivating }) {
         <LogOut size={14} />
         {deactivating ? 'Deactivating…' : 'Deactivate this machine'}
       </button>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────
+
+// ───────────────────────────────────────────────────────────
+
+/**
+ * TelemetryCard — toggle for the Citadel Cloud diagnostic telemetry stream.
+ *
+ * Hits GET/POST /api/citadel-license/telemetry-* (see citadel-license.routes.js).
+ * Per the D-telemetry decision (opt-out, clearly disclosed) the default is
+ * enabled; this card is the disclosure surface AND the off-switch.
+ */
+function TelemetryCard() {
+  const [state, setState] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await API.get('/api/citadel-license/telemetry-state');
+      setState(res);
+    } catch (err) {
+      // Silently fail — surface is optional; if it 403s for a non-admin,
+      // we just don't render the card.
+      setState({ error: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleToggle(next) {
+    setSaving(true);
+    try {
+      const res = await API.post('/api/citadel-license/telemetry-toggle', { enabled: next });
+      setState((prev) => prev ? { ...prev, enabled: res.enabled } : { enabled: res.enabled });
+      window.addToast?.(next ? 'Telemetry enabled.' : 'Telemetry disabled.', 'info');
+    } catch (err) {
+      window.addToast?.(`Failed to update telemetry: ${err.message}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return null;
+  if (state?.error) return null;
+
+  const enabled = Boolean(state?.enabled);
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 24,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <Activity size={18} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Diagnostic telemetry</h3>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: saving ? 'wait' : 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={enabled}
+                disabled={saving}
+                onChange={(e) => handleToggle(e.target.checked)}
+                aria-label="Toggle Citadel Cloud diagnostic telemetry"
+                style={{ width: 16, height: 16 }}
+              />
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                {saving ? 'Saving…' : enabled ? 'Enabled' : 'Disabled'}
+              </span>
+            </label>
+          </div>
+
+          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+            Citadel sends a small set of diagnostic events to <strong>citadels.cc</strong> so we can
+            spot bugs in update flows and license activations across the install base. No PII.
+            No DayZ data, server names, mod lists, or player info — ever.
+            {' '}
+            <button
+              type="button"
+              onClick={() => setShowDetails((s) => !s)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent)',
+                cursor: 'pointer',
+                padding: 0,
+                fontSize: 'inherit',
+                textDecoration: 'underline',
+              }}
+            >
+              {showDetails ? 'Hide details' : 'See exactly what we send'}
+            </button>
+          </p>
+
+          {showDetails && (
+            <div style={{
+              marginTop: 12,
+              padding: 12,
+              background: 'color-mix(in srgb, var(--accent) 6%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+              borderRadius: 8,
+              fontSize: 12,
+              color: 'var(--text-secondary)',
+              lineHeight: 1.6,
+            }}>
+              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>What we collect</div>
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                <li>A SHA-256 hash of this machine's Windows MachineGuid (so we can de-duplicate without seeing the raw id).</li>
+                <li>The version of Citadel running.</li>
+                <li>One of these event names — nothing else:
+                  <code style={{ display: 'block', marginTop: 4, padding: '6px 8px', background: 'var(--bg-card)', borderRadius: 4, fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}>
+                    {(state?.acceptedEvents || []).join(', ') || '—'}
+                  </code>
+                </li>
+                <li>For each event, a tiny payload limited to a fixed allowlist (e.g. version numbers for update events, HTTP status codes for license-refresh failures).</li>
+                <li>If you've signed in to Citadel Cloud, the events are linked to your account on our end. If you haven't, they're anonymous and identified only by the hash above.</li>
+              </ul>
+              {state?.lastFlushAt && (
+                <div style={{ marginTop: 10, color: 'var(--text-muted)' }}>
+                  Last sent: {new Date(state.lastFlushAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -389,10 +576,11 @@ function InfoBox() {
       lineHeight: 1.6,
     }}>
       <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>How this works</div>
-      Your citadels.cc subscription unlocks up to <strong>2 devices</strong>. Activating links this specific
-      Windows installation to your account. The app re-verifies every few hours; if your subscription lapses
-      or a payment fails, you'll see a warning here and Citadel will enter read-only mode after the offline
-      grace window. You can manage devices, change your plan, or update billing at{' '}
+      <strong>Citadel</strong> (the local app) is free and runs without any account. <strong>Citadel Cloud</strong> is
+      an optional paid subscription that unlocks cloud features on each machine you activate. Activating
+      links this specific Windows installation to your account; the app re-verifies every few hours. If
+      your subscription lapses or a payment fails, cloud features pause but the local app keeps working.
+      Manage your subscription, devices, and billing at{' '}
       <a
         href="https://citadels.cc/account"
         target="_blank"
@@ -400,7 +588,17 @@ function InfoBox() {
         style={{ color: 'var(--accent)' }}
       >
         citadels.cc/account
-      </a>.
+      </a>
+      , or learn more at{' '}
+      <a
+        href="https://citadels.cc/cloud"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: 'var(--accent)' }}
+      >
+        citadels.cc/cloud
+      </a>
+      .
     </div>
   );
 }

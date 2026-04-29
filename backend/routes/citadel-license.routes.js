@@ -2,12 +2,15 @@
  * Citadel license endpoints — consumed by the dashboard to activate/manage
  * this installation's subscription link to citadels.cc.
  *
- *   GET    /api/citadel-license/status     — current state (auth required)
- *   POST   /api/citadel-license/activate   — body: { email, password, name? }
- *   POST   /api/citadel-license/refresh    — force a verify call
- *   DELETE /api/citadel-license/deactivate — revoke this device's slot
+ *   GET    /api/citadel-license/status            — current license state (auth)
+ *   POST   /api/citadel-license/activate          — body: { email, password, name? }
+ *   POST   /api/citadel-license/refresh           — force a verify call
+ *   DELETE /api/citadel-license/deactivate        — revoke this device's slot
+ *   GET    /api/citadel-license/telemetry-state   — current telemetry config (auth)
+ *   POST   /api/citadel-license/telemetry-toggle  — body: { enabled: bool }
  */
 const license = require('../lib/license');
+const telemetry = require('../lib/telemetry');
 const { auth } = require('../middleware/auth');
 
 function registerCitadelLicenseRoutes(app) {
@@ -67,6 +70,30 @@ function registerCitadelLicenseRoutes(app) {
   app.delete('/api/citadel-license/deactivate', requireAdmin, async (_req, res) => {
     await license.deactivate();
     res.status(204).send();
+  });
+
+  // ── Telemetry config (P2.3c) ─────────────────────────────────
+  // Same admin-only gate as the rest of this surface: only the server
+  // admin should be able to read or change telemetry preferences.
+  app.get('/api/citadel-license/telemetry-state', requireAdmin, (_req, res) => {
+    const state = telemetry.getState();
+    res.json({
+      enabled: state.enabled,
+      machineIdHash: state.machineIdHash,
+      lastFlushAt: state.lastFlushAt || null,
+      // The list of event names is informational so the Settings UI can
+      // show the user exactly what we send. No PII inside.
+      acceptedEvents: Object.keys(telemetry._internal.EVENT_SCHEMA),
+    });
+  });
+
+  app.post('/api/citadel-license/telemetry-toggle', requireAdmin, (req, res) => {
+    const enabled = Boolean(req.body?.enabled);
+    const next = telemetry.setEnabled(enabled);
+    res.json({
+      enabled: next.enabled,
+      machineIdHash: next.machineIdHash,
+    });
   });
 }
 

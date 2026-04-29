@@ -397,10 +397,14 @@ All Phase 1 / Phase 2 decisions are resolved. Remaining open questions are forwa
 
 | Milestone | Target | Blocker |
 |---|---|---|
-| Phase 1 patches merged | Day 2–3 | None |
-| Phase 1 v2.7.x released | Day 4–5 | Manual testing on two Windows versions |
+| ~~Phase 1 patches merged~~ | ~~Day 2–3~~ | **Done 2026-04-28** (in workspace, awaiting Windows manual test) |
+| Phase 1 v2.7.x released | Day 4–5 | Manual Windows testing on two versions |
 | ~~D1–D4 answered~~ | ~~Day 5~~ | **Done 2026-04-28** |
-| P2.1 smoke test passing | Day 7–9 | Phase 1 shipped; Paddle test product (already exists per D4) |
-| P2.2 banner UX merged | Day 10–13 | P2.1 |
-| P2.3 telemetry live | Day 13–16 | New `/api/v1/telemetry` endpoint on citadel-cloud |
-| Phase 2 acceptance criteria met | Day 17 | All above |
+| ~~P2.2 banner UX merged~~ | ~~Day 10–13~~ | **Done 2026-04-29** — paid-only copy, 5-state banner, dismissable |
+| ~~P2.3a backend telemetry module~~ | ~~Day 13–16~~ | **Done 2026-04-29** |
+| ~~P2.3b citadels.cc /telemetry/events~~ | ~~Day 13–16~~ | **Done 2026-04-29** — needs `drizzle-kit generate` |
+| ~~P2.3c telemetry disclosure + toggle~~ | ~~Day 13–16~~ | **Done 2026-04-29** — on the license page |
+| ~~P2.4 license docs~~ | — | **Done 2026-04-29** — `docs/admin/license.md` |
+| ~~P2.5 require-license + LicenseGate scaffolding~~ | — | **Done 2026-04-29** |
+| P2.1 smoke test (12 scenarios) | Day 7–9 | Manual run against live citadels.cc — checklist in `docs/admin/smoke-test-citadel-cloud.md` |
+| Phase 2 acceptance criteria met | Day 17 | P2.1 smoke test + drizzle-kit generate + deploy |

@@ -11,6 +11,19 @@ const storage = require('./storage');
 const { verifyToken, decodeToken } = require('./verifier');
 const { getMachineId } = require('./machine-id');
 
+// Lazy-loaded to avoid circular requires (telemetry/index.js requires
+// machine-id from this directory).
+let _telemetry = null;
+function telemetry() {
+  if (_telemetry) return _telemetry;
+  try {
+    _telemetry = require('../telemetry');
+  } catch {
+    _telemetry = { report: () => {} }; // No-op fallback if module fails to load.
+  }
+  return _telemetry;
+}
+
 const GRACE_DAYS = Number(process.env.CITADEL_LICENSE_GRACE_DAYS || 7);
 const VERIFY_INTERVAL_MS = Number(process.env.CITADEL_LICENSE_VERIFY_INTERVAL_MS || 6 * 60 * 60 * 1000); // 6h
 
@@ -99,10 +112,15 @@ async function activate({ email, password, name }) {
     _state.status = evaluateStatus(claims, record.lastVerifiedAt);
     _state.lastError = null;
     logger.info({ deviceId: claims.deviceId, status: _state.status }, 'Citadel license activated');
+    telemetry().report('license.activate.success');
     return { ok: true, state: getState() };
   } catch (err) {
     _state.lastError = err.message;
     logger.warn({ err: err.message, status: err.status }, 'License activation failed');
+    telemetry().report('license.activate.failure', {
+      statusCode: err.status,
+      errorCode: err.code,
+    });
     throw err;
   }
 }
@@ -142,6 +160,10 @@ async function refresh() {
     } else {
       logger.debug({ err: err.message }, 'License verify failed (network?)');
     }
+    telemetry().report('license.refresh.failure', {
+      statusCode: err.status,
+      errorCode: err.code,
+    });
     return { ok: false, reason: err.message };
   }
 }

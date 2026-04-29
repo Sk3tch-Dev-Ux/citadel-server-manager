@@ -334,6 +334,13 @@ if (process.env.NODE_ENV !== 'test') {
       logger.error({ err }, 'Failed to start license background refresh');
     }
 
+    // Start telemetry flush loop (P2.3a) — diagnostic events buffered to
+    // data/telemetry-queue.json get POSTed to citadels.cc every 30s when
+    // enabled. No-op when telemetry is disabled in data/telemetry.json.
+    try { require('./lib/telemetry').startBackgroundFlush(); } catch (err) {
+      logger.error({ err }, 'Failed to start telemetry flush loop');
+    }
+
     // Start Citadel self-update checker (polls citadels.cc for new versions)
     try { require('./lib/update-checker').startUpdateChecker(); } catch (err) {
       logger.error({ err }, 'Failed to start update checker');
