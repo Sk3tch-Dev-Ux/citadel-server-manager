@@ -91,10 +91,16 @@ and points at the right place.
 ## Scenario 5 — Deactivate from the desktop
 
 1. [ ] On `/citadel-license`, click "Deactivate this machine".
-2. [ ] Confirm prompt mentions "the local Citadel app keeps working".
+2. [ ] Confirm the prompt clarifies that this only revokes THIS machine's
+       activation; the customer's Citadel and Cloud subscriptions on
+       Paddle are unaffected.
 3. [ ] Confirm `data/license.json` is gone.
-4. [ ] On citadels.cc, the device row's `revoked` is now `true`.
-5. [ ] Status returns to `unactivated`. The marketing banner returns
+4. [ ] Confirm `data/cloud-bans-cache.json` is gone (Phase 3 — license
+       deactivation triggers Cloud cache wipe via `onLicenseDeactivated`).
+5. [ ] On citadels.cc, the device row's `revoked` is now `true`. The
+       user's `subscriptionStatus` and `cloudSubscriptionStatus` columns
+       are unchanged.
+6. [ ] Status returns to `unactivated`. The marketing banner returns
        (since the dismissed-flag is per-session and the page didn't
        reload it).
 
