@@ -29,14 +29,29 @@ function deriveIsUsable(status) {
 }
 
 /**
+ * Phase 3 — feature entitlement check. Mirrors backend `hasFeature()`:
+ * the customer must have an active Citadel sub AND the requested
+ * feature must be in their entitlements array.
+ */
+function deriveHasFeature(status, entitlements, feature) {
+  if (!deriveIsUsable(status)) return false;
+  if (!Array.isArray(entitlements)) return false;
+  return entitlements.includes(feature);
+}
+
+/**
  * @returns {{
  *   loading: boolean,
  *   error: string | null,
  *   status: string | null,
  *   subscription: object | null,
+ *   cloudSubscription: object | null,
  *   claims: object | null,
+ *   entitlements: string[],
  *   lastVerifiedAt: string | null,
  *   isUsable: boolean,
+ *   hasCloud: boolean,
+ *   hasFeature: (feature: string) => boolean,
  *   refresh: () => Promise<void>,
  * }}
  */
@@ -46,9 +61,12 @@ export default function useLicenseStatus() {
     error: null,
     status: null,
     subscription: null,
+    cloudSubscription: null,
     claims: null,
+    entitlements: [],
     lastVerifiedAt: null,
     isUsable: false,
+    hasCloud: false,
   });
 
   // Track mounted-ness so we don't setState after unmount when the poll
@@ -64,19 +82,24 @@ export default function useLicenseStatus() {
       if (res?.error === 'Insufficient permissions') {
         setState({
           loading: false, error: null,
-          status: 'hidden', subscription: null, claims: null,
-          lastVerifiedAt: null, isUsable: false,
+          status: 'hidden', subscription: null, cloudSubscription: null,
+          claims: null, entitlements: [],
+          lastVerifiedAt: null, isUsable: false, hasCloud: false,
         });
         return;
       }
+      const entitlements = Array.isArray(res?.entitlements) ? res.entitlements : [];
       setState({
         loading: false,
         error: null,
         status: res?.status ?? null,
         subscription: res?.subscription ?? null,
+        cloudSubscription: res?.cloudSubscription ?? null,
         claims: res?.claims ?? null,
+        entitlements,
         lastVerifiedAt: res?.lastVerifiedAt ?? null,
         isUsable: deriveIsUsable(res?.status),
+        hasCloud: Boolean(res?.hasCloud) || entitlements.includes('cloud'),
       });
     } catch (err) {
       if (!mountedRef.current) return;
@@ -84,8 +107,9 @@ export default function useLicenseStatus() {
         ...prev,
         loading: false,
         error: err?.message || String(err),
-        // Don't reset isUsable on transient network errors — keep the last
-        // known good state so a paywall doesn't flash on a flaky connection.
+        // Don't reset isUsable/hasCloud on transient network errors — keep
+        // the last known good state so a paywall doesn't flash on a flaky
+        // connection.
       }));
     }
   }, []);
@@ -100,5 +124,12 @@ export default function useLicenseStatus() {
     };
   }, [refresh]);
 
-  return { ...state, refresh };
+  // Stable function reference for hasFeature() — avoids re-renders on every
+  // call while still reading from the latest state.
+  const hasFeature = useCallback(
+    (feature) => deriveHasFeature(state.status, state.entitlements, feature),
+    [state.status, state.entitlements],
+  );
+
+  return { ...state, refresh, hasFeature };
 }

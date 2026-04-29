@@ -4,10 +4,14 @@ import API from '../api';
 import { AlertTriangle, Lock, Sparkles, X } from './Icon';
 
 /**
- * Slim banner across the top of AppLayout shown when the Citadel Cloud
- * license needs the user's attention. The banner is purely advisory:
- * Citadel itself is free and keeps working, the banner only surfaces the
- * Citadel Cloud paid service.
+ * Slim banner across the top of AppLayout shown when the customer's Citadel
+ * subscription state needs attention. Distinguishes two products:
+ *
+ *   - Citadel ($14.99/mo) — required to use this app. Lapse → enter grace
+ *     then read-only.
+ *   - Citadel Cloud ($10/mo, optional add-on) — gates cloud features.
+ *     Lapse → cloud features pause; the base app continues working as
+ *     long as the Citadel sub is active.
  *
  * State → behavior:
  *   active      → not rendered
@@ -16,7 +20,7 @@ import { AlertTriangle, Lock, Sparkles, X } from './Icon';
  *                 (dismissable per session)
  *   grace       → "working offline, last verified X ago" + Reconnect button
  *   past_due    → payment past due reminder
- *   lapsed      → subscription lapsed; cloud features paused (non-dismissable)
+ *   lapsed      → Citadel subscription lapsed; non-dismissable
  *   expired     → grace exceeded; non-dismissable
  *
  * Hidden when the user is already on /citadel-license (avoids duplication).
@@ -28,6 +32,7 @@ const LEARN_MORE_URL = 'https://citadels.cc/cloud';
 
 export default function CitadelLicenseBanner() {
   const [status, setStatus] = useState(null);
+  const [cloudBansStats, setCloudBansStats] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   // Read dismissal flag once at mount; sessionStorage clears on app close so
   // the banner returns next launch (matches D1 "dismissable per session").
@@ -49,12 +54,33 @@ export default function CitadelLicenseBanner() {
     }
   }, []);
 
+  // P3.10 — pull Cloud Bans cache stats so we can show loss-aversion copy
+  // when the customer lapses ("X cheaters were on your community ban list").
+  // Only attempted when status is lapsed/expired so we don't spam the
+  // endpoint on every banner render. Errors silently no-op (the banner
+  // falls back to its non-stat copy).
+  const loadCloudBansStats = useCallback(async () => {
+    try {
+      const res = await API.get('/api/cloud-bans/status');
+      if (res && res.cache) setCloudBansStats(res.cache);
+    } catch {
+      setCloudBansStats(null);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => { if (!cancelled) await loadStatus(); })();
     const timer = setInterval(loadStatus, POLL_INTERVAL_MS);
     return () => { cancelled = true; clearInterval(timer); };
   }, [loadStatus]);
+
+  // Pull cloud-bans stats only for the states where we'd show them.
+  useEffect(() => {
+    if (status?.status === 'lapsed' || status?.status === 'expired' || status?.status === 'past_due') {
+      loadCloudBansStats();
+    }
+  }, [status?.status, loadCloudBansStats]);
 
   // ── Render guards ──
   if (!status) return null;
@@ -86,6 +112,7 @@ export default function CitadelLicenseBanner() {
   return (
     <BannerBody
       status={status}
+      cloudBansStats={cloudBansStats}
       onDismiss={isUnactivated ? dismiss : null}
       onReconnect={status.status === 'grace' ? handleReconnect : null}
       reconnecting={refreshing}
@@ -95,7 +122,7 @@ export default function CitadelLicenseBanner() {
 
 // ───────────────────────────────────────────────────────────
 
-function BannerBody({ status, onDismiss, onReconnect, reconnecting }) {
+function BannerBody({ status, cloudBansStats, onDismiss, onReconnect, reconnecting }) {
   const variant = variants[status.status] || variants.unactivated;
   const Icon = variant.icon;
   const toneColor = variant.tone === 'danger' ? 'var(--danger)'
@@ -106,6 +133,15 @@ function BannerBody({ status, onDismiss, onReconnect, reconnecting }) {
   // user knows whether this is a brief blip or something to fix soon.
   const lastVerifiedHint = status.status === 'grace' && status.lastVerifiedAt
     ? formatRelative(status.lastVerifiedAt) : null;
+
+  // P3.10 — loss-aversion copy. When the Citadel subscription has fully
+  // lapsed (lapsed/expired) and the local cloud-bans cache shows they were
+  // getting protection, surface the count so they can see what's about to
+  // disappear. Past-due intentionally NOT included — billing's about to
+  // recover one way or the other; loss-aversion before that's resolved is
+  // premature.
+  const showLossAversion = (status.status === 'lapsed' || status.status === 'expired')
+    && cloudBansStats?.total > 0;
 
   return (
     <div
@@ -124,11 +160,24 @@ function BannerBody({ status, onDismiss, onReconnect, reconnecting }) {
       <Icon size={16} style={{ color: toneColor, flexShrink: 0 }} />
 
       <span style={{ flex: 1 }}>
-        {variant.text}
-        {lastVerifiedHint && (
-          <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>
-            ({lastVerifiedHint})
-          </span>
+        {showLossAversion ? (
+          // Override the variant text with the stats-driven copy. Speaks
+          // specifically about the Cloud add-on protection the customer is
+          // losing, not the Citadel base sub (which has its own consequence).
+          <>
+            Citadel subscription inactive — and you&apos;ll lose protection from{' '}
+            <strong>{cloudBansStats.total.toLocaleString()}</strong> community-banned cheaters
+            on the Cloud add-on. Renew billing to restore everything.
+          </>
+        ) : (
+          <>
+            {variant.text}
+            {lastVerifiedHint && (
+              <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>
+                ({lastVerifiedHint})
+              </span>
+            )}
+          </>
         )}
       </span>
 
@@ -224,8 +273,9 @@ function ctaStyle(toneColor) {
 // State → copy + CTAs
 
 const variants = {
-  // Marketing banner — Citadel itself is free; this is purely a pitch for the
-  // paid Citadel Cloud upgrade. Dismissable per session (handled by caller).
+  // Marketing banner — fires when this machine is unactivated (no cached
+  // license). Could mean: customer has no Citadel sub at all, or has one
+  // but hasn't signed in yet on this box. Dismissable per session.
   unactivated: {
     icon: Sparkles,
     tone: 'accent',
@@ -250,11 +300,13 @@ const variants = {
     primary: { to: 'https://citadels.cc/account', label: 'Open account', external: true },
   },
 
-  // Sticky — non-dismissable. Cloud features have stopped; local app still works.
+  // Sticky — non-dismissable. The customer's Citadel subscription has lapsed,
+  // which means the app will enter grace then read-only. Updating billing is
+  // the only action that recovers it.
   lapsed: {
     icon: Lock,
     tone: 'danger',
-    text: 'Citadel Cloud subscription inactive. Cloud features are paused; the local app keeps working.',
+    text: 'Citadel subscription is no longer active. Renew billing to restore access.',
     primary: { to: 'https://citadels.cc/account', label: 'Manage subscription', external: true },
   },
 

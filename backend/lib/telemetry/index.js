@@ -53,6 +53,15 @@ const { getMachineId } = require('../license/machine-id');
 const DATA_DIR = path.join(ROOT, 'data');
 const STATE_FILE = path.join(DATA_DIR, 'telemetry.json');
 const QUEUE_FILE = path.join(DATA_DIR, 'telemetry-queue.json');
+// P3.11 — file the desktop process appends to (it can't directly call into
+// this module since it's in a different process). The flush loop drains
+// this file's contents into our own queue on every tick.
+const DESKTOP_EVENTS_FILE = path.join(DATA_DIR, 'telemetry-desktop-events.json');
+// P3.11 — written by the desktop before quitAndInstall. We check it on
+// boot to emit update.completed (versions match) or update.failed (mismatch
+// + 5min elapsed). Deleted after the check either way.
+const UPDATE_MARKER_FILE = path.join(DATA_DIR, 'update-in-progress.json');
+const UPDATE_FAILURE_TIMEOUT_MS = 5 * 60 * 1000;
 const BUFFER_CAP = 200;
 const FLUSH_INTERVAL_MS = 30 * 1000;
 const HTTP_TIMEOUT_MS = 10 * 1000;
@@ -207,9 +216,145 @@ function report(event, payload = {}) {
 let _flushInProgress = false;
 let _backgroundTimer = null;
 
+/**
+ * Drain any events the desktop process has dropped into the shared file.
+ * Validates each against EVENT_SCHEMA (same allowlist applied to local
+ * report() calls) and merges into the main queue. Removes the file on
+ * success.
+ *
+ * Called at the top of every flush() so desktop events get buffered
+ * before we send the batch to citadels.cc.
+ */
+function drainDesktopEvents() {
+  let raw;
+  try {
+    if (!fs.existsSync(DESKTOP_EVENTS_FILE)) return 0;
+    raw = fs.readFileSync(DESKTOP_EVENTS_FILE, 'utf-8');
+  } catch {
+    return 0;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // Corrupt — drop it so we don't keep choking on the same bad file.
+    try { fs.unlinkSync(DESKTOP_EVENTS_FILE); } catch {}
+    return 0;
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    try { fs.unlinkSync(DESKTOP_EVENTS_FILE); } catch {}
+    return 0;
+  }
+
+  const queued = readQueue();
+  let accepted = 0;
+  for (const evt of parsed) {
+    if (!evt || typeof evt.event !== 'string') continue;
+    if (!Object.prototype.hasOwnProperty.call(EVENT_SCHEMA, evt.event)) continue;
+    const allowedKeys = EVENT_SCHEMA[evt.event];
+    const filtered = {};
+    if (evt.payload && typeof evt.payload === 'object') {
+      for (const k of allowedKeys) {
+        if (evt.payload[k] !== undefined && evt.payload[k] !== null) {
+          filtered[k] = evt.payload[k];
+        }
+      }
+    }
+    queued.push({
+      event: evt.event,
+      payload: filtered,
+      occurredAt: typeof evt.occurredAt === 'string' ? evt.occurredAt : new Date().toISOString(),
+    });
+    accepted++;
+  }
+
+  const trimmed = queued.length > BUFFER_CAP ? queued.slice(-BUFFER_CAP) : queued;
+  writeQueue(trimmed);
+  try { fs.unlinkSync(DESKTOP_EVENTS_FILE); } catch {}
+  if (accepted > 0) {
+    logger.debug({ accepted }, 'telemetry: drained desktop events');
+  }
+  return accepted;
+}
+
+/**
+ * P3.11 — check the update-in-progress marker on boot. If it exists, the
+ * desktop initiated an update before we started. Compare the marker's
+ * `toVersion` with our actual current version:
+ *   - match → emit update.completed { durationMs }
+ *   - mismatch + > UPDATE_FAILURE_TIMEOUT_MS elapsed → emit update.failed
+ *   - mismatch + recent → leave marker; another (older) backend already
+ *     restarted, this is the actual restart we expected.
+ *
+ * Always deletes the marker on successful classification.
+ */
+function checkUpdateMarker() {
+  let raw;
+  try {
+    if (!fs.existsSync(UPDATE_MARKER_FILE)) return;
+    raw = fs.readFileSync(UPDATE_MARKER_FILE, 'utf-8');
+  } catch {
+    return;
+  }
+  let marker;
+  try {
+    marker = JSON.parse(raw);
+  } catch {
+    try { fs.unlinkSync(UPDATE_MARKER_FILE); } catch {}
+    return;
+  }
+
+  const fromVersion = marker.fromVersion || 'unknown';
+  const toVersion = marker.toVersion || 'unknown';
+  const startedAtMs = marker.startedAt ? Date.parse(marker.startedAt) : 0;
+  const elapsedMs = startedAtMs ? Date.now() - startedAtMs : 0;
+
+  let currentVersion = 'unknown';
+  try {
+    const pkg = require(path.join(ROOT, 'package.json'));
+    currentVersion = pkg.version || 'unknown';
+  } catch {}
+
+  if (currentVersion === toVersion) {
+    report('update.completed', {
+      fromVersion,
+      toVersion,
+      durationMs: elapsedMs,
+    });
+    logger.info({ fromVersion, toVersion, durationMs: elapsedMs }, 'telemetry: update completed');
+    try { fs.unlinkSync(UPDATE_MARKER_FILE); } catch {}
+    return;
+  }
+
+  if (elapsedMs > UPDATE_FAILURE_TIMEOUT_MS) {
+    report('update.failed', {
+      fromVersion,
+      toVersion,
+      reason: `version-mismatch (running ${currentVersion}, expected ${toVersion})`,
+      phase: 'post-install-boot',
+    });
+    logger.warn(
+      { fromVersion, toVersion, currentVersion, elapsedMs },
+      'telemetry: update failed (version mismatch after timeout)',
+    );
+    try { fs.unlinkSync(UPDATE_MARKER_FILE); } catch {}
+    return;
+  }
+
+  // Recent enough that the right post-install backend hasn't booted yet.
+  // Leave the marker; the correct version will pick it up.
+  logger.debug(
+    { fromVersion, toVersion, currentVersion, elapsedMs },
+    'telemetry: update marker present but version not yet matched, leaving for next boot',
+  );
+}
+
 async function flush() {
   if (_flushInProgress) return;
   if (!isEnabled()) return;
+
+  // Drain any desktop-queued events first so they ship in this batch.
+  drainDesktopEvents();
 
   const events = readQueue();
   if (events.length === 0) return;
@@ -275,6 +420,13 @@ async function flush() {
 /** Start the periodic flush loop. Idempotent — safe to call once at boot. */
 function startBackgroundFlush() {
   if (_backgroundTimer) return;
+  // Check the update marker on boot so we emit update.completed/failed
+  // before the first flush.
+  try {
+    checkUpdateMarker();
+  } catch (err) {
+    logger.warn({ err: err.message }, 'telemetry: checkUpdateMarker threw');
+  }
   _backgroundTimer = setInterval(() => {
     flush().catch(() => {});
   }, FLUSH_INTERVAL_MS);
@@ -345,6 +497,8 @@ module.exports = {
   isEnabled,
   setEnabled,
   getState: () => ({ ...getState() }),
-  // Exposed for tests.
+  // Exposed for boot-time hooks + tests.
+  checkUpdateMarker,
+  drainDesktopEvents,
   _internal: { EVENT_SCHEMA, BUFFER_CAP, readQueue, writeQueue },
 };

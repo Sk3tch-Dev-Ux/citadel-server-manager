@@ -10,7 +10,7 @@ import NotificationCenter from '../components/NotificationCenter';
 import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
 import AppUpdateBanner from '../components/AppUpdateBanner';
 import CitadelUpdateBanner from '../components/CitadelUpdateBanner';
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
+import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield, ShieldBan } from '../components/Icon';
 // `Eye` is imported at the bottom of the file for the server nav — reuse that import in the JSX below via hoisting.
 
 export default function AppLayout() {
@@ -109,7 +109,10 @@ export default function AppLayout() {
           {user.role === 'admin' && (
             <>
               <Link to="/citadel-license" className={`nav-item ${location.pathname === '/citadel-license' ? 'active' : ''}`}>
-                <span className="nav-icon"><Shield size={16} /></span>Subscription
+                <span className="nav-icon"><Shield size={16} /></span>Citadel Cloud
+              </Link>
+              <Link to="/global-bans" className={`nav-item ${location.pathname === '/global-bans' ? 'active' : ''}`}>
+                <span className="nav-icon"><ShieldBan size={16} /></span>Global Ban DB
               </Link>
               <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
                 <span className="nav-icon"><Settings size={16} /></span>Settings

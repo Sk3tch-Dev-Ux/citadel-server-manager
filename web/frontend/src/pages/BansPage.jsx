@@ -3,7 +3,17 @@ import API from '../api';
 import { timeAgo } from '../utils';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
-import { ShieldBan, Plus, Search, Download, Upload, Copy, Check, Trash2 } from '../components/Icon';
+import { ShieldBan, Plus, Search, Download, Upload, Copy, Check, Trash2, Sparkles } from '../components/Icon';
+import useLicenseStatus from '../hooks/useLicenseStatus';
+
+// Phase 3 — community ban categories. Mirrors the allowlist on both
+// backend/routes/bans.routes.js and the citadels.cc cloud-bans.routes.ts.
+const COMMUNITY_REASON_CATEGORIES = [
+  { value: 'cheating',   label: 'Cheating',   hint: 'Aimbot, ESP, exploits in code or executables' },
+  { value: 'griefing',   label: 'Griefing',   hint: 'Spawn-killing, base-killing, intentional toxicity' },
+  { value: 'exploiting', label: 'Exploiting', hint: 'Dupe glitches, map exploits, unintended mechanics' },
+  { value: 'other',      label: 'Other',      hint: 'Anything else worth network-banning' },
+];
 
 // ─── Ban File Parsers ────────────────────────────────────
 
@@ -395,15 +405,32 @@ function AddBanForm({ onSubmit, onCancel }) {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Phase 3 — community-DB submission. Gated specifically on the Cloud
+  // add-on entitlement (NOT just an active Citadel sub). A customer with
+  // base Citadel but no Cloud doesn't see the toggle — they have nothing
+  // to submit to.
+  //
+  // Defaults ON for active Cloud subscribers (every ban issued is
+  // reasonable to share by default; unchecking is the explicit "this is
+  // sensitive, don't share" affordance).
+  const { hasCloud } = useLicenseStatus();
+  const [submitToCommunity, setSubmitToCommunity] = useState(true);
+  const [reasonCategory, setReasonCategory] = useState('cheating');
+
   const submit = async (e) => {
     e.preventDefault();
     if (!steamId.trim()) return;
     setSubmitting(true);
-    await onSubmit({
+    const payload = {
       steamId: steamId.trim(),
       playerName: playerName.trim() || 'Unknown',
       reason: reason.trim() || 'Banned',
-    });
+    };
+    if (hasCloud && submitToCommunity) {
+      payload.submitToCommunity = true;
+      payload.reasonCategory = reasonCategory;
+    }
+    await onSubmit(payload);
     setSubmitting(false);
   };
 
@@ -433,11 +460,66 @@ function AddBanForm({ onSubmit, onCancel }) {
         <label className="input-label">Reason</label>
         <input
           className="input"
-          placeholder="Reason for ban"
+          placeholder="Reason for ban (kept private to your account)"
           value={reason}
           onChange={e => setReason(e.target.value)}
         />
       </div>
+
+      {/* Phase 3 — Citadel Cloud submission section. Shown only to
+          customers with the Cloud add-on entitlement. Citadel subscribers
+          on the base plan don't see this toggle — they're not paying for
+          the network membership and shouldn't be confused by it. */}
+      {hasCloud && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: 14,
+            background: 'color-mix(in srgb, var(--accent) 6%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+            borderRadius: 8,
+          }}
+        >
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={submitToCommunity}
+              onChange={(e) => setSubmitToCommunity(e.target.checked)}
+              style={{ width: 16, height: 16 }}
+            />
+            <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+            <span style={{ fontSize: 13, fontWeight: 500 }}>
+              Submit to Citadel Cloud community ban DB
+            </span>
+          </label>
+          <p style={{ margin: '6px 0 0 28px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            Your reason text above stays private to your account. Other Citadel Cloud
+            servers will see only the SteamID and category below — and only after at
+            least 3 customers independently ban this player.
+          </p>
+
+          {submitToCommunity && (
+            <div style={{ marginTop: 12 }}>
+              <label className="input-label" style={{ marginBottom: 6, display: 'block' }}>
+                Category
+              </label>
+              <select
+                className="input"
+                value={reasonCategory}
+                onChange={(e) => setReasonCategory(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                {COMMUNITY_REASON_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label} — {c.hint}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
         <button type="submit" className="btn btn-primary" disabled={!steamId.trim() || submitting}>

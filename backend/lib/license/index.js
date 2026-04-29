@@ -213,9 +213,42 @@ function startBackgroundRefresh() {
   }, VERIFY_INTERVAL_MS).unref();
 }
 
-/** Convenience for middleware — is the app currently licensed? */
+/** Convenience for middleware — is the app currently licensed (Citadel sub)? */
 function isUsable() {
   return _state.status === 'active' || _state.status === 'grace';
+}
+
+/**
+ * Read entitlements from the verified JWT claims. Always includes 'citadel'
+ * when the customer has an active Citadel sub (which is required for
+ * activation in the first place). Includes 'cloud' iff their Citadel Cloud
+ * add-on subscription is active.
+ *
+ * Returns an empty array if no token is loaded — callers should treat that
+ * as "no entitlements" (i.e. show the LicenseGate / require-license 402).
+ */
+function getEntitlements() {
+  if (!_state.claims) return [];
+  return Array.isArray(_state.claims.entitlements) ? _state.claims.entitlements : [];
+}
+
+/**
+ * Does the current customer have access to a specific paid feature?
+ *
+ *   hasFeature('cloud') → true if Citadel Cloud is active on this account
+ *
+ * Always combined with isUsable() — a lapsed Citadel sub means we can't
+ * trust the cached entitlements either; the customer needs to re-activate
+ * before any feature gate counts.
+ */
+function hasFeature(feature) {
+  if (!isUsable()) return false;
+  return getEntitlements().includes(feature);
+}
+
+/** Backwards-compat shorthand for the most-checked feature. */
+function hasCloud() {
+  return hasFeature('cloud');
 }
 
 module.exports = {
@@ -226,5 +259,8 @@ module.exports = {
   deactivate,
   startBackgroundRefresh,
   isUsable,
+  hasFeature,
+  hasCloud,
+  getEntitlements,
   loadFromDisk,
 };

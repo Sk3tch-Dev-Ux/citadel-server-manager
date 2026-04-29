@@ -12,9 +12,10 @@
  *   - Whenever a customer removes a ban locally, `unenrollFromLocalBan()`
  *     is called to revoke their submission.
  *
- * This module only operates when the customer has an active Citadel Cloud
- * license. It checks license.isUsable() before any network call. Free
- * customers and lapsed customers don't see any cloud-bans behavior.
+ * This module only operates when the customer has the Citadel Cloud
+ * add-on entitlement. It checks license.hasFeature('cloud') before any
+ * network call. Customers on the base Citadel plan (no Cloud add-on) and
+ * customers whose Cloud subscription has lapsed see no cloud-bans behavior.
  */
 const logger = require('../logger');
 const license = require('../license');
@@ -60,7 +61,7 @@ function getEnforcerStatus() {
 // ─── Public: sync ──────────────────────────────────────────────
 
 async function pullSync() {
-  if (!license.isUsable()) {
+  if (!license.hasFeature('cloud')) {
     logger.debug('cloud-bans: license not usable, skipping sync');
     return { ok: false, reason: 'no-license' };
   }
@@ -143,7 +144,7 @@ function stopBackgroundSync() {
  * @returns {Promise<{ ok: boolean, ban?, submission?, reason? }>}
  */
 async function submitFromLocalBan({ steamId, reasonCategory, notesLocal }) {
-  if (!license.isUsable()) return { ok: false, reason: 'no-license' };
+  if (!license.hasFeature('cloud')) return { ok: false, reason: 'no-cloud-entitlement' };
   try {
     const result = await client.submit({ steamId, reasonCategory, notesLocal });
     telemetry.report('cloud-bans.submit', undefined);
@@ -165,7 +166,7 @@ async function submitFromLocalBan({ steamId, reasonCategory, notesLocal }) {
 }
 
 async function unenrollFromLocalBan({ steamId }) {
-  if (!license.isUsable()) return { ok: false, reason: 'no-license' };
+  if (!license.hasFeature('cloud')) return { ok: false, reason: 'no-cloud-entitlement' };
   try {
     const result = await client.unenroll({ steamId });
     telemetry.report('cloud-bans.unenroll', undefined);

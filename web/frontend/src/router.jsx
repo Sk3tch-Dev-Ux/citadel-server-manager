@@ -47,6 +47,7 @@ const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
 const CitadelLicensePage = lazy(() => import('./pages/CitadelLicensePage'));
+const GlobalBansPage = lazy(() => import('./pages/GlobalBansPage'));
 const KillFeedPage = lazy(() => import('./pages/KillFeedPage'));
 const ChatLogPage = lazy(() => import('./pages/ChatLogPage'));
 const BackupsPage = lazy(() => import('./pages/BackupsPage'));
@@ -149,6 +150,7 @@ export default function AppRouter() {
           <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><SettingsPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><PriorityQueuePage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="citadel-license" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><CitadelLicensePage /></Lazy></ErrorBoundary></PermGuard>} />
+          <Route path="global-bans" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><GlobalBansPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ErrorBoundary><ServerPage Component={ServerOverviewPage} /></ErrorBoundary>} />

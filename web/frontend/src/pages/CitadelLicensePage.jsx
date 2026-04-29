@@ -15,12 +15,12 @@ import {
 
 /**
  * Citadel Cloud activation page — where the server admin links this
- * installation to their paid citadels.cc account.
+ * installation to their citadels.cc account.
  *
- * Citadel itself (the local app) is free and runs without ever signing
- * in. This page is for the optional Citadel Cloud paid service: once
- * activated, cloud features (global ban DB, off-site backups, etc.)
- * unlock on this machine.
+ * Citadel is a paid product ($14.99/month) — activation requires an active
+ * Citadel subscription. This page also surfaces the optional Citadel Cloud
+ * add-on ($10/month on top, 7-day trial) which unlocks cloud-only features
+ * like the Global Ban Database.
  */
 export default function CitadelLicensePage() {
   const [status, setStatus] = useState(null);
@@ -101,7 +101,7 @@ export default function CitadelLicensePage() {
   }
 
   async function handleDeactivate() {
-    if (!confirm('Deactivate Citadel Cloud on this machine?\n\nThis frees a device slot on your account. The local Citadel app keeps working — only Citadel Cloud features will turn off until you activate again.')) return;
+    if (!confirm('Deactivate this machine?\n\nThis frees one of your device slots on your Citadel account. Citadel will enter read-only mode on THIS machine after the offline grace window until you re-activate. Your Citadel and Cloud subscriptions on Paddle are NOT canceled — only this machine\'s activation.')) return;
     setDeactivating(true);
     try {
       await API.del('/api/citadel-license/deactivate');
@@ -354,16 +354,27 @@ function ActivationForm({
             <>
               <strong style={{ display: 'block', marginBottom: 4 }}>{error.message}</strong>
               <span style={{ color: 'var(--text-secondary)' }}>
-                Citadel itself stays free either way. To unlock cloud features on this machine, subscribe at{' '}
+                You need an active Citadel subscription to activate this machine. Sign up or
+                manage your account at{' '}
+                <a
+                  href="https://citadels.cc/account"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--accent)', fontWeight: 500 }}
+                >
+                  citadels.cc/account
+                </a>
+                . Once you have a Citadel subscription, sign in here. The Citadel Cloud add-on
+                (Global Ban DB, etc.) is a separate $10/month subscription —{' '}
                 <a
                   href="https://citadels.cc/cloud"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'var(--accent)', fontWeight: 500 }}
                 >
-                  citadels.cc/cloud
+                  learn more
                 </a>
-                {' '}and sign in here once you have an active subscription.
+                .
               </span>
             </>
           ) : (
@@ -409,8 +420,9 @@ function ActivatedCard({ status, onDeactivate, deactivating }) {
     }}>
       <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600 }}>This machine</h3>
       <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-muted)' }}>
-        Deactivate to free the slot on your account. You can always re-activate with the same credentials.
-        The local Citadel app keeps working either way.
+        Deactivate to free a device slot on your account. You can always re-activate this
+        or another machine with the same credentials. Your subscriptions on Paddle are
+        not canceled — only this machine&apos;s activation.
       </p>
       <button
         type="button"
@@ -576,11 +588,17 @@ function InfoBox() {
       lineHeight: 1.6,
     }}>
       <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>How this works</div>
-      <strong>Citadel</strong> (the local app) is free and runs without any account. <strong>Citadel Cloud</strong> is
-      an optional paid subscription that unlocks cloud features on each machine you activate. Activating
-      links this specific Windows installation to your account; the app re-verifies every few hours. If
-      your subscription lapses or a payment fails, cloud features pause but the local app keeps working.
-      Manage your subscription, devices, and billing at{' '}
+      Citadel ships as two products you can subscribe to independently:
+      <ul style={{ margin: '8px 0 8px 20px', padding: 0 }}>
+        <li><strong>Citadel</strong> — $14.99/mo. Required to use this app at all. Activating links
+            this Windows installation to your account.</li>
+        <li><strong>Citadel Cloud</strong> — $10/mo on top of Citadel. Optional add-on that unlocks
+            cloud-only features (Global Ban Database; more coming). Includes a 7-day free trial.</li>
+      </ul>
+      The app re-verifies every few hours. If your Citadel subscription lapses, this machine enters a
+      grace window then read-only. If only your Cloud subscription lapses, the local app keeps working
+      and the cloud features pause.
+      Manage subscriptions, devices, and billing at{' '}
       <a
         href="https://citadels.cc/account"
         target="_blank"

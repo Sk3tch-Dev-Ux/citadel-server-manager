@@ -1,21 +1,32 @@
-# Citadel Cloud — Admin Guide
+# Citadel & Citadel Cloud — Admin Guide
 
-This document covers everything a Citadel server admin needs to know about
-**Citadel Cloud**, the optional paid service. The local Citadel app is free
-and runs without any of this — read on only if you want cloud features or
-need to support a customer who does.
+This document covers Citadel's licensing architecture, the optional Citadel
+Cloud add-on, and the operational details of activation, telemetry, and
+appeals.
 
 ---
 
 ## Product model in one paragraph
 
-**Citadel** (the desktop app + local backend) is free. Anyone can install
-it, manage their DayZ servers, run the Discord bot, use the in-game admin
-mod, and ship updates without ever signing in. **Citadel Cloud** is a paid
-subscription service hosted at https://citadels.cc that unlocks additional
-features (global ban DB, off-site backups, etc. — see roadmap) on each
-machine that activates against it. Sign-in is optional; it gates only the
-cloud-only features, never the local ones.
+Citadel ships as **two separately billed products** that customers
+subscribe to independently:
+
+- **Citadel** — $14.99/month (or $149.99/year). The local app license.
+  Required to use the desktop + backend at all. Activation against
+  citadels.cc validates an active Citadel subscription; without it, the
+  app enters grace then read-only.
+- **Citadel Cloud** — +$10/month add-on on top of Citadel. Optional
+  second subscription that unlocks cloud-only features (Global Ban
+  Database; future cloud tools). 7-day free trial. Customers must hold
+  the base Citadel sub to activate; Cloud-only is impossible by design.
+
+Server-side, the license JWT carries `entitlements: ['citadel'] | ['citadel', 'cloud']`.
+The local backend's `requireLicense({ feature: 'cloud' })` middleware
+gates Cloud-only routes; the React `<LicenseGate feature="cloud">`
+component does the same on the dashboard. Subscription state lives on
+the `users` table in two parallel column groups (`subscription_*` for
+Citadel, `cloud_subscription_*` for Cloud) populated by the Paddle
+webhook handler routing on `price_id`.
 
 ---
 
@@ -72,9 +83,10 @@ From the dashboard: **Citadel Cloud** → **Deactivate this machine**. This:
 
 1. Calls `DELETE /api/v1/license/deactivate` server-side, which marks the
    device as `revoked = true` in the citadels.cc database.
-2. Clears the local `data/license.json`.
-3. Status returns to `unactivated`. The local app keeps working — only
-   cloud features turn off.
+2. Clears the local `data/license.json` and wipes the cloud-bans cache.
+3. Status returns to `unactivated`. The customer's Citadel subscription
+   is unchanged on Paddle — they just need to re-activate this machine
+   (or another) to use it again.
 
 A user can also revoke a device from https://citadels.cc/account if they
 no longer have access to that machine (lost laptop, sold a PC, etc.). The
@@ -84,12 +96,36 @@ will be prompted to sign in again.
 
 ---
 
-## Migration: existing customers and "I paid before this existed"
+## Migration: existing customers
 
-There is no automated migration path because **the licensing system was
-introduced before any paid subscriptions existed**. Today every install in
-the wild is in `unactivated` state, which is the correct default — they
-can keep using the free local app indefinitely.
+The licensing system has been live since before Citadel Cloud existed —
+existing customers already hold a Citadel subscription on Paddle. The
+Phase 3 changes are additive:
+
+- A new column group (`cloud_subscription_*`) was added to the `users`
+  table. Existing rows have NULLs there, which means no Cloud entitlement.
+- The license JWT now carries `entitlements: ['citadel'] | ['citadel', 'cloud']`.
+  Pre-Phase-3 tokens lacked this field; the `_hydrateEntitlementsForLegacy`
+  helper in `lib/license.ts` infers it from the existing status fields, so
+  cached tokens keep working until they naturally rotate.
+- Customers who want Cloud subscribe to the second Paddle product. The
+  webhook routes the event to `cloud_subscription_*` and the next
+  `/verify` call signs a token with the new entitlements.
+
+If you've ever taken payment for Citadel Cloud outside Paddle (e.g. a
+manual comp), update the user's `cloud_subscription_status` directly in
+SQL:
+
+```sql
+UPDATE users
+SET cloud_subscription_status = 'active',
+    cloud_subscription_renews_at = NOW() + INTERVAL '1 year',
+    updated_at = NOW()
+WHERE email = 'customer@example.com';
+```
+
+Their next license `/verify` call will return a token with
+`entitlements: ['citadel', 'cloud']` and Cloud features will light up.
 
 Edge case: if at some point you (Kurt) directly took payment for a Citadel
 Pro license outside Paddle (e.g. a one-off Discord arrangement, an early

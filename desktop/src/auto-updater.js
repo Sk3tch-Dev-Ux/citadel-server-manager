@@ -39,6 +39,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const fs = require('fs');
 const path = require('path');
+const desktopTelemetry = require('./desktop-telemetry');
 
 const execAsync = util.promisify(exec);
 
@@ -272,6 +273,15 @@ function initAutoUpdater({ getMainWindow }) {
       error: null,
     };
     emit('updater:update-downloaded', { version: info?.version || null });
+    // P3.11 — fire telemetry: user has been shown the "restart to install"
+    // prompt. Lets us measure update-prompt-to-restart conversion across
+    // the install base.
+    try {
+      desktopTelemetry.reportEvent('update.prompt-shown', {
+        fromVersion: app.getVersion(),
+        toVersion: info?.version || null,
+      });
+    } catch {}
   });
 
   autoUpdater.on('error', (err) => {
@@ -334,7 +344,25 @@ async function installNow() {
     return { ok: false, reason: 'no-update-downloaded' };
   }
 
-  log(`installNow: starting update flow (target version: ${lastState.version || 'unknown'})`);
+  const fromVersion = app.getVersion();
+  const toVersion = lastState.version || 'unknown';
+  log(`installNow: starting update flow (${fromVersion} → ${toVersion})`);
+
+  // P3.11 — telemetry. Fire install-clicked BEFORE we stop the service
+  // (which writes to the same data dir the backend's flush loop reads).
+  try {
+    desktopTelemetry.reportEvent('update.install-clicked', { fromVersion, toVersion });
+  } catch {}
+
+  // P3.11 — write the update-in-progress marker. The next backend boot
+  // (post-install) reads this file and emits update.completed if the
+  // running version matches toVersion, or update.failed if it doesn't.
+  try {
+    const ok = desktopTelemetry.writeUpdateMarker({ fromVersion, toVersion });
+    log(`update marker ${ok ? 'written' : 'NOT written (data dir not found)'}`);
+  } catch (err) {
+    warn('update marker write failed:', err?.message);
+  }
 
   try {
     await stopServiceGracefully();

@@ -8,12 +8,14 @@
 
 ## Product model (read this first)
 
-Citadel ships as two distinct products that share a codebase and integration surface:
+*(Revised 2026-04-29: Citadel and Citadel Cloud are separately billed products, not a free-vs-paid split.)*
 
-- **Citadel** (the desktop app + local backend in this repo) is **free**. Anyone can download, install, and manage their DayZ servers. No account required. No nag screens that block functionality. Works exactly as today.
-- **Citadel Cloud** is a **paid service** sold on Citadels.cc. Sign-in from the Citadel desktop unlocks cloud-only features (Phase 3+: global ban DB, off-site backups, etc.). No sign-in = no cloud features. The local app keeps working with everything it does today.
+Citadel ships as two **separately billed products** that customers can subscribe to independently:
 
-This means: the activation banner, the license token, the device limit — none of that gates anything in the free product. Those mechanisms exist solely to turn cloud features on for paying customers. Customers who never sign up never notice any difference from today.
+- **Citadel** (the desktop app + local backend in this repo) — **$14.99/month** (or $149.99/yr). Required to use the app at all; activation against citadels.cc validates an active Citadel subscription. This is the existing product and the existing Paddle product.
+- **Citadel Cloud** — **+$10/month** add-on on top of Citadel. Optional second subscription that unlocks cloud-only features (Phase 3+: Global Ban Database, plus future cloud-only tooling). Includes a 7-day free trial. Customers must hold a Citadel sub to activate; Cloud-only is impossible by design.
+
+The license JWT carries an `entitlements: ['citadel'] | ['citadel', 'cloud']` claim. Server-side gating (`requireLicense({ feature: 'cloud' })`) and frontend gating (`<LicenseGate feature="cloud">`) read this claim and 402 / show the upgrade card respectively. Subscription state is tracked on the `users` table in two parallel column groups: `subscription_*` (Citadel) and `cloud_subscription_*` (Cloud). The Paddle webhook handler routes incoming events to the correct columns based on `price_id`.
 
 ## Executive summary
 
@@ -257,7 +259,7 @@ See the "Current state" table above. The activation pipeline already exists end-
 
 **D1. Unactivated user UX → persistent dismissable banner.** Banner on every dashboard page when state is `unactivated`. Two CTAs: "Sign in to Citadel Cloud" (opens activation modal) and "Learn more" (opens `https://citadels.cc/cloud` in browser — the marketing/pricing page). Dismissable per session, reappears on next launch. The banner is a *marketing surface* for the paid service, not a gate on local functionality. Drives P2.2.
 
-**D2. Citadel Cloud → paid only, no free tier.** *(Revised 2026-04-28 from earlier "free signup, 1 device".)* Citadel (the local app) is free for everyone. Citadel Cloud is a paid subscription. The existing Citadels.cc `/activate` endpoint already enforces this — it returns `402 SUBSCRIPTION_INACTIVE` for users without an active Paddle subscription, which is exactly the desired behavior. **No entitlement model, no free-tier signup work, no per-tier device limits in Phase 2.** Pro device limit defaults to whatever `config.license.maxDevicesPerUser` is set to today (typically 2); revisit per-tier limits when we ship multiple paid tiers (not in scope for Phase 2).
+**D2. Citadel Cloud → separate paid product, +$10/mo on top of Citadel.** *(Revised 2026-04-29: this clarifies an earlier framing that implied Citadel was free. It isn't — Citadel is the existing $14.99/mo product. Cloud is a SECOND subscription.)* The existing `/api/v1/license/activate` endpoint already requires an active Citadel subscription (returns 402 otherwise). Phase 3+ adds an entitlement model so Cloud features can be gated independently — see the Product model section above for the entitlement claim shape and the Phase 3 implementation milestones for schema/JWT/webhook changes.
 
 **D3. Phase 3 gating model → deferred.** `isUsable()` plus the `<LicenseGate>` scaffolding from P2.5 is enough for the first paid feature. Revisit once we know what we're gating.
 

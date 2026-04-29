@@ -20,11 +20,21 @@ function registerCitadelLicenseRoutes(app) {
 
   app.get('/api/citadel-license/status', requireAdmin, (_req, res) => {
     const state = license.getState();
+    const entitlements = license.getEntitlements();
     res.json({
       status: state.status,
       subscription: state.subscription,
       lastVerifiedAt: state.lastVerifiedAt,
       machineId: license.machineId(),
+      // Phase 3 — entitlements drive feature gating in the dashboard.
+      // 'citadel' is implicit (you can't activate without it). 'cloud' is
+      // present iff the customer has the $10/mo Citadel Cloud add-on
+      // subscription active on top of their base Citadel plan.
+      entitlements,
+      hasCloud: license.hasCloud(),
+      cloudSubscription: state.claims?.cloudSubscriptionStatus
+        ? { status: state.claims.cloudSubscriptionStatus }
+        : null,
       claims: state.claims ? {
         email: state.claims.email,
         deviceId: state.claims.deviceId,
