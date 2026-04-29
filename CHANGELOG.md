@@ -4,19 +4,24 @@ All notable changes to Citadel are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The current released version on the public GitHub Releases feed is
-v2.7.0. Versions below this line are queued for release — the dates
-reflect when the work landed in the repo, not when the build went out.
-
 ---
 
-## Unreleased — Citadel Cloud (Phase 3)
+## v2.16.0 — 2026-04-29
 
 This release introduces **Citadel Cloud**, an optional **+$10/month**
 subscription that adds on top of your Citadel subscription. The flagship
 feature is the Global Ban Database — every Citadel Cloud customer
 contributes their bans to a shared pool, and your server is automatically
 protected against everyone else's known cheaters.
+
+It also adds **CFTools banlist import** so existing CFTools customers
+can bring their banlist with them when switching to Citadel.
+
+**Important:** the dashboard talks to citadels.cc for license + cloud
+endpoints. This release expects citadels.cc to be deployed with the
+matching schema + Paddle product configured. If you self-host
+citadels.cc, run `drizzle-kit migrate` before letting customers
+upgrade. See `docs/admin/PRODUCTION-DEPLOYMENT.md`.
 
 ### Added
 - **Global Ban Database** — a network-wide cheater pool with a 3-vouch
@@ -62,9 +67,7 @@ protected against everyone else's known cheaters.
 - See `docs/admin/PRODUCTION-DEPLOYMENT.md` for the full ordered
   deployment runbook.
 
----
-
-## Unreleased — Citadel Cloud licensing rollout (Phase 2)
+### Citadel Cloud licensing rollout
 
 Wired the previously-built license/auth layer into the desktop app and
 shipped the diagnostic telemetry pipeline that catches future issues
@@ -91,40 +94,30 @@ in production.
   directly to the backend's `/api/citadel-license/*` REST endpoints; no
   separate desktop client needed.
 
----
+### CFTools banlist import (Phase 4)
 
-## v2.7.x — Auto-update reliability (Phase 1)
-
-Fixes the auto-update relaunch failure observed on 2026-04-27, where
-clicking "Restart to install" left users with a stopped Electron app
-that needed manual relaunch.
-
-### Fixed
-- **Auto-update relaunch** — the desktop now stops `CitadelServer`
-  gracefully before `quitAndInstall`, schedules `app.relaunch()` as a
-  fallback in case NSIS skips `LaunchDashboard` on silent installs, and
-  bumps NSSM's `AppThrottle` from 5s to 15s to accommodate cold-disk
-  starts on slower machines.
-- **NSIS installer** stops the running service explicitly before file
-  overwrites, force-killing any orphan `node.exe` processes still
-  rooted in the install dir.
-
-### Added
-- **Persistent update log** at `%APPDATA%/Citadel/update.log` (1 MB
-  rotation). Records every event in the auto-update flow so the next
-  bug isn't a black box.
-- **`npm run service:repair`** — resets NSSM's failure counter and
-  attempts a clean restart for customers stuck in NSSM's back-off
-  state. Use after a confirmed-failed update.
-
-### Notes
-- The v2.7.0 → v2.7.x update itself goes through the broken code path
-  one last time. If your app doesn't relaunch after the update, open
-  Citadel from the Start Menu — that's the bug we just fixed and you
-  only see it once.
+Brings an existing CFTools-hosted banlist into Citadel's local ban
+database in a single operation. Customer pastes their CFTools API
+token from developer.cftools.cloud, picks a banlist ID or server ID,
+and Citadel pulls every ban with a Steam64 in the record. No
+credentials persisted; one-shot import. Documented in
+`docs/admin/migrating-from-cftools.md`.
 
 ---
 
-## v2.7.0 and earlier
+## v2.15.0 — Auto-update reliability + earlier
 
-See git history for changes prior to this CHANGELOG.
+The auto-update relaunch fix (Phase 1) shipped in v2.15.0:
+- Desktop stops `CitadelServer` gracefully before `quitAndInstall`,
+  schedules `app.relaunch()` as a fallback when NSIS skips
+  `LaunchDashboard` on silent installs, and bumps NSSM's
+  `AppThrottle` from 5s to 15s for cold-disk starts.
+- NSIS installer stops the running service explicitly before file
+  overwrites and force-kills orphan `node.exe` processes.
+- Persistent update log at `%APPDATA%/Citadel/update.log` (1 MB
+  rotation) for diagnostics.
+- New `npm run service:repair` resets NSSM's failure counter for
+  customers stuck in back-off.
+
+See git history (`git log v2.7.0..v2.15.0`) for the full set of
+changes shipped between those versions.
