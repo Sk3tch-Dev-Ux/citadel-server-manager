@@ -113,6 +113,11 @@ function _profile(state, steamId, name) {
       lastDeathAt: null,
       recentEvents: [],        // timeline: { type, timestamp, ...meta }
       notes: [],               // { id, authorId, authorName, text, timestamp }
+      // Latest live snapshot from player.getFull (info/stats/gear). Saved
+      // any time an admin opens the player's profile or hits "Get Info".
+      // Survives logout: when a player disconnects, this is the last
+      // known state. Used for forensics ("what gear did they have?").
+      snapshot: null,          // { capturedAt, online, info, stats, gear }
     };
   }
   const p = state.players[steamId];
@@ -283,6 +288,41 @@ function recordDeath(dataDir, serverId, event) {
   _scheduleWrite(store);
 }
 
+/**
+ * Persist a live snapshot from player.getFull. The mod returns:
+ *   { info: { steamId, name, position, health, blood, ... },
+ *     stats: { shotsFired, killsPlayers, distance, ... },
+ *     gear:  { slots: { Back, Body, Feet, Legs, ... } } }
+ *
+ * We capture the whole thing under `profile.snapshot` plus a timestamp
+ * so the UI can show "captured 2 minutes ago" alongside the data.
+ *
+ * Best-effort — if the input doesn't look right, we silently skip rather
+ * than corrupting the profile.
+ */
+function recordSnapshot(dataDir, serverId, steamId, data) {
+  if (!steamId || !data || typeof data !== 'object') return;
+  // The mod can also return a flat object with steamId at top level when
+  // the player isn't online. Accept either shape.
+  const info = data.info || (data.steamId ? data : null);
+  if (!info) return;
+
+  const store = _loadStore(dataDir, serverId);
+  const p = _profile(store.state, steamId, info.name);
+  p.snapshot = {
+    capturedAt: new Date().toISOString(),
+    online: !!info.alive && info.position != null,
+    info: info,
+    stats: data.stats || null,
+    gear: data.gear || null,
+  };
+  // Mirror common fields onto the top-level profile so search/list views
+  // can show "last position" without parsing the snapshot blob.
+  if (info.position) p.lastKnownPosition = info.position;
+  _scheduleWrite(store);
+  return p.snapshot;
+}
+
 // ─── Read APIs ──────────────────────────────────────────────
 
 /**
@@ -377,6 +417,7 @@ module.exports = {
   recordChat,
   recordKill,
   recordDeath,
+  recordSnapshot,
   search,
   getProfile,
   addNote,

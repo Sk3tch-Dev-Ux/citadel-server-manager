@@ -6,6 +6,7 @@ import EmptyState from '../components/ui/EmptyState';
 import {
   User, ArrowLeft, MessageSquare, Crosshair, Skull, Activity, Clock,
   Plus, Trash2, AlertTriangle, Copy, Globe, LogIn, LogOut, StickyNote, Calendar,
+  Heart, Droplets, Eye, MapPin, Shield, RefreshCw,
 } from '../components/Icon';
 import { timeAgo } from '../utils';
 
@@ -72,6 +73,34 @@ export default function PlayerProfilePage() {
   }, [serverId, steamId]);
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+  // ─── Snapshot fetch ───────────────────────────────────
+  // Hits the live `player-full` endpoint, which on the backend also
+  // persists the result to the profile via recordSnapshot(). Then we
+  // re-fetch the profile so the new snapshot shows up in the UI.
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const refreshSnapshot = useCallback(async () => {
+    if (snapshotLoading) return;
+    setSnapshotLoading(true);
+    try {
+      await API.get(`/api/servers/${serverId}/actions/data/player-full/${steamId}`);
+      await fetchProfile();
+      window.addToast?.('Snapshot updated', 'success');
+    } catch (err) {
+      window.addToast?.(`Snapshot failed: ${err.message || 'Player must be online'}`, 'error');
+    } finally {
+      setSnapshotLoading(false);
+    }
+  }, [serverId, steamId, fetchProfile, snapshotLoading]);
+
+  // Auto-refresh snapshot on first mount if none exists yet — gives a
+  // useful "first impression" when admin clicks through from Get Info.
+  useEffect(() => {
+    if (profile && !profile.snapshot && !snapshotLoading) {
+      refreshSnapshot();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.steamId]);
 
   const handleAddNote = async () => {
     const text = noteDraft.trim();
@@ -221,6 +250,7 @@ export default function PlayerProfilePage() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
         {[
           { id: 'overview', label: 'Timeline', icon: <Clock size={14} /> },
+          { id: 'snapshot', label: 'Live State', icon: <Activity size={14} /> },
           { id: 'sessions', label: `Sessions (${profile.sessions?.length || 0})`, icon: <Calendar size={14} /> },
           { id: 'chat', label: `Chat (${profile.recentChat?.length || 0})`, icon: <MessageSquare size={14} /> },
           { id: 'notes', label: `Notes (${profile.notes?.length || 0})`, icon: <StickyNote size={14} /> },
@@ -237,6 +267,14 @@ export default function PlayerProfilePage() {
       </div>
 
       {tab === 'overview' && <TimelineTab events={profile.recentEvents} />}
+      {tab === 'snapshot' && (
+        <SnapshotTab
+          snapshot={profile.snapshot}
+          serverId={serverId}
+          loading={snapshotLoading}
+          onRefresh={refreshSnapshot}
+        />
+      )}
       {tab === 'sessions' && <SessionsTab sessions={profile.sessions} currentSessionStart={profile.currentSessionStart} />}
       {tab === 'chat' && <ChatTab chat={profile.recentChat} />}
       {tab === 'notes' && (
@@ -396,6 +434,164 @@ function ChatTab({ chat }) {
           <span style={{ fontSize: 13, flex: 1, wordBreak: 'break-word' }}>{m.message}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── Snapshot Tab ────────────────────────────────────────────
+//
+// Reads `profile.snapshot` (saved by backend recordSnapshot whenever the
+// player-full endpoint is hit). Shows current/last-known state: health
+// stats, position, gear, and PvP/movement counters.
+
+function HealthBar({ label, value, max, color }) {
+  const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+        <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>
+          {Math.round(value)} / {max}
+        </span>
+      </div>
+      <div style={{ height: 6, background: 'var(--bg-card)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: color, transition: 'width 200ms' }} />
+      </div>
+    </div>
+  );
+}
+
+function StatTile({ icon, label, value, sub }) {
+  return (
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        {icon} {label}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{value}</div>
+      {sub != null && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function SnapshotTab({ snapshot, serverId, loading, onRefresh }) {
+  const navigate = useNavigate();
+
+  if (!snapshot) {
+    return (
+      <div style={{ textAlign: 'center', padding: 40 }}>
+        <Activity size={32} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
+        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 12 }}>
+          No live snapshot yet. {loading ? 'Fetching from server…' : 'Player needs to be online to capture one.'}
+        </div>
+        <button
+          className="btn btn-sm btn-primary"
+          onClick={onRefresh}
+          disabled={loading}
+        >
+          <RefreshCw size={14} className={loading ? 'spinning' : ''} />
+          {loading ? 'Refreshing…' : 'Refresh Snapshot'}
+        </button>
+      </div>
+    );
+  }
+
+  const { capturedAt, info = {}, stats = {}, gear = {} } = snapshot;
+  const slots = (gear && gear.slots) || {};
+  const slotEntries = Object.entries(slots).filter(([, v]) => v);
+  const ago = capturedAt ? timeAgo(capturedAt) : '—';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Header — capture freshness + refresh */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+          <Clock size={13} /> Captured {ago}
+          <span style={{ marginLeft: 8 }}>·</span>
+          {info.alive ? (
+            <span style={{ color: '#22c55e' }}>● Alive</span>
+          ) : (
+            <span style={{ color: '#ef4444' }}>● Dead</span>
+          )}
+          {info.inVehicle && <><span>·</span><span>In vehicle</span></>}
+          {info.sessionSeconds != null && (
+            <><span>·</span><span>Session: {fmtDuration((info.sessionSeconds || 0) * 1000)}</span></>
+          )}
+        </div>
+        <button className="btn btn-sm btn-ghost" onClick={onRefresh} disabled={loading} title="Re-fetch from live server">
+          <RefreshCw size={14} className={loading ? 'spinning' : ''} /> {loading ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
+
+      {/* Health bars */}
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Vitals</div>
+        <HealthBar label="Health" value={info.health || 0} max={100} color="#ef4444" />
+        <HealthBar label="Blood"  value={info.blood  || 0} max={5000} color="#dc2626" />
+        <HealthBar label="Shock"  value={info.shock  || 0} max={100} color="#f59e0b" />
+        <HealthBar label="Water"  value={info.water  || 0} max={2500} color="#3b82f6" />
+        <HealthBar label="Energy" value={info.energy || 0} max={10000} color="#22c55e" />
+      </div>
+
+      {/* Position */}
+      {info.position && (
+        <div className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <MapPin size={14} style={{ color: 'var(--accent)' }} />
+            <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>
+              X: {Math.round(info.position.x)} · Y: {Math.round(info.position.y)} · Z: {Math.round(info.position.z)}
+            </span>
+            {info.direction != null && (
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                · facing {Math.round(info.direction)}°
+              </span>
+            )}
+          </div>
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={() => navigate(`/servers/${serverId}/live-dashboard`)}
+            title="Open Live Dashboard"
+          >
+            <Globe size={13} /> View on Map
+          </button>
+        </div>
+      )}
+
+      {/* Stats grid */}
+      <div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Mod Stats</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+          <StatTile icon={<Crosshair size={13} />} label="Kills (PvP)" value={stats.killsPlayers || 0} />
+          <StatTile icon={<Skull size={13} />} label="Kills (Z)"   value={stats.killsInfected || 0} />
+          <StatTile icon={<Skull size={13} />} label="Kills (Animal)" value={stats.killsAnimals || 0} />
+          <StatTile icon={<Activity size={13} />} label="Shots Fired" value={stats.shotsFired || 0}
+            sub={stats.shotsFired ? `${Math.round(((stats.shotsHit || 0) / stats.shotsFired) * 100)}% accuracy` : null} />
+          <StatTile icon={<MapPin size={13} />} label="Distance (km)" value={((stats.distance || 0) / 1000).toFixed(2)} />
+          <StatTile icon={<MapPin size={13} />} label="Vehicle (km)" value={((stats.vehicleDistance || 0) / 1000).toFixed(2)} />
+          <StatTile icon={<Plus size={13} />} label="Items Picked" value={stats.itemsPickedUp || 0} />
+          <StatTile icon={<Trash2 size={13} />} label="Items Dropped" value={stats.itemsDropped || 0} />
+        </div>
+      </div>
+
+      {/* Gear */}
+      <div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+          Gear ({slotEntries.length} slots)
+        </div>
+        {slotEntries.length === 0 ? (
+          <div className="card" style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            No gear data captured.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+            {slotEntries.map(([slot, item]) => (
+              <div key={slot} className="card" style={{ padding: 10 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{slot}</div>
+                <div style={{ fontSize: 13, fontFamily: 'var(--font-mono, monospace)', wordBreak: 'break-word' }}>{item}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

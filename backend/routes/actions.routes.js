@@ -1069,6 +1069,15 @@ module.exports = function(app) {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_FULL);
       const data = await provider.getPlayerFull(req.params.id, req.params.steamId);
+      // Fire-and-forget snapshot save — this is the canonical place we
+      // get the rich player.getFull blob, so it's the right hook for
+      // persisting a forensic "last known state" to the profile store.
+      // Wrapped to never block / fail the response.
+      try {
+        const ctx = require('../lib/context');
+        const profiles = require('../lib/player-profiles');
+        profiles.recordSnapshot(ctx.CONFIG.dataDir, req.params.id, req.params.steamId, data);
+      } catch (_) { /* snapshot persistence is best-effort */ }
       res.json(data);
     } catch (err) {
       safeError(err, req, res, { status: 500 });

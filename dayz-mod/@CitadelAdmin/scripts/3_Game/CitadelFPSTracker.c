@@ -54,7 +54,12 @@ modded class DayZGame
         else
             count = this.cit_tickTimes.Count();
 
-        if (count < this.cit_tickTimeAverageWindow) return 0.0;
+        // Average over whatever samples we have. Returning 0 until the
+        // buffer was full meant the dashboard showed FPS=0 for the first
+        // ~2 seconds after mission load, since the sidecar derives FPS
+        // from `1000 / tick_avg` and a 0 tick_avg falls through to the
+        // fps fallback (also 0 at startup).
+        if (count <= 0) return 0.0;
 
         float sum = 0.0;
         for (int i = 0; i < count; i++)
@@ -130,7 +135,10 @@ modded class DayZGame
             if (this.cit_tpsTime + 1 < tickTime)
             {
                 this.cit_tpsTime = tickTime;
-                this.cit_tps = this.cit_ticks / 2;
+                // Ticks counted in the last ~1s window IS the FPS — the
+                // previous code divided by 2 here for no reason, halving
+                // every reported FPS. (Real 30fps would show as 15.)
+                this.cit_tps = this.cit_ticks;
                 this.cit_ticks = 0;
                 if (GetCitadel()) GetCitadel().SetServerFPS(this.cit_tps);
             }

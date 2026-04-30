@@ -5,6 +5,7 @@
  * Tabs: Live Map | Player List | Event Feed | Admin Tools
  */
 import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './LiveDashboardPage.css';
 import { useSocket } from '../contexts/SocketContext';
 import useServerMap from '../hooks/useServerMap';
@@ -15,7 +16,7 @@ import {
   Activity, Users, Cpu, Heart, Skull, Shield, Eye, MapPin, Truck,
   Search, Send, Sun, CloudRain, Wind, Zap, Globe, Clock, Target,
   Crosshair, Filter, MessageSquare, Haze, TreePine, Navigation, Bomb,
-  Wrench, Droplets, Power, LogOut, ArrowUpFromLine, Trash2, X,
+  Wrench, Droplets, Power, LogOut, ArrowUpFromLine, Trash2, X, ShieldBan, Crown,
 } from '../components/Icon';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
@@ -79,6 +80,7 @@ const VEHICLE_ACTIONS = [
 
 export default function LiveDashboardPage({ serverId }) {
   const socket = useSocket();
+  const navigate = useNavigate();
   const serverMap = useServerMap(serverId);
   const [tab, setTab] = useState('map');
   const [status, setStatus] = useState(null);
@@ -93,6 +95,17 @@ export default function LiveDashboardPage({ serverId }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [eventFilter, setEventFilter] = useState('all');
   const [commandResult, setCommandResult] = useState(null);
+  // Click-to-place state — used by Heli Crash, Gas Zone, Player Teleport,
+  // and anything else that needs a world coord. Holds:
+  //   { action, label, params?, coordsAsString? }
+  // When set, LiveMapTab puts the map into addMarker mode and the next
+  // click fires the command with the chosen coords.
+  //
+  // coordsAsString=true → payload is { ...params, coords: "x 0 z" }
+  //                       (used by spawn.* — mod calls coords.ToVector())
+  // coordsAsString=false → payload is { ...params, x, y, z }
+  //                       (used by player.teleport, vehicle.teleport, etc.)
+  const [pickerMode, setPickerMode] = useState(null);
   const eventFeedRef = useRef(null);
 
   // ─── Initial load via REST ──────────────────────────────
@@ -191,6 +204,37 @@ export default function LiveDashboardPage({ serverId }) {
       window.addToast?.(`Command error: ${err.message}`, 'error');
     }
   }, [serverId]);
+
+  // ─── Click-to-place flow (spawn buttons + player teleport) ──
+  // Arms a generic map picker. Switches to the map tab so the user
+  // can click anywhere; the next click fires `action` with the coords
+  // merged into `params`.
+  const requestPick = useCallback((action, opts = {}) => {
+    const label = opts.label || action.split('.').pop();
+    setPickerMode({
+      action,
+      label,
+      params: opts.params || {},
+      coordsAsString: !!opts.coordsAsString,
+    });
+    setTab('map');
+    window.addToast?.(`Click on the map to place ${label}`, 'info');
+  }, []);
+
+  // Map calls this when the user clicks. Builds the right payload
+  // shape based on what the mod's command handler expects:
+  //   spawn.* → coords as space-separated string for ToVector()
+  //   player.teleport / vehicle.teleport → flat x, y, z fields
+  const handlePickPlace = useCallback((x, z) => {
+    if (!pickerMode) return;
+    const xi = Math.round(x);
+    const zi = Math.round(z);
+    const payload = pickerMode.coordsAsString
+      ? { ...pickerMode.params, coords: `${xi} 0 ${zi}` }
+      : { ...pickerMode.params, x: xi, y: 0, z: zi };
+    sendCommand(pickerMode.action, payload);
+    setPickerMode(null);
+  }, [pickerMode, sendCommand]);
 
   // ─── Derived data ───────────────────────────────────────
   const isActive = status?.active ?? false;
@@ -311,6 +355,9 @@ export default function LiveDashboardPage({ serverId }) {
             setSelectedVehicle={setSelectedVehicle}
             sendCommand={sendCommand}
             serverMap={serverMap}
+            pickerMode={pickerMode}
+            onPickPlace={handlePickPlace}
+            onPickCancel={() => setPickerMode(null)}
           />
         )}
         {tab === 'players' && (
@@ -321,6 +368,9 @@ export default function LiveDashboardPage({ serverId }) {
             selectedPlayer={selectedPlayer}
             setSelectedPlayer={setSelectedPlayer}
             sendCommand={sendCommand}
+            requestPick={requestPick}
+            serverId={serverId}
+            navigate={navigate}
           />
         )}
         {tab === 'events' && (
@@ -332,7 +382,7 @@ export default function LiveDashboardPage({ serverId }) {
           />
         )}
         {tab === 'admin' && (
-          <AdminToolsTab sendCommand={sendCommand} commandResult={commandResult} />
+          <AdminToolsTab sendCommand={sendCommand} commandResult={commandResult} requestPick={requestPick} />
         )}
       </div>
     </div>
@@ -341,7 +391,7 @@ export default function LiveDashboardPage({ serverId }) {
 
 // ─── Tab: Live Map ────────────────────────────────────────
 
-function LiveMapTab({ markers, players, vehicles, onSelectPlayer, selectedVehicle, setSelectedVehicle, sendCommand, serverMap }) {
+function LiveMapTab({ markers, players, vehicles, onSelectPlayer, selectedVehicle, setSelectedVehicle, sendCommand, serverMap, pickerMode, onPickPlace, onPickCancel }) {
   const [vehicleCtx, setVehicleCtx] = useState(null);
   const [teleportMode, setTeleportMode] = useState(null);
 
@@ -392,16 +442,31 @@ function LiveMapTab({ markers, players, vehicles, onSelectPlayer, selectedVehicl
           mapName={serverMap}
           markers={markers}
           height={600}
-          mode={teleportMode ? 'addMarker' : 'view'}
+          mode={(teleportMode || pickerMode) ? 'addMarker' : 'view'}
           selectedId={selectedVehicle ? `vehicle-${selectedVehicle}` : null}
           onSelect={handleSelect}
           onContextMenu={handleContextMenu}
-          onMarkerAdd={handleTeleportPlace}
+          onMarkerAdd={(x, z) => {
+            // Generic picker (spawn buttons, player teleport) takes priority
+            // over the legacy vehicle-teleport mode — the user explicitly
+            // armed the picker by clicking an action button.
+            if (pickerMode) onPickPlace?.(x, z);
+            else handleTeleportPlace(x, z);
+          }}
         />
       </Suspense>
 
-      {/* Teleport mode banner */}
-      {teleportMode && (
+      {/* Picker banner — shown when an action armed the click-to-place flow */}
+      {pickerMode && (
+        <div className="live-map-teleport-banner">
+          <Navigation size={14} />
+          <span>Click on the map to place {pickerMode.label}</span>
+          <button onClick={onPickCancel}>Cancel</button>
+        </div>
+      )}
+
+      {/* Vehicle teleport (right-click → Teleport) banner */}
+      {teleportMode && !pickerMode && (
         <div className="live-map-teleport-banner">
           <Navigation size={14} />
           <span>Click on the map to teleport vehicle</span>
@@ -496,14 +561,74 @@ function VehicleInfoPanel({ vehicle, vehicleId, onClose, onAction }) {
 
 // ─── Tab: Player List ─────────────────────────────────────
 
-function PlayersTab({ players, searchQuery, setSearchQuery, selectedPlayer, setSelectedPlayer, sendCommand }) {
+function PlayersTab({ players, searchQuery, setSearchQuery, selectedPlayer, setSelectedPlayer, sendCommand, requestPick, serverId, navigate }) {
   const [contextMenu, setContextMenu] = useState(null);
 
   const handleAction = useCallback((action, player) => {
     const steamId = player.steamId || player.steam_id;
+    const name = player.name || 'Unknown';
+
+    // Teleport requires a coordinate — switch to map picker instead of
+    // firing the command immediately (which lands the player at 0,0,0
+    // = ocean corner of the map).
+    if (action === 'player.teleport') {
+      setContextMenu(null);
+      requestPick?.('player.teleport', {
+        params: { steamId },
+        label: `teleport ${name}`,
+      });
+      return;
+    }
+
+    // Ban goes through the persistent ban store, not the live mod command,
+    // so the entry survives restarts and shows up in the Bans page.
+    if (action === 'player.ban') {
+      setContextMenu(null);
+      const reason = window.prompt(`Reason for banning ${name}?`, 'Banned by admin');
+      if (reason === null) return; // user cancelled
+      API.post('/api/bans', {
+        steamId,
+        playerName: name,
+        reason: reason || 'Banned by admin',
+      })
+        .then(() => window.addToast?.(`Banned ${name}`, 'success'))
+        .catch((err) => window.addToast?.(`Ban failed: ${err.message}`, 'error'));
+      return;
+    }
+
+    // Add to priority queue — quick-add as VIP, permanent. The user can
+    // edit role/expiry on the Priority Queue page if they want something
+    // more specific. The whole point of the right-click is speed.
+    if (action === 'player.priorityAdd') {
+      setContextMenu(null);
+      API.post('/api/priority-queue', {
+        steamId,
+        name,
+        role: 'VIP',
+        expiresAt: null,
+      })
+        .then(() => window.addToast?.(`Added ${name} to priority queue`, 'success'))
+        .catch((err) => window.addToast?.(`Priority add failed: ${err.message}`, 'error'));
+      return;
+    }
+
+    // Get Info → navigate to the player profile page. The page itself
+    // will fetch a fresh `player.getFull` snapshot on mount, which is
+    // also what persists the snapshot to the profile store.
+    if (action === 'player.getFull') {
+      setContextMenu(null);
+      if (navigate && serverId) {
+        navigate(`/servers/${serverId}/players/${steamId}`);
+      } else {
+        // Fallback for any embedding context that didn't pass navigator
+        sendCommand(action, { steamId });
+      }
+      return;
+    }
+
     sendCommand(action, { steamId });
     setContextMenu(null);
-  }, [sendCommand]);
+  }, [sendCommand, requestPick]);
 
   return (
     <div className="live-players-tab">
@@ -596,13 +721,19 @@ function PlayersTab({ players, searchQuery, setSearchQuery, selectedPlayer, setS
               { label: 'Heal', action: 'player.heal', icon: <Heart size={13} /> },
               { label: 'Kill', action: 'player.kill', icon: <Skull size={13} /> },
               { label: 'Kick', action: 'player.kick', icon: <Zap size={13} /> },
+              { label: 'Ban', action: 'player.ban', icon: <ShieldBan size={13} />, danger: true },
               { label: 'Freeze', action: 'player.freeze', icon: <Shield size={13} /> },
               { label: 'God Mode', action: 'player.setGodmode', icon: <Shield size={13} /> },
               { label: 'Teleport', action: 'player.teleport', icon: <Navigation size={13} /> },
+              { label: 'Add to Priority', action: 'player.priorityAdd', icon: <Crown size={13} /> },
               { label: 'Message', action: 'player.message', icon: <MessageSquare size={13} /> },
               { label: 'Get Info', action: 'player.getFull', icon: <Eye size={13} /> },
             ].map(item => (
-              <button key={item.action} className="live-context-item" onClick={() => handleAction(item.action, contextMenu.player)}>
+              <button
+                key={item.action}
+                className={`live-context-item ${item.danger ? 'live-context-danger' : ''}`}
+                onClick={() => handleAction(item.action, contextMenu.player)}
+              >
                 {item.icon} {item.label}
               </button>
             ))}
@@ -682,7 +813,7 @@ function formatEventText(evt) {
 
 // ─── Tab: Admin Tools ─────────────────────────────────────
 
-function AdminToolsTab({ sendCommand, commandResult }) {
+function AdminToolsTab({ sendCommand, commandResult, requestPick }) {
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [timeHour, setTimeHour] = useState(12);
   const [timeMinute, setTimeMinute] = useState(0);
@@ -706,10 +837,13 @@ function AdminToolsTab({ sendCommand, commandResult }) {
       ],
     },
     {
+      // Spawn actions all need a world coordinate. Instead of hardcoding
+      // a center-of-Chernarus value (useless on Livonia/Sakhal/Namalsk/etc),
+      // tag them with `pick: true` so the button enters click-to-place mode.
       category: 'Spawn',
       actions: [
-        { label: 'Heli Crash', icon: <Bomb size={16} />, action: 'spawn.heliCrash', params: { coords: { x: 7500, y: 0, z: 7500 } } },
-        { label: 'Gas Zone', icon: <Haze size={16} />, action: 'spawn.gasZone', params: { coords: { x: 7500, y: 0, z: 7500 } } },
+        { label: 'Heli Crash', icon: <Bomb size={16} />, action: 'spawn.heliCrash', pick: true },
+        { label: 'Gas Zone', icon: <Haze size={16} />, action: 'spawn.gasZone', pick: true },
       ],
     },
   ];
@@ -770,7 +904,20 @@ function AdminToolsTab({ sendCommand, commandResult }) {
               <button
                 key={act.action + act.label}
                 className="live-quick-action"
-                onClick={() => sendCommand(act.action, act.params)}
+                onClick={() => {
+                  // Spawn-style actions need a coord — switch to map-pick flow
+                  // instead of firing immediately with a hardcoded position.
+                  // The mod's spawn.* handlers parse `coords` as a string via
+                  // ToVector(), so we set coordsAsString on the picker.
+                  if (act.pick) {
+                    requestPick?.(act.action, {
+                      label: act.label,
+                      coordsAsString: true,
+                    });
+                  } else {
+                    sendCommand(act.action, act.params);
+                  }
+                }}
               >
                 {act.icon}
                 <span>{act.label}</span>

@@ -27,6 +27,15 @@ class CitadelWorldActions
         return true;
     }
 
+    // Weather Set(forecast, transitionTime, minDuration). Without a non-zero
+    // minDuration (lock window), DayZ's weather controller immediately
+    // overrides the value with whatever forecast it generated next — which
+    // is why "Sunny" used to flicker back to whatever the engine wanted.
+    // We also call SetWeatherUpdateFreeze(true) to be safe; it stops the
+    // controller from queuing fresh forecasts on top of ours.
+    static const float CIT_WEATHER_TRANSITION = 30.0;   // 30 sec ease-in
+    static const float CIT_WEATHER_LOCK = 3600.0;       // hold for 1 hour
+
     static bool SetWeather(string cmdJson, out string error)
     {
         string params = CitadelJson.ExtractParams(cmdJson);
@@ -38,41 +47,32 @@ class CitadelWorldActions
             return false;
         }
 
+        weather.SetWeatherUpdateFreeze(true);
+
         float overcast = CitadelJson.ExtractFloat(params, "overcast");
         float rain = CitadelJson.ExtractFloat(params, "rain");
         float fog = CitadelJson.ExtractFloat(params, "fog");
         float snow = CitadelJson.ExtractFloat(params, "snow");
         float wind = CitadelJson.ExtractFloat(params, "wind");
 
-        // GameLabs pattern: Set(value, value, value) — proven to work
-        if (params.IndexOf("\"overcast\"") >= 0)
+        if (params.IndexOf("\"overcast\"") >= 0 && weather.GetOvercast())
+            weather.GetOvercast().Set(overcast, CIT_WEATHER_TRANSITION, CIT_WEATHER_LOCK);
+
+        if (params.IndexOf("\"rain\"") >= 0 && weather.GetRain())
         {
-            if (weather.GetOvercast())
-                weather.GetOvercast().Set(overcast, overcast, overcast);
+            // Lower the rain threshold so rain actually starts at our overcast level
+            weather.SetRainThresholds(0.5, 1.0, 60);
+            weather.GetRain().Set(rain, CIT_WEATHER_TRANSITION, CIT_WEATHER_LOCK);
         }
 
-        if (params.IndexOf("\"rain\"") >= 0)
-        {
-            if (weather.GetRain())
-                weather.GetRain().Set(rain, rain, rain);
-        }
+        if (params.IndexOf("\"fog\"") >= 0 && weather.GetFog())
+            weather.GetFog().Set(fog, CIT_WEATHER_TRANSITION, CIT_WEATHER_LOCK);
 
-        if (params.IndexOf("\"fog\"") >= 0)
-        {
-            if (weather.GetFog())
-                weather.GetFog().Set(fog, fog, fog);
-        }
-
-        if (params.IndexOf("\"snow\"") >= 0)
-        {
-            if (weather.GetSnowfall())
-                weather.GetSnowfall().Set(snow, snow, snow);
-        }
+        if (params.IndexOf("\"snow\"") >= 0 && weather.GetSnowfall())
+            weather.GetSnowfall().Set(snow, CIT_WEATHER_TRANSITION, CIT_WEATHER_LOCK);
 
         if (params.IndexOf("\"wind\"") >= 0)
-        {
-            weather.SetWindSpeed(wind);
-        }
+            weather.SetWindMaximumSpeed(wind);
 
         Print("[Citadel] Weather updated");
         return true;
@@ -87,12 +87,14 @@ class CitadelWorldActions
             return false;
         }
 
-        // GameLabs pattern: Set(0.0, 0.0, 0.0) for clear sky
-        if (weather.GetOvercast()) weather.GetOvercast().Set(0.0, 0.0, 0.0);
-        if (weather.GetRain()) weather.GetRain().Set(0.0, 0.0, 0.0);
-        if (weather.GetFog()) weather.GetFog().Set(0.0, 0.0, 0.0);
-        if (weather.GetSnowfall()) weather.GetSnowfall().Set(0.0, 0.0, 0.0);
-        weather.SetWindSpeed(0);
+        // Freeze + lock for 1 hour so the engine's forecast loop doesn't
+        // immediately schedule rain/fog over our "clear" value.
+        weather.SetWeatherUpdateFreeze(true);
+
+        if (weather.GetOvercast()) weather.GetOvercast().Set(0.0, CIT_WEATHER_TRANSITION, CIT_WEATHER_LOCK);
+        if (weather.GetRain()) weather.GetRain().Set(0.0, CIT_WEATHER_TRANSITION, CIT_WEATHER_LOCK);
+        if (weather.GetFog()) weather.GetFog().Set(0.0, CIT_WEATHER_TRANSITION, CIT_WEATHER_LOCK);
+        if (weather.GetSnowfall()) weather.GetSnowfall().Set(0.0, CIT_WEATHER_TRANSITION, CIT_WEATHER_LOCK);
 
         Print("[Citadel] Weather cleared (sunny)");
         return true;
