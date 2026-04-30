@@ -6,6 +6,53 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.17.0 — 2026-04-30
+
+Live Dashboard usability + map tile proxy + a long list of @CitadelAdmin
+mod compile/runtime fixes. Repack the PBO and redeploy to get the
+mod-side improvements (FPS reading, working weather buttons).
+
+### Added
+- **Click-to-place picker** for spawn buttons (Heli Crash, Gas Zone) —
+  instead of failing with *"coords required"*, the app switches to
+  the map tab and you click anywhere to place.
+- **Click-to-place player teleport** — replaces the old behavior that
+  dropped players at `0,0,0` (the ocean corner of every map).
+- **Right-click → Ban** in the Live Dashboard players list. Reason
+  prompt, persists to the Bans page.
+- **Right-click → Add to Priority Queue** — quick-add as VIP/permanent.
+- **Player Profile → Live State tab** — health bars, position, gear,
+  mod stats. Snapshot persists across logout for forensics.
+- **Map tile proxy** at `/api/maps/tiles/*` with disk caching under
+  `<install>/data/map-tiles/`. New `DAYZ_TILE_VERSION` env var lets
+  admins update the version without rebuilding the desktop app.
+- **`GET /api/maps/version`** for the frontend to read tile version /
+  allowed styles.
+
+### Fixed
+- **Live Dashboard / Kill Feed / Chat Log crashed** with *"Something
+  went wrong"* due to a `serverMap` reference outside its scope.
+- **Map background was blank** because the hardcoded `TILE_VERSION =
+  '1.28'` 404'd; xam.nu currently serves `1.27`. Version is now
+  configurable via env var.
+- **Tightened CSP** — no external `xam.nu` hosts in `imgSrc` or
+  `connectSrc` now that tiles route through our backend.
+- **@CitadelAdmin mod — server FPS** showed 0 / 1998680 because of a
+  `/2` bug and a 60-sample warmup gate. Both fixed.
+- **@CitadelAdmin mod — Sunny/Rain/Fog/Storm** buttons did nothing
+  visible; missing `SetWeatherUpdateFreeze(true)` + zero-duration lock
+  meant the engine immediately overrode every change. Now uses a
+  30-second transition with a 1-hour lock.
+- **@CitadelAdmin mod — multiple compile errors** that prevented mod
+  load: undefined methods (`Warning`, `GetYear/GetMonth/...`, `FPrintF`,
+  invented `Weapon_Base` API, `GetMissionName`, `GetDate`,
+  `GetServerUptime`, `GetWorldSize`, `GetAmmoType`), wrong `IndexOf`
+  arity, `?:` ternary not supported, `int i` redeclaration in same
+  scope, *"Formula too complex"* string concatenations, missing
+  `.GetActual()` on weather curves, trailing comma in `string.Format`.
+
+---
+
 ## v2.16.0 — 2026-04-29
 
 This release introduces **Citadel Cloud**, an optional **+$10/month**
