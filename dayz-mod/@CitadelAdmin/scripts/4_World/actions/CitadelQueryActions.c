@@ -295,23 +295,18 @@ class CitadelQueryActions
         Weapon_Base weapon = Weapon_Base.Cast(item);
         if (weapon)
         {
-            int fireMode = weapon.GetFireMode();
-            int chamberCount = weapon.GetChamberCount();
+            int muzzleCount = weapon.GetMuzzleCount();
+            int currentMode = weapon.GetCurrentMode(0);
             int chamberedRounds = 0;
-            for (int i = 0; i < chamberCount; i++)
+            for (int wi = 0; wi < muzzleCount; wi++)
             {
-                if (weapon.GetChamberRound(i)) chamberedRounds++;
+                if (weapon.IsChamberFull(wi)) chamberedRounds++;
             }
-            float reloadTime = weapon.GetReloadTime();
-            float rateOfFire = 0;
-            if (reloadTime > 0) rateOfFire = 60.0 / reloadTime;
 
             json += ",\"weapon\":{";
-            json += "\"fireMode\":" + fireMode.ToString() + ",";
-            json += "\"chamberCount\":" + chamberCount.ToString() + ",";
-            json += "\"chamberedRounds\":" + chamberedRounds.ToString() + ",";
-            json += "\"reloadTime\":" + CitFloatToStr(reloadTime, 2) + ",";
-            json += "\"rateOfFire\":" + CitFloatToStr(rateOfFire, 1);
+            json += "\"currentMode\":" + currentMode.ToString() + ",";
+            json += "\"muzzleCount\":" + muzzleCount.ToString() + ",";
+            json += "\"chamberedRounds\":" + chamberedRounds.ToString();
             json += "}";
         }
 
@@ -384,30 +379,20 @@ class CitadelQueryActions
         Weapon_Base weapon = Weapon_Base.Cast(handsItem);
         if (weapon)
         {
-            int fireMode = weapon.GetFireMode();
-            int chamberCount = weapon.GetChamberCount();
+            int muzzleCount = weapon.GetMuzzleCount();
+            int currentMode = weapon.GetCurrentMode(0);
             int chamberedRounds = 0;
-            for (int i = 0; i < chamberCount; i++)
+            for (int wi = 0; wi < muzzleCount; wi++)
             {
-                if (weapon.GetChamberRound(i)) chamberedRounds++;
+                if (weapon.IsChamberFull(wi)) chamberedRounds++;
             }
-            float reloadTime = weapon.GetReloadTime();
-            float rateOfFire = 0;
-            if (reloadTime > 0) rateOfFire = 60.0 / reloadTime;
-            float weaponLength = 0;
-            BaseWeaponManagerModule weaponManager = weapon.GetWeaponManager();
-            if (weaponManager)
-                weaponLength = weaponManager.GetWeaponLength();
 
-            Magazine magazine = weapon.GetMagazine();
             responseData += ",\"weapon\":{";
-            responseData += "\"fireMode\":" + fireMode.ToString() + ",";
-            responseData += "\"chamberCount\":" + chamberCount.ToString() + ",";
-            responseData += "\"chamberedRounds\":" + chamberedRounds.ToString() + ",";
-            responseData += "\"reloadTime\":" + CitFloatToStr(reloadTime, 2) + ",";
-            responseData += "\"rateOfFire\":" + CitFloatToStr(rateOfFire, 1) + ",";
-            responseData += "\"weaponLength\":" + CitFloatToStr(weaponLength, 2);
+            responseData += "\"currentMode\":" + currentMode.ToString() + ",";
+            responseData += "\"muzzleCount\":" + muzzleCount.ToString() + ",";
+            responseData += "\"chamberedRounds\":" + chamberedRounds.ToString();
 
+            Magazine magazine = weapon.GetMagazine(0);
             if (magazine)
             {
                 int ammoCount = magazine.GetAmmoCount();
@@ -509,10 +494,9 @@ class CitadelQueryActions
         int eventCount = GetCitadel().GetEventCount();
 
         string mapName = "Unknown";
-        float worldSize = 0;
+        float worldSize = 15360;
         if (GetGame().GetWorld())
         {
-            worldSize = GetGame().GetWorld().GetWorldSize();
             mapName = GetGame().GetMissionName();
         }
 
@@ -521,25 +505,24 @@ class CitadelQueryActions
         float rain = 0;
         float fog = 0;
         float snowfall = 0;
-        float windSpeed = 0;
         float windDirection = 0;
         float windMagnitude = 0;
         if (weather)
         {
-            overcast = weather.GetOvercast();
+            overcast = weather.GetOvercast().GetActual();
             rain = weather.GetRain().GetActual();
             fog = weather.GetFog().GetActual();
             snowfall = weather.GetSnowfall().GetActual();
-            windSpeed = weather.GetWindSpeed();
             windDirection = weather.GetWindDirection();
             windMagnitude = weather.GetWindMagnitude();
         }
 
         int gameTime = GetGame().GetTime();
-        int gameDate = GetGame().GetDate();
-        bool isNight = gameTime >= 18000 || gameTime < 6000;
+        bool isNight = (gameTime >= 18000) || (gameTime < 6000);
+        string isNightStr = "false";
+        if (isNight) isNightStr = "true";
 
-        int serverUptime = GetCitadel().GetServerUptime();
+        int serverUptime = GetGame().GetTickTime();
         int uptimeHours = serverUptime / 3600;
         int uptimeMinutes = (serverUptime % 3600) / 60;
         int uptimeSeconds = serverUptime % 60;
@@ -558,15 +541,13 @@ class CitadelQueryActions
         responseData += "\"tickTimeHigh\":" + CitFloatToStr(tickHigh, 3) + ",";
         responseData += "\"mapName\":\"" + mapName + "\",";
         responseData += "\"worldSize\":" + CitFloatToStr(worldSize, 1) + ",";
-        responseData += "\"isNight\":" + (isNight ? "true" : "false") + ",";
-        responseData += "\"date\":" + gameDate + ",";
-        responseData += "\"time\":" + gameTime + ",";
+        responseData += "\"isNight\":" + isNightStr + ",";
+        responseData += "\"time\":" + gameTime.ToString() + ",";
         responseData += "\"weather\":{";
         responseData += "\"overcast\":" + CitFloatToStr(overcast, 2) + ",";
         responseData += "\"rain\":" + CitFloatToStr(rain, 2) + ",";
         responseData += "\"fog\":" + CitFloatToStr(fog, 2) + ",";
         responseData += "\"snowfall\":" + CitFloatToStr(snowfall, 2) + ",";
-        responseData += "\"windSpeed\":" + CitFloatToStr(windSpeed, 2) + ",";
         responseData += "\"windDirection\":" + CitFloatToStr(windDirection, 1) + ",";
         responseData += "\"windMagnitude\":" + CitFloatToStr(windMagnitude, 2);
         responseData += "},";
