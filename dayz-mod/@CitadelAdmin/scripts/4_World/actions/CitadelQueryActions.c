@@ -236,9 +236,9 @@ class CitadelQueryActions
         player.GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
 
         bool first = true;
-        for (int i = 0; i < items.Count(); i++)
+        for (int j = 0; j < items.Count(); j++)
         {
-            EntityAI item = items.Get(i);
+            EntityAI item = items.Get(j);
             if (!item || item == player) continue;
 
             if (!first) responseData += ",";
@@ -329,11 +329,11 @@ class CitadelQueryActions
                 {
                     json += ",\"attachments\":[";
                     bool first = true;
-                    for (int i = 0; i < attachments.Count(); i++)
+                    for (int ai = 0; ai < attachments.Count(); ai++)
                     {
                         if (!first) json += ",";
                         first = false;
-                        json += BuildItemDetailJson(attachments.Get(i), depth + 1);
+                        json += BuildItemDetailJson(attachments.Get(ai), depth + 1);
                     }
                     json += "]";
                 }
