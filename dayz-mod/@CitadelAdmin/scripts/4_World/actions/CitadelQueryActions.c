@@ -497,7 +497,9 @@ class CitadelQueryActions
         float worldSize = 15360;
         if (GetGame().GetWorld())
         {
-            mapName = GetGame().GetMissionName();
+            string worldName;
+            GetGame().GetWorldName(worldName);
+            mapName = worldName;
         }
 
         Weather weather = GetGame().GetWeather();
@@ -513,8 +515,8 @@ class CitadelQueryActions
             rain = weather.GetRain().GetActual();
             fog = weather.GetFog().GetActual();
             snowfall = weather.GetSnowfall().GetActual();
-            windDirection = weather.GetWindDirection();
-            windMagnitude = weather.GetWindMagnitude();
+            windDirection = weather.GetWindDirection().GetActual();
+            windMagnitude = weather.GetWindMagnitude().GetActual();
         }
 
         int gameTime = GetGame().GetTime();
