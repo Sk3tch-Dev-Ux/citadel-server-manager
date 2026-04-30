@@ -586,11 +586,12 @@ class CitadelCommandRunner
     protected void WriteResponse(string id, bool success, string data, string error)
     {
         // Sanitize id to prevent path traversal — only allow alphanumeric, hyphens, underscores
+        string ALLOWED = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
         string safeId = "";
         for (int ci = 0; ci < id.Length(); ci++)
         {
             string ch = id.Get(ci);
-            if ((ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z") || (ch >= "0" && ch <= "9") || ch == "-" || ch == "_")
+            if (ALLOWED.IndexOf(ch) >= 0)
                 safeId += ch;
         }
         if (safeId == "")
@@ -612,7 +613,11 @@ class CitadelCommandRunner
         string errStr = "null";
         if (error != "") errStr = "\"" + error + "\"";
 
-        string json = "{\"id\":\"" + id + "\",\"ok\":" + okStr + ",\"data\":" + data + ",\"error\":" + errStr + ",\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"}";
+        string json = "{\"id\":\"" + id + "\",";
+        json += "\"ok\":" + okStr + ",";
+        json += "\"data\":" + data + ",";
+        json += "\"error\":" + errStr + ",";
+        json += "\"timestamp\":\"" + CitadelLogger.GetISO8601Static() + "\"}";
 
         FPrintln(file, json);
         CloseFile(file);

@@ -144,7 +144,10 @@ class CitadelQueryActions
             if (itemBase && itemBase.HasQuantity())
                 qty = itemBase.GetQuantity();
 
-            responseData += "{\"className\":\"" + item.GetType() + "\",\"health\":" + CitFloatToStr(hp, 1) + ",\"maxHealth\":" + CitFloatToStr(maxHp, 1) + ",\"quantity\":" + qty.ToString() + "}";
+            responseData += "{\"className\":\"" + item.GetType() + "\",";
+            responseData += "\"health\":" + CitFloatToStr(hp, 1) + ",";
+            responseData += "\"maxHealth\":" + CitFloatToStr(maxHp, 1) + ",";
+            responseData += "\"quantity\":" + qty.ToString() + "}";
         }
         responseData += "],\"count\":" + items.Count().ToString() + "}";
         return true;
@@ -439,7 +442,10 @@ class CitadelQueryActions
             string aliveStr = "false";
             if (player.IsAlive()) aliveStr = "true";
 
-            responseData += "{\"steamId\":\"" + steamId + "\",\"name\":\"" + CitJsonEscape(name) + "\",\"position\":" + CitVectorToJson(pos) + ",\"alive\":" + aliveStr + "}";
+            responseData += "{\"steamId\":\"" + steamId + "\",";
+            responseData += "\"name\":\"" + CitJsonEscape(name) + "\",";
+            responseData += "\"position\":" + CitVectorToJson(pos) + ",";
+            responseData += "\"alive\":" + aliveStr + "}";
         }
         responseData += "],\"count\":" + activePlayers.Count().ToString() + "}";
         return true;
@@ -474,7 +480,15 @@ class CitadelQueryActions
             if (player.IsAlive()) aliveStr = "true";
             int sessionDuration = GetCitadel().GetPlayerSessionDuration(steamId);
 
-            responseData += "{\"steamId\":\"" + steamId + "\",\"name\":\"" + CitJsonEscape(name) + "\",\"position\":" + CitVectorToJson(pos) + ",\"direction\":" + direction.ToString() + ",\"health\":" + CitFloatToStr(health, 1) + ",\"blood\":" + CitFloatToStr(blood, 1) + ",\"shock\":" + CitFloatToStr(shock, 1) + ",\"alive\":" + aliveStr + ",\"sessionSeconds\":" + sessionDuration.ToString() + "}";
+            responseData += "{\"steamId\":\"" + steamId + "\",";
+            responseData += "\"name\":\"" + CitJsonEscape(name) + "\",";
+            responseData += "\"position\":" + CitVectorToJson(pos) + ",";
+            responseData += "\"direction\":" + direction.ToString() + ",";
+            responseData += "\"health\":" + CitFloatToStr(health, 1) + ",";
+            responseData += "\"blood\":" + CitFloatToStr(blood, 1) + ",";
+            responseData += "\"shock\":" + CitFloatToStr(shock, 1) + ",";
+            responseData += "\"alive\":" + aliveStr + ",";
+            responseData += "\"sessionSeconds\":" + sessionDuration.ToString() + "}";
         }
         responseData += "],\"count\":" + activePlayers.Count().ToString() + "}";
         return true;
@@ -601,7 +615,13 @@ class CitadelQueryActions
                 maxHp = vehEntity.GetMaxHealth("", "Health");
             }
 
-            responseData += "{\"id\":\"" + veh.GetID() + "\",\"className\":\"" + veh.GetClassName() + "\",\"type\":\"" + veh.GetVehicleType() + "\",\"position\":" + CitVectorToJson(vPos) + ",\"health\":" + CitFloatToStr(hp, 1) + ",\"maxHealth\":" + CitFloatToStr(maxHp, 1) + ",\"distance\":" + CitFloatToStr(dist, 1) + "}";
+            responseData += "{\"id\":\"" + veh.GetID() + "\",";
+            responseData += "\"className\":\"" + veh.GetClassName() + "\",";
+            responseData += "\"type\":\"" + veh.GetVehicleType() + "\",";
+            responseData += "\"position\":" + CitVectorToJson(vPos) + ",";
+            responseData += "\"health\":" + CitFloatToStr(hp, 1) + ",";
+            responseData += "\"maxHealth\":" + CitFloatToStr(maxHp, 1) + ",";
+            responseData += "\"distance\":" + CitFloatToStr(dist, 1) + "}";
             count++;
         }
         responseData += "],\"count\":" + count.ToString() + "}";
@@ -630,7 +650,12 @@ class CitadelQueryActions
             maxHp = vehEntity.GetMaxHealth("", "Health");
         }
 
-        responseData = "{\"id\":\"" + veh.GetID() + "\",\"className\":\"" + veh.GetClassName() + "\",\"type\":\"" + veh.GetVehicleType() + "\",\"position\":" + CitVectorToJson(pos) + ",\"health\":" + CitFloatToStr(hp, 1) + ",\"maxHealth\":" + CitFloatToStr(maxHp, 1) + "}";
+        responseData = "{\"id\":\"" + veh.GetID() + "\",";
+        responseData += "\"className\":\"" + veh.GetClassName() + "\",";
+        responseData += "\"type\":\"" + veh.GetVehicleType() + "\",";
+        responseData += "\"position\":" + CitVectorToJson(pos) + ",";
+        responseData += "\"health\":" + CitFloatToStr(hp, 1) + ",";
+        responseData += "\"maxHealth\":" + CitFloatToStr(maxHp, 1) + "}";
         return true;
     }
 
@@ -652,7 +677,11 @@ class CitadelQueryActions
                 float hp = entity.GetHealth("", "Health");
                 float maxHp = entity.GetMaxHealth("", "Health");
 
-                responseData = "{\"id\":\"" + objectId + "\",\"className\":\"" + entity.GetType() + "\",\"position\":" + CitVectorToJson(pos) + ",\"health\":" + CitFloatToStr(hp, 1) + ",\"maxHealth\":" + CitFloatToStr(maxHp, 1) + "}";
+                responseData = "{\"id\":\"" + objectId + "\",";
+                responseData += "\"className\":\"" + entity.GetType() + "\",";
+                responseData += "\"position\":" + CitVectorToJson(pos) + ",";
+                responseData += "\"health\":" + CitFloatToStr(hp, 1) + ",";
+                responseData += "\"maxHealth\":" + CitFloatToStr(maxHp, 1) + "}";
                 return true;
             }
         }
@@ -693,7 +722,11 @@ class CitadelQueryActions
             float hp = entity.GetHealth("", "Health");
             float maxHp = entity.GetMaxHealth("", "Health");
 
-            responseData += "{\"id\":\"" + CitGetNetworkIDString(entity) + "\",\"className\":\"" + entity.GetType() + "\",\"position\":" + CitVectorToJson(pos) + ",\"health\":" + CitFloatToStr(hp, 1) + ",\"maxHealth\":" + CitFloatToStr(maxHp, 1) + "}";
+            responseData += "{\"id\":\"" + CitGetNetworkIDString(entity) + "\",";
+            responseData += "\"className\":\"" + entity.GetType() + "\",";
+            responseData += "\"position\":" + CitVectorToJson(pos) + ",";
+            responseData += "\"health\":" + CitFloatToStr(hp, 1) + ",";
+            responseData += "\"maxHealth\":" + CitFloatToStr(maxHp, 1) + "}";
             count++;
             if (count >= 50) break;
         }
@@ -810,7 +843,10 @@ class CitadelQueryActions
             if (player.GetIdentity())
                 name = player.GetIdentity().GetName();
 
-            responseData += "{\"steamId\":\"" + pSteamId + "\",\"name\":\"" + CitJsonEscape(name) + "\",\"distance\":" + CitFloatToStr(dist, 1) + ",\"position\":" + CitVectorToJson(player.GetPosition()) + "}";
+            responseData += "{\"steamId\":\"" + pSteamId + "\",";
+            responseData += "\"name\":\"" + CitJsonEscape(name) + "\",";
+            responseData += "\"distance\":" + CitFloatToStr(dist, 1) + ",";
+            responseData += "\"position\":" + CitVectorToJson(player.GetPosition()) + "}";
             count++;
         }
         responseData += "],\"count\":" + count.ToString() + "}";
@@ -910,7 +946,11 @@ class CitadelQueryActions
             vector pos = entity.GetPosition();
             float dist = vector.Distance(center, pos);
 
-            responseData += "{\"id\":\"" + CitGetNetworkIDString(entity) + "\",\"className\":\"" + entity.GetType() + "\",\"type\":\"" + entityType + "\",\"position\":" + CitVectorToJson(pos) + ",\"distance\":" + CitFloatToStr(dist, 1) + "}";
+            responseData += "{\"id\":\"" + CitGetNetworkIDString(entity) + "\",";
+            responseData += "\"className\":\"" + entity.GetType() + "\",";
+            responseData += "\"type\":\"" + entityType + "\",";
+            responseData += "\"position\":" + CitVectorToJson(pos) + ",";
+            responseData += "\"distance\":" + CitFloatToStr(dist, 1) + "}";
             count++;
             if (count >= 100) break;
         }
