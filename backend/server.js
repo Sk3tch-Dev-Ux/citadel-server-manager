@@ -102,8 +102,11 @@ app.use(helmet({
       // cdnjs is allowed for socket.io and Font Awesome (Monaco is now bundled locally).
       scriptSrc: ["'self'", 'https://cdnjs.cloudflare.com'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
-      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.xam.nu', 'https://xam.nu', 'https://unpkg.com'],
-      connectSrc: ["'self'", 'ws:', 'wss:', 'https://*.xam.nu', 'https://xam.nu'],
+      // Map tiles are now proxied through /api/maps/tiles/* — browser never
+      // talks to xam.nu directly, so it doesn't need to be allowlisted here.
+      // unpkg stays for Leaflet's default marker assets.
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://unpkg.com'],
+      connectSrc: ["'self'", 'ws:', 'wss:'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
       // Monaco's workers are bundled as blob: URLs by Vite — still need this.
       workerSrc: ["'self'", 'blob:'],
@@ -135,6 +138,7 @@ app.get('/readyz', (req, res) => {
   res.status(ready ? 200 : 503).json({ ready });
 });
 require('./routes/health.routes')(app); // Comprehensive /api/health — no auth required
+require('./routes/maps.routes')(app);   // /api/maps/tiles/* tile proxy — no auth required
 
 app.use(express.static(WEB_DIST));
 
