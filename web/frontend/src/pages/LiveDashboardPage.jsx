@@ -310,6 +310,7 @@ export default function LiveDashboardPage({ serverId }) {
             selectedVehicle={selectedVehicle}
             setSelectedVehicle={setSelectedVehicle}
             sendCommand={sendCommand}
+            serverMap={serverMap}
           />
         )}
         {tab === 'players' && (
@@ -340,7 +341,7 @@ export default function LiveDashboardPage({ serverId }) {
 
 // ─── Tab: Live Map ────────────────────────────────────────
 
-function LiveMapTab({ markers, players, vehicles, onSelectPlayer, selectedVehicle, setSelectedVehicle, sendCommand }) {
+function LiveMapTab({ markers, players, vehicles, onSelectPlayer, selectedVehicle, setSelectedVehicle, sendCommand, serverMap }) {
   const [vehicleCtx, setVehicleCtx] = useState(null);
   const [teleportMode, setTeleportMode] = useState(null);
 
