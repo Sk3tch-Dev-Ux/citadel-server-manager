@@ -45,15 +45,7 @@ class CitadelEventLogger
         int h, mi, s, d, mo, y;
         GetHourMinuteSecondUTC(h, mi, s);
         GetYearMonthDayUTC(y, mo, d);
-        return string.Format(
-            "%1-%2-%3T%4:%5:%6Z",
-            y.ToStringLen(4),
-            mo.ToStringLen(2),
-            d.ToStringLen(2),
-            h.ToStringLen(2),
-            mi.ToStringLen(2),
-            s.ToStringLen(2),
-        );
+        return string.Format("%1-%2-%3T%4:%5:%6Z", y.ToStringLen(4), mo.ToStringLen(2), d.ToStringLen(2), h.ToStringLen(2), mi.ToStringLen(2), s.ToStringLen(2));
     }
 
     // ─── Buffer Management ──────────────────────────────

@@ -256,7 +256,8 @@ class CitadelQueryActions
 
         float hp = item.GetHealth("", "Health");
         float maxHp = item.GetMaxHealth("", "Health");
-        float healthPercent = maxHp > 0 ? (hp / maxHp) * 100.0 : 0;
+        float healthPercent = 0;
+        if (maxHp > 0) healthPercent = (hp / maxHp) * 100.0;
         string persistentId = CitGetNetworkIDString(item);
         string displayName = item.GetDisplayName();
 
@@ -364,7 +365,8 @@ class CitadelQueryActions
 
         float hp = handsItem.GetHealth("", "Health");
         float maxHp = handsItem.GetMaxHealth("", "Health");
-        float healthPercent = maxHp > 0 ? (hp / maxHp) * 100.0 : 0;
+        float healthPercent = 0;
+        if (maxHp > 0) healthPercent = (hp / maxHp) * 100.0;
         string displayName = handsItem.GetDisplayName();
         string persistentId = CitGetNetworkIDString(handsItem);
 
