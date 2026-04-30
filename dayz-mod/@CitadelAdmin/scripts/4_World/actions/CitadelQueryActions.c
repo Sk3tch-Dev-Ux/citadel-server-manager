@@ -285,7 +285,7 @@ class CitadelQueryActions
         {
             int ammoCount = magazine.GetAmmoCount();
             int ammoMax = magazine.GetAmmoMax();
-            string ammoType = magazine.GetAmmoType();
+            string ammoType = magazine.GetType();
             json += ",\"magazine\":{";
             json += "\"ammoCount\":" + ammoCount.ToString() + ",";
             json += "\"ammoMax\":" + ammoMax.ToString() + ",";
@@ -399,7 +399,7 @@ class CitadelQueryActions
             {
                 int ammoCount = magazine.GetAmmoCount();
                 int ammoMax = magazine.GetAmmoMax();
-                string ammoType = magazine.GetAmmoType();
+                string ammoType = magazine.GetType();
                 responseData += ",\"magazine\":{";
                 responseData += "\"ammoCount\":" + ammoCount.ToString() + ",";
                 responseData += "\"ammoMax\":" + ammoMax.ToString() + ",";
