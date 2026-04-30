@@ -1,0 +1,157 @@
+{
+  "username": "Citadel",
+  "avatar_url": "https://citadels.cc/citadel-logo.png",
+  "embeds": [
+    {
+      "color": 8147437,
+      "author": {
+        "name": "Citadel · All-In-One DayZ Server Tool",
+        "icon_url": "https://citadels.cc/citadel-logo.png",
+        "url": "https://citadels.cc"
+      },
+      "title": "Run your DayZ server like a pro.",
+      "description": "Citadel is a desktop control center built for people who actually run servers — not a SaaS panel that breaks every time the host has a bad day.\n\nIt runs **on your machine**, talks directly to your server, and ships with the tools you used to need five different apps for. Stop tab-juggling. Start managing.\n\nMade by an admin, for admins. Every feature in here exists because *we* needed it first.",
+      "thumbnail": {
+        "url": "https://citadels.cc/citadel-logo.png"
+      },
+      "fields": [
+        {
+          "name": "⚡  Real-Time",
+          "value": "Live map · player tools · kill feed · chat log",
+          "inline": true
+        },
+        {
+          "name": "🛠️  Full Editor Suite",
+          "value": "Types · Events · Globals · Spawn Points · Loot Visualizer",
+          "inline": true
+        },
+        {
+          "name": "🛡️  Built-In Protection",
+          "value": "Global Ban DB · CFTools import · audit log",
+          "inline": true
+        }
+      ],
+      "footer": {
+        "text": "1 of 5  ·  citadels.cc"
+      }
+    },
+    {
+      "color": 8147437,
+      "title": "⚡  Live Operations",
+      "description": "Everything happening on your server, in one place — and one click away from action. The kind of stuff that *should* have always been one click away.",
+      "fields": [
+        {
+          "name": "🗺️  Live Map",
+          "value": "Every player and vehicle, real time, on a proper satellite map. Click a marker to ban, kick, teleport, or pull a full inventory snapshot. Right-click a vehicle to teleport, refuel, repair, or destroy it.\n\n*Works on Chernarus, Livonia, Sakhal, Namalsk, Banov, Esseker, Pripyat, Rostow, Alteria, Deer Isle, and Takistan+.*",
+          "inline": false
+        },
+        {
+          "name": "👥  Player Tools — Right-Click Anything",
+          "value": "Heal · Kill · Kick · **Ban** · Freeze · God Mode · **Teleport** (click-to-place) · **Add to Priority Queue** · Get full profile. No more copy-pasting Steam IDs into seven different forms.",
+          "inline": false
+        },
+        {
+          "name": "📓  Persistent Player Profiles",
+          "value": "Survives wipes. Tracks sessions, IPs, aliases, kill/death history, chat history, admin notes — **and** the player's last-known gear, vitals, and position from the live mod.\n\nForensics-grade. \"What gear did this duper have last time?\" — answered in two clicks.",
+          "inline": false
+        },
+        {
+          "name": "💬  Kill Feed & Chat Log",
+          "value": "Live PvP feed with headshot rate, longest kill, and per-player leaderboards. Searchable chat history with channel filters and direct-to-profile links. Every chat line is one click away from the speaker's full file.",
+          "inline": false
+        }
+      ],
+      "footer": {
+        "text": "2 of 5"
+      }
+    },
+    {
+      "color": 8147437,
+      "title": "🛠️  Server Builders' Suite",
+      "description": "Edit anything. See everything. No more hand-rolling XML in Notepad and praying it doesn't crash on boot.",
+      "fields": [
+        {
+          "name": "🎒  Economy Editors",
+          "value": "**Types · Events · Globals · Spawnable Types · Spawn Points · Limits Definition · Economy Core**\n\nFull-depth editors with sane defaults, schema validation, and instant deploy. Bulk-edit by category. **Diff against vanilla** before you save so you always know what changed.",
+          "inline": false
+        },
+        {
+          "name": "🔍  Loot Visualizer",
+          "value": "See exactly where each item spawns, how often, and at what nominal/min counts — overlaid on the live map. Catch loot deserts and over-tuned categories *before* your players do.",
+          "inline": false
+        },
+        {
+          "name": "🧩  Mod Configs",
+          "value": "First-class editors for **DayZ Expansion** (Trader, Quests, Markers, Spawn Selection, Vehicles), **DabsFramework**, and a generic mod-config framework that auto-detects loaded mods. Add a mod, edit it the same day.",
+          "inline": false
+        },
+        {
+          "name": "📁  Files Browser & Live Console",
+          "value": "Built-in Monaco editor for any file in your server tree (syntax highlighting, undo history, autosave). Live RCON console with command history and tab-completion.",
+          "inline": false
+        }
+      ],
+      "footer": {
+        "text": "3 of 5"
+      }
+    },
+    {
+      "color": 8147437,
+      "title": "🛡️  Trust, Safety & Honest Pricing",
+      "description": "The features that big-tool vendors keep behind paywalls — built in. Plus a price that doesn't punish solo admins.",
+      "fields": [
+        {
+          "name": "🌐  Citadel Cloud — Global Ban DB",
+          "value": "Every Citadel Cloud customer contributes their bans to a shared pool. Your server is automatically protected against everyone else's known cheaters — surgical merges that **never stomp** your local bans.\n\nThree-vouch threshold · public appeals · transparent moderation queue. **No more bad-actor cross-server hops.**",
+          "inline": false
+        },
+        {
+          "name": "📥  CFTools Migration",
+          "value": "One-click import of your existing CFTools banlist — paged, deduped, filtered to Steam64 IDs. Bring your history with you when you switch.",
+          "inline": false
+        },
+        {
+          "name": "💸  Pricing",
+          "value": "**Citadel** — $14.99/mo · $149.99/yr (save 17%)\n**+ Citadel Cloud** — $10/mo (Global Ban DB · off-site backups · more)\n\n**No per-server tax. No \"enterprise\" tier.**\nOne license = unlimited servers from one desktop.",
+          "inline": false
+        }
+      ],
+      "footer": {
+        "text": "4 of 5"
+      }
+    },
+    {
+      "color": 8147437,
+      "title": "🤝  Built With the Community",
+      "description": "Citadel is shipped fast and listened-to harder. Every roadmap item has a name behind it — usually an admin who hit the same wall you're hitting now.",
+      "fields": [
+        {
+          "name": "💬  Join the Discord",
+          "value": "Feature requests, bug reports, server-admin shop talk, and direct line to the dev. **[discord.gg/citadel →](https://discord.gg/citadel)**",
+          "inline": true
+        },
+        {
+          "name": "🌐  Website & Docs",
+          "value": "Download, sign up, read the docs. **[citadels.cc →](https://citadels.cc)**\nFree 7-day trial on Citadel Cloud.",
+          "inline": true
+        },
+        {
+          "name": "🚀  What's New",
+          "value": "**v2.17.0** — Live Dashboard click-to-place actions · right-click Ban / Priority · player snapshot profiles · in-house map tile cache · weather + FPS mod fixes. Auto-update is rolling out now.",
+          "inline": false
+        },
+        {
+          "name": "⭐  Why Citadel?",
+          "value": "Because no one should have to maintain a real DayZ community out of seven browser tabs and a Notepad++ window. Try it once — you won't go back.",
+          "inline": false
+        }
+      ],
+      "image": {
+        "url": "https://citadels.cc/og-banner.png"
+      },
+      "footer": {
+        "text": "5 of 5  ·  citadels.cc  ·  discord.gg/citadel"
+      }
+    }
+  ]
+}
