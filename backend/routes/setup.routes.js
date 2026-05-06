@@ -20,18 +20,84 @@ const { encryptForEnv } = require('../lib/credential-encryption');
 const { checkPasswordPolicy } = require('../lib/helpers');
 
 /**
+ * Permanent first-run marker. Once written, setup is locked forever — even
+ * if the user manually deletes data/setup_complete.json. This closes the
+ * audit C5 takeover where deleting setup_complete.json re-armed the wizard
+ * and let an unauthenticated caller rename + re-password the root admin.
+ *
+ * The marker is intentionally a separate file from setup_complete.json so
+ * that file can be regenerated for non-security reasons (version bumps,
+ * wizard re-run for guided UX) without re-arming the security-relevant
+ * "create root admin without auth" path.
+ */
+const FIRST_RUN_MARKER = '.first-run-completed';
+
+function firstRunMarkerPath() {
+  return path.join(ctx.CONFIG.dataDir, FIRST_RUN_MARKER);
+}
+
+function writeFirstRunMarker() {
+  try {
+    // 0o600 — owner-readable only. mkdir is idempotent.
+    fs.mkdirSync(ctx.CONFIG.dataDir, { recursive: true });
+    fs.writeFileSync(
+      firstRunMarkerPath(),
+      JSON.stringify({ completedAt: new Date().toISOString() }) + '\n',
+      { mode: 0o600 }
+    );
+  } catch (err) {
+    // If we can't persist this, refuse to claim setup is locked — the user
+    // would be stuck unable to log in. Bubble up so the caller decides.
+    throw new Error(`Failed to persist first-run marker: ${err.message}`);
+  }
+}
+
+function firstRunMarkerExists() {
+  try {
+    return fs.existsSync(firstRunMarkerPath());
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Determine setup state:
- * - 'needs_setup': No users exist, or only default admin with default password
- * - 'complete': Setup has been completed
+ * - 'needs_setup': No users exist (cold start)
+ * - 'needs_setup': Only the bare default admin AND no first-run marker
+ *                  AND no other state has been configured (servers, etc.)
+ * - 'complete':    Anything else, including any time the first-run marker
+ *                  has been written.
+ *
+ * The first-run marker is the authoritative latch. The other checks are
+ * defense-in-depth so even a missing marker on a populated install does
+ * not re-open the wizard.
  */
 function getSetupState() {
+  // Authoritative latch — once set, never unset by any code path.
+  if (firstRunMarkerExists()) return 'complete';
+
   if (ctx.users.length === 0) return 'needs_setup';
 
-  // Check if the only user is the default admin with default password "admin"
+  // Belt-and-suspenders: any non-default state means setup ran in the past.
+  // Reading these signals avoids resurrection of the wizard on installs
+  // where the marker file went missing (manual cleanup, partial restore).
+  const hasNonDefaultUser = ctx.users.some(u => !u.isRoot)
+    || ctx.users.some(u => u.isRoot && u.username !== 'admin');
+  const hasServers = Array.isArray(ctx.servers) && ctx.servers.length > 0;
+
+  if (hasNonDefaultUser || hasServers) {
+    // We're clearly past first run; lazily write the marker so we never
+    // re-evaluate this branch again. If write fails we still report
+    // 'complete' — refusing to lock would be a bigger security issue.
+    try { writeFirstRunMarker(); } catch (err) {
+      logger.warn({ err: err.message }, 'Setup: failed to lazily write first-run marker');
+    }
+    return 'complete';
+  }
+
+  // Truly first-run: no marker, single bare default admin, no servers.
   if (ctx.users.length === 1 && ctx.users[0].username === 'admin' && ctx.users[0].isRoot) {
-    // Check the setup flag in data dir
-    const setupFlagPath = path.join(ctx.CONFIG.dataDir, 'setup_complete.json');
-    if (!fs.existsSync(setupFlagPath)) return 'needs_setup';
+    return 'needs_setup';
   }
 
   return 'complete';
@@ -95,6 +161,24 @@ module.exports = function(app) {
       }
 
       saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users.map(u => ({ ...u })));
+
+      // CRITICAL — write the first-run marker *now*, before issuing the
+      // auth token. This locks the setup wizard against re-arm even if the
+      // process crashes between admin creation and the wizard's final
+      // /api/setup/complete call. Audit C5: the previous implementation only
+      // wrote a separate setup_complete.json at the very end; if a user (or
+      // a partial restore from backup) ever removed that file, an
+      // unauthenticated caller could re-run /api/setup/admin and overwrite
+      // the existing root user's username + password.
+      try {
+        writeFirstRunMarker();
+      } catch (err) {
+        // We've already mutated users.json. Refusing to issue the token
+        // here would leave a half-finished state. Log loudly and continue;
+        // getSetupState() will lazily write the marker on the next request
+        // because users now contains a non-default account.
+        logger.warn({ err: err.message }, 'Setup: failed to write first-run marker on admin creation');
+      }
 
       // Generate auth token so the wizard can continue authenticated
       const user = ctx.users.find(u => u.isRoot);
@@ -368,6 +452,12 @@ module.exports = function(app) {
         completedAt: new Date().toISOString(),
         version: '2.0.0',
       });
+
+      // Belt-and-suspenders: ensure the security-relevant first-run marker
+      // exists on disk, in case admin creation failed to write it (audit C5).
+      try { writeFirstRunMarker(); } catch (err) {
+        logger.warn({ err: err.message }, 'Setup: failed to write first-run marker on /complete');
+      }
 
       logger.info('Setup: Wizard completed');
       res.json({ success: true });
