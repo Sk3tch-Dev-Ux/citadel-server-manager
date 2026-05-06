@@ -116,8 +116,26 @@ function verifyCsrfToken(req, res, next) {
     return next();
   }
 
-  // Skip CSRF for unauthenticated routes (no session/token yet)
-  const exemptPaths = ['/api/auth/login', '/api/setup/', '/api/health', '/api/store/webhook'];
+  // Skip CSRF for routes that authenticate by other means and have no
+  // session cookie to anchor a double-submit token to:
+  //
+  //   /api/auth/login       — login itself; user has no token yet.
+  //   /api/setup/           — first-run wizard; same reason.
+  //   /api/health           — liveness/readiness probes from monitoring.
+  //   /api/store/webhook    — Stripe-style webhook signed in its own way.
+  //   /api/discord/         — Discord-bot endpoint authenticated by a static
+  //                           API key (timing-safe-compared in the route).
+  //                           The bot is server-side and has no cookie jar,
+  //                           so a CSRF nonce can't reach it. CSRF is meant
+  //                           to defeat browser-driven cross-origin posts;
+  //                           it's not the right defense here.
+  const exemptPaths = [
+    '/api/auth/login',
+    '/api/setup/',
+    '/api/health',
+    '/api/store/webhook',
+    '/api/discord/',
+  ];
   if (exemptPaths.some(p => req.originalUrl.startsWith(p))) {
     return next();
   }
