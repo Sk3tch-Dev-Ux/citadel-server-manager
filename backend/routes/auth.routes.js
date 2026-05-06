@@ -13,6 +13,21 @@ const { fail2ban, recordLoginFailure, recordLoginSuccess } = require('../middlew
 const MAX_ATTEMPTS = 5;
 const LOCK_TIME = 10 * 60 * 1000; // 10 minutes
 
+// Pre-computed real bcrypt hash, used as a constant-time stand-in when the
+// looked-up username doesn't exist. Generated once at module load so the
+// hash is well-formed (the previous string-literal "$2a$10$abc...0" was 49
+// chars after the prefix instead of the required 53, so bcrypt.compare
+// rejected it instantly without doing any work — defeating the timing
+// mitigation that the dummy is supposed to provide).
+//
+// The plaintext is random + namespaced so it can never collide with a real
+// user password. We don't care what it is — only that compare runs the full
+// algorithm at the same cost as a real user lookup.
+const DUMMY_HASH = bcrypt.hashSync(
+  'citadel-dummy-' + require('crypto').randomBytes(16).toString('hex'),
+  10
+);
+
 // Persist lockout state to disk so it survives restarts.
 // Structure: { [username]: { count, last, lockedUntil } }
 let loginAttempts = loadJSON(ctx.CONFIG.dataDir, 'lockouts.json', {});
@@ -51,9 +66,9 @@ module.exports = function(app) {
     const user = ctx.users.find(u => u.username === username);
 
     // Constant-time path: always run bcrypt even for non-existent users
-    // to prevent timing-based user enumeration
-    const dummyHash = '$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ0';
-    const hashToCompare = user ? user.passwordHash : dummyHash;
+    // to prevent timing-based user enumeration. DUMMY_HASH is a real bcrypt
+    // hash precomputed at module load — see top of file for rationale.
+    const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
 
     // Brute-force lockout
     const key = (username || '').toLowerCase();
