@@ -50,10 +50,23 @@ function safePath(basePath, userPath) {
   // we can't validate it locally — just return the joined path without
   // filesystem checks (the path exists on the remote Windows server, not here)
   if (isWinAbsolute && !hostIsWindows) {
-    // Still block path traversal via .. segments
+    // Still block path traversal via .. segments.
+    //
+    // Windows is case-insensitive on filesystem operations, so do the
+    // containment check on lower-cased paths. Without this, a basePath of
+    // "C:\DayZServer" and a userPath of "../dayzserver/foo" would resolve
+    // to "C:/dayzserver/foo" and fail a case-sensitive startsWith.
     const joined = path.posix.join(normalizedBase, normalizedUser);
     const resolved = path.posix.normalize(joined);
-    if (!resolved.startsWith(normalizedBase)) return null;
+    const baseLower = normalizedBase.toLowerCase();
+    const resolvedLower = resolved.toLowerCase();
+
+    // Critical: append '/' to baseLower so "C:/DayZServerEvil" does NOT
+    // pass startsWith("C:/DayZServer"). Allow exact-equal as a special case
+    // since a user can legitimately request the base directory itself.
+    if (resolvedLower !== baseLower && !resolvedLower.startsWith(baseLower + '/')) {
+      return null;
+    }
     // Convert back to Windows separators for the remote
     return resolved.replace(/\//g, '\\');
   }

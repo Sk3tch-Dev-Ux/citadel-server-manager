@@ -173,6 +173,42 @@ describe('Utility: safePath', () => {
     expect(result).not.toBeNull();
     expect(result.endsWith('file.txt')).toBe(true);
   });
+
+  // Regression for audit C2: prefix-only-collision in the cross-platform
+  // (Windows-base on non-Windows host) branch. Prior to the fix,
+  // safePath('C:/DayZServer', '../DayZServerEvil/x') normalized to
+  // 'C:/DayZServerEvil/x', which startsWith('C:/DayZServer') passed,
+  // and the function returned a path outside the intended base.
+  it('should reject sibling-prefix paths in Windows cross-platform branch', () => {
+    if (process.platform === 'win32') {
+      // Native branch uses realpathSync — different code path. Skip.
+      expect(true).toBe(true);
+      return;
+    }
+    expect(safePath('C:\\DayZServer', '..\\DayZServerEvil\\foo')).toBeNull();
+    expect(safePath('C:\\DayZServer', '../DayZServerEvil/foo')).toBeNull();
+    expect(safePath('C:\\DayZ', '..\\DayZBackup')).toBeNull();
+  });
+
+  it('should accept the base directory itself in cross-platform branch', () => {
+    if (process.platform === 'win32') {
+      expect(true).toBe(true);
+      return;
+    }
+    // Empty userPath should return the base, not null.
+    const r = safePath('C:\\DayZServer', '');
+    expect(r).not.toBeNull();
+  });
+
+  it('should accept legitimate sub-paths in cross-platform branch', () => {
+    if (process.platform === 'win32') {
+      expect(true).toBe(true);
+      return;
+    }
+    const r = safePath('C:\\DayZServer', 'mpmissions\\dayzOffline.chernarusplus');
+    expect(r).not.toBeNull();
+    expect(r).toMatch(/dayzOffline\.chernarusplus$/);
+  });
 });
 
 // ─── API integration tests ─────────────────────────────────────
