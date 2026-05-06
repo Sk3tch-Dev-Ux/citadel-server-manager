@@ -17,7 +17,29 @@
 const crypto = require('crypto');
 const logger = require('../lib/logger');
 
-const CSRF_SECRET = process.env.JWT_SECRET || 'fallback-csrf-secret';
+/**
+ * Resolve the CSRF signing secret at call time, NOT at module load.
+ *
+ * Why late-bound: this module is required from server.js immediately after
+ * dotenv config, but config.js is responsible for auto-generating + persisting
+ * JWT_SECRET on first run. Reading process.env at module load risked capturing
+ * an empty value if module-load order ever changed; the previous code papered
+ * over that with a hard-coded fallback ('fallback-csrf-secret') which would
+ * have silently turned every CSRF token into a forgeable known constant.
+ *
+ * Now we throw loudly instead. If you see this thrown, something is wrong
+ * with config bootstrap order — fix the bootstrap, do NOT add a fallback.
+ */
+function getCsrfSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'CSRF: JWT_SECRET is not set. Refusing to sign tokens with a default value. ' +
+      'config.js auto-generates one on first boot — make sure it loads before csrf.js.'
+    );
+  }
+  return secret;
+}
 
 /**
  * Generate a random CSRF nonce (32 bytes = 64 hex chars).
@@ -30,7 +52,7 @@ function generateNonce() {
  * Sign a nonce with HMAC-SHA256 to produce the cookie value.
  */
 function signNonce(nonce) {
-  return crypto.createHmac('sha256', CSRF_SECRET).update(nonce).digest('hex');
+  return crypto.createHmac('sha256', getCsrfSecret()).update(nonce).digest('hex');
 }
 
 /**
