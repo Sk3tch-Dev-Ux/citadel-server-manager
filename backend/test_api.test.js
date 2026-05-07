@@ -433,12 +433,17 @@ describe('API: files.edit-scripts gate', () => {
 
 describe('API: Password Policy Enforcement', () => {
   const testAdminId = 'test-admin-for-jest';
-  let csrfToken = '';
+  // Use request.agent so supertest captures the SIGNED csrf-token cookie
+  // from the first GET. The hand-built 'csrf-token=<nonce>' approach is
+  // wrong (cookie should hold the signed token, not the nonce); see the
+  // comment in the H8 test block above for the full reasoning.
+  let agent;
+  let csrfNonce = '';
 
   beforeAll(async () => {
-    // Get CSRF token from a GET request
-    const res = await request(app).get('/api/servers');
-    csrfToken = res.get('X-CSRF-Token');
+    agent = request.agent(app);
+    const res = await agent.get('/api/servers');
+    csrfNonce = res.get('X-CSRF-Token');
 
     // Inject a test admin user into the runtime context so auth middleware passes
     const ctx = require('./lib/context');
@@ -461,11 +466,10 @@ describe('API: Password Policy Enforcement', () => {
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    const res = await request(app)
+    const res = await agent
       .post('/api/users')
       .set('Authorization', `Bearer ${token}`)
-      .set('Cookie', `csrf-token=${csrfToken}`)
-      .set('X-CSRF-Token', csrfToken)
+      .set('X-CSRF-Token', csrfNonce)
       .send({ username: 'testuser', password: 'short', role: 'viewer' });
     expect(res.status).toBe(400);
     // validateFields checks minLength first, then checkPasswordPolicy runs
