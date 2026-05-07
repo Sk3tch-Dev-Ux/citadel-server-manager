@@ -1357,6 +1357,25 @@ const TLS_CERT = process.env.SIDECAR_TLS_CERT || path.join(process.cwd(), 'data'
 const TLS_KEY = process.env.SIDECAR_TLS_KEY || path.join(process.cwd(), 'data', 'sidecar.key');
 const isProduction = process.env.NODE_ENV === 'production';
 
+// ─── Audit H9: refuse to start with no API key in production, and bind
+// loopback-only when no key is set in dev. The previous code accepted
+// every request through auth.js when config.apiKey was empty AND bound
+// to all interfaces (Express's default), so any LAN attacker who could
+// reach port 9100 had full god-mode admin against the live DayZ server.
+if (isProduction && !config.apiKey) {
+  logger.fatal({
+    hint: 'Set SIDECAR_API_KEY env var (32+ random chars). The Citadel ' +
+          'backend manages this automatically per server in servers.json.',
+  }, 'Sidecar refuses to start in production without an API key');
+  process.exit(1);
+}
+// In dev with no key, bind 127.0.0.1 only so an open laptop on a coffee-
+// shop wifi doesn't expose admin actions to peer devices. Production
+// (which now requires a key) is free to bind whatever the operator wants
+// (defaults to all interfaces so the Citadel backend on a different host
+// can reach it).
+const bindHost = config.apiKey ? undefined : '127.0.0.1';
+
 let server;
 if (isProduction && fs.existsSync(TLS_CERT) && fs.existsSync(TLS_KEY)) {
   const tlsOptions = {
@@ -1364,9 +1383,10 @@ if (isProduction && fs.existsSync(TLS_CERT) && fs.existsSync(TLS_KEY)) {
     key: fs.readFileSync(TLS_KEY),
   };
   server = https.createServer(tlsOptions, app);
-  server.listen(config.port, () => {
+  server.listen(config.port, bindHost, () => {
     logger.info({
       port: config.port,
+      bindHost: bindHost || 'all',
       tls: true,
       auth: config.apiKey ? 'enabled' : 'disabled (dev mode)',
     }, 'Citadel Sidecar API started (HTTPS)');
@@ -1379,11 +1399,12 @@ if (isProduction && fs.existsSync(TLS_CERT) && fs.existsSync(TLS_KEY)) {
       'Set SIDECAR_TLS_CERT and SIDECAR_TLS_KEY env vars or place sidecar.crt/sidecar.key in data/',
     );
   }
-  server = app.listen(config.port, () => {
+  server = app.listen(config.port, bindHost, () => {
     logger.info({
       port: config.port,
+      bindHost: bindHost || 'all',
       tls: false,
-      auth: config.apiKey ? 'enabled' : 'disabled (dev mode)',
+      auth: config.apiKey ? 'enabled' : 'disabled (dev mode, loopback-only)',
     }, 'Citadel Sidecar API started (HTTP)');
   });
 }
