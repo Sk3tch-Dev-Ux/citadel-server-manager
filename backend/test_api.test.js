@@ -483,3 +483,197 @@ describe('API: Backup Endpoint Auth', () => {
     expect(res.status).toBe(401);
   });
 });
+
+// ─── Audit L30 — smoke tests for the deep paths the audit found issues in.
+// Each describe block is independent; uses request.agent(app) for correct
+// CSRF cookie capture (see H8 block for rationale).
+
+// Audit C5 regression: once the first-run marker exists, every setup
+// endpoint must return 403 — even if data/setup_complete.json was deleted.
+// Without this lock, deleting setup_complete.json re-armed the wizard and
+// allowed an unauthenticated caller to overwrite the root admin's
+// username + password. See backend/routes/setup.routes.js getSetupState().
+describe('API: setup wizard lock (audit C5)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ctx = require('./lib/context');
+
+  // Ensure the marker exists for these tests. Boot path normally writes it
+  // when the admin is created or any non-default state is detected; we
+  // force it here so the wizard is locked regardless of test-app state.
+  let markerPath;
+  let createdMarker = false;
+
+  beforeAll(() => {
+    markerPath = path.join(ctx.CONFIG.dataDir, '.first-run-completed');
+    if (!fs.existsSync(markerPath)) {
+      fs.mkdirSync(ctx.CONFIG.dataDir, { recursive: true });
+      fs.writeFileSync(markerPath, JSON.stringify({ completedAt: new Date().toISOString() }) + '\n');
+      createdMarker = true;
+    }
+  });
+
+  afterAll(() => {
+    // Only remove the marker if we created it — don't clobber a real one.
+    if (createdMarker) {
+      try { fs.unlinkSync(markerPath); } catch { /* best effort */ }
+    }
+  });
+
+  it('should refuse /api/setup/admin once the first-run marker exists', async () => {
+    const agent = request.agent(app);
+    const ping = await agent.get('/api/servers');
+    const csrf = ping.get('X-CSRF-Token');
+
+    const res = await agent
+      .post('/api/setup/admin')
+      .set('X-CSRF-Token', csrf)
+      .send({ username: 'attacker', password: 'NewPassword!1' });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/setup.*completed/i);
+  });
+
+  it('should refuse /api/setup/network once the first-run marker exists', async () => {
+    const agent = request.agent(app);
+    const ping = await agent.get('/api/servers');
+    const csrf = ping.get('X-CSRF-Token');
+
+    const res = await agent
+      .post('/api/setup/network')
+      .set('X-CSRF-Token', csrf)
+      .send({ ip: '10.0.0.1' });
+    expect(res.status).toBe(403);
+  });
+
+  it('should report needsSetup=false on /api/setup/status when marker exists', async () => {
+    const res = await request(app).get('/api/setup/status');
+    expect(res.status).toBe(200);
+    expect(res.body.needsSetup).toBe(false);
+  });
+});
+
+// CSRF enforcement on /api/* state-changing requests. The double-submit
+// pattern requires both:
+//   - the SIGNED token in the csrf-token cookie, and
+//   - the matching nonce echoed back in the X-CSRF-Token header.
+// A request missing either should be rejected. The exempt list in
+// backend/middleware/csrf.js covers /api/auth/login, /api/setup/, /api/health,
+// /api/store/webhook, /api/discord/ — everything else must verify.
+describe('API: CSRF enforcement (audit C1+C4)', () => {
+  it('should reject POST /api/users without an X-CSRF-Token header', async () => {
+    const agent = request.agent(app);
+    // Capture the signed cookie so we know it's not the cookie that's missing.
+    await agent.get('/api/servers');
+    const res = await agent.post('/api/users').send({ username: 'x', password: 'y' });
+    // No header → 403 'CSRF token missing' from the middleware (precedes auth).
+    expect(res.status).toBe(403);
+  });
+
+  it('should reject POST /api/users with a wrong X-CSRF-Token nonce', async () => {
+    const agent = request.agent(app);
+    await agent.get('/api/servers');
+    const res = await agent
+      .post('/api/users')
+      .set('X-CSRF-Token', 'not-a-real-nonce-' + Date.now())
+      .send({ username: 'x', password: 'y' });
+    expect(res.status).toBe(403);
+  });
+
+  it('should accept the request once both cookie + matching nonce are present', async () => {
+    const agent = request.agent(app);
+    const ping = await agent.get('/api/servers');
+    const csrf = ping.get('X-CSRF-Token');
+
+    // No auth token → 401, but that's PAST CSRF (CSRF would have 403'd first).
+    // The point of this test is to prove the CSRF gate opens for valid pairs.
+    const res = await agent
+      .post('/api/users')
+      .set('X-CSRF-Token', csrf)
+      .send({ username: 'x', password: 'y' });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/token/i);
+  });
+});
+
+// Audit M13 regression: the 'can edit other users' check now reads the
+// role's permissions instead of comparing role.id literally to 'admin'.
+// A non-admin user with users.manage can edit themselves but not others.
+describe('API: users.routes permission gate (audit M13)', () => {
+  const ctx = require('./lib/context');
+  let agent;
+  let csrfNonce = '';
+  const userManagerId = 'l30-user-manager';
+  const targetUserId = 'l30-target';
+
+  beforeAll(async () => {
+    agent = request.agent(app);
+    const ping = await agent.get('/api/servers');
+    csrfNonce = ping.get('X-CSRF-Token');
+
+    ctx.roles.push({
+      id: 'l30-user-manager-role',
+      name: 'L30 User Manager (Self-Only)',
+      // Has users.manage but not '*' — middleware lets them in, but the
+      // canManageOthers helper inside users.routes.js should still block
+      // edits to other users.
+      permissions: ['users.manage', 'server.view'],
+    });
+    ctx.users.push(
+      { id: userManagerId, username: 'l30mgr', role: 'l30-user-manager-role', passwordHash: '$2a$10$fake' },
+      { id: targetUserId, username: 'l30target', role: 'viewer', passwordHash: '$2a$10$fake' },
+    );
+  });
+
+  afterAll(() => {
+    ctx.users = ctx.users.filter(u => u.id !== userManagerId && u.id !== targetUserId);
+    ctx.roles = ctx.roles.filter(r => r.id !== 'l30-user-manager-role');
+  });
+
+  it('should reject editing another user when the actor lacks wildcard permission', async () => {
+    const token = jwt.sign(
+      { id: userManagerId, username: 'l30mgr', role: 'l30-user-manager-role' },
+      process.env.JWT_SECRET, { expiresIn: '5m' }
+    );
+    const res = await agent
+      .patch(`/api/users/${targetUserId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ username: 'pwned' });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/your own/i);
+  });
+
+  it('should allow editing self even with non-wildcard role', async () => {
+    const token = jwt.sign(
+      { id: userManagerId, username: 'l30mgr', role: 'l30-user-manager-role' },
+      process.env.JWT_SECRET, { expiresIn: '5m' }
+    );
+    const res = await agent
+      .patch(`/api/users/${userManagerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ description: 'self-update test' });
+    expect(res.status).toBe(200);
+  });
+
+  it('should allow admin (wildcard) to edit any non-root user', async () => {
+    // Use a synthetic admin user that won't collide with the running app's
+    // real admin. Role 'admin' has '*' permissions in the default seed.
+    const adminId = 'l30-admin-edit-test';
+    ctx.users.push({ id: adminId, username: 'l30admin', role: 'admin', passwordHash: '$2a$10$fake' });
+    try {
+      const token = jwt.sign(
+        { id: adminId, username: 'l30admin', role: 'admin' },
+        process.env.JWT_SECRET, { expiresIn: '5m' }
+      );
+      const res = await agent
+        .patch(`/api/users/${targetUserId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-CSRF-Token', csrfNonce)
+        .send({ description: 'admin-edit test' });
+      expect(res.status).toBe(200);
+    } finally {
+      ctx.users = ctx.users.filter(u => u.id !== adminId);
+    }
+  });
+});
