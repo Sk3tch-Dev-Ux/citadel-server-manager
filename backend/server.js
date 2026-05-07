@@ -120,7 +120,12 @@ app.use(helmet({
 app.use(createCors(CONFIG.allowedOrigins));
 app.use(express.json({ limit: '10mb' }));
 app.use(secureCookies(useHttps));
-app.use(cookieParser()); // Parse cookies for CSRF middleware
+
+// cookieParser MUST run before csrfProtection — csrfProtection reads
+// req.cookies['csrf-token'] and the matching nonce. Without parsing first,
+// req.cookies is undefined and the optional-chaining inside csrf.js silently
+// papers over a missing cookie on the first request of every session.
+app.use(cookieParser());
 
 // CSRF Protection (double-submit cookie pattern for SPA)
 app.use(csrfProtection);                           // Generate + set CSRF token
