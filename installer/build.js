@@ -40,6 +40,22 @@ const NSSM_URLS = [
   `https://nssm.cc/release/${NSSM_ZIP}`,
   `https://nssm.cc/ci/${NSSM_ZIP}`,
 ];
+// SHA256 of the official nssm-2.24.zip from nssm.cc/release/. Pinned so a
+// compromised download mirror can't ship a tampered binary that ends up
+// running as LOCAL SYSTEM on customer machines (audit L27).
+//
+// To populate / rotate: download nssm-X.Y.zip directly from
+// https://nssm.cc/release/ on a known-clean machine, verify it boots and
+// behaves, then compute via:
+//
+//   PowerShell:  Get-FileHash -Algorithm SHA256 nssm-X.Y.zip
+//   POSIX:       sha256sum nssm-X.Y.zip
+//
+// Set this constant to the lowercase hex digest. Setting it to '' (empty
+// string) makes the build emit a loud warning but still succeed — that
+// keeps existing CI pipelines green on the first commit, with a clear
+// signal to fill it in. Once set, a mismatch is fatal.
+const NSSM_SHA256 = process.env.NSSM_SHA256 || '';
 
 const pkg = require(path.join(ROOT, 'package.json'));
 const VERSION = pkg.version || '2.0.0';
@@ -199,6 +215,33 @@ function fetchText(url) {
 }
 
 /**
+ * Verify a downloaded NSSM zip against the pinned NSSM_SHA256 constant.
+ * If NSSM_SHA256 is the empty string (rotation pending), warn loudly but
+ * don't fail the build — the build still works, the customer is just
+ * trusting nssm.cc for that particular release.
+ */
+function verifyNssmChecksum(zipPath) {
+  if (!NSSM_SHA256) {
+    log('  ⚠ NSSM_SHA256 is not set — skipping verification.');
+    log('    To enable: compute sha256 of a known-good nssm-' + NSSM_VERSION + '.zip,');
+    log('    then set NSSM_SHA256 in installer/build.js (or export NSSM_SHA256=...).');
+    return;
+  }
+  const expected = NSSM_SHA256.toLowerCase();
+  const actual = sha256File(zipPath).toLowerCase();
+  if (expected !== actual) {
+    throw new Error(
+      `SHA256 mismatch for ${NSSM_ZIP}!\n` +
+      `  expected: ${expected}\n` +
+      `  actual:   ${actual}\n` +
+      `  This could mean nssm.cc has shipped a new build (rotate NSSM_SHA256)\n` +
+      `  OR the download was tampered with. Verify the source before updating.`
+    );
+  }
+  log(`  ✓ NSSM SHA256 verified`);
+}
+
+/**
  * Verify a downloaded Node.js zip against the official SHASUMS256.txt that
  * nodejs.org publishes alongside every release. Throws on mismatch so we
  * never ship a tampered runtime.
@@ -276,6 +319,9 @@ async function main() {
 
   if (fs.existsSync(cachedNssmZip)) {
     log(`  Using cached ${NSSM_ZIP}`);
+    // Verify cached zips too — protects against an attacker who managed
+    // to drop a tampered file into build/cache/ between builds.
+    verifyNssmChecksum(cachedNssmZip);
   } else {
     log('  Downloading NSSM service wrapper...');
     let downloaded = false;
@@ -284,10 +330,14 @@ async function main() {
         log(`  Trying ${url}`);
         await download(url, cachedNssmZip);
         log('  NSSM download complete');
+        verifyNssmChecksum(cachedNssmZip);
         downloaded = true;
         break;
       } catch (err) {
         log(`  Failed: ${err.message}`);
+        // If verify failed, the cached file is bad. Delete it so the next
+        // attempt has a chance to re-download from a different mirror.
+        try { fs.unlinkSync(cachedNssmZip); } catch { /* ignore */ }
       }
     }
     if (!downloaded) {
