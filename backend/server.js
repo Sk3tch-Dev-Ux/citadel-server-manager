@@ -87,6 +87,12 @@ ctx.auditLog = loadJSON(CONFIG.dataDir, 'audit.json', []);
 ctx.watchList = loadJSON(CONFIG.dataDir, 'watchlist.json', []);
 ctx.priorityQueue = loadJSON(CONFIG.dataDir, 'priority_queue.json', []);
 ctx.banDatabase = loadJSON(CONFIG.dataDir, 'bans.json', []);
+// Audit H6 Layer 3 — per-Discord-user → Citadel role mapping. When the
+// bot's HMAC-signed call comes in (Layer 2 verified the identity), this
+// map decides which role's permissions apply. Unmapped users fall back
+// to the built-in 'discord-bot' role (Layer 1's default). Shape:
+//   { '<discordUserId>': '<citadel-role-id>', ... }
+ctx.discordUserRoles = loadJSON(CONFIG.dataDir, 'discord-user-roles.json', {});
 
 // Load notifications from disk (persisted across restarts)
 const { loadNotifications } = require('./lib/notifications');
@@ -204,6 +210,7 @@ require('./routes/deploy.routes')(app);
 require('./routes/steam.routes')(app);
 require('./routes/workshop.routes')(app);
 require('./routes/discord.routes')(app);
+require('./routes/discord-user-roles.routes')(app);
 require('./routes/backup.routes')(app);
 require('./routes/dangerzone.routes')(app);
 require('./routes/pvp.routes')(app);

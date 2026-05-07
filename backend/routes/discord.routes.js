@@ -85,17 +85,44 @@ const ACTION_PERMISSIONS = Object.freeze({
   actionMessage: 'server.rcon',
 });
 
-/** Look up the discord-bot role's permission list. Falls open with '*' if
- *  the role is missing for any reason — matches the back-fill in server.js. */
-function discordBotRolePermissions() {
-  const role = ctx.roles.find(r => r.id === 'discord-bot');
-  return Array.isArray(role?.permissions) ? role.permissions : ['*'];
+/**
+ * Resolve which Citadel role applies to this Discord-bot call.
+ *
+ * Layer 3 (audit H6): if the call was HMAC-verified (Layer 2) AND the
+ * Discord user is mapped in ctx.discordUserRoles, we use that role's
+ * permissions for the gate. Otherwise we fall back to the built-in
+ * 'discord-bot' role (Layer 1 default). That covers four cases:
+ *
+ *   verified + mapped       → user-specific role applies
+ *   verified + unmapped     → built-in discord-bot role
+ *   unverified (legacy bot) → built-in discord-bot role (we DON'T trust
+ *                             a body-claimed userId for role resolution)
+ *   no discord-bot role     → fail open with '*' (back-fill safety net)
+ *
+ * Returns the resolved role object plus the role id used (for audit log).
+ */
+function resolveRoleForCall(verified) {
+  if (verified.ok) {
+    const mapped = ctx.discordUserRoles && ctx.discordUserRoles[verified.discordUserId];
+    if (mapped) {
+      const userRole = ctx.roles.find(r => r.id === mapped);
+      if (userRole) return { role: userRole, source: `mapped:${mapped}` };
+      // Mapped to a role that no longer exists — log + fall through. Don't
+      // fail closed (would be a footgun: deleting a role would silently
+      // lock out every Discord user mapped to it). Default discord-bot
+      // role is the safer landing.
+      logger.warn({ discordUserId: verified.discordUserId, mappedRoleId: mapped },
+        'Discord user mapped to a role that does not exist — falling back to discord-bot');
+    }
+  }
+  const defaultRole = ctx.roles.find(r => r.id === 'discord-bot');
+  if (defaultRole) return { role: defaultRole, source: 'default' };
+  return { role: { id: 'discord-bot-fallback', permissions: ['*'] }, source: 'fallback' };
 }
 
-function botRoleHasPermission(perm) {
-  const perms = discordBotRolePermissions();
-  if (perms.includes('*')) return true;
-  return perms.includes(perm);
+function roleHasPermission(role, perm) {
+  if (!role || !Array.isArray(role.permissions)) return false;
+  return role.permissions.includes('*') || role.permissions.includes(perm);
 }
 
 /**
@@ -174,25 +201,9 @@ module.exports = function(app) {
       return res.status(400).json({ error: `Invalid action: ${sanitizeString(String(action || ''))}` });
     }
 
-    // Audit H6 Layer 1 — enforce the discord-bot role's permission floor.
-    // Default role grants '*' so this is non-breaking; once an operator
-    // narrows the role (Settings → Users & Roles), denied actions return
-    // 403 here instead of being executed.
-    const requiredPerm = ACTION_PERMISSIONS[action];
-    if (requiredPerm && !botRoleHasPermission(requiredPerm)) {
-      // Best-effort audit so a denied action is visible to operators
-      // tracking why the bot stopped working after a role tightening.
-      try {
-        const { addAudit } = require('../lib/audit');
-        addAudit('bot', 'Discord Bot', 'discord.denied', `Action '${action}' denied by discord-bot role (needs ${requiredPerm})`);
-      } catch { /* best-effort */ }
-      return res.status(403).json({
-        error: `Action '${action}' is not allowed by the current 'discord-bot' role. ` +
-               `Grant '${requiredPerm}' to the role or restore '*' in Settings → Users & Roles.`,
-      });
-    }
-
-    // Audit H6 Layer 2 — verify the per-call HMAC. Three outcomes:
+    // Audit H6 Layer 2 — verify the per-call HMAC FIRST so we know the
+    // verified identity before resolving the role (Layer 3 maps Discord
+    // users to specific Citadel roles for finer-grained permissions).
     //   verified.ok                     → trust body's discordUserId
     //   !verified.ok && verified.reject → active forgery attempt, 403
     //   !verified.ok && !reject         → legacy bot (no headers), accept
@@ -209,10 +220,29 @@ module.exports = function(app) {
       });
     }
 
-    // Discord user attribution from bot. If the call was signature-verified,
-    // we trust the body's claimed identity. If it's a legacy unsigned call,
-    // we fall back to a generic label so an admin reading the audit log can
-    // tell at a glance which entries were verified.
+    // Audit H6 Layer 1 + Layer 3 — resolve the applicable Citadel role
+    // for this call (per-user mapping for verified calls, default
+    // discord-bot role otherwise) and gate the action against its
+    // permissions. Default role grants '*' so this is non-breaking
+    // until an operator narrows the role or adds a per-user mapping.
+    const { role: resolvedRole, source: roleSource } = resolveRoleForCall(verified);
+    const requiredPerm = ACTION_PERMISSIONS[action];
+    if (requiredPerm && !roleHasPermission(resolvedRole, requiredPerm)) {
+      try {
+        const { addAudit } = require('../lib/audit');
+        addAudit('bot', 'Discord Bot', 'discord.denied',
+          `Action '${action}' denied by role '${resolvedRole.id}' (${roleSource}, needs ${requiredPerm})`);
+      } catch { /* best-effort */ }
+      return res.status(403).json({
+        error: `Action '${action}' is not allowed by the resolved role '${resolvedRole.id}'. ` +
+               `Grant '${requiredPerm}' to the role or adjust the per-user mapping in Settings.`,
+      });
+    }
+
+    // Discord user attribution from bot. Verified calls trust the
+    // body's claimed identity (and flag attribution with the role
+    // source so audit log shows whether a per-user mapping applied).
+    // Unsigned legacy calls get a generic label.
     const discordUser = verified.ok
       ? (verified.discordUser || 'Discord Bot')
       : 'Discord Bot (unverified)';

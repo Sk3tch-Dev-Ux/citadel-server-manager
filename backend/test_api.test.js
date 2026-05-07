@@ -391,6 +391,200 @@ describe('API: Discord bot role gate', () => {
   });
 });
 
+// Audit H6 Layer 3 — per-Discord-user → Citadel role mapping. When the
+// HMAC-verified call's discordUserId appears in ctx.discordUserRoles,
+// the mapped role's permissions decide what actions are allowed (instead
+// of the default discord-bot role). Unmapped or unverified calls keep
+// the default, so the upgrade is non-breaking.
+describe('API: Discord per-user role mapping (audit H6 layer 3)', () => {
+  const ctx = require('./lib/context');
+  const crypto = require('crypto');
+  const apiKey = process.env.DISCORD_BOT_API_KEY || 'test-discord-key';
+
+  // Helper — sign a call exactly the way discord-bot/api.js does.
+  function makeSignedCall(action, discordUserId) {
+    const ts = Math.floor(Date.now() / 1000);
+    const payload = `${ts}.${action}.${discordUserId}`;
+    const sig = crypto.createHmac('sha256', apiKey).update(payload).digest('hex');
+    return { ts, sig };
+  }
+
+  beforeAll(() => {
+    process.env.DISCORD_BOT_API_KEY = apiKey;
+    // Custom narrow role so we can prove a per-user mapping promotes the
+    // user's permissions above what the default discord-bot role allows.
+    ctx.roles.push({
+      id: 'h6l3-restart-only',
+      name: 'H6L3 Restart-Only',
+      permissions: ['server.view', 'server.restart'],
+    });
+    if (!ctx.discordUserRoles) ctx.discordUserRoles = {};
+  });
+
+  afterAll(() => {
+    ctx.roles = ctx.roles.filter(r => r.id !== 'h6l3-restart-only');
+    delete ctx.discordUserRoles['111111111111111111'];
+    delete ctx.discordUserRoles['222222222222222222'];
+    // Restore default discord-bot role permissions in case a test mutated.
+    const defRole = ctx.roles.find(r => r.id === 'discord-bot');
+    if (defRole && !defRole.permissions.includes('*')) defRole.permissions = ['*'];
+  });
+
+  it('should resolve to per-user role on HMAC-verified call when mapped', async () => {
+    // Narrow the default role and add a mapping that grants more.
+    const defRole = ctx.roles.find(r => r.id === 'discord-bot');
+    const originalDefault = [...defRole.permissions];
+    defRole.permissions = ['server.view'];                     // default = read-only
+    ctx.discordUserRoles['111111111111111111'] = 'h6l3-restart-only'; // user gets restart
+
+    try {
+      const action = 'restart';
+      const userId = '111111111111111111';
+      const { ts, sig } = makeSignedCall(action, userId);
+      const res = await request(app)
+        .post('/api/discord/action')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .set('X-Discord-Ts', String(ts))
+        .set('X-Discord-Sig', sig)
+        .send({ action, params: { discordUserId: userId } });
+      // We expect either 200 (no servers configured -> 400 "No server")
+      // or some operational error from the lifecycle code, but NOT 403.
+      // The role gate must NOT reject because the mapped role allows it.
+      expect(res.status).not.toBe(403);
+    } finally {
+      defRole.permissions = originalDefault;
+    }
+  });
+
+  it('should fall back to default role for unmapped Discord users', async () => {
+    const defRole = ctx.roles.find(r => r.id === 'discord-bot');
+    const originalDefault = [...defRole.permissions];
+    defRole.permissions = ['server.view'];        // default does NOT allow restart
+    // No mapping for user 222... — must use default and get denied.
+
+    try {
+      const action = 'restart';
+      const userId = '222222222222222222';
+      const { ts, sig } = makeSignedCall(action, userId);
+      const res = await request(app)
+        .post('/api/discord/action')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .set('X-Discord-Ts', String(ts))
+        .set('X-Discord-Sig', sig)
+        .send({ action, params: { discordUserId: userId } });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toMatch(/discord-bot/);
+    } finally {
+      defRole.permissions = originalDefault;
+    }
+  });
+
+  it('should NOT use per-user mapping for unsigned legacy calls (identity is not trusted)', async () => {
+    // If a legacy bot call could pick its mapping by setting
+    // discordUserId in the body, the whole point of HMAC verification
+    // (Layer 2) collapses. Verify the mapping is only applied when
+    // verified.ok is true.
+    const defRole = ctx.roles.find(r => r.id === 'discord-bot');
+    const originalDefault = [...defRole.permissions];
+    defRole.permissions = ['server.view'];
+    ctx.discordUserRoles['111111111111111111'] = 'h6l3-restart-only';
+
+    try {
+      // Legacy unsigned call claiming to be the privileged user.
+      const res = await request(app)
+        .post('/api/discord/action')
+        .set('Authorization', `Bearer ${apiKey}`)
+        .send({ action: 'restart', params: { discordUserId: '111111111111111111' } });
+      // Must be denied: the claimed userId is unverified, so the per-user
+      // mapping is ignored and the narrow default-role permissions apply.
+      expect(res.status).toBe(403);
+    } finally {
+      defRole.permissions = originalDefault;
+    }
+  });
+});
+
+describe('API: Discord user-role mapping CRUD', () => {
+  const ctx = require('./lib/context');
+  let agent;
+  let csrfNonce = '';
+  let adminToken = '';
+  const adminId = 'h6l3-crud-admin';
+
+  beforeAll(async () => {
+    agent = request.agent(app);
+    const ping = await agent.get('/api/servers');
+    csrfNonce = ping.get('X-CSRF-Token');
+
+    ctx.users.push({ id: adminId, username: 'h6l3admin', role: 'admin', passwordHash: '$2a$10$fake' });
+    adminToken = jwt.sign({ id: adminId, username: 'h6l3admin', role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '5m' });
+
+    if (!ctx.discordUserRoles) ctx.discordUserRoles = {};
+  });
+
+  afterAll(() => {
+    ctx.users = ctx.users.filter(u => u.id !== adminId);
+    delete ctx.discordUserRoles['333333333333333333'];
+  });
+
+  it('should reject mapping requests without admin auth', async () => {
+    const res = await agent
+      .put('/api/discord/user-roles/333333333333333333')
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ roleId: 'admin' });
+    expect(res.status).toBe(401);
+  });
+
+  it('should reject malformed Discord snowflake in URL', async () => {
+    const res = await agent
+      .put('/api/discord/user-roles/not-a-snowflake')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ roleId: 'admin' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/snowflake/);
+  });
+
+  it('should reject mapping to a non-existent role', async () => {
+    const res = await agent
+      .put('/api/discord/user-roles/333333333333333333')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ roleId: 'role-that-does-not-exist' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Unknown role/);
+  });
+
+  it('should create a mapping then list it then delete it', async () => {
+    const userId = '333333333333333333';
+
+    const create = await agent
+      .put(`/api/discord/user-roles/${userId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ roleId: 'admin' });
+    expect(create.status).toBe(200);
+    expect(create.body.discordUserId).toBe(userId);
+    expect(create.body.roleId).toBe('admin');
+
+    const list = await agent
+      .get('/api/discord/user-roles')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(list.status).toBe(200);
+    const found = list.body.mappings.find(m => m.discordUserId === userId);
+    expect(found).toBeDefined();
+    expect(found.roleId).toBe('admin');
+    expect(found.orphaned).toBe(false);
+
+    const del = await agent
+      .delete(`/api/discord/user-roles/${userId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-CSRF-Token', csrfNonce);
+    expect(del.status).toBe(200);
+    expect(del.body.deleted).toBe(true);
+  });
+});
+
 // Audit H8: writing a script file (.bat/.cmd/.ps1/.sh) requires the new
 // 'files.edit-scripts' permission AND the destination must be inside the
 // server's lifecycle_hooks/ directory. Plain 'files.edit' is no longer
