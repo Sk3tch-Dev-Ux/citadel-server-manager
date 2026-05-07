@@ -1571,11 +1571,22 @@ class CommandRelay
             Log("ERROR: No REST context");
             return;
         }
-        
+
+        // Audit H10. The api_key still rides in the URL query string for
+        // GET polls because DayZ's RestApi.SetHeader only accepts a single
+        // Content-Type argument across engine versions we support — there
+        // is no portable custom-header API for arbitrary
+        // 'Authorization: Bearer ...'. The mitigation here is twofold:
+        //   1. We never log the params (only the URL itself) so the .RPT
+        //      no longer contains the api_key on every tick.
+        //   2. Receivers should be on HTTPS (the default in shipped
+        //      configs) so the URL+key never traverses cleartext.
+        // POST endpoints (ack flows below) move api_key into the JSON
+        // body and drop the URL-query form.
         string params = "?server_id=" + m_Config.server_id + "&api_key=" + m_Config.api_key;
-        
+
         ctx.SetHeader("application/json");
-        Log("Polling: " + url + params);
+        Log("Polling: " + url);
         ctx.GET(m_Callback, params);
     }
     
