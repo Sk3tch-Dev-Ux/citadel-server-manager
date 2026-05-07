@@ -7,8 +7,32 @@ const logger = require('../lib/logger');
 const ctx = require('../lib/context');
 const { loadJSON, saveJSON } = require('../lib/data-store');
 
-/** General API limiter — disabled for local tool (passthrough) */
-const apiLimiter = (req, res, next) => next();
+/**
+ * General API limiter (audit H7).
+ *
+ * Was a passthrough — leaving every non-auth/non-Discord endpoint
+ * (file ops, RCON, mod install, dangerzone, deploy, workshop search,
+ * XML parsers running on tens of MB of input) with no rate limit at all.
+ * On a misconfigured CORS allowlist or any LAN-exposed install that's a
+ * trivial DoS amplifier.
+ *
+ * 600 req/min/IP is generous enough that no legitimate dashboard usage
+ * hits it — the panel's Live tab makes ~1 socket message/s and a few
+ * REST polls/min — but tight enough that scripted abuse stalls quickly.
+ *
+ * Keep the variable name `apiLimiter` so server.js wiring is unchanged.
+ *
+ * The map-tile proxy is mounted before this middleware (server.js wires
+ * it pre-rate-limit) so cached tiles are never charged against the
+ * client's request budget.
+ */
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Rate limit exceeded' },
+});
 
 /** Auth endpoints: 15 attempts per 15 minutes (brute-force protection) */
 const authLimiter = rateLimit({
