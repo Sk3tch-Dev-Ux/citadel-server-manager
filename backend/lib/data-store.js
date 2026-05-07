@@ -16,6 +16,25 @@ const crypto = require('crypto');
 const logger = require('./logger');
 const { DATA_STORE_DEBOUNCE_MS: DEBOUNCE_MS } = require('./constants');
 
+// Audit M17. Sensitive files contain bcrypt hashes, MFA secrets (encrypted),
+// webhook URLs that may include tokens, and audit logs. On POSIX without an
+// explicit mode, fs.writeFile honors umask which is typically 0o022 →
+// world-readable 0644. Set 0o600 explicitly so only the running user can
+// read these. On Windows the mode is mostly ignored (ACLs win) but the
+// flag does no harm.
+const SENSITIVE_FILES = new Set([
+  'users.json',
+  'webhooks.json',
+  'audit.json',
+  'lockouts.json',
+  'ip-bans.json',
+  'tokens-revoked.json',
+  '.jwt-secret',
+]);
+function modeFor(filename) {
+  return SENSITIVE_FILES.has(filename) ? 0o600 : 0o644;
+}
+
 const pendingWrites = new Map(); // filename -> { timeout, data, filePath }
 const writeQueue = new Map(); // filename -> [{ data, timestamp }]
 const writeInFlight = new Map(); // filename -> Promise<void> (replaces busy-wait Set)
@@ -69,7 +88,7 @@ function saveJSON(dataDir, filename, data) {
     const tmpPath = filePath + '.tmp.' + crypto.randomBytes(4).toString('hex');
 
     try {
-      await fsp.writeFile(tmpPath, JSON.stringify(latestData, null, 2));
+      await fsp.writeFile(tmpPath, JSON.stringify(latestData, null, 2), { mode: modeFor(filename) });
       await fsp.rename(tmpPath, filePath); // atomic on same filesystem
       logger.debug({ file: filename }, 'JSON data file written');
     } catch (err) {
@@ -105,7 +124,7 @@ function flushAll() {
     }
 
     try {
-      fs.writeFileSync(entry.filePath, JSON.stringify(dataToWrite, null, 2));
+      fs.writeFileSync(entry.filePath, JSON.stringify(dataToWrite, null, 2), { mode: modeFor(filename) });
       logger.info({ file: filename }, 'Flushed pending write on shutdown');
     } catch (err) {
       logger.error({ err, file: filename }, 'Failed to flush pending write on shutdown');
@@ -135,7 +154,7 @@ function forceFlush(dataDir, filename) {
     }
 
     try {
-      fs.writeFileSync(filePath, JSON.stringify(dataToWrite, null, 2));
+      fs.writeFileSync(filePath, JSON.stringify(dataToWrite, null, 2), { mode: modeFor(filename) });
       logger.info({ file: filename }, 'Force-flushed pending write');
     } catch (err) {
       logger.error({ err, file: filename }, 'Failed to force-flush pending write');

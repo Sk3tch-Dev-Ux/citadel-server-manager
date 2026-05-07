@@ -95,11 +95,13 @@ if (!structured.auth.jwtSecret) {
       const newSecret = crypto.randomBytes(64).toString('hex'); // 64 bytes = 128 hex chars (stronger)
       process.env.JWT_SECRET = newSecret;
 
-      // Persist it to a file (not checked into git)
+      // Persist it to a file (not checked into git). 0o600 — owner-readable
+      // only (audit M17). Windows ignores the mode but ACLs default to
+      // Administrators+System, which is also fine.
       try {
         const dataDir = path.join(ROOT, 'data');
         if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-        fs.writeFileSync(jwtSecretFile, newSecret, 'utf-8');
+        fs.writeFileSync(jwtSecretFile, newSecret, { encoding: 'utf-8', mode: 0o600 });
         logger.info('Auto-generated and persisted JWT_SECRET to data/.jwt-secret');
       } catch (err) {
         logger.warn({ err: err.message }, 'Failed to persist JWT_SECRET — using in-memory secret (will be lost on restart)');
