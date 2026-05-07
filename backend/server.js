@@ -301,6 +301,15 @@ io.on('connection', (socket) => {
 const { initCitadelSocket } = require('./lib/citadel-socket');
 initCitadelSocket(io);
 
+// ─── 404 for unknown API paths ───────────────────────────
+// Audit L31. Without this, the SPA catch-all below returns index.html for
+// every misnamed /api/* request — JSON clients (the bot, the desktop
+// wrapper) try to JSON.parse HTML and surface a confusing error. Keep this
+// above the SPA fallback so it wins for anything under /api.
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
+});
+
 // ─── SPA Fallback ────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(WEB_DIST, 'index.html'));
