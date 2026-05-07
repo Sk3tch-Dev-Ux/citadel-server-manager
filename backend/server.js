@@ -423,12 +423,23 @@ process.on('SIGTERM', () => gracefulShutdown(server, 'SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown(server, 'SIGINT'));
 
 // ─── Uncaught Error Handlers ─────────────────────────────
-process.on('unhandledRejection', (reason, promise) => {
-  try { require('./lib/logger').error({ err: reason }, 'Unhandled promise rejection'); } catch {}
+//
+// Symmetric handling: BOTH unhandledRejection and uncaughtException are
+// fatal. Previously the rejection branch only logged and kept the process
+// alive, which masked async bugs and risked running the rest of the app
+// against state corrupted by the failure that produced the rejection.
+//
+// In service mode (NSSM) the supervisor restarts us on exit. In dev the
+// developer sees the crash — both are better than silently continuing.
+//
+// Tests skip exit so jest doesn't tear the worker down.
+process.on('unhandledRejection', (reason, _promise) => {
+  try { require('./lib/logger').fatal({ err: reason }, 'Unhandled promise rejection — shutting down'); } catch {}
+  if (process.env.NODE_ENV !== 'test') process.exit(1);
 });
 process.on('uncaughtException', (err) => {
   try { require('./lib/logger').fatal({ err }, 'Uncaught exception — shutting down'); } catch {}
-  process.exit(1);
+  if (process.env.NODE_ENV !== 'test') process.exit(1);
 });
 
 module.exports = { app, io, servers: ctx.servers, CONFIG };
