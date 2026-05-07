@@ -88,6 +88,21 @@ function saveJSON(dataDir, filename, data) {
     const tmpPath = filePath + '.tmp.' + crypto.randomBytes(4).toString('hex');
 
     try {
+      // Audit M16: refuse to rename over a symlink. If an attacker (or a
+      // misconfiguration) replaces filePath with a symlink pointing at,
+      // say, /etc/shadow before this rename, the rename clobbers the
+      // symlink target (since rename follows the link's containing dir,
+      // not the link itself) — which means we'd write JSON into the
+      // attacker-chosen file. lstat tells us about the link itself.
+      try {
+        const st = await fsp.lstat(filePath);
+        if (st.isSymbolicLink()) {
+          throw new Error(`Refusing to write to symlink at ${filePath}`);
+        }
+      } catch (lstatErr) {
+        if (lstatErr.code !== 'ENOENT') throw lstatErr; // ENOENT = first write, fine
+      }
+
       await fsp.writeFile(tmpPath, JSON.stringify(latestData, null, 2), { mode: modeFor(filename) });
       await fsp.rename(tmpPath, filePath); // atomic on same filesystem
       logger.debug({ file: filename }, 'JSON data file written');
