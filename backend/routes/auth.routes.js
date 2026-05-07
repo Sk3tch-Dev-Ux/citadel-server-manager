@@ -130,6 +130,22 @@ module.exports = function(app) {
       { expiresIn: '8h' }  // Shorter token lifetime for security
     );
     addAudit(user.id, user.username, 'login', 'User logged in');
+
+    // Audit M11 — set the JWT as an HttpOnly cookie alongside returning
+    // it in the body. middleware/security.js wraps res.cookie() to
+    // default httpOnly: true, sameSite: 'strict', secure: useHttps. The
+    // cookie auto-attaches to every same-origin request, so the panel
+    // doesn't need to keep the token in localStorage where DOM-XSS could
+    // steal it. The body return stays for backward-compat with the
+    // desktop app and any custom clients that explicitly use Bearer.
+    //
+    // 8 hours matches the JWT lifetime above. Path '/' so it attaches
+    // to both /api/* (REST) and /socket.io/* (WebSocket upgrade).
+    res.cookie('auth-token', token, {
+      maxAge: 8 * 60 * 60 * 1000,
+      path: '/',
+    });
+
     res.json({
       token,
       user: {
@@ -139,6 +155,15 @@ module.exports = function(app) {
         mustChangePassword: !!user.mustChangePassword
       }
     });
+  });
+
+  // Audit M11 — explicit logout that clears the auth cookie. Frontend
+  // clients calling this in addition to clearing their own state ensures
+  // a stale cookie can't keep someone signed in after logout. No-auth
+  // (idempotent — clearing a non-set cookie is fine).
+  app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('auth-token', { path: '/' });
+    res.json({ message: 'Logged out' });
   });
 
   // MFA enrollment endpoint

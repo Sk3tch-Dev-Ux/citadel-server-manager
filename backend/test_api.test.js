@@ -740,6 +740,79 @@ describe('API: Backup Endpoint Auth', () => {
   });
 });
 
+// Audit M11 — JWT now travels in an HttpOnly auth-token cookie set by
+// /api/auth/login. The middleware reads from the cookie first and falls
+// back to Authorization: Bearer. Tests below cover both paths so a
+// future refactor that breaks one form is caught immediately.
+describe('API: auth cookie (audit M11)', () => {
+  const ctx = require('./lib/context');
+  const m11AdminId = 'm11-cookie-admin';
+
+  beforeAll(() => {
+    ctx.users.push({
+      id: m11AdminId,
+      username: 'm11admin',
+      passwordHash: '$2a$10$fake',
+      role: 'admin',
+    });
+  });
+
+  afterAll(() => {
+    ctx.users = ctx.users.filter(u => u.id !== m11AdminId);
+  });
+
+  it('should accept a valid auth-token cookie (no Bearer header)', async () => {
+    const token = jwt.sign(
+      { id: m11AdminId, username: 'm11admin', role: 'admin' },
+      process.env.JWT_SECRET, { expiresIn: '5m' }
+    );
+    const res = await request(app)
+      .get('/api/servers')
+      .set('Cookie', `auth-token=${token}`);
+    expect(res.status).toBe(200);
+  });
+
+  it('should still accept Bearer header (compat fallback)', async () => {
+    const token = jwt.sign(
+      { id: m11AdminId, username: 'm11admin', role: 'admin' },
+      process.env.JWT_SECRET, { expiresIn: '5m' }
+    );
+    const res = await request(app)
+      .get('/api/servers')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+  });
+
+  it('should prefer cookie over Bearer when both are present', async () => {
+    const cookieToken = jwt.sign(
+      { id: m11AdminId, username: 'm11admin', role: 'admin' },
+      process.env.JWT_SECRET, { expiresIn: '5m' }
+    );
+    const res = await request(app)
+      .get('/api/servers')
+      .set('Cookie', `auth-token=${cookieToken}`)
+      .set('Authorization', 'Bearer this-is-deliberately-garbage');
+    // Cookie wins → request succeeds despite the garbage Bearer header.
+    expect(res.status).toBe(200);
+  });
+
+  it('should 401 when neither cookie nor Bearer is present', async () => {
+    const res = await request(app).get('/api/servers');
+    expect(res.status).toBe(401);
+  });
+
+  it('should clear the auth-token cookie on /api/auth/logout', async () => {
+    const res = await request(app).post('/api/auth/logout').send({});
+    expect(res.status).toBe(200);
+    // Set-Cookie should include a clearing directive for auth-token.
+    const setCookies = res.headers['set-cookie'] || [];
+    const found = setCookies.find(c => c.startsWith('auth-token='));
+    expect(found).toBeDefined();
+    // clearCookie sends an empty value with Expires=Thu, 01 Jan 1970...
+    expect(/auth-token=;/.test(found) || /auth-token=$/.test(found.split(';')[0])).toBe(true);
+  });
+});
+
 // ─── Audit L30 — smoke tests for the deep paths the audit found issues in.
 // Each describe block is independent; uses request.agent(app) for correct
 // CSRF cookie capture (see H8 block for rationale).

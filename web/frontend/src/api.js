@@ -1,11 +1,37 @@
 /* global CustomEvent */
+
+/**
+ * Audit M11 — JWT lives in an HttpOnly cookie set by /api/auth/login,
+ * not in localStorage. The browser auto-attaches the cookie on every
+ * same-origin request when we pass `credentials: 'include'`. This fixes
+ * the "DOM-XSS can steal the token" finding in the audit.
+ *
+ * The CSRF double-submit pattern still uses the readable 'csrf-nonce'
+ * cookie + X-CSRF-Token header — that doesn't change. SameSite=strict
+ * on the auth cookie is what makes CSRF necessary in the first place
+ * being a non-issue for the auth cookie itself; the CSRF token defends
+ * against same-origin XSS-driven abuse of in-flight session cookies.
+ *
+ * The `API.token` static is kept as a legacy escape hatch for places
+ * that still call `API.token = ''` on logout. The Bearer header is
+ * still sent if `API.token` is non-empty — useful for the Electron
+ * desktop app, which has its own session story, and for any tooling
+ * that explicitly sets a token.
+ */
 const REQUEST_TIMEOUT_MS = 30000;
 
 class API {
-  static token = localStorage.getItem('token') || '';
+  // Audit M11: no longer reads from localStorage at module load. Empty
+  // by default; the cookie is the source of truth. AuthContext.logout()
+  // sets this to '' on logout for completeness.
+  static token = '';
 
   static headers() {
-    const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+    const h = { 'Content-Type': 'application/json' };
+    // Bearer header is now optional. Only attach if the caller has
+    // explicitly populated API.token (desktop app, scripted client).
+    // Browser sessions get auth via the HttpOnly cookie automatically.
+    if (this.token) h.Authorization = `Bearer ${this.token}`;
     // Read CSRF nonce from cookie for double-submit pattern
     const csrf = document.cookie.split('; ').find(c => c.startsWith('csrf-nonce='));
     if (csrf) h['X-CSRF-Token'] = csrf.split('=')[1];
@@ -15,7 +41,8 @@ class API {
   static _handle401(r) {
     if (r.status === 401) {
       this.token = '';
-      localStorage.removeItem('token');
+      // Audit M11: localStorage no longer holds 'token'. Clear 'user'
+      // (display state, not sensitive) so AuthContext sees a fresh slate.
       localStorage.removeItem('user');
       // Dispatch a custom event instead of hard-reloading (preserves UX)
       window.dispatchEvent(new CustomEvent('citadel:session-expired'));
@@ -35,6 +62,9 @@ class API {
 
   /**
    * Fetch with timeout via AbortController.
+   * `credentials: 'include'` is the M11 lever that lets the auth-token
+   * cookie attach to every same-origin request automatically.
+   *
    * @param {string} url
    * @param {object} options - fetch options plus optional `timeout` in ms
    */
@@ -44,7 +74,11 @@ class API {
     delete options.timeout;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const r = await fetch(url, { ...options, signal: controller.signal });
+      const r = await fetch(url, {
+        credentials: 'include',
+        ...options,
+        signal: controller.signal,
+      });
       return r;
     } catch (err) {
       if (err.name === 'AbortError') throw new Error('Request timed out', { cause: err });

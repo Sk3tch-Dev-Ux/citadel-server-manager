@@ -120,6 +120,12 @@ function verifyCsrfToken(req, res, next) {
   // session cookie to anchor a double-submit token to:
   //
   //   /api/auth/login       — login itself; user has no token yet.
+  //   /api/auth/logout      — logout is intentionally exempt (audit M11).
+  //                           CSRF on logout would only protect against
+  //                           a nuisance "force a logout" attack — no
+  //                           exploit potential, and exempting it lets
+  //                           clients log out without first arming a
+  //                           CSRF nonce (matters for tab-close handlers).
   //   /api/setup/           — first-run wizard; same reason.
   //   /api/health           — liveness/readiness probes from monitoring.
   //   /api/store/webhook    — Stripe-style webhook signed in its own way.
@@ -131,6 +137,7 @@ function verifyCsrfToken(req, res, next) {
   //                           it's not the right defense here.
   const exemptPaths = [
     '/api/auth/login',
+    '/api/auth/logout',
     '/api/setup/',
     '/api/health',
     '/api/store/webhook',

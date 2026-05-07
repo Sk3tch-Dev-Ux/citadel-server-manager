@@ -248,8 +248,38 @@ try {
 require('./routes/citadel-bridge.routes')(app);
 
 // ─── WebSocket (authenticated) ───────────────────────────
+//
+// Audit M11 — token comes from either:
+//   - the auth-token cookie (preferred — set by /api/auth/login on the
+//     same origin, sent automatically by browsers on the WS handshake), or
+//   - socket.handshake.auth.token (compat for the desktop app and any
+//     legacy clients that explicitly opt into Bearer-style auth).
+//
+// Cookie parsing on the handshake is one-shot: socket.io exposes the
+// raw cookie header via socket.handshake.headers.cookie. We do a tiny
+// parse here rather than pulling in the cookie module because the
+// expected shape is just "name1=val1; name2=val2".
+function extractTokenFromHandshake(handshake) {
+  // 1. Prefer the cookie set by /api/auth/login.
+  const rawCookies = handshake?.headers?.cookie;
+  if (typeof rawCookies === 'string' && rawCookies.length > 0) {
+    for (const part of rawCookies.split(';')) {
+      const eq = part.indexOf('=');
+      if (eq === -1) continue;
+      const name = part.slice(0, eq).trim();
+      if (name === 'auth-token') {
+        return decodeURIComponent(part.slice(eq + 1).trim());
+      }
+    }
+  }
+  // 2. Fall back to handshake.auth.token (desktop / legacy).
+  const authToken = handshake?.auth?.token;
+  if (typeof authToken === 'string' && authToken.length > 0) return authToken;
+  return null;
+}
+
 io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
+  const token = extractTokenFromHandshake(socket.handshake);
   if (!token) return next(new Error('Authentication required'));
   try {
     const decoded = jwt.verify(token, CONFIG.jwtSecret);

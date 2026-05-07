@@ -153,7 +153,7 @@ export default function AppLayout() {
         <div className="sidebar-footer">
           <div className="avatar">{user.username?.[0]?.toUpperCase()}</div>
           <div className="user-info"><div className="user-name">{user.username}</div><div className="user-role">{user.role}</div></div>
-          <button className="logout-btn" onClick={() => { API.token = ''; localStorage.clear(); logout(); navigate('/login'); }} title="Sign out"><LogOut size={16} /></button>
+          <button className="logout-btn" onClick={async () => { await logout(); navigate('/login'); }} title="Sign out"><LogOut size={16} /></button>
         </div>
       </div>
 

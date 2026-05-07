@@ -9,13 +9,31 @@ const ctx = require('../lib/context');
 const logger = require('../lib/logger');
 const { isTokenRevoked } = require('../lib/token-revocation');
 
+/**
+ * Audit M11 — extract the JWT from either:
+ *   - the HttpOnly 'auth-token' cookie (preferred — XSS can't read it), or
+ *   - the Authorization: Bearer header (fallback for the desktop app and
+ *     any custom client that explicitly opts into Bearer).
+ *
+ * Cookie wins when both are present (a logged-in browser session
+ * shouldn't be impersonatable by a stale Bearer token in the same
+ * request). Returns null if neither is present.
+ */
+function extractToken(req) {
+  if (req.cookies && typeof req.cookies['auth-token'] === 'string' && req.cookies['auth-token']) {
+    return req.cookies['auth-token'];
+  }
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    if (token) return token;
+  }
+  return null;
+}
+
 function auth(requiredPermission) {
   return (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-    const token = authHeader.split(' ')[1];
+    const token = extractToken(req);
     if (!token) return res.status(401).json({ error: 'No token provided' });
     try {
       const decoded = jwt.verify(token, ctx.CONFIG.jwtSecret);
@@ -62,11 +80,7 @@ function auth(requiredPermission) {
  */
 function authForServer(requiredPermission) {
   return (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-    const token = authHeader.split(' ')[1];
+    const token = extractToken(req);
     if (!token) return res.status(401).json({ error: 'No token provided' });
     try {
       const decoded = jwt.verify(token, ctx.CONFIG.jwtSecret);
