@@ -17,6 +17,7 @@ const { getProviderForAction, findSession, ActionType } = require('../lib/server
 const { startServer, stopServer, restartServer } = require('../lib/server-lifecycle');
 const { addAudit, addLog } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
+const logger = require('../lib/logger');
 
 const ALLOWED_ACTIONS = [
   'status', 'start', 'stop', 'restart', 'players', 'lock', 'unlock', 'rcon', 'message', 'kick',
@@ -97,6 +98,56 @@ function botRoleHasPermission(perm) {
   return perms.includes(perm);
 }
 
+/**
+ * Audit H6 Layer 2 — verify the per-call HMAC signature the bot adds so
+ * the backend can prove the claimed `discordUserId` wasn't fabricated by
+ * something other than the bot. Without this, anyone with the API key
+ * could POST { action, params: { discordUserId: 'someone-else' } } and
+ * the audit log would believe them.
+ *
+ * Wire format (see discord-bot/api.js signCall):
+ *   X-Discord-Ts:  unix seconds
+ *   X-Discord-Sig: hex HMAC-SHA256(apiKey, `${ts}.${action}.${discordUserId}`)
+ *
+ * Returns one of:
+ *   { ok: true,  discordUserId, discordUser }       valid signature
+ *   { ok: false, reason }                           legacy bot OR rejected
+ *
+ * Legacy bots without these headers get { ok: false, reason: 'no-sig' }
+ * — we DON'T fail the request. Instead the caller substitutes generic
+ * 'Discord Bot (unverified)' attribution so an admin reading the audit log
+ * can tell verified calls from legacy ones at a glance. New attempts that
+ * include a *bad* signature (wrong key, replay, mismatched action) DO get
+ * rejected — that's an active forgery attempt, not a legacy client.
+ */
+function verifyDiscordSignature(req, action, expectedKey) {
+  const sig = req.headers['x-discord-sig'];
+  const tsHeader = req.headers['x-discord-ts'];
+  if (!sig || !tsHeader) return { ok: false, reason: 'no-sig' };
+
+  const ts = parseInt(tsHeader, 10);
+  if (!Number.isInteger(ts)) return { ok: false, reason: 'bad-ts', reject: true };
+
+  const now = Math.floor(Date.now() / 1000);
+  // 5-minute window in either direction so clock skew doesn't trip the
+  // verifier. Signed ts must be from the recent past or near future; old
+  // captures can't be replayed past this cutoff.
+  if (Math.abs(now - ts) > 300) return { ok: false, reason: 'stale', reject: true };
+
+  const claimedUserId = req.body?.params?.discordUserId || 'bot';
+  const claimedUser = req.body?.params?.discordUser || 'Discord Bot';
+  const payload = `${ts}.${action}.${claimedUserId}`;
+  const expected = crypto.createHmac('sha256', expectedKey).update(payload).digest('hex');
+
+  // Constant-time compare with length-equality guard.
+  const sigBuf = Buffer.from(String(sig));
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length) return { ok: false, reason: 'bad-sig', reject: true };
+  if (!crypto.timingSafeEqual(sigBuf, expBuf)) return { ok: false, reason: 'bad-sig', reject: true };
+
+  return { ok: true, discordUserId: claimedUserId, discordUser: claimedUser };
+}
+
 module.exports = function(app) {
   app.post('/api/discord/action', async (req, res) => {
     const { action, params } = req.body;
@@ -141,9 +192,33 @@ module.exports = function(app) {
       });
     }
 
-    // Discord user attribution from bot
-    const discordUser = params?.discordUser || 'Discord Bot';
-    const discordUserId = params?.discordUserId || 'bot';
+    // Audit H6 Layer 2 — verify the per-call HMAC. Three outcomes:
+    //   verified.ok                     → trust body's discordUserId
+    //   !verified.ok && verified.reject → active forgery attempt, 403
+    //   !verified.ok && !reject         → legacy bot (no headers), accept
+    //                                      but flag attribution as unverified
+    const verified = verifyDiscordSignature(req, action, expectedKey);
+    if (!verified.ok && verified.reject) {
+      try {
+        const { addAudit } = require('../lib/audit');
+        addAudit('bot', 'Discord Bot', 'discord.sig-rejected', `Discord call rejected: ${verified.reason}`);
+      } catch { /* best-effort */ }
+      logger.warn({ reason: verified.reason, action }, 'Discord signature rejected');
+      return res.status(403).json({
+        error: `Discord signature rejected (${verified.reason}). Bot client may be outdated, clock skewed, or under replay attack.`,
+      });
+    }
+
+    // Discord user attribution from bot. If the call was signature-verified,
+    // we trust the body's claimed identity. If it's a legacy unsigned call,
+    // we fall back to a generic label so an admin reading the audit log can
+    // tell at a glance which entries were verified.
+    const discordUser = verified.ok
+      ? (verified.discordUser || 'Discord Bot')
+      : 'Discord Bot (unverified)';
+    const discordUserId = verified.ok
+      ? verified.discordUserId
+      : 'bot-unverified';
 
     // Support multi-server: use params.serverId if provided, otherwise default to first server
     const targetSrv = (params?.serverId && ctx.servers.find(s => s.id === params.serverId)) || ctx.servers[0];

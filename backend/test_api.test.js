@@ -327,6 +327,68 @@ describe('API: Discord bot role gate', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/Invalid action/);
   });
+
+  // Audit H6 Layer 2 — HMAC signature verification.
+  it('should accept calls with a valid HMAC signature (verified attribution)', async () => {
+    const crypto = require('crypto');
+    const apiKey = process.env.DISCORD_BOT_API_KEY;
+    const ts = Math.floor(Date.now() / 1000);
+    const action = 'servers';
+    const discordUserId = '123456789012345678';
+    const payload = `${ts}.${action}.${discordUserId}`;
+    const sig = crypto.createHmac('sha256', apiKey).update(payload).digest('hex');
+
+    const res = await request(app)
+      .post('/api/discord/action')
+      .set('Authorization', `Bearer ${apiKey}`)
+      .set('X-Discord-Ts', String(ts))
+      .set('X-Discord-Sig', sig)
+      .send({ action, params: { discordUserId } });
+    expect(res.status).not.toBe(403);
+  });
+
+  it('should reject calls with an invalid HMAC signature (active forgery)', async () => {
+    const ts = Math.floor(Date.now() / 1000);
+    const res = await request(app)
+      .post('/api/discord/action')
+      .set('Authorization', `Bearer ${process.env.DISCORD_BOT_API_KEY}`)
+      .set('X-Discord-Ts', String(ts))
+      .set('X-Discord-Sig', 'a'.repeat(64))  // wrong sig of correct length
+      .send({ action: 'servers', params: { discordUserId: '1' } });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/signature.*rejected/i);
+  });
+
+  it('should reject calls with a stale timestamp (replay window)', async () => {
+    const crypto = require('crypto');
+    const apiKey = process.env.DISCORD_BOT_API_KEY;
+    const ts = Math.floor(Date.now() / 1000) - 3600; // 1 hour old
+    const action = 'servers';
+    const discordUserId = '1';
+    const payload = `${ts}.${action}.${discordUserId}`;
+    const sig = crypto.createHmac('sha256', apiKey).update(payload).digest('hex');
+
+    const res = await request(app)
+      .post('/api/discord/action')
+      .set('Authorization', `Bearer ${apiKey}`)
+      .set('X-Discord-Ts', String(ts))
+      .set('X-Discord-Sig', sig)
+      .send({ action, params: { discordUserId } });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/stale/i);
+  });
+
+  it('should accept legacy bot calls without HMAC headers (unverified attribution)', async () => {
+    // No X-Discord-Ts / X-Discord-Sig — the verifier returns no-sig and
+    // the handler falls through to the unverified-attribution branch
+    // instead of rejecting. Existing H6 Layer 1 'servers' test already
+    // exercises this path; this test makes the contract explicit.
+    const res = await request(app)
+      .post('/api/discord/action')
+      .set('Authorization', `Bearer ${process.env.DISCORD_BOT_API_KEY}`)
+      .send({ action: 'servers' });
+    expect(res.status).not.toBe(403);
+  });
 });
 
 // Audit H8: writing a script file (.bat/.cmd/.ps1/.sh) requires the new

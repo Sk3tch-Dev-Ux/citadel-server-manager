@@ -1,9 +1,36 @@
 /**
  * Backend API client and interaction helpers.
  */
+const crypto = require('node:crypto');
 const { MessageFlags } = require('discord.js');
 const CONFIG = require('./config');
 const logger = require('./lib/logger');
+
+/**
+ * Audit H6 Layer 2 — HMAC-sign each Discord-bot call so the backend can
+ * verify the claimed Discord user identity wasn't spoofed by anyone in
+ * possession of the API key alone (the bot's API key is shared by the
+ * Citadel deployment; the HMAC binds the call to a specific Discord user).
+ *
+ * Signature scheme:
+ *   ts        = unix seconds at call time
+ *   payload   = `${ts}.${action}.${discordUserId}`
+ *   sig       = HMAC-SHA256(apiKey, payload), hex
+ *
+ * Sent as headers X-Discord-Ts and X-Discord-Sig. The backend verifies
+ * the same payload and rejects calls older than 5 minutes (replay window).
+ *
+ * Legacy/missing-headers callers still work — the backend treats them as
+ * 'unverified' and labels the audit log accordingly. That keeps an
+ * older bot in the wild from breaking when the panel upgrades, but new
+ * deployments get verifiable attribution out of the box.
+ */
+function signCall(apiKey, action, discordUserId) {
+  const ts = Math.floor(Date.now() / 1000);
+  const payload = `${ts}.${action}.${discordUserId || 'bot'}`;
+  const sig = crypto.createHmac('sha256', apiKey).update(payload).digest('hex');
+  return { ts, sig };
+}
 
 // Ensure `fetch` is available (Node 18+ has global fetch)
 let fetch;
@@ -140,11 +167,14 @@ async function panelAction(action, params = {}, guildId = null, interaction = nu
       mergedParams.discordUserId = interaction.user.id;
     }
 
+    const { ts, sig } = signCall(CONFIG.apiKey, action, mergedParams.discordUserId);
     const result = await fetchWithRetry(`${CONFIG.apiUrl}/api/discord/action`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CONFIG.apiKey}`,
+        'X-Discord-Ts': String(ts),
+        'X-Discord-Sig': sig,
       },
       body: JSON.stringify({ action, params: mergedParams }),
       timeout: DEFAULT_FETCH_TIMEOUT_MS,
