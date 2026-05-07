@@ -1579,59 +1579,97 @@ class CommandRelay
         ctx.GET(m_Callback, params);
     }
     
+    // Audit M18. Bound the size of inbound poll JSON and the number of
+    // commands processed per tick so a malicious or compromised backend
+    // cannot DoS the DayZ server's main thread by returning megabytes of
+    // synthetic command objects on a single poll.
+    //
+    // 256 KiB is generously above any legitimate tick (typical batch is
+    // <2 KiB; a 50-command broadcast burst is still under 50 KiB) but
+    // small enough that the brace-walker parser stays fast.
+    //
+    // 100 commands/tick is well above the highest batch size we expect
+    // from operator panels and Discord-bot bursts; if a backend genuinely
+    // needs to send more, it can chunk across ticks.
+    static const int MAX_RESPONSE_BYTES = 262144;   // 256 KiB
+    static const int MAX_COMMANDS_PER_TICK = 100;
+
     void ProcessCommands(string data)
     {
         Log("ProcessCommands received: " + data.Length().ToString() + " bytes");
-        Log("Raw data: " + data);
         if (data == "") return;
-        
+
+        if (data.Length() > MAX_RESPONSE_BYTES)
+        {
+            Log("ERROR: ProcessCommands - response too large (" + data.Length().ToString() + " > " + MAX_RESPONSE_BYTES.ToString() + " bytes), dropping");
+            return;
+        }
+        // Logging the raw payload is useful for debugging but makes the .RPT
+        // grow noticeably. Keep the size log above; only dump body in debug.
+        if (m_Config && m_Config.debug_logging_enabled)
+        {
+            Log("Raw data: " + data);
+        }
+
         ref CommandRelayResponse response = new CommandRelayResponse();
         response.commands = new array<ref CommandRelayCommand>();
-        
+
         // Manual JSON parse since JsonLoadData doesn't exist
         // Expected format: {"commands":[{"id":"x","type":"broadcast","msg":"text"}]}
         int cmdStart = data.IndexOf("[");
         int cmdEnd = data.LastIndexOf("]");
         Log("cmdStart=" + cmdStart.ToString() + " cmdEnd=" + cmdEnd.ToString());
         if (cmdStart == -1 || cmdEnd == -1) return;
-        
+
         string cmdArray = data.Substring(cmdStart + 1, cmdEnd - cmdStart - 1);
         Log("cmdArray length=" + cmdArray.Length().ToString());
         if (cmdArray == "") return;
-        
+
         // Parse each command object by finding matching braces
         int pos = 0;
         int len = cmdArray.Length();
-        
+        int parsedCount = 0;
+
         while (pos < len)
         {
+            // Audit M18: hard cap on commands per tick.
+            if (parsedCount >= MAX_COMMANDS_PER_TICK)
+            {
+                Log("WARN: ProcessCommands - hit MAX_COMMANDS_PER_TICK (" + MAX_COMMANDS_PER_TICK.ToString() + "), discarding remainder");
+                break;
+            }
+
             // Find start of next object
             int objStart = cmdArray.IndexOfFrom(pos, "{");
             if (objStart == -1) break;
-            
+
             // Find end of this object (matching closing brace)
             int objEnd = FindJsonObjectEnd(cmdArray, objStart);
             if (objEnd == -1) break;
-            
+
             // Extract the object content (without braces)
             string objContent = cmdArray.Substring(objStart + 1, objEnd - objStart - 1);
-            Log("objContent: " + objContent);
-            
+            if (m_Config && m_Config.debug_logging_enabled)
+            {
+                Log("objContent: " + objContent);
+            }
+
             CommandRelayCommand cmd = new CommandRelayCommand();
-            
+
             cmd.id = ExtractJsonString(objContent, "id");
             cmd.type = ExtractJsonString(objContent, "type");
             cmd.player_id = ExtractJsonString(objContent, "player_id");
             cmd.param_1 = ExtractJsonString(objContent, "param_1");
             cmd.param_2 = ExtractJsonString(objContent, "param_2");
-            
+
             Log("Parsed: id=" + cmd.id + " type=" + cmd.type);
-            
+
             if (cmd.id != "" && cmd.type != "")
             {
                 response.commands.Insert(cmd);
+                parsedCount++;
             }
-            
+
             // Move past this object
             pos = objEnd + 1;
         }
