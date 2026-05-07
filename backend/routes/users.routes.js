@@ -10,6 +10,25 @@ const { addAudit } = require('../lib/audit');
 const { revokeUserTokens } = require('../lib/token-revocation');
 const auth = require('../middleware/auth');
 
+/**
+ * Audit M13. Decide whether the requesting user can act on OTHER users.
+ *
+ * The previous check was `req.user.role !== 'admin'` — a literal role-id
+ * compare. That works today because the built-in admin role's id is
+ * 'admin', but it silently breaks if an operator creates a custom role
+ * with users.manage + a different id. The intent is "the actor has
+ * privileged user management" — express it that way: roles with
+ * wildcard ('*') permissions act on others; everyone else can only
+ * touch their own row even if they happen to hold users.manage for
+ * self-service password changes.
+ */
+function canManageOthers(reqUser) {
+  if (!reqUser) return false;
+  const role = ctx.roles.find(r => r.id === reqUser.role);
+  if (!role || !Array.isArray(role.permissions)) return false;
+  return role.permissions.includes('*');
+}
+
 module.exports = function(app) {
   app.get('/api/users', auth('users.manage'), (req, res) => {
     res.json(ctx.users.map(u => ({ id: u.id, username: u.username, role: u.role, isRoot: u.isRoot || false, description: u.description || '', createdAt: u.createdAt })));
@@ -43,7 +62,7 @@ module.exports = function(app) {
     if (user.isRoot) return res.status(403).json({ error: 'Cannot modify root user' });
 
     // Prevent non-admin users from modifying other users (MUST be checked before mutations)
-    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+    if (req.user.id !== req.params.id && !canManageOthers(req.user)) {
       return res.status(403).json({ error: 'You can only modify your own account' });
     }
 
@@ -65,8 +84,10 @@ module.exports = function(app) {
       if (!ctx.roles.find(r => r.id === req.body.role)) {
         return res.status(400).json({ error: 'Invalid role' });
       }
-      // Prevent non-admin users from escalating their own role
-      if (req.user.id === req.params.id && req.user.role !== 'admin') {
+      // Prevent non-admin users from escalating their own role.
+      // (canManageOthers stays the gate even though the targeted row is
+      // self — the rule is "only wildcard roles can hand out roles".)
+      if (req.user.id === req.params.id && !canManageOthers(req.user)) {
         return res.status(403).json({ error: 'Users cannot change their own role' });
       }
       user.role = req.body.role;
