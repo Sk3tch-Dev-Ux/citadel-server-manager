@@ -236,9 +236,15 @@ module.exports = function (app) {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
+    // Audit M14: snapshot the name now so a concurrent rename does not
+    // change which name the operator typed in confirmName vs what the
+    // audit log + notifications report later in the async block.
+    const snapshotName = srv.name;
+    const snapshotId = srv.id;
+
     const { preset: presetId, confirmName } = req.body;
     if (!presetId) return res.status(400).json({ error: 'Preset ID required' });
-    if (!confirmName || confirmName !== srv.name) {
+    if (!confirmName || confirmName !== snapshotName) {
       return res.status(400).json({ error: 'Server name confirmation does not match' });
     }
 
@@ -252,17 +258,18 @@ module.exports = function (app) {
     const preset = presets.find(p => p.id === presetId);
     if (!preset) return res.status(400).json({ error: 'Invalid preset ID' });
 
-    addAudit(req.user.id, req.user.username, 'server.wipe', `Starting ${preset.name} on ${srv.name}`);
-    setDangerzoneActive(srv.id, true);
-    ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'starting', message: `Starting ${preset.name}...`, preset: presetId });
+    addAudit(req.user.id, req.user.username, 'server.wipe', `Starting ${preset.name} on ${snapshotName}`);
+    setDangerzoneActive(snapshotId, true);
+    ctx.io.emit('dangerzoneProgress', { serverId: snapshotId, status: 'starting', message: `Starting ${preset.name}...`, preset: presetId });
     res.json({ message: `${preset.name} initiated` });
 
-    // Run async
+    // Run async — use snapshotId/snapshotName so audit + notifications stay
+    // consistent if the server is renamed mid-wipe (audit M14).
     try {
-      await stopServerIfRunning(srv.id, srv);
-      await createPreOpBackup(srv.id);
+      await stopServerIfRunning(snapshotId, srv);
+      await createPreOpBackup(snapshotId);
 
-      ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'wiping', message: `Wiping: ${preset.name}...` });
+      ctx.io.emit('dangerzoneProgress', { serverId: snapshotId, status: 'wiping', message: `Wiping: ${preset.name}...` });
 
       // Delete preset paths
       let deletedCount = 0;
@@ -271,7 +278,7 @@ module.exports = function (app) {
         if (fullPath && fs.existsSync(fullPath)) {
           fs.rmSync(fullPath, { recursive: true, force: true });
           deletedCount++;
-          logger.info({ serverId: srv.id, path: relPath }, 'Dangerzone: deleted path');
+          logger.info({ serverId: snapshotId, path: relPath }, 'Dangerzone: deleted path');
         }
       }
 
@@ -297,21 +304,21 @@ module.exports = function (app) {
       // Reset the PvP leaderboard — a server wipe means the current
       // "wipe cycle" is over and K/D stats should start fresh.
       try {
-        require('../lib/pvp-stats').reset(ctx.CONFIG.dataDir, srv.id);
+        require('../lib/pvp-stats').reset(ctx.CONFIG.dataDir, snapshotId);
       } catch (pvpErr) {
-        logger.warn({ err: pvpErr.message, serverId: srv.id }, 'Dangerzone: failed to reset pvp leaderboard');
+        logger.warn({ err: pvpErr.message, serverId: snapshotId }, 'Dangerzone: failed to reset pvp leaderboard');
       }
 
-      ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'complete', message: `${preset.name} complete! ${deletedCount} item(s) removed.` });
-      addLog(srv.id, 'info', 'dangerzone', `${preset.name} completed by ${req.user.username}`);
-      addNotification(srv.id, 'server.wipe', 'Server Wiped', `${srv.name}: ${preset.name} completed`, 'danger');
-      addAudit(req.user.id, req.user.username, 'server.wipe', `Completed ${preset.name} on ${srv.name} (${deletedCount} items removed)`);
+      ctx.io.emit('dangerzoneProgress', { serverId: snapshotId, status: 'complete', message: `${preset.name} complete! ${deletedCount} item(s) removed.` });
+      addLog(snapshotId, 'info', 'dangerzone', `${preset.name} completed by ${req.user.username}`);
+      addNotification(snapshotId, 'server.wipe', 'Server Wiped', `${snapshotName}: ${preset.name} completed`, 'danger');
+      addAudit(req.user.id, req.user.username, 'server.wipe', `Completed ${preset.name} on ${snapshotName} (${deletedCount} items removed)`);
     } catch (err) {
-      logger.error({ err, serverId: srv.id }, 'Dangerzone: wipe failed');
-      ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'error', message: `Wipe failed: ${err.message}` });
-      addAudit(req.user.id, req.user.username, 'server.wipe', `Wipe failed on ${srv.name}: ${err.message}`);
+      logger.error({ err, serverId: snapshotId }, 'Dangerzone: wipe failed');
+      ctx.io.emit('dangerzoneProgress', { serverId: snapshotId, status: 'error', message: `Wipe failed: ${err.message}` });
+      addAudit(req.user.id, req.user.username, 'server.wipe', `Wipe failed on ${snapshotName}: ${err.message}`);
     } finally {
-      setDangerzoneActive(srv.id, false);
+      setDangerzoneActive(snapshotId, false);
     }
   });
 
@@ -601,7 +608,13 @@ module.exports = function (app) {
 
     const { sourceServerId, components, confirmName } = req.body;
     if (!sourceServerId) return res.status(400).json({ error: 'Source server ID required' });
-    if (!confirmName || confirmName !== targetSrv.name) {
+
+    // Snapshot names + ids up front (audit M14) — both sides could rename
+    // during the long async block.
+    const targetSnapshotName = targetSrv.name;
+    const targetSnapshotId = targetSrv.id;
+
+    if (!confirmName || confirmName !== targetSnapshotName) {
       return res.status(400).json({ error: 'Server name confirmation does not match' });
     }
     if (!Array.isArray(components) || components.length === 0) {
@@ -610,41 +623,44 @@ module.exports = function (app) {
 
     const sourceSrv = ctx.servers.find(s => s.id === sourceServerId);
     if (!sourceSrv) return res.status(404).json({ error: 'Source server not found' });
-    if (sourceSrv.id === targetSrv.id) return res.status(400).json({ error: 'Source and target cannot be the same server' });
+    if (sourceSrv.id === targetSnapshotId) return res.status(400).json({ error: 'Source and target cannot be the same server' });
+    const sourceSnapshotName = sourceSrv.name;
 
-    if (isDangerzoneActive(targetSrv.id)) {
+    if (isDangerzoneActive(targetSnapshotId)) {
       return res.status(409).json({ error: 'A dangerzone operation is already in progress' });
     }
 
     const srcDir = path.resolve(sourceSrv.installDir);
     const destDir = path.resolve(targetSrv.installDir);
 
-    addAudit(req.user.id, req.user.username, 'server.replicate', `Replicating ${components.join(', ')} from ${sourceSrv.name} to ${targetSrv.name}`);
-    setDangerzoneActive(targetSrv.id, true);
-    ctx.io.emit('dangerzoneProgress', { serverId: targetSrv.id, status: 'starting', message: `Starting replication from ${sourceSrv.name}...` });
+    addAudit(req.user.id, req.user.username, 'server.replicate', `Replicating ${components.join(', ')} from ${sourceSnapshotName} to ${targetSnapshotName}`);
+    setDangerzoneActive(targetSnapshotId, true);
+    ctx.io.emit('dangerzoneProgress', { serverId: targetSnapshotId, status: 'starting', message: `Starting replication from ${sourceSnapshotName}...` });
     res.json({ message: 'Replication initiated' });
 
     try {
-      await stopServerIfRunning(targetSrv.id, targetSrv);
-      await createPreOpBackup(targetSrv.id);
+      await stopServerIfRunning(targetSnapshotId, targetSrv);
+      await createPreOpBackup(targetSnapshotId);
 
       const srcMission = detectMissionFolder(srcDir);
       const destMission = detectMissionFolder(destDir);
       let copiedCount = 0;
 
       for (const compId of components) {
-        ctx.io.emit('dangerzoneProgress', { serverId: targetSrv.id, status: 'replicating', message: `Copying ${compId}...` });
+        ctx.io.emit('dangerzoneProgress', { serverId: targetSnapshotId, status: 'replicating', message: `Copying ${compId}...` });
 
         switch (compId) {
           case 'config': {
             const srcCfg = path.join(srcDir, 'serverDZ.cfg');
             const destCfg = path.join(destDir, 'serverDZ.cfg');
             if (fs.existsSync(srcCfg)) {
-              // Read source config, preserve target hostname
+              // Read source config, preserve target hostname (the name the
+              // operator typed in confirmName, not whatever the live record
+              // is now — operator intent wins).
               let content = fs.readFileSync(srcCfg, 'utf8');
               content = content.replace(
                 /^(\s*hostname\s*=\s*).+?(;.*$)/m,
-                `$1"${targetSrv.name}"$2`
+                `$1"${targetSnapshotName}"$2`
               );
               fs.writeFileSync(destCfg, content, 'utf8');
               copiedCount++;
@@ -744,16 +760,16 @@ module.exports = function (app) {
         }
       }
 
-      ctx.io.emit('dangerzoneProgress', { serverId: targetSrv.id, status: 'complete', message: `Replication complete! ${copiedCount} item(s) copied from ${sourceSrv.name}.` });
-      addLog(targetSrv.id, 'info', 'dangerzone', `Replicated ${components.join(', ')} from ${sourceSrv.name}`);
-      addNotification(targetSrv.id, 'server.replicate', 'Server Replicated', `${targetSrv.name}: copied ${components.join(', ')} from ${sourceSrv.name}`, 'info');
-      addAudit(req.user.id, req.user.username, 'server.replicate', `Completed replication to ${targetSrv.name} (${copiedCount} items)`);
+      ctx.io.emit('dangerzoneProgress', { serverId: targetSnapshotId, status: 'complete', message: `Replication complete! ${copiedCount} item(s) copied from ${sourceSnapshotName}.` });
+      addLog(targetSnapshotId, 'info', 'dangerzone', `Replicated ${components.join(', ')} from ${sourceSnapshotName}`);
+      addNotification(targetSnapshotId, 'server.replicate', 'Server Replicated', `${targetSnapshotName}: copied ${components.join(', ')} from ${sourceSnapshotName}`, 'info');
+      addAudit(req.user.id, req.user.username, 'server.replicate', `Completed replication to ${targetSnapshotName} (${copiedCount} items)`);
     } catch (err) {
-      logger.error({ err, serverId: targetSrv.id }, 'Dangerzone: replicate failed');
-      ctx.io.emit('dangerzoneProgress', { serverId: targetSrv.id, status: 'error', message: `Replication failed: ${err.message}` });
-      addAudit(req.user.id, req.user.username, 'server.replicate', `Replication failed on ${targetSrv.name}: ${err.message}`);
+      logger.error({ err, serverId: targetSnapshotId }, 'Dangerzone: replicate failed');
+      ctx.io.emit('dangerzoneProgress', { serverId: targetSnapshotId, status: 'error', message: `Replication failed: ${err.message}` });
+      addAudit(req.user.id, req.user.username, 'server.replicate', `Replication failed on ${targetSnapshotName}: ${err.message}`);
     } finally {
-      setDangerzoneActive(targetSrv.id, false);
+      setDangerzoneActive(targetSnapshotId, false);
     }
   });
 };
