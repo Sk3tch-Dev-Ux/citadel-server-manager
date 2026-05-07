@@ -14,6 +14,63 @@ const {
 } = require('./constants');
 const { ROOT } = require('./paths');
 
+/**
+ * Extract a zip into a directory. Audit M15 — replaces a PowerShell
+ * `Expand-Archive` shell-string call that was awkward to quote and put
+ * unsanitised paths into a `-Command` argument.
+ *
+ * Uses Windows' built-in tar.exe (bsdtar, ships with Windows 10+ since
+ * 1803). No shell, no string interpolation — argv is structured. Falls
+ * back to PowerShell ZipFile.ExtractToDirectory via -File-loaded script
+ * if tar isn't available, which preserves behavior on older Windows.
+ */
+function extractZip(zipPath, destDir) {
+  return new Promise((resolve, reject) => {
+    // Path 1: tar -xf zip -C dir. Built-in on Windows 10 1803+ and POSIX.
+    // -xf reads from FILE; -C cd's to DIR before extracting.
+    const tar = spawn('tar', ['-xf', zipPath, '-C', destDir], {
+      windowsHide: true,
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    let stderr = '';
+    tar.stderr?.on('data', (d) => { stderr += d.toString(); });
+    tar.on('error', (err) => {
+      // tar not on PATH (rare on modern Windows; possible on stripped images).
+      logger.debug({ err: err.message }, 'tar unavailable, falling back to PowerShell ZipFile');
+      _extractZipPowerShellFallback(zipPath, destDir).then(resolve, reject);
+    });
+    tar.on('close', (code) => {
+      if (code === 0) return resolve();
+      // Some tar builds don't read .zip; try the fallback.
+      logger.debug({ code, stderr }, 'tar -xf failed, falling back to PowerShell ZipFile');
+      _extractZipPowerShellFallback(zipPath, destDir).then(resolve, reject);
+    });
+  });
+}
+
+/**
+ * PowerShell fallback. Uses .NET's ZipFile.ExtractToDirectory via a tiny
+ * one-line script passed through -EncodedCommand so paths don't have to
+ * be embedded in a quoted shell string. Only invoked when tar fails.
+ */
+function _extractZipPowerShellFallback(zipPath, destDir) {
+  return new Promise((resolve, reject) => {
+    // Build a script that takes paths from environment variables — no
+    // string interpolation in the script body, so quoting can't go wrong.
+    const script =
+      'Add-Type -Assembly System.IO.Compression.FileSystem; ' +
+      '[System.IO.Compression.ZipFile]::ExtractToDirectory($env:CITADEL_ZIP_SRC, $env:CITADEL_ZIP_DST)';
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    const proc = spawn('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-EncodedCommand', encoded], {
+      windowsHide: true,
+      stdio: ['ignore', 'ignore', 'pipe'],
+      env: { ...process.env, CITADEL_ZIP_SRC: zipPath, CITADEL_ZIP_DST: destDir },
+    });
+    proc.on('error', (err) => reject(err));
+    proc.on('close', (code) => code === 0 ? resolve() : reject(new Error(`Zip extraction failed (powershell exit ${code})`)));
+  });
+}
+
 async function ensureSteamCMD() {
   if (ctx.steamCmdPath && fs.existsSync(ctx.steamCmdPath)) return ctx.steamCmdPath;
   const searchPaths = [
@@ -28,11 +85,7 @@ async function ensureSteamCMD() {
   const resp = await fetch('https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip');
   if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
   fs.writeFileSync(zipPath, Buffer.from(await resp.arrayBuffer()));
-  await new Promise((resolve, reject) => {
-    const proc = spawn('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${steamCmdDir.replace(/'/g, "''")}' -Force`], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
-    proc.on('error', (err) => reject(err));
-    proc.on('close', (code) => code === 0 ? resolve() : reject(new Error(`Expand-Archive exited with code ${code}`)));
-  });
+  await extractZip(zipPath, steamCmdDir);
   const exePath = path.join(steamCmdDir, 'steamcmd.exe');
   if (!fs.existsSync(exePath)) throw new Error('steamcmd.exe not found after extraction');
   await new Promise((resolve) => {
