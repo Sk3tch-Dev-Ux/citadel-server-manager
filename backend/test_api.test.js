@@ -329,6 +329,108 @@ describe('API: Discord bot role gate', () => {
   });
 });
 
+// Audit H8: writing a script file (.bat/.cmd/.ps1/.sh) requires the new
+// 'files.edit-scripts' permission AND the destination must be inside the
+// server's lifecycle_hooks/ directory. Plain 'files.edit' is no longer
+// sufficient on its own. The auto-executed-by-lifecycle-hooks risk is
+// the reason this gate exists; see backend/lib/lifecycle-hooks.js.
+//
+// Uses request.agent(app) so supertest captures the signed csrf-token
+// cookie issued on the first GET. The pre-existing tests in this file
+// hand-build a 'csrf-token=<nonce>' header which is wrong — the cookie
+// must hold the SIGNED nonce, not the nonce itself. The agent does that
+// correctly. (That's also why the password-policy test fails in baseline.)
+describe('API: files.edit-scripts gate', () => {
+  const ctx = require('./lib/context');
+  let agent;
+  let csrfNonce = '';
+  let serverId;
+  let installDir;
+  let tokenScriptOnly = '';
+  let tokenWildcard = '';
+
+  beforeAll(async () => {
+    agent = request.agent(app);
+    const ping = await agent.get('/api/servers');
+    csrfNonce = ping.get('X-CSRF-Token');
+
+    // Build a temp server we can write scripts into so we don't accidentally
+    // touch a real server's installDir during the test run.
+    installDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h8-server-'));
+    fs.mkdirSync(path.join(installDir, 'lifecycle_hooks'), { recursive: true });
+    serverId = 'h8-test-server';
+    ctx.servers.push({ id: serverId, name: 'H8 Test', installDir });
+
+    // Two test roles: one with files.edit + files.edit-scripts (allowed),
+    // one with only files.edit (blocked by the new gate).
+    ctx.roles.push({
+      id: 'h8-script-writer',
+      name: 'H8 Script Writer',
+      permissions: ['files.edit', 'files.edit-scripts', 'server.view'],
+    });
+    ctx.roles.push({
+      id: 'h8-config-only',
+      name: 'H8 Config Only',
+      permissions: ['files.edit', 'server.view'],
+    });
+
+    // Two test users sharing the same installDir.
+    const u1 = { id: 'h8-u1', username: 'h8scripts', role: 'h8-script-writer', passwordHash: '$2a$10$fake' };
+    const u2 = { id: 'h8-u2', username: 'h8config', role: 'h8-config-only', passwordHash: '$2a$10$fake' };
+    ctx.users.push(u1, u2);
+
+    tokenScriptOnly = jwt.sign({ id: u2.id, username: u2.username, role: u2.role }, process.env.JWT_SECRET, { expiresIn: '5m' });
+    tokenWildcard = jwt.sign({ id: u1.id, username: u1.username, role: u1.role }, process.env.JWT_SECRET, { expiresIn: '5m' });
+  });
+
+  afterAll(() => {
+    ctx.servers = ctx.servers.filter(s => s.id !== serverId);
+    ctx.users = ctx.users.filter(u => u.id !== 'h8-u1' && u.id !== 'h8-u2');
+    ctx.roles = ctx.roles.filter(r => r.id !== 'h8-script-writer' && r.id !== 'h8-config-only');
+    try { fs.rmSync(installDir, { recursive: true, force: true }); } catch { /* best effort */ }
+  });
+
+  it('should allow .cfg writes for files.edit users (no script-perm needed)', async () => {
+    const res = await agent
+      .put(`/api/servers/${serverId}/files/write`)
+      .set('Authorization', `Bearer ${tokenScriptOnly}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ file: 'test.cfg', content: 'hello = world;' });
+    expect(res.status).toBe(200);
+  });
+
+  it('should reject .ps1 writes when role lacks files.edit-scripts', async () => {
+    const res = await agent
+      .put(`/api/servers/${serverId}/files/write`)
+      .set('Authorization', `Bearer ${tokenScriptOnly}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ file: 'lifecycle_hooks/lifecycle.pre-start.ps1', content: 'Write-Host "hi"' });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/files\.edit-scripts/);
+  });
+
+  it('should reject .ps1 writes outside lifecycle_hooks/ even with files.edit-scripts', async () => {
+    const res = await agent
+      .put(`/api/servers/${serverId}/files/write`)
+      .set('Authorization', `Bearer ${tokenWildcard}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ file: 'evil.ps1', content: 'Write-Host "pwn"' });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/lifecycle_hooks/);
+  });
+
+  it('should accept .ps1 writes inside lifecycle_hooks/ with files.edit-scripts', async () => {
+    const res = await agent
+      .put(`/api/servers/${serverId}/files/write`)
+      .set('Authorization', `Bearer ${tokenWildcard}`)
+      .set('X-CSRF-Token', csrfNonce)
+      .send({ file: 'lifecycle_hooks/lifecycle.pre-start.ps1', content: 'Write-Host "hi"' });
+    expect(res.status).toBe(200);
+    // Verify the file actually landed where the gate said it must.
+    expect(fs.existsSync(path.join(installDir, 'lifecycle_hooks', 'lifecycle.pre-start.ps1'))).toBe(true);
+  });
+});
+
 describe('API: Password Policy Enforcement', () => {
   const testAdminId = 'test-admin-for-jest';
   let csrfToken = '';

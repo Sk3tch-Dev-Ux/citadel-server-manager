@@ -19,14 +19,57 @@ const SAFE_WRITE_EXTENSIONS = new Set([
   '.xml',                 // XML configs
   '.json',                // JSON configs
   '.ini', '.txt',         // Text configs
-  '.c', '.h', '.cpp', '.hpp', '.js.bak', // Source code (read-only in editor)
-  '.bat', '.cmd', '.ps1', // Batch scripts (dangerous, but sometimes needed)
-  '.sh',                  // Shell scripts
+  '.c', '.h', '.cpp', '.hpp', // Source code (read-only in editor; .js.bak typo
+                              // removed — path.extname() returns '.bak' for
+                              // foo.js.bak so the entry never matched anyway).
+  '.bat', '.cmd', '.ps1', // Batch scripts — gated by files.edit-scripts +
+  '.sh',                  // lifecycle_hooks/ path constraint, see below.
   '.md', '.log'           // Documentation
 ]);
 
+// Audit H8. Subset of SAFE_WRITE_EXTENSIONS that is auto-executed by
+// lib/lifecycle-hooks.js when placed under installDir/lifecycle_hooks/.
+// A user with plain 'files.edit' permission can write any other allowed
+// file (.cfg, .xml, .json, etc.) but writing one of these is privilege
+// escalation — they end up running as the backend's process identity
+// (typically LOCAL SYSTEM under NSSM). So we additionally require:
+//   1. The user's role grants 'files.edit-scripts' (or '*').
+//   2. The destination path is inside the server's lifecycle_hooks/ dir.
+// Both checks must pass; otherwise the write is refused with a 403.
+const SCRIPT_EXTENSIONS = new Set(['.bat', '.cmd', '.ps1', '.sh']);
+const HOOKS_DIRNAME = 'lifecycle_hooks';
+
 // Maximum file size for writes (10 MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+/**
+ * Look up a user's resolved permission set. Returns true if they have '*'
+ * or the specific permission. Mirrors the lookup pattern in
+ * middleware/auth.js so we don't duplicate role-resolution logic that
+ * could drift.
+ */
+function userHasPermission(userId, perm) {
+  const user = ctx.users.find(u => u.id === userId);
+  if (!user) return false;
+  const role = ctx.roles.find(r => r.id === user.role);
+  if (!role || !Array.isArray(role.permissions)) return false;
+  return role.permissions.includes('*') || role.permissions.includes(perm);
+}
+
+/**
+ * Is a resolved (already safePath-validated) absolute file path inside
+ * the server's lifecycle_hooks directory? Compare on lower-cased prefix
+ * with the OS separator so 'lifecycle_hooks_evil/foo.ps1' can't sneak in
+ * as a sibling-prefix. (Same shape as the audit C2 fix to safePath.)
+ */
+function isInsideLifecycleHooks(installDir, resolvedPath) {
+  const hooksDir = path.join(installDir, HOOKS_DIRNAME);
+  // Use path.sep to match safePath()'s comparison style on the host. The
+  // resolvedPath returned by safePath() always uses native separators.
+  const prefix = hooksDir.endsWith(path.sep) ? hooksDir : hooksDir + path.sep;
+  return resolvedPath === hooksDir
+    || resolvedPath.toLowerCase().startsWith(prefix.toLowerCase());
+}
 
 module.exports = function(app) {
   app.get('/api/servers/:id/files', authForServer('files.browse'), async (req, res) => {
@@ -105,12 +148,45 @@ module.exports = function(app) {
 
     const filePath = safePath(srv.installDir, file);
     if (!filePath) return res.status(403).json({ error: 'Access denied' });
+
+    // Audit H8 — script gate. Writing an auto-executed script
+    // (.bat / .cmd / .ps1 / .sh) is privilege escalation: the file gets
+    // run as the backend's process identity (typically LOCAL SYSTEM under
+    // NSSM) by lib/lifecycle-hooks.js. Two extra checks beyond plain
+    // files.edit:
+    //   1. Role must grant files.edit-scripts (or wildcard '*').
+    //   2. The destination MUST resolve inside <installDir>/lifecycle_hooks/.
+    // Both are required; either alone is not sufficient.
+    if (SCRIPT_EXTENSIONS.has(ext)) {
+      if (!userHasPermission(req.user.id, 'files.edit-scripts')) {
+        logger.warn({ userId: req.user.id, file, ext }, 'Script write denied — missing files.edit-scripts');
+        addAudit(req.user.id, req.user.username, 'file.write-blocked',
+          `Blocked script write to ${file} (extension ${ext}, role lacks files.edit-scripts)`);
+        return res.status(403).json({
+          error: `Writing ${ext} files requires the 'files.edit-scripts' permission. ` +
+                 `Grant it to your role in Settings → Users & Roles.`,
+        });
+      }
+      if (!isInsideLifecycleHooks(srv.installDir, filePath)) {
+        logger.warn({ userId: req.user.id, file, resolved: filePath }, 'Script write denied — outside lifecycle_hooks/');
+        addAudit(req.user.id, req.user.username, 'file.write-blocked',
+          `Blocked script write to ${file} (extension ${ext}, outside lifecycle_hooks/)`);
+        return res.status(403).json({
+          error: `${ext} files can only be written inside the server's lifecycle_hooks/ directory. ` +
+                 `Place this file under lifecycle_hooks/ to opt in to auto-execution by the lifecycle hook system.`,
+        });
+      }
+    }
+
     try {
       const bd = path.join(srv.installDir, '.backups');
       if (!fs.existsSync(bd)) fs.mkdirSync(bd, { recursive: true });
       if (fs.existsSync(filePath)) fs.copyFileSync(filePath, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`));
       fs.writeFileSync(filePath, content);
-      addAudit(req.user.id, req.user.username, 'file.edit', `Edited ${file} on ${srv.name}`);
+      // Differentiate audit entries so a security-minded operator can grep
+      // their audit log for script writes specifically.
+      const action = SCRIPT_EXTENSIONS.has(ext) ? 'file.edit-script' : 'file.edit';
+      addAudit(req.user.id, req.user.username, action, `Edited ${file} on ${srv.name}`);
       res.json({ message: 'Saved' });
     } catch (err) {
       logger.error({ err, file }, 'File write error');
