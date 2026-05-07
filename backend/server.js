@@ -46,7 +46,42 @@ ctx.roles = loadJSON(CONFIG.dataDir, 'roles.json', [
   { id: 'admin', name: 'Admin', permissions: ['*'], color: '#ff3b3b', builtIn: true },
   { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','bans.manage','priority.manage','mods.view','logs.view','metrics.view','chat.send','messenger.manage'], color: '#3b82f6', builtIn: true },
   { id: 'viewer', name: 'Viewer', permissions: ['server.view','players.view','mods.view','logs.view','metrics.view'], color: '#00ff6a', builtIn: true },
+  // Audit H6 Layer 1. The Discord bot's API key used to grant unrestricted
+  // access to every action in /api/discord/action — anyone with the key
+  // could /restart, /rcon, /ban, etc. without a role check. We now gate
+  // each action against this synthetic role's permissions.
+  //
+  // Default permissions are '*' so existing deployments are unchanged on
+  // upgrade. Operators can narrow the role's permissions in the role
+  // editor (Settings → Users & Roles) without a code change. For example:
+  //
+  //   permissions: ['server.view','server.restart','players.view','players.kick','chat.send']
+  //
+  // …would let the Discord bot show status, run a restart, kick a player,
+  // and broadcast to chat — but block /rcon, /ban, world wipes, etc.
+  { id: 'discord-bot', name: 'Discord Bot', permissions: ['*'], color: '#5865F2', builtIn: true, description: 'Permissions granted to /api/discord/action calls. Narrow this role to limit what the bot can do.' },
 ]);
+// Back-fill the discord-bot role for installs that pre-date this change.
+// The role being missing means the gate would always fail closed and the
+// bot would stop working entirely — match the safe behavior (initial '*')
+// so an upgrade is non-breaking.
+if (!ctx.roles.find(r => r.id === 'discord-bot')) {
+  ctx.roles.push({
+    id: 'discord-bot',
+    name: 'Discord Bot',
+    permissions: ['*'],
+    color: '#5865F2',
+    builtIn: true,
+    description: 'Permissions granted to /api/discord/action calls. Narrow this role to limit what the bot can do.',
+  });
+  // Persist so the new role shows up in the role editor immediately.
+  try {
+    require('./lib/data-store').saveJSON(CONFIG.dataDir, 'roles.json', ctx.roles);
+    logger.info('Back-filled built-in "discord-bot" role into roles.json');
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Failed to persist back-filled discord-bot role');
+  }
+}
 ctx.webhooks = loadJSON(CONFIG.dataDir, 'webhooks.json', []);
 ctx.auditLog = loadJSON(CONFIG.dataDir, 'audit.json', []);
 ctx.watchList = loadJSON(CONFIG.dataDir, 'watchlist.json', []);

@@ -272,6 +272,63 @@ describe('API: Rate Limiting', () => {
   });
 });
 
+// Audit H6 Layer 1: every Discord-bot call now passes through the
+// 'discord-bot' role's permission gate before being dispatched. Default
+// role grants '*' so existing deployments keep working; narrowing the
+// role makes denied actions return 403 with a useful error.
+describe('API: Discord bot role gate', () => {
+  const ctx = require('./lib/context');
+
+  beforeAll(() => {
+    process.env.DISCORD_BOT_API_KEY = process.env.DISCORD_BOT_API_KEY || 'test-discord-key';
+  });
+
+  it('should default-allow read actions when role has [*]', async () => {
+    // Ensure role is at default (* permissions). The boot-time back-fill
+    // in server.js inserts this role with '*' on cold start.
+    const role = ctx.roles.find(r => r.id === 'discord-bot');
+    expect(role).toBeDefined();
+    expect(role.permissions).toContain('*');
+
+    const res = await request(app)
+      .post('/api/discord/action')
+      .set('Authorization', `Bearer ${process.env.DISCORD_BOT_API_KEY}`)
+      .send({ action: 'servers' });
+    // 200 (servers list) or 500-from-internal-state — but NOT 403.
+    // We just want to prove the gate didn't reject.
+    expect(res.status).not.toBe(403);
+  });
+
+  it('should reject actions when discord-bot role is narrowed to exclude them', async () => {
+    const role = ctx.roles.find(r => r.id === 'discord-bot');
+    const original = [...role.permissions];
+    // Narrow to view-only — restart should be denied.
+    role.permissions = ['server.view'];
+
+    try {
+      const res = await request(app)
+        .post('/api/discord/action')
+        .set('Authorization', `Bearer ${process.env.DISCORD_BOT_API_KEY}`)
+        .send({ action: 'restart' });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toMatch(/discord-bot.*role/);
+      expect(res.body.error).toMatch(/server\.restart/);
+    } finally {
+      // Restore so other tests aren't affected.
+      role.permissions = original;
+    }
+  });
+
+  it('should still reject invalid actions before checking role permissions', async () => {
+    const res = await request(app)
+      .post('/api/discord/action')
+      .set('Authorization', `Bearer ${process.env.DISCORD_BOT_API_KEY}`)
+      .send({ action: 'definitely-not-a-valid-action' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Invalid action/);
+  });
+});
+
 describe('API: Password Policy Enforcement', () => {
   const testAdminId = 'test-admin-for-jest';
   let csrfToken = '';

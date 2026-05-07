@@ -27,6 +27,76 @@ const ALLOWED_ACTIONS = [
   'servers',
 ];
 
+/**
+ * Audit H6 Layer 1. Map each Discord-bot action to the Citadel permission
+ * required to invoke it. Permissions match the same vocabulary used by
+ * authForServer() across the rest of the routes (server.view, server.start,
+ * players.kick, etc.) so an operator who narrows the discord-bot role does
+ * so with familiar names.
+ *
+ * Read-only actions (servers/status/players/playerInfo/etc.) require the
+ * baseline 'server.view' so a fully-restricted bot can still answer "is the
+ * server up?" but can't push state. Mutating actions require the matching
+ * write permission. This is the FLOOR for the discord-bot role; an operator
+ * who wants finer control can narrow further (e.g. drop server.rcon to
+ * disable in-game admin actions while keeping start/stop/restart).
+ */
+const ACTION_PERMISSIONS = Object.freeze({
+  // Read-only / informational
+  status:        'server.view',
+  servers:       'server.view',
+  players:       'players.view',
+  playerInfo:    'players.view',
+  watchList:     'players.view',
+  mods:          'mods.view',
+  modStatus:     'mods.view',
+  chatFeed:      'logs.view',
+  killfeed:      'logs.view',
+  leaderboard:   'metrics.view',
+  timeWeather:   'server.view',
+  banWhitelist:  'bans.manage',     // can read AND modify the ban list
+  priorityQueue: 'priority.manage', // ditto for priority queue
+  // Server lifecycle
+  start:         'server.start',
+  stop:          'server.stop',
+  restart:       'server.restart',
+  // RCON-style server actions
+  lock:          'server.rcon',
+  unlock:        'server.rcon',
+  rcon:          'server.rcon',
+  message:       'server.rcon',
+  // Player moderation
+  kick:          'players.kick',
+  // Mod management
+  modInstall:    'mods.install',
+  modUninstall:  'mods.install',
+  modEnable:     'mods.install',
+  modDisable:    'mods.install',
+  // In-game admin actions (CitadelAdmin / sidecar provider)
+  actionHeal:    'server.rcon',
+  actionKill:    'server.rcon',
+  actionTeleport: 'server.rcon',
+  actionSpawnItem: 'server.rcon',
+  actionUnstuck: 'server.rcon',
+  actionFreeze:  'server.rcon',
+  actionStrip:   'server.rcon',
+  actionExplode: 'server.rcon',
+  actionMessage: 'server.rcon',
+});
+
+/** Look up the discord-bot role's permission list. Falls open with '*' if
+ *  the role is missing for any reason — matches the back-fill in server.js. */
+function discordBotRolePermissions() {
+  const role = ctx.roles.find(r => r.id === 'discord-bot');
+  return Array.isArray(role?.permissions) ? role.permissions : ['*'];
+}
+
+function botRoleHasPermission(perm) {
+  const perms = discordBotRolePermissions();
+  if (perms.includes('*')) return true;
+  return perms.includes(perm);
+}
+
 module.exports = function(app) {
   app.post('/api/discord/action', async (req, res) => {
     const { action, params } = req.body;
@@ -51,6 +121,24 @@ module.exports = function(app) {
     }
     if (!action || !ALLOWED_ACTIONS.includes(action)) {
       return res.status(400).json({ error: `Invalid action: ${sanitizeString(String(action || ''))}` });
+    }
+
+    // Audit H6 Layer 1 — enforce the discord-bot role's permission floor.
+    // Default role grants '*' so this is non-breaking; once an operator
+    // narrows the role (Settings → Users & Roles), denied actions return
+    // 403 here instead of being executed.
+    const requiredPerm = ACTION_PERMISSIONS[action];
+    if (requiredPerm && !botRoleHasPermission(requiredPerm)) {
+      // Best-effort audit so a denied action is visible to operators
+      // tracking why the bot stopped working after a role tightening.
+      try {
+        const { addAudit } = require('../lib/audit');
+        addAudit('bot', 'Discord Bot', 'discord.denied', `Action '${action}' denied by discord-bot role (needs ${requiredPerm})`);
+      } catch { /* best-effort */ }
+      return res.status(403).json({
+        error: `Action '${action}' is not allowed by the current 'discord-bot' role. ` +
+               `Grant '${requiredPerm}' to the role or restore '*' in Settings → Users & Roles.`,
+      });
     }
 
     // Discord user attribution from bot
