@@ -70,8 +70,16 @@ module.exports = function(app) {
     // hash precomputed at module load — see top of file for rationale.
     const hashToCompare = user ? user.passwordHash : DUMMY_HASH;
 
-    // Brute-force lockout
-    const key = (username || '').toLowerCase();
+    // Audit M12: lockout key is namespaced by client IP so an attacker
+    // who knows a victim's username cannot lock that account by spamming
+    // bad-password attempts from arbitrary IPs. Attempts from the same IP
+    // still get counted normally; per-IP global brute-force is also
+    // throttled by fail2ban (recordLoginFailure below), so the union of
+    // these two defenses covers same-IP-and-username, same-IP-many-users,
+    // and many-IPs-same-user.
+    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const usernameKey = (username || '').toLowerCase();
+    const key = `${clientIp}|${usernameKey}`;
     const now = Date.now();
     if (!loginAttempts[key]) loginAttempts[key] = { count: 0, last: 0, lockedUntil: 0 };
     if (loginAttempts[key].lockedUntil > now) {
@@ -79,13 +87,12 @@ module.exports = function(app) {
     }
 
     const valid = await bcrypt.compare(password || '', hashToCompare);
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
     if (!user || !valid) {
       loginAttempts[key].count++;
       loginAttempts[key].last = now;
       if (loginAttempts[key].count >= MAX_ATTEMPTS) {
         loginAttempts[key].lockedUntil = now + LOCK_TIME;
-        logger.warn({ username: key }, 'Account locked due to failed login attempts');
+        logger.warn({ ip: clientIp, username: usernameKey }, 'Account locked due to failed login attempts (per-IP)');
       }
       saveJSON(ctx.CONFIG.dataDir, 'lockouts.json', loginAttempts);
       // Record IP-level failure for fail2ban
