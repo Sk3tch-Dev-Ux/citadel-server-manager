@@ -42,43 +42,11 @@ module.exports = function(app) {
     }
   });
 
-  // ─── Heal Player ──────────────────────────────────────
-  app.post('/api/servers/:id/actions/heal', authForServer('server.rcon'), async (req, res) => {
-    const { steamId } = req.body;
-    if (!steamId) return res.status(400).json({ error: 'steamId required' });
-
-    const session = findSession(req.params.id, steamId);
-    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
-
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.HEAL_PLAYER);
-      await provider.healPlayer(req.params.id, session);
-      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.HEAL_PLAYER],
-        `Healed ${session.playerName}`);
-      res.json({ message: `Healed ${session.playerName}` });
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  // ─── Kill Player ──────────────────────────────────────
-  app.post('/api/servers/:id/actions/kill', authForServer('server.rcon'), async (req, res) => {
-    const { steamId } = req.body;
-    if (!steamId) return res.status(400).json({ error: 'steamId required' });
-
-    const session = findSession(req.params.id, steamId);
-    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
-
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.KILL_PLAYER);
-      await provider.killPlayer(req.params.id, session);
-      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.KILL_PLAYER],
-        `Killed ${session.playerName}`);
-      res.json({ message: `Killed ${session.playerName}` });
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
+  // ─── Heal / Kill ──────────────────────────────────────
+  // Migrated to the table-driven playerRoute helper defined later in
+  // this file (audit L23). Behavior unchanged except the audit message
+  // now falls back to session.name when session.playerName is missing,
+  // matching the rest of the player-action endpoints.
 
   // ─── Teleport Player ─────────────────────────────────
   app.post('/api/servers/:id/actions/teleport', authForServer('server.rcon'), async (req, res) => {
@@ -118,24 +86,7 @@ module.exports = function(app) {
     }
   });
 
-  // ─── Unstuck Player ─────────────────────────────────
-  app.post('/api/servers/:id/actions/unstuck', authForServer('server.rcon'), async (req, res) => {
-    const { steamId } = req.body;
-    if (!steamId) return res.status(400).json({ error: 'steamId required' });
-
-    const session = findSession(req.params.id, steamId);
-    if (!session) return res.status(404).json({ error: 'Player not found in active sessions' });
-
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.UNSTUCK_PLAYER);
-      await provider.unstuckPlayer(req.params.id, session);
-      addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.UNSTUCK_PLAYER],
-        `Unstuck ${session.playerName || session.name}`);
-      res.json({ message: `Unstuck ${session.playerName || session.name}` });
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
+  // ─── Unstuck — migrated to playerRoute (audit L23) ──
 
   // ─── Freeze Player ─────────────────────────────────
   app.post('/api/servers/:id/actions/freeze', authForServer('server.rcon'), async (req, res) => {
@@ -461,7 +412,38 @@ module.exports = function(app) {
     });
   }
 
+  // ─── Helper: data/query GET route (audit L23) ─────────
+  // Most data/* GETs follow the same shape: dispatch a read on the
+  // provider and return its JSON. Variants:
+  //   dataRoute(app, slug, perm, actionType, method)
+  //                                              → provider[method](serverId)
+  //   dataRoute(app, slug, perm, actionType, method, argsFn)
+  //                                              → provider[method](serverId, ...argsFn(req))
+  //
+  // The slug can include Express path parameters (e.g. 'player-info/:steamId');
+  // the argsFn receives the req so it can pull from params/query as needed.
+  function dataRoute(app, slug, perm, actionType, providerMethod, argsFn) {
+    app.get(`/api/servers/:id/actions/data/${slug}`, authForServer(perm), async (req, res) => {
+      try {
+        const provider = getProviderForAction(req.params.id, actionType);
+        const extra = argsFn ? argsFn(req) : [];
+        const data = await provider[providerMethod](req.params.id, ...extra);
+        res.json(data);
+      } catch (err) {
+        safeError(err, req, res, { status: 500 });
+      }
+    });
+  }
+
   // Player — Health/Status (simple)
+  // Audit L23: heal/kill/unstuck migrated from hand-rolled handlers
+  // earlier in this file (now removed) into the same table-driven
+  // helper. Strip/explode are NOT here because their provider methods
+  // take raw steamId rather than the session object — different
+  // signature, can't fit this helper cleanly without bending it.
+  playerRoute(app, 'heal',           ActionType.HEAL_PLAYER,        'healPlayer',       'Healed');
+  playerRoute(app, 'kill',           ActionType.KILL_PLAYER,        'killPlayer',       'Killed');
+  playerRoute(app, 'unstuck',        ActionType.UNSTUCK_PLAYER,     'unstuckPlayer',    'Unstuck');
   playerRoute(app, 'dry',            ActionType.DRY_PLAYER,         'dryPlayer',        'Dried');
   playerRoute(app, 'break-legs',     ActionType.BREAK_LEGS,         'breakLegs',        'Broke legs of');
   playerRoute(app, 'cure',           ActionType.CURE_PLAYER,        'curePlayer',       'Cured');
@@ -984,86 +966,43 @@ module.exports = function(app) {
   });
 
   // ─── Data / Query Actions ─────────────────────────────
+  // Audit L23 — collapsed from 22 hand-rolled GET handlers to a
+  // table-driven definition. Every entry below dispatches a read on
+  // the provider and returns its JSON. The argsFn callback assembles
+  // any URL-param / query-string args after serverId.
 
-  app.get('/api/servers/:id/actions/data/online-players', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_ONLINE_PLAYERS);
-      const data = await provider.getOnlinePlayers(req.params.id);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
+  // No-arg reads.
+  dataRoute(app, 'online-players',     'players.view', ActionType.GET_ONLINE_PLAYERS,     'getOnlinePlayers');
+  dataRoute(app, 'all-players',        'players.view', ActionType.GET_ALL_PLAYERS,        'getAllPlayers');
+  dataRoute(app, 'server-info',        'server.view',  ActionType.GET_SERVER_INFO,        'getServerInfo');
+  dataRoute(app, 'all-storage-objects', 'server.view', ActionType.GET_ALL_STORAGE_OBJECTS, 'getAllStorageObjects');
+  dataRoute(app, 'bans',               'players.ban',  ActionType.GET_BANS,               'getBans');
 
-  app.get('/api/servers/:id/actions/data/all-players', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_ALL_PLAYERS);
-      const data = await provider.getAllPlayers(req.params.id);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
+  // SteamId-in-URL reads.
+  dataRoute(app, 'player-position/:steamId',  'players.view', ActionType.GET_PLAYER_POSITION,    'getPlayerPosition',  r => [r.params.steamId]);
+  dataRoute(app, 'player-info/:steamId',      'players.view', ActionType.GET_PLAYER_INFO,        'getPlayerInfo',      r => [r.params.steamId]);
+  dataRoute(app, 'player-gear/:steamId',      'players.view', ActionType.GET_PLAYER_GEAR,        'getPlayerGear',      r => [r.params.steamId]);
+  dataRoute(app, 'player-inventory/:steamId', 'players.view', ActionType.GET_PLAYER_INVENTORY,   'getPlayerInventory', r => [r.params.steamId]);
+  dataRoute(app, 'player-stats/:steamId',     'players.view', ActionType.GET_PLAYER_STATS,       'getPlayerStats',     r => [r.params.steamId]);
+  dataRoute(app, 'player-gear-full/:steamId', 'players.view', ActionType.GET_PLAYER_GEAR_FULL,   'getPlayerGearFull',  r => [r.params.steamId]);
+  dataRoute(app, 'player-hands/:steamId',     'players.view', ActionType.GET_PLAYER_HANDS_DATA,  'getPlayerHandsData', r => [r.params.steamId]);
 
-  app.get('/api/servers/:id/actions/data/server-info', authForServer('server.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_SERVER_INFO);
-      const data = await provider.getServerInfo(req.params.id);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
+  // SteamId + radius reads.
+  dataRoute(app, 'nearby-vehicles/:steamId', 'server.view',  ActionType.GET_NEARBY_VEHICLES, 'getNearbyVehicles', r => [r.params.steamId, r.query.radius]);
+  dataRoute(app, 'vehicle-info/:steamId',    'server.view',  ActionType.GET_VEHICLE_INFO,    'getVehicleInfo',    r => [r.params.steamId, r.query.radius]);
+  dataRoute(app, 'base-objects/:steamId',    'server.view',  ActionType.GET_BASE_OBJECTS,    'getBaseObjects',    r => [r.params.steamId, r.query.radius]);
+  dataRoute(app, 'nearby-players/:steamId',  'players.view', ActionType.GET_NEARBY_PLAYERS,  'getNearbyPlayers',  r => [r.params.steamId, r.query.radius]);
+  dataRoute(app, 'nearby-loot/:steamId',     'server.view',  ActionType.GET_NEARBY_LOOT,     'getNearbyLoot',     r => [r.params.steamId, r.query.radius, r.query.limit]);
+  dataRoute(app, 'nearby-entities/:steamId', 'server.view',  ActionType.GET_NEARBY_ENTITIES, 'getNearbyEntities', r => [r.params.steamId, r.query.radius]);
 
-  app.get('/api/servers/:id/actions/data/player-position/:steamId', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_POSITION);
-      const data = await provider.getPlayerPosition(req.params.id, req.params.steamId);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
+  // Item lookup by persistentId.
+  dataRoute(app, 'item-details/:persistentId', 'server.view', ActionType.GET_ITEM_DETAILS, 'getItemDetails', r => [r.params.persistentId]);
 
-  app.get('/api/servers/:id/actions/data/player-info/:steamId', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_INFO);
-      const data = await provider.getPlayerInfo(req.params.id, req.params.steamId);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/player-gear/:steamId', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_GEAR);
-      const data = await provider.getPlayerGear(req.params.id, req.params.steamId);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/player-inventory/:steamId', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_INVENTORY);
-      const data = await provider.getPlayerInventory(req.params.id, req.params.steamId);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/player-stats/:steamId', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_STATS);
-      const data = await provider.getPlayerStats(req.params.id, req.params.steamId);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
+  // ─── Special-case data routes (don't fit dataRoute) ──
+  // player-full has a fire-and-forget snapshot side effect for the
+  // forensic profile store. nearby-entities-at and nearby-loot-at take
+  // ad-hoc coords (no steamId). storage-contents has 3 query params.
+  // These stay hand-written so the special behavior is explicit.
 
   app.get('/api/servers/:id/actions/data/player-full/:steamId', authForServer('players.view'), async (req, res) => {
     try {
@@ -1084,110 +1023,10 @@ module.exports = function(app) {
     }
   });
 
-  app.get('/api/servers/:id/actions/data/player-gear-full/:steamId', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_GEAR_FULL);
-      const data = await provider.getPlayerGearFull(req.params.id, req.params.steamId);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/player-hands/:steamId', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_PLAYER_HANDS_DATA);
-      const data = await provider.getPlayerHandsData(req.params.id, req.params.steamId);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/nearby-vehicles/:steamId', authForServer('server.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_VEHICLES);
-      const data = await provider.getNearbyVehicles(req.params.id, req.params.steamId, req.query.radius);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/vehicle-info/:steamId', authForServer('server.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_VEHICLE_INFO);
-      const data = await provider.getVehicleInfo(req.params.id, req.params.steamId, req.query.radius);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/item-details/:persistentId', authForServer('server.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_ITEM_DETAILS);
-      const data = await provider.getItemDetails(req.params.id, req.params.persistentId);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/base-objects/:steamId', authForServer('server.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_BASE_OBJECTS);
-      const data = await provider.getBaseObjects(req.params.id, req.params.steamId, req.query.radius);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
   app.get('/api/servers/:id/actions/data/storage-contents', authForServer('server.view'), async (req, res) => {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_STORAGE_CONTENTS);
       const data = await provider.getStorageContents(req.params.id, req.query.persistentId, req.query.steamId, req.query.position);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/all-storage-objects', authForServer('server.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_ALL_STORAGE_OBJECTS);
-      const data = await provider.getAllStorageObjects(req.params.id);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/nearby-players/:steamId', authForServer('players.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_PLAYERS);
-      const data = await provider.getNearbyPlayers(req.params.id, req.params.steamId, req.query.radius);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/nearby-loot/:steamId', authForServer('server.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_LOOT);
-      const data = await provider.getNearbyLoot(req.params.id, req.params.steamId, req.query.radius, req.query.limit);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/nearby-entities/:steamId', authForServer('server.view'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_ENTITIES);
-      const data = await provider.getNearbyEntities(req.params.id, req.params.steamId, req.query.radius);
       res.json(data);
     } catch (err) {
       safeError(err, req, res, { status: 500 });
@@ -1212,16 +1051,6 @@ module.exports = function(app) {
     try {
       const provider = getProviderForAction(req.params.id, ActionType.GET_NEARBY_LOOT_AT);
       const data = await provider.getNearbyLootAt(req.params.id, coords, radius);
-      res.json(data);
-    } catch (err) {
-      safeError(err, req, res, { status: 500 });
-    }
-  });
-
-  app.get('/api/servers/:id/actions/data/bans', authForServer('players.ban'), async (req, res) => {
-    try {
-      const provider = getProviderForAction(req.params.id, ActionType.GET_BANS);
-      const data = await provider.getBans(req.params.id);
       res.json(data);
     } catch (err) {
       safeError(err, req, res, { status: 500 });
