@@ -1,0 +1,6 @@
+{
+  "id": "tpl-contaminatedarea-pavlovo-north",
+  "name": "ContaminatedArea_Pavlovo-North",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"Weight\": \"number\",\n  \"MissionMaxTime\": \"number\",\n  \"MissionName\": \"string\",\n  \"Difficulty\": \"number\",\n  \"Objective\": \"number\",\n  \"Reward\": \"string\",\n  \"Data\": {\n    \"Pos\": \"string\",\n    \"Radius\": \"number\",\n    \"PosHeight\": \"number\",\n    \"NegHeight\": \"number\",\n    \"InnerRingCount\": \"number\",\n    \"InnerPartDist\": \"number\",\n    \"OuterRingToggle\": \"number\",\n    \"OuterPartDist\": \"number\",\n    \"OuterOffset\": \"number\",\n    \"VerticalLayers\": \"number\",\n    \"VerticalOffset\": \"number\",\n    \"ParticleName\": \"string\"\n  },\n  \"PlayerData\": {\n    \"AroundPartName\": \"string\",\n    \"TinyPartName\": \"string\",\n    \"PPERequesterType\": \"string\"\n  },\n  \"StartDecayLifetime\": \"number\",\n  \"FinishDecayLifetime\": \"number\"\n}",
+  "description": "Auto-generated validation template for ContaminatedArea_Pavlovo-North"
+}

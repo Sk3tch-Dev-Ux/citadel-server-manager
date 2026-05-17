@@ -1,0 +1,230 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ContaminatedArea_Pavlovo-North",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-missions",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/missions/ContaminatedArea_Pavlovo-North.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "Enabled": {
+      "description": "Enable or disable d",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "Weight": {
+      "description": "Weight. Range: 0–100",
+      "examples": [
+        "3"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "MissionMaxTime": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "900"
+      ],
+      "type": "integer",
+      "default": 900
+    },
+    "MissionName": {
+      "description": "Mission name",
+      "examples": [
+        "\"Pavlovo-North\""
+      ],
+      "type": "string",
+      "default": "Pavlovo-North"
+    },
+    "Difficulty": {
+      "description": "Difficulty selector (0–5)",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "Objective": {
+      "description": "Objective",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "Reward": {
+      "description": "Reward",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "default": ""
+    },
+    "Data": {
+      "description": "Data",
+      "type": "object",
+      "properties": {
+        "Pos": {
+          "description": "Pos",
+          "examples": [
+            "2043, 0, 3485"
+          ],
+          "type": "string",
+          "format": "vector3",
+          "default": "2043, 0, 3485"
+        },
+        "Radius": {
+          "description": "Radius (default: 150)",
+          "examples": [
+            "150"
+          ],
+          "type": "integer",
+          "default": 150
+        },
+        "PosHeight": {
+          "description": "Pos height (default: 25)",
+          "examples": [
+            "25"
+          ],
+          "type": "integer",
+          "default": 25
+        },
+        "NegHeight": {
+          "description": "Neg height (default: 20)",
+          "examples": [
+            "20"
+          ],
+          "type": "integer",
+          "default": 20
+        },
+        "InnerRingCount": {
+          "description": "Inner ring count (default: 2)",
+          "examples": [
+            "2"
+          ],
+          "type": "integer",
+          "default": 2
+        },
+        "InnerPartDist": {
+          "description": "Inner part dist",
+          "examples": [
+            "50"
+          ],
+          "type": "integer",
+          "default": 50
+        },
+        "OuterRingToggle": {
+          "description": "Outer ring toggle",
+          "examples": [
+            "1"
+          ],
+          "type": "integer",
+          "default": 1
+        },
+        "OuterPartDist": {
+          "description": "Outer part dist",
+          "examples": [
+            "40"
+          ],
+          "type": "integer",
+          "default": 40
+        },
+        "OuterOffset": {
+          "description": "Outer offset (default: 0)",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "default": 0
+        },
+        "VerticalLayers": {
+          "description": "Vertical layers",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "default": 0
+        },
+        "VerticalOffset": {
+          "description": "Vertical offset (default: 0)",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "default": 0
+        },
+        "ParticleName": {
+          "description": "Particle name",
+          "examples": [
+            "\"graphics/particles/contaminated_area_gas_bigass\""
+          ],
+          "type": "string",
+          "default": "graphics/particles/contaminated_area_gas_bigass"
+        }
+      },
+      "default": {}
+    },
+    "PlayerData": {
+      "description": "Player data",
+      "type": "object",
+      "properties": {
+        "AroundPartName": {
+          "description": "Around part name",
+          "examples": [
+            "\"graphics/particles/contaminated_area_gas_around\""
+          ],
+          "type": "string",
+          "default": "graphics/particles/contaminated_area_gas_around"
+        },
+        "TinyPartName": {
+          "description": "Tiny part name",
+          "examples": [
+            "\"graphics/particles/contaminated_area_gas_around_tiny\""
+          ],
+          "type": "string",
+          "default": "graphics/particles/contaminated_area_gas_around_tiny"
+        },
+        "PPERequesterType": {
+          "description": "DayZ classname (e.g. \"PPERequester_ContaminatedAreaTint\")",
+          "examples": [
+            "\"PPERequester_ContaminatedAreaTint\""
+          ],
+          "type": "string",
+          "format": "dayz-classname",
+          "default": "PPERequester_ContaminatedAreaTint"
+        }
+      },
+      "default": {}
+    },
+    "StartDecayLifetime": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "600"
+      ],
+      "type": "integer",
+      "default": 600
+    },
+    "FinishDecayLifetime": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "300"
+      ],
+      "type": "integer",
+      "default": 300
+    }
+  }
+}

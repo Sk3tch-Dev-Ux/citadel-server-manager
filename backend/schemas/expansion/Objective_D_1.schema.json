@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Objective_D_1",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-quests",
+  "x-filePath": "Profiles/ExpansionMod/Quests/Objectives/Delivery/Objective_D_1.json",
+  "properties": {
+    "ConfigVersion": {
+      "description": "Config version",
+      "examples": [
+        "28"
+      ],
+      "type": "integer",
+      "default": 28
+    },
+    "ID": {
+      "description": "Id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ObjectiveType": {
+      "description": "Objective type selector (0–5)",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "ObjectiveText": {
+      "description": "Objective text",
+      "examples": [
+        "\"Deliver the note to Steve\""
+      ],
+      "type": "string",
+      "default": "Deliver the note to Steve"
+    },
+    "TimeLimit": {
+      "description": "Time limit (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "Active": {
+      "description": "Enable or disable active",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "Collections": {
+      "description": "Collections",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Amount": {
+            "description": "Amount (default: 1)",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          },
+          "ClassName": {
+            "description": "DayZ classname (e.g. \"ExpansionQuestItemPaper\")",
+            "examples": [
+              "\"ExpansionQuestItemPaper\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "ExpansionQuestItemPaper"
+          },
+          "QuantityPercent": {
+            "description": "Quantity percent. Range: 0–100",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "MinQuantityPercent": {
+            "description": "Min quantity percent. Range: 0–100",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": -1
+          }
+        }
+      },
+      "default": []
+    },
+    "ShowDistance": {
+      "description": "Enable or disable distance",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "AddItemsToNearbyMarketZone": {
+      "description": "Add items to nearby market zone",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "MaxDistance": {
+      "description": "Max distance (default: 20)",
+      "examples": [
+        "20"
+      ],
+      "type": "integer",
+      "default": 20
+    },
+    "MarkerName": {
+      "description": "Marker name",
+      "examples": [
+        "\"Talk to Steve\""
+      ],
+      "type": "string",
+      "default": "Talk to Steve"
+    }
+  }
+}

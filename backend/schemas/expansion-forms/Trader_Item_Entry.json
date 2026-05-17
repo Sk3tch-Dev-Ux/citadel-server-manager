@@ -1,0 +1,65 @@
+{
+  "id": "trader-item",
+  "name": "Trader Item Entry",
+  "fields": [
+    {
+      "id": "1",
+      "key": "ClassName",
+      "type": "text",
+      "label": "Class Name",
+      "required": true,
+      "description": "The item class name",
+      "defaultValue": ""
+    },
+    {
+      "id": "2",
+      "key": "MaxPriceThreshold",
+      "type": "number",
+      "label": "Max Price",
+      "description": "Maximum buy price",
+      "defaultValue": "1000"
+    },
+    {
+      "id": "3",
+      "key": "MinPriceThreshold",
+      "type": "number",
+      "label": "Min Price",
+      "description": "Minimum buy price",
+      "defaultValue": "100"
+    },
+    {
+      "id": "4",
+      "key": "SellPricePercent",
+      "type": "number",
+      "label": "Sell Price %",
+      "description": "Sell price percentage (-1 = not sellable)",
+      "defaultValue": "-1"
+    },
+    {
+      "id": "5",
+      "key": "MaxStockThreshold",
+      "type": "number",
+      "label": "Max Stock",
+      "description": "Maximum stock",
+      "defaultValue": "100"
+    },
+    {
+      "id": "6",
+      "key": "MinStockThreshold",
+      "type": "number",
+      "label": "Min Stock",
+      "description": "Minimum stock",
+      "defaultValue": "1"
+    },
+    {
+      "id": "7",
+      "key": "QuantityPercent",
+      "type": "number",
+      "label": "Quantity %",
+      "description": "Item condition (-1 = full)",
+      "defaultValue": "-1"
+    }
+  ],
+  "wrapperKey": "",
+  "description": "Generate a JSON entry for a trader item"
+}

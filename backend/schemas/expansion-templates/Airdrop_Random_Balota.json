@@ -1,0 +1,6 @@
+{
+  "id": "tpl-airdrop-random-balota",
+  "name": "Airdrop_Random_Balota",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"Weight\": \"number\",\n  \"MissionMaxTime\": \"number\",\n  \"MissionName\": \"string\",\n  \"Difficulty\": \"number\",\n  \"Objective\": \"number\",\n  \"Reward\": \"string\",\n  \"ShowNotification\": \"number\",\n  \"Height\": \"number\",\n  \"DropZoneHeight\": \"number\",\n  \"Speed\": \"number\",\n  \"DropZoneSpeed\": \"number\",\n  \"Container\": \"string\",\n  \"FallSpeed\": \"number\",\n  \"DropLocation\": {\n    \"x\": \"number\",\n    \"z\": \"number\",\n    \"Name\": \"string\",\n    \"Radius\": \"number\"\n  },\n  \"Infected\": [],\n  \"ItemCount\": \"number\",\n  \"InfectedCount\": \"number\",\n  \"AirdropPlaneClassName\": \"string\",\n  \"Loot\": []\n}",
+  "description": "Auto-generated validation template for Airdrop_Random_Balota"
+}

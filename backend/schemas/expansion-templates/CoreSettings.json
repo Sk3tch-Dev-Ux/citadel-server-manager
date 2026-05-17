@@ -1,0 +1,6 @@
+{
+  "id": "tpl-coresettings",
+  "name": "CoreSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"ServerUpdateRateLimit\": \"number\",\n  \"ForceExactCEItemLifetime\": \"number\",\n  \"EnableInventoryCargoTidy\": \"number\"\n}",
+  "description": "Auto-generated validation template for CoreSettings"
+}

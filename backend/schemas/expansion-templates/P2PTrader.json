@@ -1,0 +1,6 @@
+{
+  "id": "tpl-p2ptrader",
+  "name": "P2PTrader",
+  "template": "{\n  \"m_EmoteID\": \"number\",\n  \"m_Faction\": \"string\",\n  \"m_Version\": \"number\",\n  \"m_Position\": \"string\",\n  \"m_TraderID\": \"number\",\n  \"m_ClassName\": \"string\",\n  \"m_Waypoints\": [],\n  \"m_Currencies\": [\n    \"string\"\n  ],\n  \"m_DisplayIcon\": \"string\",\n  \"m_DisplayName\": \"string\",\n  \"m_LoadoutFile\": \"string\",\n  \"m_Orientation\": \"string\",\n  \"m_EmoteIsStatic\": \"number\",\n  \"m_UseReputation\": \"number\",\n  \"m_IsGlobalTrader\": \"number\",\n  \"m_RequiredFaction\": \"string\",\n  \"m_DisplayCurrencyName\": \"string\",\n  \"m_DisplayCurrencyValue\": \"number\",\n  \"m_VehicleSpawnPosition\": \"string\",\n  \"m_AircraftSpawnPosition\": \"string\",\n  \"m_MaxRequiredReputation\": \"number\",\n  \"m_MinRequiredReputation\": \"number\",\n  \"m_WatercraftSpawnPosition\": \"string\",\n  \"m_RequiredCompletedQuestID\": \"number\"\n}",
+  "description": "Auto-generated validation template for P2PTrader"
+}

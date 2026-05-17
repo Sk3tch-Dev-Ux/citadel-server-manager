@@ -1,0 +1,373 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MapSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-navigation",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/settings/MapSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "EnableMap": {
+      "description": "Enable or disable map",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseMapOnMapItem": {
+      "description": "Enable or disable map on map item",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowPlayerPosition": {
+      "description": "Enable or disable player position",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowMapStats": {
+      "description": "Enable or disable map stats",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "NeedPenItemForCreateMarker": {
+      "description": "Enable or disable pen item for create marker",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "NeedGPSItemForCreateMarker": {
+      "description": "Enable or disable gps item for create marker",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "CanCreateMarker": {
+      "description": "Enable or disable create marker",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CanCreate3DMarker": {
+      "description": "Enable or disable create3 d marker",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CanOpenMapWithKeyBinding": {
+      "description": "Enable or disable open map with key binding",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowDistanceOnPersonalMarkers": {
+      "description": "Enable or disable distance on personal markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableHUDGPS": {
+      "description": "Enable or disable hudgps",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "NeedGPSItemForKeyBinding": {
+      "description": "Enable or disable gps item for key binding",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "NeedMapItemForKeyBinding": {
+      "description": "Enable or disable map item for key binding",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "EnableServerMarkers": {
+      "description": "Enable or disable server markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowNameOnServerMarkers": {
+      "description": "Enable or disable name on server markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowDistanceOnServerMarkers": {
+      "description": "Enable or disable distance on server markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ServerMarkers": {
+      "description": "Server markers",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "m_UID": {
+            "description": "DayZ classname (e.g. \"ServerMarker_Trader_Krasno\")",
+            "examples": [
+              "\"ServerMarker_Trader_Krasno\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "ServerMarker_Trader_Krasno"
+          },
+          "m_Visibility": {
+            "description": "M_visibility",
+            "examples": [
+              "6"
+            ],
+            "type": "integer",
+            "default": 6
+          },
+          "m_Is3D": {
+            "description": "M_is3 d",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          },
+          "m_Text": {
+            "description": "M_text",
+            "examples": [
+              "\"Traders - Krasnostav Airstrip\""
+            ],
+            "type": "string",
+            "default": "Traders - Krasnostav Airstrip"
+          },
+          "m_IconName": {
+            "description": "M_icon name",
+            "examples": [
+              "\"Trader\""
+            ],
+            "type": "string",
+            "format": "expansion-icon",
+            "default": "Trader"
+          },
+          "m_Color": {
+            "description": "M_color",
+            "examples": [
+              "-13710223"
+            ],
+            "x-toolLink": "/tools/argb-calculator",
+            "type": "integer",
+            "format": "argb-int",
+            "default": -13710223
+          },
+          "m_Position": {
+            "description": "M_position",
+            "examples": [
+              "11882, 143, 12466"
+            ],
+            "type": "string",
+            "format": "vector3",
+            "default": "11882, 143, 12466"
+          },
+          "m_Locked": {
+            "description": "Enable or disable m_locked",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 0
+          },
+          "m_Persist": {
+            "description": "M_persist",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          }
+        }
+      },
+      "default": []
+    },
+    "EnableHUDCompass": {
+      "description": "Enable or disable hud compass",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "NeedCompassItemForHUDCompass": {
+      "description": "Enable or disable compass item for hud compass",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "NeedGPSItemForHUDCompass": {
+      "description": "Enable or disable gps item for hud compass",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CompassColor": {
+      "description": "ARGB color value (-1 = default/disabled)",
+      "examples": [
+        "-1"
+      ],
+      "x-toolLink": "/tools/argb-calculator",
+      "type": "integer",
+      "format": "argb-int",
+      "default": -1
+    },
+    "CreateDeathMarker": {
+      "description": "Create death marker",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "PlayerLocationNotifier": {
+      "description": "Player location notifier",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "CompassBadgesColor": {
+      "description": "Compass badges color",
+      "examples": [
+        "-1946157056"
+      ],
+      "x-toolLink": "/tools/argb-calculator",
+      "type": "integer",
+      "format": "argb-int",
+      "default": -1946157056
+    }
+  }
+}

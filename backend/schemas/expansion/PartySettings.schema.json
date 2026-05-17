@@ -1,0 +1,230 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PartySettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-groups",
+  "x-filePath": "Profiles/ExpansionMod/Settings/PartySettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "8"
+      ],
+      "type": "integer",
+      "default": 8
+    },
+    "EnableParties": {
+      "description": "Enable or disable parties",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "MaxMembersInParty": {
+      "description": "Max members in party",
+      "examples": [
+        "10"
+      ],
+      "type": "integer",
+      "default": 10
+    },
+    "UseWholeMapForInviteList": {
+      "description": "Enable or disable whole map for invite list",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "ShowPartyMember3DMarkers": {
+      "description": "Enable or disable party member3 d markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowDistanceUnderPartyMembersMarkers": {
+      "description": "Enable or disable distance under party members markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowNameOnPartyMembersMarkers": {
+      "description": "Enable or disable name on party members markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableQuickMarker": {
+      "description": "Enable or disable quick marker",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowDistanceUnderQuickMarkers": {
+      "description": "Enable or disable distance under quick markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowNameOnQuickMarkers": {
+      "description": "Enable or disable name on quick markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CanCreatePartyMarkers": {
+      "description": "Enable or disable create party markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowPartyMemberHUD": {
+      "description": "Enable or disable party member hud",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowHUDMemberBlood": {
+      "description": "Enable or disable hud member blood",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowHUDMemberStates": {
+      "description": "Enable or disable hud member states",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowHUDMemberStance": {
+      "description": "Enable or disable hud member stance",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowPartyMemberMapMarkers": {
+      "description": "Enable or disable party member map markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowHUDMemberDistance": {
+      "description": "Enable or disable hud member distance",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ForcePartyToHaveTags": {
+      "description": "Force party to have tags",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "InviteCooldown": {
+      "description": "Invite cooldown",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "DisplayPartyTag": {
+      "description": "Display party tag",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-cr-example",
+  "name": "Objective_CR_Example",
+  "template": "{\n  \"ID\": \"number\",\n  \"Active\": \"number\",\n  \"ItemNames\": [\n    \"string\"\n  ],\n  \"TimeLimit\": \"number\",\n  \"ConfigVersion\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"ObjectiveType\": \"number\",\n  \"ExecutionAmount\": \"number\"\n}",
+  "description": "Auto-generated validation template for Objective_CR_Example"
+}

@@ -1,0 +1,6 @@
+{
+  "id": "tpl-p2pmarketsettings",
+  "name": "P2PMarketSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"MaxListingTime\": \"number\",\n  \"MaxListings\": \"number\",\n  \"ListingOwnerDiscountPercent\": \"number\",\n  \"ListingPricePercent\": \"number\",\n  \"ExcludedClassNames\": [\n    \"string\"\n  ],\n  \"MenuCategories\": [\n    {\n      \"DisplayName\": \"string\",\n      \"IconPath\": \"string\",\n      \"Included\": [\n        \"string\"\n      ],\n      \"Excluded\": [],\n      \"SubCategories\": [\n        {\n          \"DisplayName\": \"string\",\n          \"IconPath\": \"string\",\n          \"Included\": [\n            \"string\"\n          ],\n          \"Excluded\": []\n        }\n      ]\n    }\n  ],\n  \"SalesDepositTime\": \"number\",\n  \"DisallowUnpersisted\": \"number\"\n}",
+  "description": "Auto-generated validation template for P2PMarketSettings"
+}

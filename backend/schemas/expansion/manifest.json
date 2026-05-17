@@ -1,178 +1,375 @@
 {
   "modName": "DayZ Expansion",
-  "description": "The most popular DayZ mod suite — traders, territories, vehicles, AI, hardline, and more.",
+  "description": "The most popular DayZ mod suite — traders, territories, vehicles, AI, hardline, quests, missions, and more.",
   "workshopId": "2572331007",
   "dedicated": true,
+  "source": "dayzexpansion.com",
+  "wikiVersion": "v26.05.16.23",
+  "syncedAt": "2026-05-17T15:26:32.730Z",
   "configFiles": [
     {
-      "fileName": "ExpansionMod/Settings/GeneralSettings.json",
-      "displayName": "General",
-      "description": "Core settings — lamps, gravecross, mapping, HUD, death screen"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/NotificationSettings.json",
-      "displayName": "Notifications",
-      "description": "Player join/leave alerts, airdrop notifications, kill feed toggles"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/PartySettings.json",
-      "displayName": "Party",
-      "description": "Group system — member limits, markers, HUD, quick markers"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/TerritorySettings.json",
-      "displayName": "Territories",
-      "description": "Territory flags — size, members, code locks, invite settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/NameTagsSettings.json",
-      "displayName": "Name Tags",
-      "description": "Player name tags — visibility, range, colors, safe zone restrictions"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/LogsSettings.json",
-      "displayName": "Logs",
-      "description": "Server logging — toggle logs per feature module"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/AirdropSettings.json",
-      "displayName": "Airdrops",
-      "description": "Airdrop system — flight settings, containers, loot tables, infected spawns"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/CoreSettings.json",
-      "displayName": "Core",
-      "description": "Server update rate, CE item lifetime, inventory tidy"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/ChatSettings.json",
-      "displayName": "Chat",
-      "description": "Chat system settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/DamageSystemSettings.json",
-      "displayName": "Damage System",
-      "description": "Explosion targets, blocking objects"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/GarageSettings.json",
-      "displayName": "Garage",
-      "description": "Vehicle garage system settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/MissionSettings.json",
-      "displayName": "Missions",
-      "description": "AI mission system settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/MonitoringSettings.json",
-      "displayName": "Monitoring",
-      "description": "Server monitoring settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/PlayerListSettings.json",
-      "displayName": "Player List",
-      "description": "In-game player list visibility and tooltips"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/QuestSettings.json",
-      "displayName": "Quests",
-      "description": "Quest system settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/RaidSettings.json",
-      "displayName": "Raiding",
-      "description": "Base raiding — explosives, tools, safe raiding, lock raiding"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/SocialMediaSettings.json",
-      "displayName": "Social Media",
-      "description": "News feed texts and social media links in pause menu"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/VehicleSettings.json",
-      "displayName": "Vehicles",
-      "description": "Vehicle system settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/AISettings.json",
-      "displayName": "AI",
-      "description": "AI system settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/BookSettings.json",
-      "displayName": "Book",
-      "description": "In-game book/server info settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/PersonalStorageNewSettings.json",
-      "displayName": "Personal Storage",
-      "description": "Personal storage system settings"
-    },
-    {
-      "fileName": "ExpansionMod/Settings/NotificationSchedulerSettings.json",
-      "displayName": "Notification Scheduler",
-      "description": "Scheduled notification settings"
-    },
-    {
-      "fileName": "expansion/settings/MapSettings.json",
-      "displayName": "Map",
-      "description": "Map markers, GPS, compass, player position, death markers",
-      "location": "mission"
-    },
-    {
-      "fileName": "expansion/settings/BaseBuildingSettings.json",
-      "displayName": "Base Building",
-      "description": "Build rules, zones, code locks, territory flag crafting",
-      "location": "mission"
-    },
-    {
-      "fileName": "expansion/settings/HardlineSettings.json",
-      "displayName": "Hardline",
-      "description": "Reputation system — factions, tiers, kill rewards",
-      "location": "mission"
-    },
-    {
-      "fileName": "expansion/settings/MarketSettings.json",
-      "displayName": "Market",
-      "description": "Market zones, ATM, trading parameters, categories",
-      "location": "mission"
-    },
-    {
-      "fileName": "expansion/settings/SafeZoneSettings.json",
-      "displayName": "Safe Zones",
-      "description": "Safe zone positions, rules, and behavior",
-      "location": "mission"
-    },
-    {
-      "fileName": "expansion/settings/SpawnSettings.json",
-      "displayName": "Spawn Selection",
-      "description": "Player spawn points, loadouts, spawn selection UI",
-      "location": "mission"
-    },
-    {
-      "fileName": "expansion/settings/P2PMarketSettings.json",
-      "displayName": "P2P Market",
-      "description": "Player-to-player market settings",
-      "location": "mission"
-    },
-    {
-      "fileName": "expansion/settings/PersonalStorageSettings.json",
-      "displayName": "Personal Storage (Mission)",
-      "description": "Personal storage zone settings",
+      "fileName": "expansion/settings/AILocationSettings.json",
+      "displayName": "AILocationSettings",
+      "description": "",
+      "modId": "expansion-ai",
+      "schemaFile": "AILocationSettings.schema.json",
       "location": "mission"
     },
     {
       "fileName": "expansion/settings/AIPatrolSettings.json",
-      "displayName": "AI Patrols",
-      "description": "AI patrol routes and behavior",
+      "displayName": "AIPatrolSettings",
+      "description": "",
+      "modId": "expansion-ai",
+      "schemaFile": "AIPatrolSettings.schema.json",
       "location": "mission"
     },
     {
-      "fileName": "expansion/settings/AILocationSettings.json",
-      "displayName": "AI Locations",
-      "description": "AI spawn locations and guard positions",
+      "fileName": "Profiles/ExpansionMod/Traders/Aircraft.json",
+      "displayName": "Aircraft",
+      "description": "",
+      "modId": "expansion-market",
+      "schemaFile": "Aircraft.schema.json"
+    },
+    {
+      "fileName": "expansion/missions/Airdrop_Random_Balota.json",
+      "displayName": "Airdrop_Random_Balota",
+      "description": "",
+      "modId": "expansion-missions",
+      "schemaFile": "Airdrop_Random_Balota.schema.json",
       "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/AirdropSettings.json",
+      "displayName": "AirdropSettings",
+      "description": "",
+      "modId": "expansion-missions",
+      "schemaFile": "AirdropSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/AISettings.json",
+      "displayName": "AISettings",
+      "description": "",
+      "modId": "expansion-ai",
+      "schemaFile": "AISettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Market/Ammo.json",
+      "displayName": "Ammo",
+      "description": "",
+      "modId": "expansion-market",
+      "schemaFile": "Ammo.schema.json"
+    },
+    {
+      "fileName": "expansion/traderzones/BalotaAircrafts.json",
+      "displayName": "BalotaAircrafts",
+      "description": "",
+      "modId": "expansion-market",
+      "schemaFile": "BalotaAircrafts.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Loadouts/BanditLoadout.json",
+      "displayName": "BanditLoadout",
+      "description": "",
+      "modId": "expansion-ai",
+      "schemaFile": "BanditLoadout.schema.json"
+    },
+    {
+      "fileName": "expansion/settings/BaseBuildingSettings.json",
+      "displayName": "BaseBuildingSettings",
+      "description": "",
+      "modId": "expansion-basebuilding",
+      "schemaFile": "BaseBuildingSettings.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/BookSettings.json",
+      "displayName": "BookSettings",
+      "description": "",
+      "modId": "expansion-book",
+      "schemaFile": "BookSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/ChatSettings.json",
+      "displayName": "ChatSettings",
+      "description": "",
+      "modId": "expansion-chat",
+      "schemaFile": "ChatSettings.schema.json"
+    },
+    {
+      "fileName": "expansion/missions/ContaminatedArea_Pavlovo-North.json",
+      "displayName": "ContaminatedArea_Pavlovo-North",
+      "description": "",
+      "modId": "expansion-missions",
+      "schemaFile": "ContaminatedArea_Pavlovo-North.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/CoreSettings.json",
+      "displayName": "CoreSettings",
+      "description": "",
+      "modId": "expansion-core",
+      "schemaFile": "CoreSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/DamageSystemSettings.json",
+      "displayName": "DamageSystemSettings",
+      "description": "",
+      "modId": "expansion-basebuilding",
+      "schemaFile": "DamageSystemSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/GarageSettings.json",
+      "displayName": "GarageSettings",
+      "description": "",
+      "modId": "expansion-basebuilding",
+      "schemaFile": "GarageSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/GeneralSettings.json",
+      "displayName": "GeneralSettings",
+      "description": "",
+      "modId": "expansion-main",
+      "schemaFile": "GeneralSettings.schema.json"
+    },
+    {
+      "fileName": "expansion/settings/HardlineSettings.json",
+      "displayName": "HardlineSettings",
+      "description": "",
+      "modId": "expansion-hardline",
+      "schemaFile": "HardlineSettings.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/LogsSettings.json",
+      "displayName": "LogsSettings",
+      "description": "",
+      "modId": "expansion-core",
+      "schemaFile": "LogsSettings.schema.json"
+    },
+    {
+      "fileName": "expansion/settings/MapSettings.json",
+      "displayName": "MapSettings",
+      "description": "",
+      "modId": "expansion-navigation",
+      "schemaFile": "MapSettings.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/settings/MarketSettings.json",
+      "displayName": "MarketSettings",
+      "description": "",
+      "modId": "expansion-market",
+      "schemaFile": "MarketSettings.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/MissionSettings.json",
+      "displayName": "MissionSettings",
+      "description": "",
+      "modId": "expansion-missions",
+      "schemaFile": "MissionSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/MonitoringSettings.json",
+      "displayName": "MonitoringSettings",
+      "description": "",
+      "modId": "expansion-core",
+      "schemaFile": "MonitoringSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/NameTagsSettings.json",
+      "displayName": "NameTagsSettings",
+      "description": "",
+      "modId": "expansion-name-tags",
+      "schemaFile": "NameTagsSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/NotificationSchedulerSettings.json",
+      "displayName": "NotificationSchedulerSettings",
+      "description": "",
+      "modId": "expansion-core",
+      "schemaFile": "NotificationSchedulerSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/NotificationSettings.json",
+      "displayName": "NotificationSettings",
+      "description": "",
+      "modId": "expansion-core",
+      "schemaFile": "NotificationSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/Action/Objective_A_1.json",
+      "displayName": "Objective_A_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_A_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/AICamp/Objective_AIC_1.json",
+      "displayName": "Objective_AIC_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_AIC_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/AIVIP/Objective_AIESCORT_1.json",
+      "displayName": "Objective_AIESCORT_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_AIESCORT_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/AIPatrol/Objective_AIP_1.json",
+      "displayName": "Objective_AIP_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_AIP_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/Collection/Objective_C_1.json",
+      "displayName": "Objective_C_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_C_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/Crafting/Objective_CR_1.json",
+      "displayName": "Objective_CR_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_CR_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/Delivery/Objective_D_1.json",
+      "displayName": "Objective_D_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_D_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/Travel/Objective_T_1.json",
+      "displayName": "Objective_T_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_T_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/Target/Objective_TA_1.json",
+      "displayName": "Objective_TA_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_TA_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Objectives/TreasureHunt/Objective_TH_1.json",
+      "displayName": "Objective_TH_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Objective_TH_1.schema.json"
+    },
+    {
+      "fileName": "expansion/settings/P2PMarketSettings.json",
+      "displayName": "P2PMarketSettings",
+      "description": "",
+      "modId": "expansion-market",
+      "schemaFile": "P2PMarketSettings.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "expansion/p2pmarket/P2PTrader_1.json",
+      "displayName": "P2PTrader_1",
+      "description": "",
+      "modId": "expansion-market",
+      "schemaFile": "P2PTrader_1.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/PartySettings.json",
+      "displayName": "PartySettings",
+      "description": "",
+      "modId": "expansion-groups",
+      "schemaFile": "PartySettings.schema.json"
+    },
+    {
+      "fileName": "expansion/personalstorage/PersonalStorage_1.json",
+      "displayName": "PersonalStorage_1",
+      "description": "",
+      "modId": "expansion-personal-storage",
+      "schemaFile": "PersonalStorage_1.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/PlayerListSettings.json",
+      "displayName": "PlayerListSettings",
+      "description": "",
+      "modId": "expansion-main",
+      "schemaFile": "PlayerListSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/Quests/Quest_1.json",
+      "displayName": "Quest_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "Quest_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Quests/NPCs/QuestNPC_1.json",
+      "displayName": "QuestNPC_1",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "QuestNPC_1.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/QuestSettings.json",
+      "displayName": "QuestSettings",
+      "description": "",
+      "modId": "expansion-quests",
+      "schemaFile": "QuestSettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/RaidSettings.json",
+      "displayName": "RaidSettings",
+      "description": "",
+      "modId": "expansion-basebuilding",
+      "schemaFile": "RaidSettings.schema.json"
+    },
+    {
+      "fileName": "expansion/settings/SafeZoneSettings.json",
+      "displayName": "SafeZoneSettings",
+      "description": "",
+      "modId": "expansion-core",
+      "schemaFile": "SafeZoneSettings.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/SocialMediaSettings.json",
+      "displayName": "SocialMediaSettings",
+      "description": "",
+      "modId": "expansion-core",
+      "schemaFile": "SocialMediaSettings.schema.json"
+    },
+    {
+      "fileName": "expansion/settings/SpawnSettings.json",
+      "displayName": "SpawnSettings",
+      "description": "",
+      "modId": "expansion-spawn-selection",
+      "schemaFile": "SpawnSettings.schema.json",
+      "location": "mission"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/TerritorySettings.json",
+      "displayName": "TerritorySettings",
+      "description": "",
+      "modId": "expansion-basebuilding",
+      "schemaFile": "TerritorySettings.schema.json"
+    },
+    {
+      "fileName": "Profiles/ExpansionMod/Settings/VehicleSettings.json",
+      "displayName": "VehicleSettings",
+      "description": "",
+      "modId": "expansion-vehicles",
+      "schemaFile": "VehicleSettings.schema.json"
     }
   ]
 }

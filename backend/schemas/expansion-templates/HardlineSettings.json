@@ -1,0 +1,6 @@
+{
+  "id": "tpl-hardlinesettings",
+  "name": "HardlineSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"PoorItemRequirement\": \"number\",\n  \"CommonItemRequirement\": \"number\",\n  \"UncommonItemRequirement\": \"number\",\n  \"RareItemRequirement\": \"number\",\n  \"EpicItemRequirement\": \"number\",\n  \"LegendaryItemRequirement\": \"number\",\n  \"MythicItemRequirement\": \"number\",\n  \"ExoticItemRequirement\": \"number\",\n  \"ShowHardlineHUD\": \"number\",\n  \"UseReputation\": \"number\",\n  \"UseFactionReputation\": \"number\",\n  \"EnableFactionPersistence\": \"number\",\n  \"EnableItemRarity\": \"number\",\n  \"UseItemRarityOnInventoryIcons\": \"number\",\n  \"UseItemRarityForMarketPurchase\": \"number\",\n  \"UseItemRarityForMarketSell\": \"number\",\n  \"MaxReputation\": \"number\",\n  \"ReputationLossOnDeath\": \"number\",\n  \"DefaultItemRarity\": \"number\",\n  \"ItemRarityParentSearch\": \"number\",\n  \"EntityReputation\": {\n    \"string\": \"number\"\n  },\n  \"ItemRarity\": {\n    \"string\": \"number\"\n  }\n}",
+  "description": "Auto-generated validation template for HardlineSettings"
+}

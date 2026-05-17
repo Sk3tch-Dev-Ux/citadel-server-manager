@@ -1,0 +1,274 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LogsSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-core",
+  "x-filePath": "Profiles/ExpansionMod/Settings/LogsSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "8"
+      ],
+      "type": "integer",
+      "default": 8
+    },
+    "Safezone": {
+      "description": "Safezone",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "AdminTools": {
+      "description": "Admin tools",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ExplosionDamageSystem": {
+      "description": "Explosion damage system",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleCarKey": {
+      "description": "Vehicle car key",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleTowing": {
+      "description": "Vehicle towing",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleLockPicking": {
+      "description": "Vehicle lock picking",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleDestroyed": {
+      "description": "Vehicle destroyed",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleAttachments": {
+      "description": "Vehicle attachments",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleEnter": {
+      "description": "Vehicle enter",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleLeave": {
+      "description": "Vehicle leave",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleDeleted": {
+      "description": "Vehicle deleted",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleEngine": {
+      "description": "Vehicle engine",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "BaseBuildingRaiding": {
+      "description": "Base building raiding",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "CodeLockRaiding": {
+      "description": "Code lock raiding",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Territory": {
+      "description": "Territory",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Killfeed": {
+      "description": "Killfeed",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "SpawnSelection": {
+      "description": "Spawn selection",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Party": {
+      "description": "Party",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "MissionAirdrop": {
+      "description": "Mission airdrop",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Chat": {
+      "description": "Chat",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Market": {
+      "description": "Market",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ATM": {
+      "description": "Atm",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "AIGeneral": {
+      "description": "Ai general",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "AIPatrol": {
+      "description": "Ai patrol",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "AIObjectPatrol": {
+      "description": "Ai object patrol",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "LogToScripts": {
+      "description": "Log to scripts",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "LogToADM": {
+      "description": "Log to adm",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "Hardline": {
+      "description": "Hardline",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Garage": {
+      "description": "Garage",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleCover": {
+      "description": "Vehicle cover",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "EntityStorage": {
+      "description": "Entity storage",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Quests": {
+      "description": "Quests",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    }
+  }
+}

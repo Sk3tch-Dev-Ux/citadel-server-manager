@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoreSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-core",
+  "x-filePath": "Profiles/ExpansionMod/Settings/CoreSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "9"
+      ],
+      "type": "integer",
+      "default": 9
+    },
+    "ServerUpdateRateLimit": {
+      "description": "Server update rate limit. Range: 0–100",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "ForceExactCEItemLifetime": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "EnableInventoryCargoTidy": {
+      "description": "Enable or disable inventory cargo tidy",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    }
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Aircraft",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-market",
+  "x-filePath": "Profiles/ExpansionMod/Traders/Aircraft.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "13"
+      ],
+      "type": "integer",
+      "default": 13
+    },
+    "DisplayName": {
+      "description": "Plain text or #STR_ localization key",
+      "examples": [
+        "\"#STR_EXPANSION_MARKET_TRADER_AIRCRAFT\""
+      ],
+      "type": "string",
+      "default": "#STR_EXPANSION_MARKET_TRADER_AIRCRAFT"
+    },
+    "MinRequiredReputation": {
+      "description": "Min required reputation",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "MaxRequiredReputation": {
+      "description": "Max required reputation",
+      "examples": [
+        "2147483647"
+      ],
+      "x-toolLink": "/tools/argb-calculator",
+      "type": "integer",
+      "format": "argb-int",
+      "default": 2147483647
+    },
+    "RequiredFaction": {
+      "description": "Required faction",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "default": ""
+    },
+    "RequiredCompletedQuestID": {
+      "description": "Required completed quest id",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "TraderIcon": {
+      "description": "Trader icon",
+      "examples": [
+        "\"Helicopter\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "Helicopter"
+    },
+    "Currencies": {
+      "description": "Currencies",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "DisplayCurrencyValue": {
+      "description": "Display currency value",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "DisplayCurrencyName": {
+      "description": "Display currency name",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "default": ""
+    },
+    "UseCategoryOrder": {
+      "description": "Enable or disable category order",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "Categories": {
+      "description": "Categories",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "Items": {
+      "description": "Items",
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "x-mapKeyType": "string",
+      "default": {}
+    }
+  }
+}

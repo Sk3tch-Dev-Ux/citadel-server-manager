@@ -1,0 +1,634 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BanditLoadout",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-ai",
+  "x-filePath": "Profiles/ExpansionMod/Loadouts/BanditLoadout.json",
+  "properties": {
+    "ClassName": {
+      "description": "DayZ classname (e.g. \"\")",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "format": "dayz-classname",
+      "default": ""
+    },
+    "Include": {
+      "description": "Include",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "default": ""
+    },
+    "Chance": {
+      "description": "Chance. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Quantity": {
+      "description": "Quantity",
+      "type": "object",
+      "properties": {
+        "Min": {
+          "description": "Min (default: 0)",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "default": 0
+        },
+        "Max": {
+          "description": "Max (default: 0)",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "default": {}
+    },
+    "Health": {
+      "description": "Health",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "InventoryAttachments": {
+      "description": "Inventory attachments",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "SlotName": {
+            "description": "Slot name",
+            "examples": [
+              "\"Body\""
+            ],
+            "type": "string",
+            "default": "Body"
+          },
+          "Items": {
+            "description": "Items",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ClassName": {
+                  "description": "DayZ classname (e.g. \"GorkaEJacket_Autumn\")",
+                  "examples": [
+                    "\"GorkaEJacket_Autumn\""
+                  ],
+                  "type": "string",
+                  "format": "dayz-classname",
+                  "default": "GorkaEJacket_Autumn"
+                },
+                "Include": {
+                  "description": "Include",
+                  "examples": [
+                    "\"\""
+                  ],
+                  "type": "string",
+                  "default": ""
+                },
+                "Chance": {
+                  "description": "Chance. Range: 0–100",
+                  "examples": [
+                    "1"
+                  ],
+                  "type": "integer",
+                  "default": 1
+                },
+                "Quantity": {
+                  "description": "Quantity",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "x-mapKeyType": "string",
+                  "default": {}
+                },
+                "Health": {
+                  "description": "Health",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Min": {
+                        "description": "Min (default: 0.699999988079071)",
+                        "examples": [
+                          "0.699999988079071"
+                        ],
+                        "type": "number",
+                        "default": 0.699999988079071
+                      },
+                      "Max": {
+                        "description": "Max (default: 1)",
+                        "examples": [
+                          "1"
+                        ],
+                        "type": "integer",
+                        "default": 1
+                      },
+                      "Zone": {
+                        "description": "Zone",
+                        "examples": [
+                          "\"\""
+                        ],
+                        "type": "string",
+                        "default": ""
+                      }
+                    }
+                  },
+                  "default": []
+                },
+                "InventoryAttachments": {
+                  "description": "Inventory attachments",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "InventoryCargo": {
+                  "description": "Inventory cargo",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "ConstructionPartsBuilt": {
+                  "description": "Construction parts built",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "Sets": {
+                  "description": "Sets",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                }
+              }
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "InventoryCargo": {
+      "description": "Inventory cargo",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ClassName": {
+            "description": "DayZ classname (e.g. \"Apple\")",
+            "examples": [
+              "\"Apple\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "Apple"
+          },
+          "Include": {
+            "description": "Include",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          },
+          "Chance": {
+            "description": "Chance. Range: 0.0–1.0",
+            "examples": [
+              "0.05"
+            ],
+            "type": "number",
+            "default": 0.10000000149011612
+          },
+          "Quantity": {
+            "description": "Quantity",
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "x-mapKeyType": "string",
+            "default": {}
+          },
+          "Health": {
+            "description": "Health",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "InventoryAttachments": {
+            "description": "Inventory attachments",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "InventoryCargo": {
+            "description": "Inventory cargo",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "ConstructionPartsBuilt": {
+            "description": "Construction parts built",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "Sets": {
+            "description": "Sets",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "ConstructionPartsBuilt": {
+      "description": "Construction parts built",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "Sets": {
+      "description": "Sets",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ClassName": {
+            "description": "DayZ classname (e.g. \"WEAPON\")",
+            "examples": [
+              "\"WEAPON\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "WEAPON"
+          },
+          "Include": {
+            "description": "Include",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          },
+          "Chance": {
+            "description": "Chance. Range: 0–100",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          },
+          "Quantity": {
+            "description": "Quantity",
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "x-mapKeyType": "string",
+            "default": {}
+          },
+          "Health": {
+            "description": "Health",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "InventoryAttachments": {
+            "description": "Inventory attachments",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "SlotName": {
+                  "description": "Slot name",
+                  "examples": [
+                    "\"Shoulder\""
+                  ],
+                  "type": "string",
+                  "default": "Shoulder"
+                },
+                "Items": {
+                  "description": "Items",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ClassName": {
+                        "description": "DayZ classname (e.g. \"AK101\")",
+                        "examples": [
+                          "\"AK101\""
+                        ],
+                        "type": "string",
+                        "format": "dayz-classname",
+                        "default": "AK101"
+                      },
+                      "Include": {
+                        "description": "Include",
+                        "examples": [
+                          "\"\""
+                        ],
+                        "type": "string",
+                        "default": ""
+                      },
+                      "Chance": {
+                        "description": "Chance. Range: 0–100",
+                        "examples": [
+                          "1"
+                        ],
+                        "type": "integer",
+                        "default": 1
+                      },
+                      "Quantity": {
+                        "description": "Quantity",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "integer"
+                        },
+                        "x-mapKeyType": "string",
+                        "default": {}
+                      },
+                      "Health": {
+                        "description": "Health",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": []
+                      },
+                      "InventoryAttachments": {
+                        "description": "Inventory attachments",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "SlotName": {
+                              "description": "Slot name",
+                              "examples": [
+                                "\"\""
+                              ],
+                              "type": "string",
+                              "default": ""
+                            },
+                            "Items": {
+                              "description": "Items",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "ClassName": {
+                                    "description": "DayZ classname (e.g. \"Mag_AK101_30Rnd\")",
+                                    "examples": [
+                                      "\"Mag_AK101_30Rnd\""
+                                    ],
+                                    "type": "string",
+                                    "format": "dayz-classname",
+                                    "default": "Mag_AK101_30Rnd"
+                                  },
+                                  "Include": {
+                                    "description": "Include",
+                                    "examples": [
+                                      "\"\""
+                                    ],
+                                    "type": "string",
+                                    "default": ""
+                                  },
+                                  "Chance": {
+                                    "description": "Chance. Range: 0–100",
+                                    "examples": [
+                                      "1"
+                                    ],
+                                    "type": "integer",
+                                    "default": 1
+                                  },
+                                  "Quantity": {
+                                    "description": "Quantity",
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "integer"
+                                    },
+                                    "x-mapKeyType": "string",
+                                    "default": {}
+                                  },
+                                  "Health": {
+                                    "description": "Health",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "default": []
+                                  },
+                                  "InventoryAttachments": {
+                                    "description": "Inventory attachments",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "default": []
+                                  },
+                                  "InventoryCargo": {
+                                    "description": "Inventory cargo",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "default": []
+                                  },
+                                  "ConstructionPartsBuilt": {
+                                    "description": "Construction parts built",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "default": []
+                                  },
+                                  "Sets": {
+                                    "description": "Sets",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "default": []
+                                  }
+                                }
+                              },
+                              "default": []
+                            }
+                          }
+                        },
+                        "default": []
+                      },
+                      "InventoryCargo": {
+                        "description": "Inventory cargo",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": []
+                      },
+                      "ConstructionPartsBuilt": {
+                        "description": "Construction parts built",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": []
+                      },
+                      "Sets": {
+                        "description": "Sets",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "default": []
+                      }
+                    }
+                  },
+                  "default": []
+                }
+              }
+            },
+            "default": []
+          },
+          "InventoryCargo": {
+            "description": "Inventory cargo",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ClassName": {
+                  "description": "DayZ classname (e.g. \"Mag_AK101_30Rnd\")",
+                  "examples": [
+                    "\"Mag_AK101_30Rnd\""
+                  ],
+                  "type": "string",
+                  "format": "dayz-classname",
+                  "default": "Mag_AK101_30Rnd"
+                },
+                "Include": {
+                  "description": "Include",
+                  "examples": [
+                    "\"\""
+                  ],
+                  "type": "string",
+                  "default": ""
+                },
+                "Chance": {
+                  "description": "Chance. Range: 0–100",
+                  "examples": [
+                    "1"
+                  ],
+                  "type": "integer",
+                  "default": 1
+                },
+                "Quantity": {
+                  "description": "Quantity",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "x-mapKeyType": "string",
+                  "default": {}
+                },
+                "Health": {
+                  "description": "Health",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "InventoryAttachments": {
+                  "description": "Inventory attachments",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "InventoryCargo": {
+                  "description": "Inventory cargo",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "ConstructionPartsBuilt": {
+                  "description": "Construction parts built",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "Sets": {
+                  "description": "Sets",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                }
+              }
+            },
+            "default": []
+          },
+          "ConstructionPartsBuilt": {
+            "description": "Construction parts built",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "Sets": {
+            "description": "Sets",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    }
+  }
+}

@@ -1,0 +1,494 @@
+{
+  "cf-community-framework": {
+    "id": "cf-community-framework",
+    "name": "Community Framework (CF)",
+    "shortName": "CF",
+    "version": "",
+    "modFolderName": "CF",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=1559212036",
+    "isThirdParty": true,
+    "includedInBundle": false,
+    "description": "Core dependency required by most DayZ mods. Provides shared libraries, configuration systems, and scripting APIs used across the modding ecosystem.",
+    "dependencies": [],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/cf-community-framework"
+  },
+  "community-online-tools": {
+    "id": "community-online-tools",
+    "name": "Community Online Tools (COT)",
+    "shortName": "COT",
+    "version": "",
+    "modFolderName": "Community-Online-Tools",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=1564026768",
+    "isThirdParty": true,
+    "includedInBundle": false,
+    "description": "Comprehensive server administration mod with in-game tools for managing players, objects, and more.",
+    "dependencies": [
+      "cf-community-framework"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/community-online-tools"
+  },
+  "dabs-framework": {
+    "id": "dabs-framework",
+    "name": "Dabs Framework (DF)",
+    "shortName": "Dabs Framework",
+    "version": "",
+    "modFolderName": "Dabs Framework",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2545327648",
+    "isThirdParty": true,
+    "includedInBundle": false,
+    "description": "Required framework dependency providing additional scripting APIs and systems used by DayZ Expansion.",
+    "dependencies": [
+      "cf-community-framework"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/dabs-framework"
+  },
+  "expansion-ai": {
+    "id": "expansion-ai",
+    "name": "Expansion AI",
+    "shortName": "AI",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-AI",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792982069",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964120",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Adds survivor AI units with team behavior, patrols, combat, recruitment, and faction systems.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [
+      "json-validator"
+    ],
+    "linkedGuides": [
+      "ai-patrol-setup",
+      "ai-loadouts"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-ai"
+  },
+  "expansion-animations": {
+    "id": "expansion-animations",
+    "name": "Expansion Animations",
+    "shortName": "Animations",
+    "version": "1.9.18",
+    "modFolderName": "DayZ-Expansion-Animations",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2793893086",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2793893784",
+    "isThirdParty": false,
+    "includedInBundle": false,
+    "description": "Vehicle and interaction animations for Expansion. Not included in the bundle — must be subscribed separately.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-animations"
+  },
+  "expansion-basebuilding": {
+    "id": "expansion-basebuilding",
+    "name": "Expansion Base Building",
+    "shortName": "Base Building",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-BaseBuilding",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792982513",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964121",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Territory system with modular constructions, codelocks, safes, and configurable raiding and basebuilding settings.",
+    "dependencies": [
+      "expansion-core",
+      "expansion-book",
+      "expansion-licensed"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [
+      "basebuilding-guide",
+      "crafting-guide"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-basebuilding"
+  },
+  "expansion-book": {
+    "id": "expansion-book",
+    "name": "Expansion Book",
+    "shortName": "Book",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Book",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2572324799",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2540092673",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "In-game book menu with server info, rules, crafting recipes, party management, and territory management tabs.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [
+      "json-validator"
+    ],
+    "linkedGuides": [
+      "expansion-book-config"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-book"
+  },
+  "expansion-bundle": {
+    "id": "expansion-bundle",
+    "name": "Expansion Bundle",
+    "shortName": "Bundle",
+    "version": "1.9.18",
+    "modFolderName": "DayZ-Expansion-Bundle",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2572331007",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2540096189",
+    "isThirdParty": false,
+    "includedInBundle": false,
+    "description": "All-in-one package bundling most Expansion modules. Requires Licensed separately; Animations recommended.",
+    "dependencies": [
+      "cf-community-framework",
+      "dabs-framework",
+      "expansion-licensed"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-bundle"
+  },
+  "expansion-chat": {
+    "id": "expansion-chat",
+    "name": "Expansion Chat",
+    "shortName": "Chat",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Chat",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792982897",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964106",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Improved chat system with channels and muting system.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-chat"
+  },
+  "expansion-core": {
+    "id": "expansion-core",
+    "name": "Expansion Core",
+    "shortName": "Core",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Core",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2291785308",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2291785546",
+    "isThirdParty": false,
+    "includedInBundle": false,
+    "description": "The foundational module required by all other Expansion mods. Provides shared libraries, APIs, safezone system, and core functionalities.",
+    "dependencies": [],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-core"
+  },
+  "expansion-groups": {
+    "id": "expansion-groups",
+    "name": "Expansion Groups",
+    "shortName": "Groups",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Groups",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792983364",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964108",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Party/group system for team play with shared HUD, markers.",
+    "dependencies": [
+      "expansion-core",
+      "expansion-book"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-groups"
+  },
+  "expansion-hardline": {
+    "id": "expansion-hardline",
+    "name": "Expansion Hardline",
+    "shortName": "Hardline",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Hardline",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2828487396",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2819009727",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Adds item rarity tiers and a player reputation system.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [
+      "json-validator"
+    ],
+    "linkedGuides": [
+      "expansion-hardline"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-hardline"
+  },
+  "expansion-licensed": {
+    "id": "expansion-licensed",
+    "name": "Expansion Licensed",
+    "shortName": "Licensed",
+    "version": "1.9.18",
+    "modFolderName": "DayZ-Expansion-Licensed",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2116157322",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2178159769",
+    "isThirdParty": false,
+    "includedInBundle": false,
+    "description": "Licensed material from Bohemia Interactive (ADPL-SA) containing vehicle models, textures, and assets for the Expansion suite.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-licensed"
+  },
+  "expansion-main": {
+    "id": "expansion-main",
+    "name": "Expansion",
+    "shortName": "Expansion",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2116151222",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2178159764",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "The legacy DayZ Expansion mod featuring Reimagined Chernarus, Grave Crosses, Kill/Death Feed, Autowalk, Player List, and Street Lights.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-main"
+  },
+  "expansion-map-assets": {
+    "id": "expansion-map-assets",
+    "name": "Expansion Map Assets",
+    "shortName": "Map Assets",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Map-Assets",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792983824",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964125",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Pack of static objects for decoration and BuilderItems used by other Expansion mods.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-map-assets"
+  },
+  "expansion-market": {
+    "id": "expansion-market",
+    "name": "Expansion Market",
+    "shortName": "Market",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Market",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2572328470",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2540095036",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Full trader system with configurable markets, dynamic pricing, and trading zones.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [
+      "argb-calculator",
+      "json-validator",
+      "json-form"
+    ],
+    "linkedGuides": [
+      "market-setup",
+      "market-categories"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-market"
+  },
+  "expansion-missions": {
+    "id": "expansion-missions",
+    "name": "Expansion Missions",
+    "shortName": "Missions",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Missions",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792984177",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964110",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Adds a dynamic mission system with configurable objectives, rewards, and events.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-missions"
+  },
+  "expansion-name-tags": {
+    "id": "expansion-name-tags",
+    "name": "Expansion Name Tags",
+    "shortName": "Name Tags",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Name-Tags",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2576460232",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2607805287",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Displays survivor name tags with configurable visibility, safezone/territory restrictions, and color/distance tweaks.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-name-tags"
+  },
+  "expansion-navigation": {
+    "id": "expansion-navigation",
+    "name": "Expansion Navigation",
+    "shortName": "Navigation",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Navigation",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792984722",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964116",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "GPS Hud, 3D markers, Improved 2D map and more.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-navigation"
+  },
+  "expansion-personal-storage": {
+    "id": "expansion-personal-storage",
+    "name": "Expansion Personal Storage",
+    "shortName": "Personal Storage",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Personal-Storage",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2946236937",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2946236521",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Per-player private storage system at defined locations. Players deposit and retrieve items only visible to them.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [
+      "json-validator"
+    ],
+    "linkedGuides": [
+      "expansion-personal-storage"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-personal-storage"
+  },
+  "expansion-quests": {
+    "id": "expansion-quests",
+    "name": "Expansion Quests",
+    "shortName": "Quests",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Quests",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2828486817",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2819010312",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Dynamic quest system for creating interactive MMO-like quests with objectives, rewards, and NPC quest givers.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [
+      "json-validator"
+    ],
+    "linkedGuides": [
+      "expansion-quests"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-quests"
+  },
+  "expansion-spawn-selection": {
+    "id": "expansion-spawn-selection",
+    "name": "Expansion Spawn Selection",
+    "shortName": "Spawn Selection",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Spawn-Selection",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2804241648",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2804242070",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Custom spawn location selection UI with configurable starting gear and outfit randomization.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [
+      "json-validator"
+    ],
+    "linkedGuides": [
+      "expansion-spawn-selection"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-spawn-selection"
+  },
+  "expansion-vehicles": {
+    "id": "expansion-vehicles",
+    "name": "Expansion Vehicles",
+    "shortName": "Vehicles",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Vehicles",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2291785437",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2291785676",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Adds helicopters, boats, cars, car keys, towing, and vehicle features like destroyable trees and coverable netting.",
+    "dependencies": [
+      "expansion-core",
+      "expansion-licensed"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [
+      "vehicle-guide"
+    ],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-vehicles"
+  },
+  "expansion-weapons": {
+    "id": "expansion-weapons",
+    "name": "Expansion Weapons",
+    "shortName": "Weapons",
+    "version": "1.9.67",
+    "modFolderName": "DayZ-Expansion-Weapons",
+    "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792985069",
+    "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964123",
+    "isThirdParty": false,
+    "includedInBundle": true,
+    "description": "Pack of firearms and optics including RPG-7, M72 LAW, Taser, M9, K98, PP19, MP7, and more.",
+    "dependencies": [
+      "expansion-core"
+    ],
+    "conflicts": [],
+    "linkedTools": [],
+    "linkedGuides": [],
+    "wikiUrl": "https://dayzexpansion.com/mods/expansion-weapons"
+  }
+}

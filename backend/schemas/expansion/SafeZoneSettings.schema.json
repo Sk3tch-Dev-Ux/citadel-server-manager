@@ -1,0 +1,171 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SafeZoneSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-core",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/settings/SafeZoneSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "11"
+      ],
+      "type": "integer",
+      "default": 11
+    },
+    "Enabled": {
+      "description": "Enable or disable d",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "FrameRateCheckSafeZoneInMs": {
+      "description": "Frame rate check safe zone in ms. Range: 0–100",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "CircleZones": {
+      "description": "Circle zones",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Center": {
+            "description": "Center",
+            "examples": [
+              "3728.27001953125, 403, 6003.60009765625"
+            ],
+            "type": "string",
+            "format": "vector3",
+            "default": "3728.27001953125, 403, 6003.60009765625"
+          },
+          "Radius": {
+            "description": "Radius (default: 500)",
+            "examples": [
+              "500"
+            ],
+            "type": "integer",
+            "default": 500
+          }
+        }
+      },
+      "default": []
+    },
+    "PolygonZones": {
+      "description": "Polygon zones",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Positions": {
+            "description": "Positions",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "CylinderZones": {
+      "description": "Cylinder zones",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "ActorsPerTick": {
+      "description": "Actors per tick",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "DisablePlayerCollision": {
+      "description": "Enable or disable player collision",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "DisableVehicleDamageInSafeZone": {
+      "description": "Enable or disable vehicle damage in safe zone",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableForceSZCleanup": {
+      "description": "Enable or disable force sz cleanup",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ItemLifetimeInSafeZone": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "900"
+      ],
+      "type": "integer",
+      "default": 900
+    },
+    "EnableForceSZCleanupVehicles": {
+      "description": "Enable or disable force sz cleanup vehicles",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "VehicleLifetimeInSafeZone": {
+      "description": "Time duration in milliseconds",
+      "examples": [
+        "3600"
+      ],
+      "type": "integer",
+      "default": 3600
+    },
+    "ForceSZCleanup_ExcludedItems": {
+      "description": "Force sz cleanup_excluded items",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  }
+}

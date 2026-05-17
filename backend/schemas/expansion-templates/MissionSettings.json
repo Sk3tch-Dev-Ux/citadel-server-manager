@@ -1,0 +1,6 @@
+{
+  "id": "tpl-missionsettings",
+  "name": "MissionSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"InitialMissionStartDelay\": \"number\",\n  \"TimeBetweenMissions\": \"number\",\n  \"MinMissions\": \"number\",\n  \"MaxMissions\": \"number\",\n  \"MinPlayersToStartMissions\": \"number\"\n}",
+  "description": "Auto-generated validation template for MissionSettings"
+}

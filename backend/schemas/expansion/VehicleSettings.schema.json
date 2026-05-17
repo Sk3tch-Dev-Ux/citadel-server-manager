@@ -1,0 +1,476 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VehicleSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-vehicles",
+  "x-filePath": "Profiles/ExpansionMod/Settings/VehicleSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "23"
+      ],
+      "type": "integer",
+      "default": 23
+    },
+    "VehicleSync": {
+      "description": "Vehicle sync",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "VehicleRequireKeyToStart": {
+      "description": "Vehicle require key to start",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleRequireAllDoors": {
+      "description": "Vehicle require all doors",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleLockedAllowInventoryAccess": {
+      "description": "Vehicle locked allow inventory access",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "VehicleLockedAllowInventoryAccessWithoutDoors": {
+      "description": "Vehicle locked allow inventory access without doors",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "MasterKeyPairingMode": {
+      "description": "Master key pairing mode selector (0–5)",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "MasterKeyUses": {
+      "description": "Master key uses",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "CanPickLock": {
+      "description": "Enable or disable pick lock",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "PickLockTools": {
+      "description": "Pick lock tools",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "PickLockChancePercent": {
+      "description": "Pick lock chance percent. Range: 0–100",
+      "examples": [
+        "20"
+      ],
+      "type": "integer",
+      "default": 40
+    },
+    "PickLockTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "120"
+      ],
+      "type": "integer",
+      "default": 120
+    },
+    "PickLockToolDamagePercent": {
+      "description": "Pick lock tool damage percent. Range: 0–100",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 10
+    },
+    "EnableWindAerodynamics": {
+      "description": "Enable or disable wind aerodynamics",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableMainRotorDamage": {
+      "description": "Enable or disable main rotor damage",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableTailRotorDamage": {
+      "description": "Enable or disable tail rotor damage",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "Towing": {
+      "description": "Towing",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "EnableHelicopterExplosions": {
+      "description": "Enable or disable helicopter explosions",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "DisableVehicleDamage": {
+      "description": "Enable or disable vehicle damage",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "VehicleCrewDamageMultiplier": {
+      "description": "Vehicle crew damage multiplier. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleSpeedDamageMultiplier": {
+      "description": "Vehicle speed damage multiplier. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "VehicleRoadKillDamageMultiplier": {
+      "description": "Vehicle road kill damage multiplier. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "CollisionDamageIfEngineOff": {
+      "description": "Collision damage if engine off",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "CollisionDamageMinSpeedKmh": {
+      "description": "Collision damage min speed kmh",
+      "examples": [
+        "30"
+      ],
+      "type": "integer",
+      "default": 30
+    },
+    "CanChangeLock": {
+      "description": "Enable or disable change lock",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "ChangeLockTools": {
+      "description": "Change lock tools",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "ChangeLockTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "120"
+      ],
+      "type": "integer",
+      "default": 120
+    },
+    "ChangeLockToolDamagePercent": {
+      "description": "Change lock tool damage percent. Range: 0–100",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 10
+    },
+    "PlacePlayerOnGroundOnReconnectInVehicle": {
+      "description": "Place player on ground on reconnect in vehicle",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "RevvingOverMaxRPMRuinsEngineInstantly": {
+      "description": "Revving over max rpm ruins engine instantly",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "VehicleDropsRuinedDoors": {
+      "description": "Vehicle drops ruined doors",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ExplodingVehicleDropsAttachments": {
+      "description": "Exploding vehicle drops attachments",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "DesyncInvulnerabilityTimeoutSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "3"
+      ],
+      "type": "integer",
+      "default": 3
+    },
+    "PilotlessAutoHoverEngineStopDelaySeconds": {
+      "description": "Pilotless auto hover engine stop delay seconds",
+      "examples": [
+        "30"
+      ],
+      "type": "integer",
+      "default": 30
+    },
+    "RoughLandingVerticalSpeedThreshold": {
+      "description": "Rough landing vertical speed threshold (default: 3)",
+      "examples": [
+        "3"
+      ],
+      "type": "integer",
+      "default": 3
+    },
+    "DamagedEngineStartupChancePercent": {
+      "description": "Damaged engine startup chance percent. Range: 0–100",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "FuelConsumptionPercent": {
+      "description": "Fuel consumption percent. Range: 0–100",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "EnableVehicleCovers": {
+      "description": "Enable or disable vehicle covers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "AllowCoveringDEVehicles": {
+      "description": "Enable or disable covering de vehicles",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "CanCoverWithCargo": {
+      "description": "Enable or disable cover with cargo",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseVirtualStorageForCoverCargo": {
+      "description": "Enable or disable virtual storage for cover cargo",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "VehicleAutoCoverTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "VehicleAutoCoverRequireCamonet": {
+      "description": "Vehicle auto cover require camonet",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "EnableAutoCoveringDEVehicles": {
+      "description": "Enable or disable auto covering de vehicles",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "CFToolsHeliCoverIconName": {
+      "description": "Cf tools heli cover icon name",
+      "examples": [
+        "\"helicopter\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "helicopter"
+    },
+    "CFToolsBoatCoverIconName": {
+      "description": "Cf tools boat cover icon name",
+      "examples": [
+        "\"ship\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "ship"
+    },
+    "CFToolsCarCoverIconName": {
+      "description": "Cf tools car cover icon name",
+      "examples": [
+        "\"car\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "car"
+    },
+    "ShowVehicleOwners": {
+      "description": "Enable or disable vehicle owners",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "VehiclesConfig": {
+      "description": "Vehicles config",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ClassName": {
+            "description": "DayZ classname (e.g. \"ExpansionUAZCargoRoofless\")",
+            "examples": [
+              "\"ExpansionUAZCargoRoofless\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "ExpansionUAZCargoRoofless"
+          },
+          "LockComplexity": {
+            "description": "Lock complexity",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          }
+        }
+      },
+      "default": []
+    }
+  }
+}

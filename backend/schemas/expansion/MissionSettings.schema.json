@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MissionSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-missions",
+  "x-filePath": "Profiles/ExpansionMod/Settings/MissionSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "Enabled": {
+      "description": "Enable or disable d",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "InitialMissionStartDelay": {
+      "description": "Initial mission start delay (default: 300000)",
+      "examples": [
+        "300000"
+      ],
+      "type": "integer",
+      "default": 300000
+    },
+    "TimeBetweenMissions": {
+      "description": "Time duration in milliseconds",
+      "examples": [
+        "3600000"
+      ],
+      "type": "integer",
+      "default": 3600000
+    },
+    "MinMissions": {
+      "description": "Min missions",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "MaxMissions": {
+      "description": "Max missions",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "MinPlayersToStartMissions": {
+      "description": "Min players to start missions",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

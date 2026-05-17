@@ -1,0 +1,6 @@
+{
+  "id": "tpl-territorysettings",
+  "name": "TerritorySettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"EnableTerritories\": \"number\",\n  \"UseWholeMapForInviteList\": \"number\",\n  \"TerritorySize\": \"number\",\n  \"TerritoryPerimeterSize\": \"number\",\n  \"MaxMembersInTerritory\": \"number\",\n  \"MaxTerritoryPerPlayer\": \"number\",\n  \"TerritoryInviteAcceptRadius\": \"number\",\n  \"AuthenticateCodeLockIfTerritoryMember\": \"number\",\n  \"InviteCooldown\": \"number\",\n  \"OnlyInviteGroupMember\": \"number\",\n  \"MaxCodeLocksOnBBPerTerritory\": \"number\",\n  \"MaxCodeLocksOnItemsPerTerritory\": \"number\"\n}",
+  "description": "Auto-generated validation template for TerritorySettings"
+}

@@ -1,0 +1,6 @@
+{
+  "id": "tpl-personalstoragesettings",
+  "name": "PersonalStorageSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"UsePersonalStorageCase\": \"number\",\n  \"MaxItemsPerStorage\": \"number\",\n  \"ExcludedClassNames\": [\n    \"string\"\n  ],\n  \"MenuCategories\": [\n    {\n      \"DisplayName\": \"string\",\n      \"IconPath\": \"string\",\n      \"Included\": [\n        \"string\"\n      ],\n      \"Excluded\": [],\n      \"SubCategories\": [\n        {\n          \"DisplayName\": \"string\",\n          \"IconPath\": \"string\",\n          \"Included\": [\n            \"string\"\n          ],\n          \"Excluded\": []\n        }\n      ]\n    }\n  ]\n}",
+  "description": "Auto-generated validation template for PersonalStorageSettings"
+}

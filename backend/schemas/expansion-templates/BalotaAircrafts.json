@@ -1,0 +1,6 @@
+{
+  "id": "tpl-balotaaircrafts",
+  "name": "BalotaAircrafts",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"m_DisplayName\": \"string\",\n  \"Position\": \"string\",\n  \"Radius\": \"number\",\n  \"BuyPricePercent\": \"number\",\n  \"SellPricePercent\": \"number\",\n  \"Stock\": {\n    \"string\": \"number\"\n  }\n}",
+  "description": "Auto-generated validation template for BalotaAircrafts"
+}

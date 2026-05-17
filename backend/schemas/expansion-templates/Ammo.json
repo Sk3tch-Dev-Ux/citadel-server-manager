@@ -1,0 +1,6 @@
+{
+  "id": "tpl-ammo",
+  "name": "Ammo",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"DisplayName\": \"string\",\n  \"Icon\": \"string\",\n  \"Color\": \"string\",\n  \"IsExchange\": \"number\",\n  \"InitStockPercent\": \"number\",\n  \"Items\": {\n    \"string\": \"string\"\n  }\n}",
+  "description": "Auto-generated validation template for Ammo"
+}

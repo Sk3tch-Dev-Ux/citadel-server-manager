@@ -1,0 +1,279 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AISettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-ai",
+  "x-filePath": "Profiles/ExpansionMod/Settings/AISettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "20"
+      ],
+      "type": "integer",
+      "default": 20
+    },
+    "AccuracyMin": {
+      "description": "Accuracy min (default: 0.3499999940395355)",
+      "examples": [
+        "0.3499999940395355"
+      ],
+      "type": "number",
+      "default": 0.3499999940395355
+    },
+    "AccuracyMax": {
+      "description": "Accuracy max (default: 0.949999988079071)",
+      "examples": [
+        "0.949999988079071"
+      ],
+      "type": "number",
+      "default": 0.949999988079071
+    },
+    "ThreatDistanceLimit": {
+      "description": "Threat distance limit (default: 1000)",
+      "examples": [
+        "1000"
+      ],
+      "type": "integer",
+      "default": 1000
+    },
+    "NoiseInvestigationDistanceLimit": {
+      "description": "Noise investigation distance limit (default: 500)",
+      "examples": [
+        "500"
+      ],
+      "type": "integer",
+      "default": 500
+    },
+    "MaxFlankingDistance": {
+      "description": "Max flanking distance (default: 200)",
+      "examples": [
+        "200"
+      ],
+      "type": "integer",
+      "default": 200
+    },
+    "EnableFlankingOutsideCombat": {
+      "description": "Enable or disable flanking outside combat",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "DamageMultiplier": {
+      "description": "Damage multiplier. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "DamageReceivedMultiplier": {
+      "description": "Damage received multiplier. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ShoryukenChance": {
+      "description": "Shoryuken chance. Range: 0.0–1.0",
+      "examples": [
+        "0"
+      ],
+      "type": "number",
+      "default": 0.009999999776482582
+    },
+    "ShoryukenDamageMultiplier": {
+      "description": "Shoryuken damage multiplier. Range: 0–100",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 3
+    },
+    "Admins": {
+      "description": "Admins",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "Vaulting": {
+      "description": "Vaulting",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "SniperProneDistanceThreshold": {
+      "description": "Sniper prone distance threshold (default: 0)",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "AggressionTimeout": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "120"
+      ],
+      "type": "integer",
+      "default": 120
+    },
+    "GuardAggressionTimeout": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "150"
+      ],
+      "type": "integer",
+      "default": 150
+    },
+    "Manners": {
+      "description": "Manners",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "MemeLevel": {
+      "description": "Meme level selector (0–5)",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "CanRecruitFriendly": {
+      "description": "Enable or disable recruit friendly",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CanRecruitGuards": {
+      "description": "Enable or disable recruit guards",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "MaxRecruitableAI": {
+      "description": "Max recruitable ai",
+      "examples": [
+        "255"
+      ],
+      "type": "integer",
+      "default": 255
+    },
+    "PreventClimb": {
+      "description": "Prevent climb",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "FormationScale": {
+      "description": "Formation scale. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "PlayerFactions": {
+      "description": "Player factions",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "LogAIHitBy": {
+      "description": "Log ai hit by",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "LogAIKilled": {
+      "description": "Log ai killed",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "EnableZombieVehicleAttackHandler": {
+      "description": "Enable or disable zombie vehicle attack handler",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "EnableZombieVehicleAttackPhysics": {
+      "description": "Enable or disable zombie vehicle attack physics",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "OverrideClientWeaponFiring": {
+      "description": "Override client weapon firing",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "RecreateWeaponNetworkRepresentation": {
+      "description": "Recreate weapon network representation",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "LightingConfigMinNightVisibilityMeters": {
+      "description": "Lighting config min night visibility meters",
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "x-mapKeyType": "string",
+      "default": {}
+    }
+  }
+}

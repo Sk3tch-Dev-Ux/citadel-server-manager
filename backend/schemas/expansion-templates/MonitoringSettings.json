@@ -1,0 +1,6 @@
+{
+  "id": "tpl-monitoringsettings",
+  "name": "MonitoringSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\"\n}",
+  "description": "Auto-generated validation template for MonitoringSettings"
+}

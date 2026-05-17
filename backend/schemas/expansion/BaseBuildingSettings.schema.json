@@ -1,0 +1,321 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BaseBuildingSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-basebuilding",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/settings/BaseBuildingSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "CanBuildAnywhere": {
+      "description": "Enable or disable build anywhere",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "AllowBuildingWithoutATerritory": {
+      "description": "Enable or disable building without a territory",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "DeployableOutsideATerritory": {
+      "description": "Deployable outside a territory",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "DeployableInsideAEnemyTerritory": {
+      "description": "Deployable inside a enemy territory",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "CanCraftVanillaBasebuilding": {
+      "description": "Enable or disable craft vanilla basebuilding",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "CanCraftExpansionBasebuilding": {
+      "description": "Enable or disable craft expansion basebuilding",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "DestroyFlagOnDismantle": {
+      "description": "Destroy flag on dismantle",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "DismantleOutsideTerritory": {
+      "description": "Dismantle outside territory",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "DismantleInsideTerritory": {
+      "description": "Dismantle inside territory",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "DismantleAnywhere": {
+      "description": "Dismantle anywhere",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "CodelockActionsAnywhere": {
+      "description": "Codelock actions anywhere",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "CodeLockLength": {
+      "description": "Code lock length",
+      "examples": [
+        "4"
+      ],
+      "type": "integer",
+      "default": 4
+    },
+    "DoDamageWhenEnterWrongCodeLock": {
+      "description": "Do damage when enter wrong code lock",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "DamageWhenEnterWrongCodeLock": {
+      "description": "Damage when enter wrong code lock",
+      "examples": [
+        "10"
+      ],
+      "type": "integer",
+      "default": 10
+    },
+    "RememberCode": {
+      "description": "Remember code",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "CanCraftTerritoryFlagKit": {
+      "description": "Enable or disable craft territory flag kit",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "SimpleTerritory": {
+      "description": "Simple territory",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "AutomaticFlagOnCreation": {
+      "description": "Automatic flag on creation",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "GetTerritoryFlagKitAfterBuild": {
+      "description": "Get territory flag kit after build",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "BuildZoneRequiredCustomMessage": {
+      "description": "Build zone required custom message",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "default": ""
+    },
+    "Zones": {
+      "description": "Zones",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "description": "Name",
+            "examples": [
+              "\"Krasnostav Trader Camp\""
+            ],
+            "type": "string",
+            "default": "Krasnostav Trader Camp"
+          },
+          "Center": {
+            "description": "Center",
+            "examples": [
+              "11882, 143, 12466"
+            ],
+            "type": "string",
+            "format": "vector3",
+            "default": "11882, 143, 12466"
+          },
+          "Radius": {
+            "description": "Radius (default: 1000)",
+            "examples": [
+              "1000"
+            ],
+            "type": "integer",
+            "default": 1000
+          },
+          "Items": {
+            "description": "Items",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "IsWhitelist": {
+            "description": "Enable or disable whitelist",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 1
+          },
+          "CustomMessage": {
+            "description": "Custom message",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          }
+        }
+      },
+      "default": []
+    },
+    "ZonesAreNoBuildZones": {
+      "description": "Zones are no build zones",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "CodelockAttachMode": {
+      "description": "Codelock attach mode selector (0–5)",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "DismantleFlagMode": {
+      "description": "Dismantle flag mode selector (0–5)",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "FlagMenuMode": {
+      "description": "Flag menu mode selector (0–5)",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "PreventItemAccessThroughObstructingItems": {
+      "description": "Prevent item access through obstructing items",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "EnableVirtualStorage": {
+      "description": "Enable or disable virtual storage",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "VirtualStorageExcludedContainers": {
+      "description": "Virtual storage excluded containers",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  }
+}

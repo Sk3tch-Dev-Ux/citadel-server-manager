@@ -1,108 +1,228 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Expansion Hardline Settings",
+  "title": "HardlineSettings",
   "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-hardline",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/settings/HardlineSettings.json",
   "properties": {
-    "EnableHardline": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "11"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable the hardline reputation system"
+      "default": 11
     },
-    "UseReputation": {
+    "PoorItemRequirement": {
+      "description": "Poor item requirement",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Use reputation for trader pricing tiers"
+      "default": 0
     },
-    "UseFactionReputation": {
+    "CommonItemRequirement": {
+      "description": "Common item requirement",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 0,
-      "description": "Enable faction-based reputation"
+      "default": 0
+    },
+    "UncommonItemRequirement": {
+      "description": "Uncommon item requirement",
+      "examples": [
+        "1000"
+      ],
+      "type": "integer",
+      "default": 1000
+    },
+    "RareItemRequirement": {
+      "description": "Rare item requirement",
+      "examples": [
+        "2000"
+      ],
+      "type": "integer",
+      "default": 2000
+    },
+    "EpicItemRequirement": {
+      "description": "Epic item requirement",
+      "examples": [
+        "3000"
+      ],
+      "type": "integer",
+      "default": 3000
+    },
+    "LegendaryItemRequirement": {
+      "description": "Legendary item requirement",
+      "examples": [
+        "4000"
+      ],
+      "type": "integer",
+      "default": 4000
+    },
+    "MythicItemRequirement": {
+      "description": "Mythic item requirement",
+      "examples": [
+        "5000"
+      ],
+      "type": "integer",
+      "default": 5000
+    },
+    "ExoticItemRequirement": {
+      "description": "Exotic item requirement",
+      "examples": [
+        "10000"
+      ],
+      "type": "integer",
+      "default": 10000
     },
     "ShowHardlineHUD": {
+      "description": "Enable or disable hardline hud",
+      "examples": [
+        "1"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Show reputation HUD element"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
     },
-    "ReputationOnKillInfected": {
+    "UseReputation": {
+      "description": "Enable or disable reputation",
+      "examples": [
+        "1"
+      ],
       "type": "integer",
-      "minimum": -1000,
-      "maximum": 1000,
-      "default": 1,
-      "description": "Reputation gained/lost per infected kill"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
     },
-    "ReputationOnKillAnimal": {
+    "UseFactionReputation": {
+      "description": "Enable or disable faction reputation",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "minimum": -1000,
-      "maximum": 1000,
-      "default": 1,
-      "description": "Reputation gained/lost per animal kill"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
-    "ReputationOnKillPlayer": {
+    "EnableFactionPersistence": {
+      "description": "Enable or disable faction persistence",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "minimum": -10000,
-      "maximum": 10000,
-      "default": -100,
-      "description": "Reputation gained/lost per player kill"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
-    "ReputationOnKillFriendly": {
+    "EnableItemRarity": {
+      "description": "Enable or disable item rarity",
+      "examples": [
+        "1"
+      ],
       "type": "integer",
-      "minimum": -10000,
-      "maximum": 10000,
-      "default": -500,
-      "description": "Reputation gained/lost per friendly player kill"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
     },
-    "ReputationOnKillBandit": {
+    "UseItemRarityOnInventoryIcons": {
+      "description": "Enable or disable item rarity on inventory icons",
+      "examples": [
+        "1"
+      ],
       "type": "integer",
-      "minimum": -10000,
-      "maximum": 10000,
-      "default": 50,
-      "description": "Reputation gained/lost per bandit kill"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
     },
-    "ReputationLossOnDeath": {
+    "UseItemRarityForMarketPurchase": {
+      "description": "Enable or disable item rarity for market purchase",
+      "examples": [
+        "1"
+      ],
       "type": "integer",
-      "minimum": 0,
-      "maximum": 10000,
-      "default": 100,
-      "description": "Reputation lost on death"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
     },
-    "DefaultReputation": {
+    "UseItemRarityForMarketSell": {
+      "description": "Enable or disable item rarity for market sell",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "minimum": 0,
-      "maximum": 100000,
-      "default": 0,
-      "description": "Starting reputation for new players"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
     "MaxReputation": {
+      "description": "Max reputation",
+      "examples": [
+        "90000"
+      ],
       "type": "integer",
-      "minimum": 0,
-      "maximum": 1000000,
-      "default": 100000,
-      "description": "Maximum attainable reputation"
+      "default": 90000
     },
-    "ReputationTiers": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "Name": {
-            "type": "string",
-            "description": "Tier display name"
-          },
-          "Reputation": {
-            "type": "integer",
-            "description": "Minimum reputation for this tier"
-          },
-          "Color": {
-            "type": "string",
-            "description": "HUD color (ARGB hex)"
-          }
-        }
+    "ReputationLossOnDeath": {
+      "description": "Reputation loss on death",
+      "examples": [
+        "100"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "DefaultItemRarity": {
+      "description": "Default item rarity",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "ItemRarityParentSearch": {
+      "description": "Item rarity parent search",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "EntityReputation": {
+      "description": "Entity reputation",
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
       },
-      "description": "Reputation tier definitions for trader access and display"
+      "x-mapKeyType": "string",
+      "default": {}
+    },
+    "ItemRarity": {
+      "description": "Item rarity",
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "x-mapKeyType": "string",
+      "default": {}
     }
   }
 }

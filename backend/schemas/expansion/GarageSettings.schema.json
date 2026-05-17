@@ -1,0 +1,238 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GarageSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-basebuilding",
+  "x-filePath": "Profiles/ExpansionMod/Settings/GarageSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "6"
+      ],
+      "type": "integer",
+      "default": 6
+    },
+    "Enabled": {
+      "description": "Enable or disable d",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "AllowStoringDEVehicles": {
+      "description": "Enable or disable storing de vehicles",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "GarageMode": {
+      "description": "0 - Territory Mode. The player needs to be a member of a territory to store/retrive vehicles. | 1 - Personal Mode. Can store/retrive vehicles without any requirement.",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "GarageStoreMode": {
+      "description": "0 - Personal mode. Player can store vehicles where he was the last driver | 1 - Shared mode. All territory members can store a vehicles where the last vehicle driver was a territory member. | 2 - Only the territory owner and moderators can store vehicles of territory members.",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "GarageRetrieveMode": {
+      "description": "0 - Personal mode. Only the player who stored the vehicle can retrieve it. | 1 - Shared mode. All vehicles can be retrieved by all territory members. | 2 - Tyranical mode. Only the territory owner and moderators can retrieve vehicles.",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "MaxStorableVehicles": {
+      "description": "Max storable vehicles",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "VehicleSearchRadius": {
+      "description": "Vehicle search radius (default: 20)",
+      "examples": [
+        "20"
+      ],
+      "type": "integer",
+      "default": 20
+    },
+    "MaxDistanceFromStoredPosition": {
+      "description": "Max distance from stored position",
+      "examples": [
+        "150"
+      ],
+      "type": "integer",
+      "default": 150
+    },
+    "CanStoreWithCargo": {
+      "description": "Enable or disable store with cargo",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseVirtualStorageForCargo": {
+      "description": "Enable or disable virtual storage for cargo",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "NeedKeyToStore": {
+      "description": "Enable or disable key to store",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EntityWhitelist": {
+      "description": "Entity whitelist",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "EnableGroupFeatures": {
+      "description": "Enable or disable group features",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "GroupStoreMode": {
+      "description": "0 - Group members can only store vehicles of other group members. | 1 - Group members can only retrieve vehicles of other group members. | 2 - Group members can store and retrieve vehicles of other group members.",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "EnableMarketFeatures": {
+      "description": "Enable or disable market features",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "StorePricePercent": {
+      "description": "Store price percent. Range: 0–100",
+      "examples": [
+        "3"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "StaticStorePrice": {
+      "description": "Static store price",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "MaxStorableTier1": {
+      "description": "Max storable tier1",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "MaxStorableTier2": {
+      "description": "Max storable tier2",
+      "examples": [
+        "4"
+      ],
+      "type": "integer",
+      "default": 4
+    },
+    "MaxStorableTier3": {
+      "description": "Max storable tier3",
+      "examples": [
+        "6"
+      ],
+      "type": "integer",
+      "default": 6
+    },
+    "MaxRangeTier1": {
+      "description": "Max range tier1",
+      "examples": [
+        "20"
+      ],
+      "type": "integer",
+      "default": 20
+    },
+    "MaxRangeTier2": {
+      "description": "Max range tier2",
+      "examples": [
+        "30"
+      ],
+      "type": "integer",
+      "default": 30
+    },
+    "MaxRangeTier3": {
+      "description": "Max range tier3",
+      "examples": [
+        "40"
+      ],
+      "type": "integer",
+      "default": 40
+    },
+    "ParkingMeterEnableFlavor": {
+      "description": "Parking meter enable flavor",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    }
+  }
+}

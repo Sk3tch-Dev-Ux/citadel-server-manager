@@ -1,0 +1,6 @@
+{
+  "id": "spawn-selection",
+  "name": "Spawn Selection Config",
+  "template": "{\n  \"EnableSpawnSelection\": \"boolean\",\n  \"UsePlayerSpawnSelection\": \"boolean\",\n  \"SpawnLocations\": [\n    {\n      \"Name\": \"string\",\n      \"X\": \"number\",\n      \"Z\": \"number\",\n      \"Radius\": \"number\",\n      \"IsDefault\": \"boolean\"\n    }\n  ]\n}",
+  "description": "Validates spawn selection configuration"
+}

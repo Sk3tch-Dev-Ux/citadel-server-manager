@@ -1,0 +1,360 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RaidSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-basebuilding",
+  "x-filePath": "Profiles/ExpansionMod/Settings/RaidSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "BaseBuildingRaidMode": {
+      "description": "Base building raid mode selector (0–5)",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "ExplosionTime": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "30"
+      ],
+      "type": "integer",
+      "default": 30
+    },
+    "ExplosiveDamageWhitelist": {
+      "description": "Explosive damage whitelist",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "EnableExplosiveWhitelist": {
+      "description": "Enable or disable explosive whitelist",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "ExplosionDamageMultiplier": {
+      "description": "Explosion damage multiplier. Range: 0–100",
+      "examples": [
+        "25"
+      ],
+      "type": "integer",
+      "default": 50
+    },
+    "ProjectileDamageMultiplier": {
+      "description": "Projectile damage multiplier. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "CanRaidSafes": {
+      "description": "Enable or disable raid safes",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "SafeRaidUseSchedule": {
+      "description": "Safe raid use schedule",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "SafeExplosionDamageMultiplier": {
+      "description": "Safe explosion damage multiplier. Range: 0–100",
+      "examples": [
+        "9"
+      ],
+      "type": "integer",
+      "default": 17
+    },
+    "SafeProjectileDamageMultiplier": {
+      "description": "Safe projectile damage multiplier. Range: 0–100",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "SafeRaidTools": {
+      "description": "Safe raid tools",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "SafeRaidToolTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "600"
+      ],
+      "type": "integer",
+      "default": 600
+    },
+    "SafeRaidToolCycles": {
+      "description": "Safe raid tool cycles",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "SafeRaidToolDamagePercent": {
+      "description": "Safe raid tool damage percent. Range: 0–100",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "CanRaidBarbedWire": {
+      "description": "Enable or disable raid barbed wire",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "BarbedWireRaidTools": {
+      "description": "Barbed wire raid tools",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "BarbedWireRaidToolTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "300"
+      ],
+      "type": "integer",
+      "default": 300
+    },
+    "BarbedWireRaidToolCycles": {
+      "description": "Barbed wire raid tool cycles",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "BarbedWireRaidToolDamagePercent": {
+      "description": "Barbed wire raid tool damage percent. Range: 0–100",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "CanRaidLocksOnWalls": {
+      "description": "Enable or disable raid locks on walls",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "CanRaidLocksOnFences": {
+      "description": "Enable or disable raid locks on fences",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "CanRaidLocksOnTents": {
+      "description": "Enable or disable raid locks on tents",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "LockRaidTools": {
+      "description": "Lock raid tools",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "LockOnWallRaidToolTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "900"
+      ],
+      "type": "integer",
+      "default": 900
+    },
+    "LockOnFenceRaidToolTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "900"
+      ],
+      "type": "integer",
+      "default": 900
+    },
+    "LockOnTentRaidToolTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "600"
+      ],
+      "type": "integer",
+      "default": 600
+    },
+    "LockRaidToolCycles": {
+      "description": "Lock raid tool cycles",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "LockRaidToolDamagePercent": {
+      "description": "Lock raid tool damage percent. Range: 0–100",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "CanRaidLocksOnContainers": {
+      "description": "Enable or disable raid locks on containers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "LockOnContainerRaidUseSchedule": {
+      "description": "Lock on container raid use schedule",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "LockOnContainerRaidTools": {
+      "description": "Lock on container raid tools",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "LockOnContainerRaidToolTimeSeconds": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "600"
+      ],
+      "type": "integer",
+      "default": 600
+    },
+    "LockOnContainerRaidToolCycles": {
+      "description": "Lock on container raid tool cycles",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "LockOnContainerRaidToolDamagePercent": {
+      "description": "Lock on container raid tool damage percent. Range: 0–100",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "Schedule": {
+      "description": "Schedule",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Weekday": {
+            "description": "Weekday",
+            "examples": [
+              "\"Sunday\""
+            ],
+            "type": "string",
+            "default": "Sunday"
+          },
+          "StartHour": {
+            "description": "Start hour",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "StartMinute": {
+            "description": "Start minute",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "DurationMinutes": {
+            "description": "Duration minutes. Range: 0–100",
+            "examples": [
+              "720"
+            ],
+            "type": "integer",
+            "default": 1440
+          }
+        }
+      },
+      "default": []
+    }
+  }
+}

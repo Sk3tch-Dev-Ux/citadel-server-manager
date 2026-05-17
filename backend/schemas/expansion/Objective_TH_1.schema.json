@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Objective_TH_1",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-quests",
+  "x-filePath": "Profiles/ExpansionMod/Quests/Objectives/TreasureHunt/Objective_TH_1.json",
+  "properties": {
+    "ConfigVersion": {
+      "description": "Config version",
+      "examples": [
+        "28"
+      ],
+      "type": "integer",
+      "default": 28
+    },
+    "ID": {
+      "description": "Id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ObjectiveType": {
+      "description": "Objective type selector (0–6)",
+      "examples": [
+        "6"
+      ],
+      "type": "integer",
+      "default": 6
+    },
+    "ObjectiveText": {
+      "description": "Objective text",
+      "examples": [
+        "\"Find the location of the treasure\""
+      ],
+      "type": "string",
+      "default": "Find the location of the treasure"
+    },
+    "TimeLimit": {
+      "description": "Time limit (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "Active": {
+      "description": "Enable or disable active",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowDistance": {
+      "description": "Enable or disable distance",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ContainerName": {
+      "description": "DayZ classname (e.g. \"ExpansionQuestSeaChest\")",
+      "examples": [
+        "\"ExpansionQuestSeaChest\""
+      ],
+      "type": "string",
+      "format": "dayz-classname",
+      "default": "ExpansionQuestSeaChest"
+    },
+    "DigInStash": {
+      "description": "Dig in stash",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "MarkerName": {
+      "description": "Marker name",
+      "examples": [
+        "\"???\""
+      ],
+      "type": "string",
+      "default": "???"
+    },
+    "MarkerVisibility": {
+      "description": "Marker visibility",
+      "examples": [
+        "4"
+      ],
+      "type": "integer",
+      "default": 4
+    },
+    "Positions": {
+      "description": "Positions",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "LootItemsAmount": {
+      "description": "Loot items amount (default: 0)",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "MaxDistance": {
+      "description": "Max distance (default: 10)",
+      "examples": [
+        "10"
+      ],
+      "type": "integer",
+      "default": 10
+    },
+    "Loot": {
+      "description": "Loot",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "description": "Name",
+            "examples": [
+              "\"Binoculars\""
+            ],
+            "type": "string",
+            "default": "Binoculars"
+          },
+          "Chance": {
+            "description": "Chance. Range: 0.0–1.0",
+            "examples": [
+              "0.15"
+            ],
+            "type": "number",
+            "default": 0.30000001192092896
+          },
+          "Attachments": {
+            "description": "Attachments",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "QuantityPercent": {
+            "description": "Quantity percent. Range: 0–100",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "Max": {
+            "description": "Max (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "Min": {
+            "description": "Min (default: 0)",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "Variants": {
+            "description": "Variants",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    }
+  }
+}

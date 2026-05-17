@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-a-example",
+  "name": "Objective_A_Example",
+  "template": "{\n  \"ID\": \"number\",\n  \"Active\": \"number\",\n  \"TimeLimit\": \"number\",\n  \"ActionNames\": [\n    \"string\"\n  ],\n  \"ConfigVersion\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"ObjectiveType\": \"number\",\n  \"ExecutionAmount\": \"number\",\n  \"AllowedClassNames\": [],\n  \"ExcludedClassNames\": []\n}",
+  "description": "Auto-generated validation template for Objective_A_Example"
+}

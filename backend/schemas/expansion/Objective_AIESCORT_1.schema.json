@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Objective_AIESCORT_1",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-quests",
+  "x-filePath": "Profiles/ExpansionMod/Quests/Objectives/AIVIP/Objective_AIESCORT_1.json",
+  "properties": {
+    "ConfigVersion": {
+      "description": "Config version",
+      "examples": [
+        "28"
+      ],
+      "type": "integer",
+      "default": 28
+    },
+    "ID": {
+      "description": "Id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ObjectiveType": {
+      "description": "Objective type selector (0–9)",
+      "examples": [
+        "9"
+      ],
+      "type": "integer",
+      "default": 9
+    },
+    "ObjectiveText": {
+      "description": "Objective text",
+      "examples": [
+        "\"Bring the Survivor to the marked location.\""
+      ],
+      "type": "string",
+      "default": "Bring the Survivor to the marked location."
+    },
+    "TimeLimit": {
+      "description": "Time limit (default: 180)",
+      "examples": [
+        "180"
+      ],
+      "type": "integer",
+      "default": 180
+    },
+    "Active": {
+      "description": "Enable or disable active",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "Position": {
+      "description": "Position",
+      "examples": [
+        "3193.590087890625, 296.7070007324219, 6090.56982421875"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "3193.590087890625, 296.7070007324219, 6090.56982421875"
+    },
+    "MaxDistance": {
+      "description": "Max distance (default: 20)",
+      "examples": [
+        "20"
+      ],
+      "type": "integer",
+      "default": 20
+    },
+    "MarkerName": {
+      "description": "Marker name",
+      "examples": [
+        "\"Escort Survivor\""
+      ],
+      "type": "string",
+      "default": "Escort Survivor"
+    },
+    "ShowDistance": {
+      "description": "Enable or disable distance",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CanLootAI": {
+      "description": "Enable or disable loot ai",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "NPCLoadoutFile": {
+      "description": "DayZ classname (e.g. \"SurvivorLoadout\")",
+      "examples": [
+        "\"SurvivorLoadout\""
+      ],
+      "type": "string",
+      "format": "dayz-classname",
+      "default": "SurvivorLoadout"
+    },
+    "NPCClassName": {
+      "description": "DayZ classname (e.g. \"eAI_SurvivorM_Oliver\")",
+      "examples": [
+        "\"eAI_SurvivorM_Oliver\""
+      ],
+      "type": "string",
+      "format": "dayz-classname",
+      "default": "eAI_SurvivorM_Oliver"
+    },
+    "NPCName": {
+      "description": "Npc name",
+      "examples": [
+        "\"Survivior\""
+      ],
+      "type": "string",
+      "default": "Survivior"
+    }
+  }
+}

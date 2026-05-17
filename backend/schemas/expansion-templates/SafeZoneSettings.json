@@ -1,0 +1,6 @@
+{
+  "id": "tpl-safezonesettings",
+  "name": "SafeZoneSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"FrameRateCheckSafeZoneInMs\": \"number\",\n  \"CircleZones\": [\n    {\n      \"Center\": \"string\",\n      \"Radius\": \"number\"\n    }\n  ],\n  \"PolygonZones\": [\n    {\n      \"Positions\": [\n        [\n          \"number\"\n        ]\n      ]\n    }\n  ],\n  \"CylinderZones\": [],\n  \"ActorsPerTick\": \"number\",\n  \"DisablePlayerCollision\": \"number\",\n  \"DisableVehicleDamageInSafeZone\": \"number\",\n  \"EnableForceSZCleanup\": \"number\",\n  \"ItemLifetimeInSafeZone\": \"number\",\n  \"EnableForceSZCleanupVehicles\": \"number\",\n  \"VehicleLifetimeInSafeZone\": \"number\",\n  \"ForceSZCleanup_ExcludedItems\": []\n}",
+  "description": "Auto-generated validation template for SafeZoneSettings"
+}

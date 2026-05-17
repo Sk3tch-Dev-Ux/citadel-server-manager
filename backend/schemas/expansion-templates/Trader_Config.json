@@ -1,0 +1,6 @@
+{
+  "id": "trader-config",
+  "name": "Trader Config",
+  "template": "{\n  \"DisplayName\": \"string\",\n  \"Icon\": \"string\",\n  \"Items\": [\n    {\n      \"ClassName\": \"string\",\n      \"MaxPriceThreshold\": \"number\",\n      \"MinPriceThreshold\": \"number\",\n      \"SellPricePercent\": \"number\",\n      \"MaxStockThreshold\": \"number\",\n      \"MinStockThreshold\": \"number\",\n      \"QuantityPercent\": \"number\",\n      \"SpawnAttachments\": [\n        \"string\"\n      ],\n      \"Variants\": [\n        \"string\"\n      ]\n    }\n  ]\n}",
+  "description": "Validates a trader configuration JSON file"
+}

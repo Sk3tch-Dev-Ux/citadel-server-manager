@@ -1,0 +1,193 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ChatSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-chat",
+  "x-filePath": "Profiles/ExpansionMod/Settings/ChatSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "4"
+      ],
+      "type": "integer",
+      "default": 4
+    },
+    "EnableGlobalChat": {
+      "description": "Enable or disable global chat",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnablePartyChat": {
+      "description": "Enable or disable party chat",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableTransportChat": {
+      "description": "Enable or disable transport chat",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableExpansionChat": {
+      "description": "Enable or disable expansion chat",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ChatColors": {
+      "description": "Chat colors",
+      "type": "object",
+      "properties": {
+        "SystemChatColor": {
+          "description": "System chat color",
+          "examples": [
+            "EB45EBFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "AdminChatColor": {
+          "description": "Admin chat color",
+          "examples": [
+            "FF392BFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "GlobalChatColor": {
+          "description": "Global chat color",
+          "examples": [
+            "58C3FFFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int",
+          "default": 58
+        },
+        "DirectChatColor": {
+          "description": "Direct chat color",
+          "examples": [
+            "FFFFFFFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "TransportChatColor": {
+          "description": "Transport chat color",
+          "examples": [
+            "FFCE09FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "PartyChatColor": {
+          "description": "Party chat color",
+          "examples": [
+            "0AFA7AFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int",
+          "default": 0
+        },
+        "TransmitterChatColor": {
+          "description": "Transmitter chat color",
+          "examples": [
+            "F9FF49FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "StatusMessageColor": {
+          "description": "Status message color",
+          "examples": [
+            "4B77BEFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int",
+          "default": 4
+        },
+        "ActionMessageColor": {
+          "description": "Action message color",
+          "examples": [
+            "F7CA18FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "FriendlyMessageColor": {
+          "description": "Friendly message color",
+          "examples": [
+            "2ECC71FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int",
+          "default": 2
+        },
+        "ImportantMessageColor": {
+          "description": "Important message color",
+          "examples": [
+            "F22613FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "DefaultMessageColor": {
+          "description": "Default message color",
+          "examples": [
+            "FFFFFFFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        }
+      },
+      "default": {}
+    },
+    "BlacklistedWords": {
+      "description": "Blacklisted words",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  }
+}
