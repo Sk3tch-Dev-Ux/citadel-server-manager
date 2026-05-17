@@ -1,0 +1,207 @@
+{
+  "id": "expansion-groups",
+  "name": "Expansion Groups",
+  "shortName": "Groups",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Groups",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792983364",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964108",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Party/group system for team play with shared HUD, markers.",
+  "overview": "Expansion Groups adds a comprehensive party system allowing players to form groups, share map markers, see each other's positions, and manage group permissions. It enhances cooperative gameplay and integrates with other Expansion mods for shared features like group chat and territory ownership.",
+  "dependencies": [
+    "expansion-core",
+    "expansion-book"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-chat",
+    "expansion-basebuilding"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed.",
+    "Download @ExpansionGroups from the Steam Workshop.",
+    "Add to your -mod= parameter after Core.",
+    "Configure group settings and limits."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Groups resetting on restart",
+      "solution": "Ensure GroupPersistence is set to 1 and the database is configured."
+    },
+    {
+      "problem": "Group invites not working",
+      "solution": "Check that EnableGroupInvites is set to 1 and both players are online."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Small Squads",
+      "description": "Set MaxGroupSize to 4-5 for tactical small-team gameplay."
+    },
+    {
+      "title": "Large Factions",
+      "description": "Increase group size for faction-based servers with large teams."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "MaxGroupSize",
+      "example": "5",
+      "description": "Maximum number of players per group.",
+      "defaultValue": "10"
+    },
+    {
+      "name": "EnableGroupHUD",
+      "example": "0",
+      "description": "Show group member info on the HUD.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableGroupMarkers",
+      "example": "0",
+      "description": "Allow group members to see shared markers.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "GroupPersistence",
+      "example": "0",
+      "description": "Save groups across server restarts.",
+      "defaultValue": "1"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082984108-33-qj8m",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082984108-34-wn8h",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082984108-35-mip8",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Small Squads",
+                        "description": "Set MaxGroupSize to 4-5 for tactical small-team gameplay."
+                      },
+                      {
+                        "title": "Large Factions",
+                        "description": "Increase group size for faction-based servers with large teams."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-p071u",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082984108-36-1abi",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082984108-37-ms1q",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Groups adds a comprehensive party system allowing players to form groups, share map markers, see each other's positions, and manage group permissions. It enhances cooperative gameplay and integrates with other Expansion mods for shared features like group chat and territory ownership.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-bsh1f",
+                  "content": "Expansion Groups adds a comprehensive party system allowing players to form groups, share map markers, see each other's positions, and manage group permissions. It enhances cooperative gameplay and integrates with other Expansion mods for shared features like group chat and territory ownership.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082984108-38-uxp6",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082984108-39-ipyw",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed.",
+                    "Download @ExpansionGroups from the Steam Workshop.",
+                    "Add to your -mod= parameter after Core.",
+                    "Configure group settings and limits."
+                  ],
+                  "blockId": "block-1773333239007-qph65",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082984108-3a-9ghy",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082984108-3b-guhn",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Groups resetting on restart",
+                        "description": "Ensure GroupPersistence is set to 1 and the database is configured."
+                      },
+                      {
+                        "title": "Group invites not working",
+                        "description": "Check that EnableGroupInvites is set to 1 and both players are online."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-1oz14",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "group",
+    "groups"
+  ]
+}

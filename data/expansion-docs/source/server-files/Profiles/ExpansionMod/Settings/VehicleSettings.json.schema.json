@@ -1,0 +1,370 @@
+{
+  "name": "VehicleSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/VehicleSettings.json",
+  "linkedModId": "expansion-vehicles",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "23",
+      "description": "M_version",
+      "defaultValue": "23"
+    },
+    {
+      "name": "VehicleSync",
+      "type": "int",
+      "example": "0",
+      "description": "Vehicle sync",
+      "defaultValue": "0"
+    },
+    {
+      "name": "VehicleRequireKeyToStart",
+      "type": "int",
+      "example": "1",
+      "description": "Vehicle require key to start",
+      "defaultValue": "1"
+    },
+    {
+      "name": "VehicleRequireAllDoors",
+      "type": "int",
+      "example": "1",
+      "description": "Vehicle require all doors",
+      "defaultValue": "1"
+    },
+    {
+      "name": "VehicleLockedAllowInventoryAccess",
+      "type": "int",
+      "example": "0",
+      "description": "Vehicle locked allow inventory access",
+      "defaultValue": "0"
+    },
+    {
+      "name": "VehicleLockedAllowInventoryAccessWithoutDoors",
+      "type": "int",
+      "example": "1",
+      "description": "Vehicle locked allow inventory access without doors",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MasterKeyPairingMode",
+      "type": "enum",
+      "example": "2",
+      "description": "Master key pairing mode selector (0–5)",
+      "defaultValue": "2"
+    },
+    {
+      "name": "MasterKeyUses",
+      "type": "int",
+      "example": "2",
+      "description": "Master key uses",
+      "defaultValue": "2"
+    },
+    {
+      "name": "CanPickLock",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable pick lock",
+      "defaultValue": "0"
+    },
+    {
+      "name": "PickLockTools",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Pick lock tools",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "PickLockChancePercent",
+      "type": "int",
+      "example": "20",
+      "description": "Pick lock chance percent. Range: 0–100",
+      "defaultValue": "40"
+    },
+    {
+      "name": "PickLockTimeSeconds",
+      "type": "int",
+      "example": "120",
+      "description": "Time duration in seconds",
+      "defaultValue": "120"
+    },
+    {
+      "name": "PickLockToolDamagePercent",
+      "type": "int",
+      "example": "5",
+      "description": "Pick lock tool damage percent. Range: 0–100",
+      "defaultValue": "10"
+    },
+    {
+      "name": "EnableWindAerodynamics",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable wind aerodynamics",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableMainRotorDamage",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable main rotor damage",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableTailRotorDamage",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable tail rotor damage",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Towing",
+      "type": "int",
+      "example": "1",
+      "description": "Towing",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableHelicopterExplosions",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable helicopter explosions",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DisableVehicleDamage",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable vehicle damage",
+      "defaultValue": "0"
+    },
+    {
+      "name": "VehicleCrewDamageMultiplier",
+      "type": "int",
+      "example": "1",
+      "description": "Vehicle crew damage multiplier. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "VehicleSpeedDamageMultiplier",
+      "type": "int",
+      "example": "1",
+      "description": "Vehicle speed damage multiplier. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "VehicleRoadKillDamageMultiplier",
+      "type": "int",
+      "example": "1",
+      "description": "Vehicle road kill damage multiplier. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CollisionDamageIfEngineOff",
+      "type": "int",
+      "example": "0",
+      "description": "Collision damage if engine off",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CollisionDamageMinSpeedKmh",
+      "type": "int",
+      "example": "30",
+      "description": "Collision damage min speed kmh",
+      "defaultValue": "30"
+    },
+    {
+      "name": "CanChangeLock",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable change lock",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ChangeLockTools",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Change lock tools",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "ChangeLockTimeSeconds",
+      "type": "int",
+      "example": "120",
+      "description": "Time duration in seconds",
+      "defaultValue": "120"
+    },
+    {
+      "name": "ChangeLockToolDamagePercent",
+      "type": "int",
+      "example": "5",
+      "description": "Change lock tool damage percent. Range: 0–100",
+      "defaultValue": "10"
+    },
+    {
+      "name": "PlacePlayerOnGroundOnReconnectInVehicle",
+      "type": "int",
+      "example": "2",
+      "description": "Place player on ground on reconnect in vehicle",
+      "defaultValue": "2"
+    },
+    {
+      "name": "RevvingOverMaxRPMRuinsEngineInstantly",
+      "type": "int",
+      "example": "0",
+      "description": "Revving over max rpm ruins engine instantly",
+      "defaultValue": "0"
+    },
+    {
+      "name": "VehicleDropsRuinedDoors",
+      "type": "int",
+      "example": "1",
+      "description": "Vehicle drops ruined doors",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ExplodingVehicleDropsAttachments",
+      "type": "int",
+      "example": "1",
+      "description": "Exploding vehicle drops attachments",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DesyncInvulnerabilityTimeoutSeconds",
+      "type": "int",
+      "example": "3",
+      "description": "Time duration in seconds",
+      "defaultValue": "3"
+    },
+    {
+      "name": "PilotlessAutoHoverEngineStopDelaySeconds",
+      "type": "int",
+      "example": "30",
+      "description": "Pilotless auto hover engine stop delay seconds",
+      "defaultValue": "30"
+    },
+    {
+      "name": "RoughLandingVerticalSpeedThreshold",
+      "type": "int",
+      "example": "3",
+      "description": "Rough landing vertical speed threshold (default: 3)",
+      "defaultValue": "3"
+    },
+    {
+      "name": "DamagedEngineStartupChancePercent",
+      "type": "int",
+      "example": "50",
+      "description": "Damaged engine startup chance percent. Range: 0–100",
+      "defaultValue": "100"
+    },
+    {
+      "name": "FuelConsumptionPercent",
+      "type": "int",
+      "example": "50",
+      "description": "Fuel consumption percent. Range: 0–100",
+      "defaultValue": "100"
+    },
+    {
+      "name": "EnableVehicleCovers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable vehicle covers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "AllowCoveringDEVehicles",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable covering de vehicles",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CanCoverWithCargo",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable cover with cargo",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseVirtualStorageForCoverCargo",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable virtual storage for cover cargo",
+      "defaultValue": "0"
+    },
+    {
+      "name": "VehicleAutoCoverTimeSeconds",
+      "type": "int",
+      "example": "0",
+      "description": "Time duration in seconds",
+      "defaultValue": "0"
+    },
+    {
+      "name": "VehicleAutoCoverRequireCamonet",
+      "type": "int",
+      "example": "0",
+      "description": "Vehicle auto cover require camonet",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableAutoCoveringDEVehicles",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable auto covering de vehicles",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CFToolsHeliCoverIconName",
+      "type": "icon",
+      "example": "\"helicopter\"",
+      "description": "Cf tools heli cover icon name",
+      "defaultValue": "\"helicopter\""
+    },
+    {
+      "name": "CFToolsBoatCoverIconName",
+      "type": "icon",
+      "example": "\"ship\"",
+      "description": "Cf tools boat cover icon name",
+      "defaultValue": "\"ship\""
+    },
+    {
+      "name": "CFToolsCarCoverIconName",
+      "type": "icon",
+      "example": "\"car\"",
+      "description": "Cf tools car cover icon name",
+      "defaultValue": "\"car\""
+    },
+    {
+      "name": "ShowVehicleOwners",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable vehicle owners",
+      "defaultValue": "0"
+    },
+    {
+      "name": "VehiclesConfig",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with ClassName, LockComplexity",
+      "description": "Vehicles config",
+      "defaultValue": "[10 items]",
+      "nestedSettings": [
+        {
+          "name": "ClassName",
+          "type": "classname",
+          "example": "\"ExpansionUAZCargoRoofless\"",
+          "description": "DayZ classname (e.g. \"ExpansionUAZCargoRoofless\")",
+          "defaultValue": "\"ExpansionUAZCargoRoofless\""
+        },
+        {
+          "name": "LockComplexity",
+          "type": "int",
+          "example": "1",
+          "description": "Lock complexity",
+          "defaultValue": "1"
+        }
+      ]
+    }
+  ]
+}

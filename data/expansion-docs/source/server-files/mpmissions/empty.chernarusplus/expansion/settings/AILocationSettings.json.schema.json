@@ -1,0 +1,76 @@
+{
+  "name": "AILocationSettings",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/settings/AILocationSettings.json",
+  "linkedModId": "expansion-ai",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "4",
+      "description": "M_version",
+      "defaultValue": "4"
+    },
+    {
+      "name": "RoamingLocations",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 5 properties",
+      "description": "Roaming locations",
+      "defaultValue": "[231 items]",
+      "nestedSettings": [
+        {
+          "name": "Name",
+          "type": "classname",
+          "example": "\"Settlement_Chernogorsk\"",
+          "description": "DayZ classname (e.g. \"Settlement_Chernogorsk\")",
+          "defaultValue": "\"Settlement_Chernogorsk\""
+        },
+        {
+          "name": "Position",
+          "type": "vector",
+          "example": "6778.619140625, 0, 2321.77392578125",
+          "description": "Position",
+          "defaultValue": "6778.619140625, 0, 2321.77392578125"
+        },
+        {
+          "name": "Radius",
+          "type": "int",
+          "example": "1000",
+          "description": "Radius (default: 1000)",
+          "defaultValue": "1000"
+        },
+        {
+          "name": "Type",
+          "type": "string",
+          "example": "\"Capital\"",
+          "description": "Type",
+          "defaultValue": "\"Capital\""
+        },
+        {
+          "name": "Enabled",
+          "type": "bool",
+          "example": "1",
+          "description": "Enable or disable d",
+          "defaultValue": "1"
+        }
+      ]
+    },
+    {
+      "name": "ExcludedRoamingBuildings",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Excluded roaming buildings",
+      "defaultValue": "[13 items]"
+    },
+    {
+      "name": "NoGoAreas",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "No go areas",
+      "defaultValue": "[0 items]"
+    }
+  ]
+}

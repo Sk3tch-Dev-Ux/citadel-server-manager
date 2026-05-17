@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-cr-1",
+  "name": "Objective_CR_1",
+  "template": "{\n  \"ConfigVersion\": \"number\",\n  \"ID\": \"number\",\n  \"ObjectiveType\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"TimeLimit\": \"number\",\n  \"Active\": \"number\",\n  \"ItemNames\": [\n    \"string\"\n  ],\n  \"ExecutionAmount\": \"number\"\n}",
+  "description": "Auto-generated validation template for Objective_CR_1"
+}

@@ -1,0 +1,160 @@
+{
+  "id": "dabs-framework",
+  "name": "Dabs Framework (DF)",
+  "shortName": "Dabs Framework",
+  "version": "",
+  "modFolderName": "Dabs Framework",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2545327648",
+  "isThirdParty": true,
+  "includedInBundle": false,
+  "description": "Required framework dependency providing additional scripting APIs and systems used by DayZ Expansion.",
+  "overview": "Dabs Framework is a required dependency for DayZ Expansion, providing additional scripting APIs, UI systems, and utility functions that the Expansion mod suite builds upon.",
+  "dependencies": [
+    "cf-community-framework"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "cf-community-framework"
+  ],
+  "installation": [
+    "Subscribe to DabsFramework on the Steam Workshop.",
+    "Place the @DabsFramework folder in your server's root directory.",
+    "Add @DabsFramework to your -mod= parameter after @CF but before Expansion mods.",
+    "Both clients and servers must have this mod loaded.",
+    "Restart your server to load the framework."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Expansion mods not loading",
+      "solution": "Ensure DabsFramework is installed and loaded before any Expansion mods in the -mod= parameter."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Expansion Prerequisite",
+      "description": "Required by all Expansion mods — must be installed alongside CF."
+    }
+  ],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082996062-7x-gh40",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082996062-7y-f4rg",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082996062-7z-vxc4",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Expansion Prerequisite",
+                        "description": "Required by all Expansion mods. It must be installed alongside CF.\n\nDabs Framework is used for all the menus (UI) made in Expansion."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-jggpn",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082996062-80-qyul",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082996062-81-ft8v",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Dabs Framework is a required dependency for DayZ Expansion, providing additional scripting APIs, UI systems, and utility functions that the Expansion mod suite builds upon.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-1782q",
+                  "content": "Dabs Framework is a required dependency for DayZ Expansion, providing additional scripting APIs, UI systems, and utility functions that the Expansion mod suite builds upon.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082996062-82-w131",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082996062-83-zt6r",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Subscribe to Dabs Framework on the Steam Workshop.",
+                    "Place the @Dabs Framework folder in your server's root directory.",
+                    "Add @Dabs Framework to your -mod= parameter.",
+                    "Both clients and servers must have this mod loaded.",
+                    "Restart your server to load the framework."
+                  ],
+                  "blockId": "block-1773333239007-sb8fj",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082996062-84-8ok1",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082996062-85-80cb",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Dabs Framework mods not loading",
+                        "description": "Dabs Framework is missing the `-` in its mod name. If your server isnt quoting the launch paramaters this may cause issues.\n\nTry the following\n`\"-mod=@Dabs Framework\"`.\n\nIf you are unable to modify directly the launch parameter. Remove the space in the mod name in your launcher parameters and on the folder."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-bi1rc",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": []
+}

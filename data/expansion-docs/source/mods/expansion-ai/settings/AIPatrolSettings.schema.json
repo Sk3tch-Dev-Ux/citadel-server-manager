@@ -1,0 +1,696 @@
+{
+  "id": "config-1778065678576-efhn",
+  "name": "AIPatrolSettings",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/settings/AIPatrolSettings.json",
+  "linkedModId": "expansion-ai",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "32",
+      "description": "M_version",
+      "defaultValue": "32"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable d",
+      "defaultValue": "0"
+    },
+    {
+      "name": "FormationScale",
+      "type": "int",
+      "example": "0",
+      "description": "Formation scale. Range: 0–100",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "DespawnTime",
+      "type": "int",
+      "example": "600",
+      "description": "Time duration in seconds",
+      "defaultValue": "600"
+    },
+    {
+      "name": "RespawnTime",
+      "type": "int",
+      "example": "-1",
+      "description": "Time duration in seconds",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "MinDistRadius",
+      "type": "int",
+      "example": "1",
+      "description": "Min dist radius (default: 1)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxDistRadius",
+      "type": "int",
+      "example": "1000",
+      "description": "Max dist radius (default: 1000)",
+      "defaultValue": "1000"
+    },
+    {
+      "name": "DespawnRadius",
+      "type": "int",
+      "example": "1100",
+      "description": "Despawn radius (default: 1100)",
+      "defaultValue": "1100"
+    },
+    {
+      "name": "AccuracyMin",
+      "type": "int",
+      "example": "-1",
+      "description": "Accuracy min (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "AccuracyMax",
+      "type": "int",
+      "example": "-1",
+      "description": "Accuracy max (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "ThreatDistanceLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Threat distance limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "NoiseInvestigationDistanceLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Noise investigation distance limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "MaxFlankingDistance",
+      "type": "int",
+      "example": "-1",
+      "description": "Max flanking distance (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "EnableFlankingOutsideCombat",
+      "type": "int",
+      "example": "-1",
+      "description": "Enable flanking outside combat",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "DamageMultiplier",
+      "type": "int",
+      "example": "0",
+      "description": "Damage multiplier. Range: 0–100",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "DamageReceivedMultiplier",
+      "type": "int",
+      "example": "0",
+      "description": "Damage received multiplier. Range: 0–100",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "ShoryukenChance",
+      "type": "float",
+      "example": "0",
+      "description": "Shoryuken chance. Range: 0.0–1.0",
+      "defaultValue": "0.009999999776482582"
+    },
+    {
+      "name": "ShoryukenDamageMultiplier",
+      "type": "int",
+      "example": "2",
+      "description": "Shoryuken damage multiplier. Range: 0–100",
+      "defaultValue": "3"
+    },
+    {
+      "name": "LoadBalancingCategories",
+      "type": "object",
+      "example": "",
+      "description": "Load balancing categories",
+      "defaultValue": "{7 keys}",
+      "nestedSettings": [
+        {
+          "name": "Example",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with MinPlayers, MaxPlayers, MaxPatrols",
+          "description": "Example",
+          "defaultValue": "[1 items]",
+          "nestedSettings": [
+            {
+              "name": "MinPlayers",
+              "type": "int",
+              "example": "0",
+              "description": "Min players",
+              "defaultValue": "0"
+            },
+            {
+              "name": "MaxPlayers",
+              "type": "int",
+              "example": "255",
+              "description": "Max players",
+              "defaultValue": "255"
+            },
+            {
+              "name": "MaxPatrols",
+              "type": "int",
+              "example": "-1",
+              "description": "Max patrols",
+              "defaultValue": "-1"
+            }
+          ]
+        },
+        {
+          "name": "Quest",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with MinPlayers, MaxPlayers, MaxPatrols",
+          "description": "Quest",
+          "defaultValue": "[1 items]",
+          "nestedSettings": [
+            {
+              "name": "MinPlayers",
+              "type": "int",
+              "example": "0",
+              "description": "Min players",
+              "defaultValue": "0"
+            },
+            {
+              "name": "MaxPlayers",
+              "type": "int",
+              "example": "255",
+              "description": "Max players",
+              "defaultValue": "255"
+            },
+            {
+              "name": "MaxPatrols",
+              "type": "int",
+              "example": "-1",
+              "description": "Max patrols",
+              "defaultValue": "-1"
+            }
+          ]
+        },
+        {
+          "name": "Global",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with MinPlayers, MaxPlayers, MaxPatrols",
+          "description": "Global",
+          "defaultValue": "[6 items]",
+          "nestedSettings": [
+            {
+              "name": "MinPlayers",
+              "type": "int",
+              "example": "0",
+              "description": "Min players",
+              "defaultValue": "0"
+            },
+            {
+              "name": "MaxPlayers",
+              "type": "int",
+              "example": "10",
+              "description": "Max players",
+              "defaultValue": "10"
+            },
+            {
+              "name": "MaxPatrols",
+              "type": "int",
+              "example": "10",
+              "description": "Max patrols",
+              "defaultValue": "10"
+            }
+          ]
+        },
+        {
+          "name": "HelicopterWreck",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with MinPlayers, MaxPlayers, MaxPatrols",
+          "description": "Helicopter wreck",
+          "defaultValue": "[1 items]",
+          "nestedSettings": [
+            {
+              "name": "MinPlayers",
+              "type": "int",
+              "example": "0",
+              "description": "Min players",
+              "defaultValue": "0"
+            },
+            {
+              "name": "MaxPlayers",
+              "type": "int",
+              "example": "255",
+              "description": "Max players",
+              "defaultValue": "255"
+            },
+            {
+              "name": "MaxPatrols",
+              "type": "int",
+              "example": "3",
+              "description": "Max patrols",
+              "defaultValue": "3"
+            }
+          ]
+        },
+        {
+          "name": "ObjectPatrol",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with MinPlayers, MaxPlayers, MaxPatrols",
+          "description": "Object patrol",
+          "defaultValue": "[1 items]",
+          "nestedSettings": [
+            {
+              "name": "MinPlayers",
+              "type": "int",
+              "example": "0",
+              "description": "Min players",
+              "defaultValue": "0"
+            },
+            {
+              "name": "MaxPlayers",
+              "type": "int",
+              "example": "255",
+              "description": "Max players",
+              "defaultValue": "255"
+            },
+            {
+              "name": "MaxPatrols",
+              "type": "int",
+              "example": "5",
+              "description": "Max patrols",
+              "defaultValue": "5"
+            }
+          ]
+        },
+        {
+          "name": "ContaminatedArea",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with MinPlayers, MaxPlayers, MaxPatrols",
+          "description": "Contaminated area",
+          "defaultValue": "[1 items]",
+          "nestedSettings": [
+            {
+              "name": "MinPlayers",
+              "type": "int",
+              "example": "0",
+              "description": "Min players",
+              "defaultValue": "0"
+            },
+            {
+              "name": "MaxPlayers",
+              "type": "int",
+              "example": "255",
+              "description": "Max players",
+              "defaultValue": "255"
+            },
+            {
+              "name": "MaxPatrols",
+              "type": "int",
+              "example": "2",
+              "description": "Max patrols",
+              "defaultValue": "2"
+            }
+          ]
+        },
+        {
+          "name": "Patrol",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with MinPlayers, MaxPlayers, MaxPatrols",
+          "description": "Patrol",
+          "defaultValue": "[1 items]",
+          "nestedSettings": [
+            {
+              "name": "MinPlayers",
+              "type": "int",
+              "example": "0",
+              "description": "Min players",
+              "defaultValue": "0"
+            },
+            {
+              "name": "MaxPlayers",
+              "type": "int",
+              "example": "255",
+              "description": "Max players",
+              "defaultValue": "255"
+            },
+            {
+              "name": "MaxPatrols",
+              "type": "int",
+              "example": "5",
+              "description": "Max patrols",
+              "defaultValue": "5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Patrols",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 46 properties",
+      "description": "Patrols",
+      "defaultValue": "[13 items]",
+      "nestedSettings": [
+        {
+          "name": "Name",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Name",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "Persist",
+          "type": "int",
+          "example": "0",
+          "description": "Persist",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Faction",
+          "type": "string",
+          "example": "\"West\"",
+          "description": "Faction",
+          "defaultValue": "\"West\""
+        },
+        {
+          "name": "Formation",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Formation",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "FormationScale",
+          "type": "int",
+          "example": "0",
+          "description": "Formation scale. Range: 0–100",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "FormationLooseness",
+          "type": "int",
+          "example": "0",
+          "description": "Formation looseness",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Loadout",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Loadout",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "Units",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Units",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "NumberOfAI",
+          "type": "int",
+          "example": "1",
+          "description": "Number of ai",
+          "defaultValue": "1"
+        },
+        {
+          "name": "NumberOfAIMax",
+          "type": "int",
+          "example": "3",
+          "description": "Number of ai max (default: 3)",
+          "defaultValue": "3"
+        },
+        {
+          "name": "Behaviour",
+          "type": "classname",
+          "example": "\"HALT_OR_ALTERNATE\"",
+          "description": "DayZ classname (e.g. \"HALT_OR_ALTERNATE\")",
+          "defaultValue": "\"HALT_OR_ALTERNATE\""
+        },
+        {
+          "name": "LootingBehaviour",
+          "type": "string",
+          "example": "\"DEFAULT\"",
+          "description": "Looting behaviour",
+          "defaultValue": "\"DEFAULT\""
+        },
+        {
+          "name": "Speed",
+          "type": "string",
+          "example": "\"WALK\"",
+          "description": "Speed",
+          "defaultValue": "\"WALK\""
+        },
+        {
+          "name": "UnderThreatSpeed",
+          "type": "string",
+          "example": "\"SPRINT\"",
+          "description": "Under threat speed",
+          "defaultValue": "\"SPRINT\""
+        },
+        {
+          "name": "DefaultStance",
+          "type": "string",
+          "example": "\"STANDING\"",
+          "description": "Default stance",
+          "defaultValue": "\"STANDING\""
+        },
+        {
+          "name": "DefaultLookAngle",
+          "type": "int",
+          "example": "0",
+          "description": "Default look angle",
+          "defaultValue": "0"
+        },
+        {
+          "name": "CanBeLooted",
+          "type": "bool",
+          "example": "1",
+          "description": "Enable or disable be looted",
+          "defaultValue": "1"
+        },
+        {
+          "name": "LootDropOnDeath",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Loot drop on death",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "UnlimitedReload",
+          "type": "int",
+          "example": "0",
+          "description": "Unlimited reload",
+          "defaultValue": "0"
+        },
+        {
+          "name": "SniperProneDistanceThreshold",
+          "type": "int",
+          "example": "0",
+          "description": "Sniper prone distance threshold (default: 0)",
+          "defaultValue": "0"
+        },
+        {
+          "name": "AccuracyMin",
+          "type": "int",
+          "example": "-1",
+          "description": "Accuracy min (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "AccuracyMax",
+          "type": "int",
+          "example": "-1",
+          "description": "Accuracy max (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "ThreatDistanceLimit",
+          "type": "int",
+          "example": "-1",
+          "description": "Threat distance limit (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "NoiseInvestigationDistanceLimit",
+          "type": "int",
+          "example": "-1",
+          "description": "Noise investigation distance limit (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "MaxFlankingDistance",
+          "type": "int",
+          "example": "-1",
+          "description": "Max flanking distance (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "EnableFlankingOutsideCombat",
+          "type": "int",
+          "example": "-1",
+          "description": "Enable flanking outside combat",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "DamageMultiplier",
+          "type": "int",
+          "example": "0",
+          "description": "Damage multiplier. Range: 0–100",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "DamageReceivedMultiplier",
+          "type": "int",
+          "example": "0",
+          "description": "Damage received multiplier. Range: 0–100",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "HeadshotResistance",
+          "type": "int",
+          "example": "0",
+          "description": "Headshot resistance",
+          "defaultValue": "0"
+        },
+        {
+          "name": "ShoryukenChance",
+          "type": "int",
+          "example": "0",
+          "description": "Shoryuken chance. Range: 0–100",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "ShoryukenDamageMultiplier",
+          "type": "int",
+          "example": "0",
+          "description": "Shoryuken damage multiplier. Range: 0–100",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "CanSpawnInContaminatedArea",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable spawn in contaminated area",
+          "defaultValue": "0"
+        },
+        {
+          "name": "CanBeTriggeredByAI",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable be triggered by ai",
+          "defaultValue": "0"
+        },
+        {
+          "name": "MinDistRadius",
+          "type": "int",
+          "example": "-1",
+          "description": "Min dist radius (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "MaxDistRadius",
+          "type": "int",
+          "example": "-1",
+          "description": "Max dist radius (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "DespawnRadius",
+          "type": "int",
+          "example": "-1",
+          "description": "Despawn radius (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "MinSpreadRadius",
+          "type": "int",
+          "example": "5",
+          "description": "Min spread radius (default: 5)",
+          "defaultValue": "5"
+        },
+        {
+          "name": "MaxSpreadRadius",
+          "type": "int",
+          "example": "20",
+          "description": "Max spread radius (default: 20)",
+          "defaultValue": "20"
+        },
+        {
+          "name": "Chance",
+          "type": "int",
+          "example": "1",
+          "description": "Chance. Range: 0–100",
+          "defaultValue": "1"
+        },
+        {
+          "name": "DespawnTime",
+          "type": "int",
+          "example": "-1",
+          "description": "Time duration in seconds",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "RespawnTime",
+          "type": "color",
+          "example": "-2",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Respawn time",
+          "defaultValue": "-2"
+        },
+        {
+          "name": "LoadBalancingCategory",
+          "type": "classname",
+          "example": "\"HelicopterWreck\"",
+          "description": "DayZ classname (e.g. \"HelicopterWreck\")",
+          "defaultValue": "\"HelicopterWreck\""
+        },
+        {
+          "name": "ObjectClassName",
+          "type": "classname",
+          "example": "\"Wreck_UH1Y\"",
+          "description": "DayZ classname (e.g. \"Wreck_UH1Y\")",
+          "defaultValue": "\"Wreck_UH1Y\""
+        },
+        {
+          "name": "WaypointInterpolation",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Waypoint interpolation",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "UseRandomWaypointAsStartPoint",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable random waypoint as start point",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Waypoints",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Waypoints",
+          "defaultValue": "[0 items]"
+        }
+      ]
+    }
+  ]
+}

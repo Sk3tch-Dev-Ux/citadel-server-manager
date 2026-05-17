@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-target",
+  "name": "Objective_Target",
+  "template": "{\n  \"ID\": \"number\",\n  \"Active\": \"number\",\n  \"Amount\": \"number\",\n  \"Position\": \"string\",\n  \"TimeLimit\": \"number\",\n  \"ClassNames\": [],\n  \"MaxDistance\": \"number\",\n  \"MinDistance\": \"number\",\n  \"ConfigVersion\": \"number\",\n  \"CountSelfKill\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"ObjectiveType\": \"number\",\n  \"AllowedWeapons\": [],\n  \"CountAIPlayers\": \"number\",\n  \"AllowedDamageZones\": [],\n  \"ExcludedClassNames\": [],\n  \"AllowedTargetFactions\": []\n}",
+  "description": "Auto-generated validation template for Objective_Target"
+}

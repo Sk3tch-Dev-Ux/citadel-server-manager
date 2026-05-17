@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-treasurehunt",
+  "name": "Objective_TreasureHunt",
+  "template": "{\n  \"ID\": \"number\",\n  \"Loot\": [\n    {\n      \"Max\": \"number\",\n      \"Min\": \"number\",\n      \"Name\": \"string\",\n      \"Chance\": \"number\",\n      \"Variants\": [],\n      \"Attachments\": [],\n      \"QuantityPercent\": \"number\"\n    }\n  ],\n  \"Active\": \"number\",\n  \"Positions\": [\n    [\n      \"number\"\n    ]\n  ],\n  \"TimeLimit\": \"number\",\n  \"DigInStash\": \"number\",\n  \"MarkerName\": \"string\",\n  \"MaxDistance\": \"number\",\n  \"ShowDistance\": \"number\",\n  \"ConfigVersion\": \"number\",\n  \"ContainerName\": \"string\",\n  \"ObjectiveText\": \"string\",\n  \"ObjectiveType\": \"number\",\n  \"LootItemsAmount\": \"number\",\n  \"MarkerVisibility\": \"number\"\n}",
+  "description": "Auto-generated validation template for Objective_TreasureHunt"
+}

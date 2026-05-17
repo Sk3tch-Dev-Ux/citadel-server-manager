@@ -1,0 +1,157 @@
+{
+  "id": "config-1778065678588-ov7t",
+  "name": "ChatSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/ChatSettings.json",
+  "linkedModId": "expansion-chat",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "4",
+      "description": "M_version",
+      "defaultValue": "4"
+    },
+    {
+      "name": "EnableGlobalChat",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable global chat",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnablePartyChat",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable party chat",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableTransportChat",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable transport chat",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableExpansionChat",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable expansion chat",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ChatColors",
+      "type": "object",
+      "example": "",
+      "description": "Chat colors",
+      "defaultValue": "{12 keys}",
+      "nestedSettings": [
+        {
+          "name": "SystemChatColor",
+          "type": "color",
+          "example": "EB45EBFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "System chat color",
+          "defaultValue": "EB45EBFF"
+        },
+        {
+          "name": "AdminChatColor",
+          "type": "color",
+          "example": "FF392BFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Admin chat color",
+          "defaultValue": "FF392BFF"
+        },
+        {
+          "name": "GlobalChatColor",
+          "type": "color",
+          "example": "58C3FFFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Global chat color",
+          "defaultValue": "58C3FFFF"
+        },
+        {
+          "name": "DirectChatColor",
+          "type": "color",
+          "example": "FFFFFFFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Direct chat color",
+          "defaultValue": "FFFFFFFF"
+        },
+        {
+          "name": "TransportChatColor",
+          "type": "color",
+          "example": "FFCE09FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Transport chat color",
+          "defaultValue": "FFCE09FF"
+        },
+        {
+          "name": "PartyChatColor",
+          "type": "color",
+          "example": "0AFA7AFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Party chat color",
+          "defaultValue": "0AFA7AFF"
+        },
+        {
+          "name": "TransmitterChatColor",
+          "type": "color",
+          "example": "F9FF49FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Transmitter chat color",
+          "defaultValue": "F9FF49FF"
+        },
+        {
+          "name": "StatusMessageColor",
+          "type": "color",
+          "example": "4B77BEFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Status message color",
+          "defaultValue": "4B77BEFF"
+        },
+        {
+          "name": "ActionMessageColor",
+          "type": "color",
+          "example": "F7CA18FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Action message color",
+          "defaultValue": "F7CA18FF"
+        },
+        {
+          "name": "FriendlyMessageColor",
+          "type": "color",
+          "example": "2ECC71FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Friendly message color",
+          "defaultValue": "2ECC71FF"
+        },
+        {
+          "name": "ImportantMessageColor",
+          "type": "color",
+          "example": "F22613FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Important message color",
+          "defaultValue": "F22613FF"
+        },
+        {
+          "name": "DefaultMessageColor",
+          "type": "color",
+          "example": "FFFFFFFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Default message color",
+          "defaultValue": "FFFFFFFF"
+        }
+      ]
+    },
+    {
+      "name": "BlacklistedWords",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Blacklisted words",
+      "defaultValue": "[0 items]"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-th-1",
+  "name": "Objective_TH_1",
+  "template": "{\n  \"ConfigVersion\": \"number\",\n  \"ID\": \"number\",\n  \"ObjectiveType\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"TimeLimit\": \"number\",\n  \"Active\": \"number\",\n  \"ShowDistance\": \"number\",\n  \"ContainerName\": \"string\",\n  \"DigInStash\": \"number\",\n  \"MarkerName\": \"string\",\n  \"MarkerVisibility\": \"number\",\n  \"Positions\": [\n    [\n      \"number\"\n    ]\n  ],\n  \"LootItemsAmount\": \"number\",\n  \"MaxDistance\": \"number\",\n  \"Loot\": [\n    {\n      \"Name\": \"string\",\n      \"Chance\": \"number\",\n      \"Attachments\": [],\n      \"QuantityPercent\": \"number\",\n      \"Max\": \"number\",\n      \"Min\": \"number\",\n      \"Variants\": []\n    }\n  ]\n}",
+  "description": "Auto-generated validation template for Objective_TH_1"
+}

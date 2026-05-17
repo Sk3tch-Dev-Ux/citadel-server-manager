@@ -1,0 +1,138 @@
+{
+  "id": "expansion-animations",
+  "name": "Expansion Animations",
+  "shortName": "Animations",
+  "version": "1.9.18",
+  "modFolderName": "DayZ-Expansion-Animations",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2793893086",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2793893784",
+  "isThirdParty": false,
+  "includedInBundle": false,
+  "description": "Vehicle and interaction animations for Expansion. Not included in the bundle — must be subscribed separately.",
+  "overview": "DayZ Expansion Animations adds various animations for DayZ Expansion Vehicles. This mod doesn't add any new content on its own — it provides animation assets consumed by other Expansion modules.\n\n## Included Animations\n\n- Guitar animations\n- Zodiac Boat animations\n- Utility Boat animations\n- Tractor animations\n- Vodnik animations\n- Bus animations\n- MH6 animations\n- UH1H animations\n- Merlin animations\n\n> **Important:** Due to a limitation with DayZ, only ONE animation mod can be loaded at the same time.\n\nThis mod is **not included** in the Expansion Bundle and must be subscribed to separately.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-ai",
+    "expansion-vehicles"
+  ],
+  "installation": [
+    "Subscribe to DayZ-Expansion-Animations on the Steam Workshop.",
+    "Place the @DayZ-Expansion-Animations folder in your server's root directory.",
+    "Add @DayZ-Expansion-Animations to your -mod= parameter.",
+    "Both clients and servers must have this mod loaded."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Missing animations or T-poses",
+      "solution": "Ensure @DayZ-Expansion-Animations is installed and loaded on both client and server."
+    },
+    {
+      "problem": "Client signature errors",
+      "solution": "Verify the mod version matches between client and server. Check .bikey files."
+    }
+  ],
+  "useCases": [],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082994287-78-qu2x",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082994287-79-vwk8",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082994287-7a-kioj",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "DayZ Expansion Animations adds various animations for DayZ Expansion Vehicles. This mod doesn't add any new content on its own — it provides animation assets consumed by other Expansion modules.\n\n## Included Animations\n\n- Guitar animations\n- Zodiac Boat animations\n- Utility Boat animations\n- Tractor animations\n- Vodnik animations\n- Bus animations\n- MH6 animations\n- UH1H animations\n- Merlin animations\n\n> **Important:** Due to a limitation with DayZ, only ONE animation mod can be loaded at the same time.\n\nThis mod is **not included** in the Expansion Bundle and must be subscribed to separately.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-sptu8",
+                  "content": "DayZ Expansion Animations adds various animations for DayZ Expansion Vehicles. This mod doesn't add any new content on its own — it provides animation assets consumed by other Expansion modules.\n\n## Included Animations\n\n- Guitar animations\n- Zodiac Boat animations\n- Utility Boat animations\n- Tractor animations\n- Vodnik animations\n- Bus animations\n- MH6 animations\n- UH1H animations\n- Merlin animations\n\n> **Important:** Due to a limitation with DayZ, only ONE animation mod can be loaded at the same time.\n\nThis mod is **not included** in the Expansion Bundle and must be subscribed to separately.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082994287-7b-1q90",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082994287-7c-qkzy",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Subscribe to DayZ-Expansion-Animations on the Steam Workshop.",
+                    "Place the @DayZ-Expansion-Animations folder in your server's root directory.",
+                    "Add @DayZ-Expansion-Animations to your -mod= parameter.",
+                    "Both clients and servers must have this mod loaded."
+                  ],
+                  "blockId": "block-1773333239007-tz9o9",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082994287-7d-j3ks",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082994287-7e-z5zq",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Missing animations or T-poses",
+                        "description": "Ensure @DayZ-Expansion-Animations is installed and loaded on both client and server."
+                      },
+                      {
+                        "title": "Client signature errors",
+                        "description": "Verify the mod version matches between client and server. Check .bikey files."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-sxj26",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "animations"
+  ]
+}

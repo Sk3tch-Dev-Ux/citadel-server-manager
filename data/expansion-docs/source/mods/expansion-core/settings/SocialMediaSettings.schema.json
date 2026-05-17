@@ -1,0 +1,71 @@
+{
+  "id": "config-1778065678591-fbwa",
+  "name": "SocialMediaSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/SocialMediaSettings.json",
+  "linkedModId": "expansion-core",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "2",
+      "description": "M_version",
+      "defaultValue": "2"
+    },
+    {
+      "name": "NewsFeedTexts",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with m_Title, m_Text",
+      "description": "News feed texts",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "m_Title",
+          "type": "string",
+          "example": "\"CHANGE ME\"",
+          "description": "M_title",
+          "defaultValue": "\"CHANGE ME\""
+        },
+        {
+          "name": "m_Text",
+          "type": "string",
+          "example": "\"THIS IS A PLACEHOLDER TEXT\"",
+          "description": "M_text",
+          "defaultValue": "\"THIS IS A PLACEHOLDER TEXT\""
+        }
+      ]
+    },
+    {
+      "name": "NewsFeedLinks",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with m_Label, m_Icon, m_URL",
+      "description": "News feed links",
+      "defaultValue": "[2 items]",
+      "nestedSettings": [
+        {
+          "name": "m_Label",
+          "type": "string",
+          "example": "\"Discord\"",
+          "description": "M_label",
+          "defaultValue": "\"Discord\""
+        },
+        {
+          "name": "m_Icon",
+          "type": "icon",
+          "example": "\"set:expansion_iconset image:icon_discord\"",
+          "description": "M_icon",
+          "defaultValue": "\"set:expansion_iconset image:icon_discord\""
+        },
+        {
+          "name": "m_URL",
+          "type": "string",
+          "example": "\"https://www.google.com/\"",
+          "description": "M_url",
+          "defaultValue": "\"https://www.google.com/\""
+        }
+      ]
+    }
+  ]
+}

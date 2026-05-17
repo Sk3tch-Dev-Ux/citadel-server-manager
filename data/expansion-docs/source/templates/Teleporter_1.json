@@ -1,0 +1,6 @@
+{
+  "id": "tpl-teleporter-1",
+  "name": "Teleporter_1",
+  "template": "{\n  \"ConfigVersion\": \"number\",\n  \"m_ID\": \"number\",\n  \"m_DisplayName\": \"string\",\n  \"m_ObjectPosition\": \"string\",\n  \"m_ObjectOrientation\": \"string\",\n  \"m_TeleportPositions\": [\n    {\n      \"m_DisplayName\": \"string\",\n      \"m_Positions\": [\n        {\n          \"m_Position\": \"string\",\n          \"m_Orientation\": \"string\"\n        }\n      ],\n      \"m_Faction\": \"string\",\n      \"m_QuestID\": \"number\",\n      \"m_Reputation\": \"number\"\n    }\n  ],\n  \"m_Faction\": \"string\",\n  \"m_Reputation\": \"number\",\n  \"m_QuestID\": \"number\",\n  \"m_IsExit\": \"number\",\n  \"m_IsActive\": \"number\"\n}",
+  "description": "Auto-generated validation template for Teleporter_1"
+}

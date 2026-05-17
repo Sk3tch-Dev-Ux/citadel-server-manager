@@ -1,0 +1,92 @@
+{
+  "name": "Objective_T_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Objectives/Travel/Objective_T_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "28",
+      "description": "Config version",
+      "defaultValue": "28"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ObjectiveType",
+      "type": "enum",
+      "example": "3",
+      "description": "Objective type selector (0–5)",
+      "defaultValue": "3"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Get to the Village\"",
+      "description": "Objective text",
+      "defaultValue": "\"Get to the Village\""
+    },
+    {
+      "name": "TimeLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Time limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Position",
+      "type": "vector",
+      "example": "4333.3701171875, 311.77899169921875, 6299.8798828125",
+      "description": "Position",
+      "defaultValue": "4333.3701171875, 311.77899169921875, 6299.8798828125"
+    },
+    {
+      "name": "MaxDistance",
+      "type": "int",
+      "example": "20",
+      "description": "Max distance (default: 20)",
+      "defaultValue": "20"
+    },
+    {
+      "name": "MarkerName",
+      "type": "string",
+      "example": "\"Get to the Village\"",
+      "description": "Marker name",
+      "defaultValue": "\"Get to the Village\""
+    },
+    {
+      "name": "ShowDistance",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance",
+      "defaultValue": "1"
+    },
+    {
+      "name": "TriggerOnEnter",
+      "type": "int",
+      "example": "1",
+      "description": "Trigger on enter",
+      "defaultValue": "1"
+    },
+    {
+      "name": "TriggerOnExit",
+      "type": "int",
+      "example": "0",
+      "description": "Trigger on exit",
+      "defaultValue": "0"
+    }
+  ]
+}

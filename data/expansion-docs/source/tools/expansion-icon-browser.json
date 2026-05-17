@@ -1,0 +1,163 @@
+{
+  "id": "expansion-icon-browser",
+  "name": "Icon Browser",
+  "description": "Browse, search, and preview all available Expansion icons for use in your configuration files.",
+  "iconName": "Image",
+  "keywords": [
+    "icon",
+    "expansion",
+    "image",
+    "currency",
+    "marker",
+    "config"
+  ],
+  "enabled": true,
+  "isVisual": true,
+  "outputModes": [
+    "calculator"
+  ],
+  "formFields": [
+    {
+      "id": "eib-f1",
+      "key": "iconName",
+      "type": "expansion-icon",
+      "label": "Select Icon",
+      "description": "Click an icon to select it and see its details in the preview panel",
+      "defaultValue": ""
+    }
+  ],
+  "blocks": [],
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2026-04-13T17:55:49.610Z",
+  "_seedVersion": 1,
+  "nodeGraph": {
+    "nodes": [
+      {
+        "id": "eib-c1",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "blue",
+          "label": "Icon selection input"
+        }
+      },
+      {
+        "id": "eib-c2",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "green",
+          "label": "Data resolution: lookup + formatting"
+        }
+      },
+      {
+        "id": "eib-c3",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "purple",
+          "label": "Output displays: preview & config path"
+        }
+      },
+      {
+        "id": "eib-n1",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Selected Icon",
+          "fieldKey": "iconName",
+          "fieldType": "expansion-icon"
+        }
+      },
+      {
+        "id": "eib-n2",
+        "type": "expansion-lookup",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Resolve Icon Data",
+          "outputKey": "iconData",
+          "expression": ""
+        }
+      },
+      {
+        "id": "eib-n3",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Config Path",
+          "outputKey": "configPath",
+          "expression": "ExpansionIcons/{{iconName}}.edds",
+          "transformType": "template"
+        }
+      },
+      {
+        "id": "eib-o1",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Icon Preview",
+          "outputKey": "IconPreview",
+          "outputType": "object",
+          "displayType": "expansion-icon"
+        }
+      },
+      {
+        "id": "eib-o3",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Config Path",
+          "outputKey": "ConfigPath",
+          "outputType": "string",
+          "displayType": "text"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "eib-e1",
+        "source": "eib-n1",
+        "target": "eib-n2"
+      },
+      {
+        "id": "eib-e2",
+        "source": "eib-n1",
+        "target": "eib-n3"
+      },
+      {
+        "id": "eib-e10",
+        "source": "eib-n2",
+        "target": "eib-o1"
+      },
+      {
+        "id": "eib-e12",
+        "source": "eib-n3",
+        "target": "eib-o3"
+      }
+    ]
+  }
+}

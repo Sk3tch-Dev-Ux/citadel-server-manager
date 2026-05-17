@@ -1,0 +1,171 @@
+{
+  "id": "expansion-map-assets",
+  "name": "Expansion Map Assets",
+  "shortName": "Map Assets",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Map-Assets",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792983824",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964125",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Pack of static objects for decoration and BuilderItems used by other Expansion mods.",
+  "overview": "DayZ Expansion Map Assets is a pack of static objects for decoration purposes. It also includes BuilderItems used by the base building system.\n\nThis mod provides physical assets consumed by other Expansion modules — it does not have its own configuration files.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-basebuilding"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @DayZ-Expansion-MapAssets from the Steam Workshop.",
+    "Add @DayZ-Expansion-MapAssets to your -mod= parameter after Core.",
+    "Both clients and servers must have this mod loaded."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Missing objects or invisible structures",
+      "solution": "Ensure @DayZ-Expansion-MapAssets is loaded on both client and server."
+    },
+    {
+      "problem": "Client signature errors",
+      "solution": "Verify mod version matches between client and server."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Full Expansion Experience",
+      "description": "Install Map Assets to get all custom structures and objects used by other Expansion modules."
+    }
+  ],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082992164-6a-jbjf",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082992164-6b-5283",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082992164-6c-ivjj",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Full Expansion Experience",
+                        "description": "Install Map Assets to get all custom structures and objects used by other Expansion modules."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-f5wtf",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082992164-6d-rs57",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082992164-6e-zysy",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "DayZ Expansion Map Assets is a pack of static objects for decoration purposes. It also includes BuilderItems used by the base building system.\n\nThis mod provides physical assets consumed by other Expansion modules — it does not have its own configuration files.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-8tjfx",
+                  "content": "DayZ Expansion Map Assets is a pack of static objects for decoration purposes. It also includes BuilderItems used by the base building system.\n\nThis mod provides physical assets consumed by other Expansion modules — it does not have its own configuration files.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082992164-6f-hh1i",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082992164-6g-xfih",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @DayZ-Expansion-MapAssets from the Steam Workshop.",
+                    "Add @DayZ-Expansion-MapAssets to your -mod= parameter after Core.",
+                    "Both clients and servers must have this mod loaded."
+                  ],
+                  "blockId": "block-1773333239007-tunf9",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082992164-6h-rr58",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082992164-6i-eemt",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Missing objects or invisible structures",
+                        "description": "Ensure @DayZ-Expansion-MapAssets is loaded on both client and server."
+                      },
+                      {
+                        "title": "Client signature errors",
+                        "description": "Verify mod version matches between client and server."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-ddjzo",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "map assets"
+  ]
+}

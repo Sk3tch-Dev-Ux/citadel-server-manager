@@ -1,0 +1,181 @@
+{
+  "id": "expansion-weapons",
+  "name": "Expansion Weapons",
+  "shortName": "Weapons",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Weapons",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792985069",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964123",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Pack of firearms and optics including RPG-7, M72 LAW, Taser, M9, K98, PP19, MP7, and more.",
+  "overview": "DayZ Expansion Weapons is a pack of firearms and optics that expands the DayZ arsenal.\n\n## New Weapons\n\n- Crossbow\n- RPG-7\n- M72 LAW\n- M79 Grenade Launcher\n- Taser X2 Defender\n- M9\n- Karabiner 98K\n- Vityaz-SN PP19-01\n- MP7\n- Benelli M4\n- DT11\n- M14 Springfield\n- M1A SOCOM\n- PP-91 KEDR\n- MP5A2\n- MP5SD\n- AWM\n- And more...\n\n## Features\n\n- **Economy Integration** — Configurable spawn rates through types.xml\n- **Market Support** — Fully compatible with Expansion Market for trading\n- **Optics & Attachments** — Scopes and other weapon accessories included",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-market"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @DayZ-Expansion-Weapons from the Steam Workshop.",
+    "Add @DayZ-Expansion-Weapons to your -mod= parameter after Core.",
+    "Add weapon classnames to your types.xml for loot spawning.",
+    "Optionally configure weapons in your Market categories for trading."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Weapons not spawning in the world",
+      "solution": "Ensure weapon classnames are added to your types.xml with appropriate nominal values."
+    },
+    {
+      "problem": "Client errors on weapon pickup",
+      "solution": "Both client and server must have the mod loaded. Check .bikey files."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Expanded Loot Table",
+      "description": "Add Expansion weapons to types.xml for more loot variety across military and civilian areas."
+    },
+    {
+      "title": "Trader Weapons",
+      "description": "Include Expansion weapons in Market categories for players to buy and sell."
+    }
+  ],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082990301-5j-sy1f",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082990301-5k-3j7j",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082990301-5l-rmqq",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Expanded Loot Table",
+                        "description": "Add Expansion weapons to types.xml for more loot variety across military and civilian areas."
+                      },
+                      {
+                        "title": "Trader Weapons",
+                        "description": "Include Expansion weapons in Market categories for players to buy and sell."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-3zivp",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082990301-5m-09yq",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082990301-5n-ncdg",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "DayZ Expansion Weapons is a pack of firearms and optics that expands the DayZ arsenal.\n\n## New Weapons\n\n- Crossbow\n- RPG-7\n- M72 LAW\n- M79 Grenade Launcher\n- Taser X2 Defender\n- M9\n- Karabiner 98K\n- Vityaz-SN PP19-01\n- MP7\n- Benelli M4\n- DT11\n- M14 Springfield\n- M1A SOCOM\n- PP-91 KEDR\n- MP5A2\n- MP5SD\n- AWM\n- And more...\n\n## Features\n\n- **Economy Integration** — Configurable spawn rates through types.xml\n- **Market Support** — Fully compatible with Expansion Market for trading\n- **Optics & Attachments** — Scopes and other weapon accessories included",
+                "_blockData": {
+                  "blockId": "block-1773333239007-05evp",
+                  "content": "DayZ Expansion Weapons is a pack of firearms and optics that expands the DayZ arsenal.\n\n## New Weapons\n\n- Crossbow\n- RPG-7\n- M72 LAW\n- M79 Grenade Launcher\n- Taser X2 Defender\n- M9\n- Karabiner 98K\n- Vityaz-SN PP19-01\n- MP7\n- Benelli M4\n- DT11\n- M14 Springfield\n- M1A SOCOM\n- PP-91 KEDR\n- MP5A2\n- MP5SD\n- AWM\n- And more...\n\n## Features\n\n- **Economy Integration** — Configurable spawn rates through types.xml\n- **Market Support** — Fully compatible with Expansion Market for trading\n- **Optics & Attachments** — Scopes and other weapon accessories included",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082990301-5o-sglo",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082990301-5p-6hih",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @DayZ-Expansion-Weapons from the Steam Workshop.",
+                    "Add @DayZ-Expansion-Weapons to your -mod= parameter after Core.",
+                    "Add weapon classnames to your types.xml for loot spawning.",
+                    "Optionally configure weapons in your Market categories for trading."
+                  ],
+                  "blockId": "block-1773333239007-s2gsl",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082990301-5q-n62v",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082990301-5r-chkr",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Weapons not spawning in the world",
+                        "description": "Ensure weapon classnames are added to your types.xml with appropriate nominal values."
+                      },
+                      {
+                        "title": "Client errors on weapon pickup",
+                        "description": "Both client and server must have the mod loaded. Check .bikey files."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-3q9fl",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "weapons"
+  ]
+}

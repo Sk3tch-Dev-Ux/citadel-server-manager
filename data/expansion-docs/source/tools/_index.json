@@ -1,0 +1,202 @@
+[
+  {
+    "id": "argb-calculator",
+    "name": "ARGB ↔ Int",
+    "iconName": "Palette",
+    "description": "Convert between ARGB color values and signed 32-bit integer representations used in DayZ configs. Includes a visual color picker and reverse integer-to-RGBA conversion.",
+    "enabled": true,
+    "isVisual": true,
+    "keywords": [
+      "color",
+      "argb",
+      "integer",
+      "convert",
+      "hex",
+      "rgba",
+      "picker"
+    ],
+    "outputModes": [
+      "calculator"
+    ]
+  },
+  {
+    "id": "trader-price-calculator",
+    "name": "Price Calculator",
+    "iconName": "TrendingUp",
+    "description": "Visualize dynamic pricing curves based on stock thresholds and item modifiers. Replicates the exact sell/buy price logic from ExpansionMarketModule.",
+    "enabled": true,
+    "isVisual": true,
+    "keywords": [
+      "trader",
+      "price",
+      "stock",
+      "economy",
+      "curve",
+      "modifier"
+    ],
+    "outputModes": [
+      "calculator"
+    ]
+  },
+  {
+    "id": "json-validator",
+    "name": "JSON Validator",
+    "iconName": "FileJson",
+    "description": "Validate your JSON configuration files against predefined templates.",
+    "enabled": true,
+    "isVisual": true,
+    "keywords": [
+      "json",
+      "validate",
+      "template",
+      "config"
+    ],
+    "outputModes": [
+      "validate"
+    ]
+  },
+  {
+    "id": "config-diff",
+    "name": "Config Diff",
+    "iconName": "GitCompare",
+    "description": "Compare two JSON configs side-by-side and see highlighted differences. Load configs from the config directory for quick comparison.",
+    "enabled": true,
+    "isVisual": true,
+    "keywords": [
+      "diff",
+      "compare",
+      "config",
+      "json"
+    ],
+    "outputModes": [
+      "diff"
+    ]
+  },
+  {
+    "id": "expansion-icon-browser",
+    "name": "Icon Browser",
+    "iconName": "Image",
+    "description": "Browse, search, and preview all available Expansion icons for use in your configuration files.",
+    "enabled": true,
+    "isVisual": true,
+    "keywords": [
+      "icon",
+      "expansion",
+      "image",
+      "currency",
+      "marker",
+      "config"
+    ],
+    "outputModes": [
+      "calculator"
+    ]
+  },
+  {
+    "id": "quest-editor",
+    "name": "Quest Editor",
+    "iconName": "Map",
+    "description": "Visual node-graph editor for building Expansion quest chains with draggable nodes, bezier connections, objectives, rewards, and ZIP import/export.",
+    "enabled": true,
+    "keywords": [
+      "quest",
+      "editor",
+      "node",
+      "graph",
+      "chain",
+      "objective",
+      "npc",
+      "visual"
+    ],
+    "outputModes": []
+  },
+  {
+    "id": "market-manager",
+    "name": "Market Editor",
+    "iconName": "Store",
+    "description": "Full-featured editor for Expansion market category and trader JSON files. Import/export ZIP archives, inline editing, validation, and bulk operations.",
+    "enabled": true,
+    "keywords": [
+      "market",
+      "trader",
+      "economy",
+      "shop",
+      "price",
+      "stock",
+      "category",
+      "manager",
+      "editor"
+    ],
+    "outputModes": []
+  },
+  {
+    "id": "hardline-editor",
+    "name": "Hardline Editor",
+    "iconName": "Shield",
+    "description": "Configure Expansion Hardline settings — reputation, item rarity tiers, entity values, and market gating. Generates HardlineSettings.json.",
+    "enabled": true,
+    "isVisual": true,
+    "keywords": [
+      "hardline",
+      "reputation",
+      "rarity",
+      "faction",
+      "entity",
+      "market",
+      "progression"
+    ],
+    "outputModes": [
+      "generate"
+    ]
+  },
+  {
+    "id": "settings-editor",
+    "name": "Settings Editor",
+    "iconName": "MapPinned",
+    "description": "Create and edit Expansion config files — SafeZones, BaseBuilding, Trader Zones, AI Patrols, Player Spawns, and Map Markers with a visual map editor.",
+    "enabled": true,
+    "isVisual": true,
+    "keywords": [
+      "zone",
+      "safezone",
+      "basebuilding",
+      "polygon",
+      "circle",
+      "cylinder",
+      "territory",
+      "no-build",
+      "expansion",
+      "settings",
+      "editor",
+      "patrols",
+      "spawns",
+      "markers"
+    ],
+    "outputModes": [
+      "generate"
+    ]
+  },
+  {
+    "id": "expansion-loadout-builder",
+    "name": "Loadout Editor",
+    "iconName": "Shirt",
+    "description": "Build and manage spawn loadout JSON files with a visual equipment editor, tree view, multi-file tabs, and full import/export support.",
+    "enabled": true,
+    "isVisual": true,
+    "keywords": [
+      "loadout",
+      "spawn",
+      "gear",
+      "equipment",
+      "clothing",
+      "inventory",
+      "attachment",
+      "cargo",
+      "ai",
+      "npc",
+      "prefab"
+    ],
+    "outputModes": [
+      "generate"
+    ]
+  }
+]

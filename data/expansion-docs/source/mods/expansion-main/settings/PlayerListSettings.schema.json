@@ -1,0 +1,30 @@
+{
+  "id": "config-1778065678590-odvy",
+  "name": "PlayerListSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/PlayerListSettings.json",
+  "linkedModId": "expansion-main",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "0",
+      "description": "M_version",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnablePlayerList",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable player list",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableTooltip",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable tooltip",
+      "defaultValue": "1"
+    }
+  ]
+}

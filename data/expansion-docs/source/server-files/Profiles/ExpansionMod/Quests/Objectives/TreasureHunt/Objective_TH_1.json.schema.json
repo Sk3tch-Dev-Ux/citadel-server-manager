@@ -1,0 +1,168 @@
+{
+  "name": "Objective_TH_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Objectives/TreasureHunt/Objective_TH_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "28",
+      "description": "Config version",
+      "defaultValue": "28"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ObjectiveType",
+      "type": "enum",
+      "example": "6",
+      "description": "Objective type selector (0–6)",
+      "defaultValue": "6"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Find the location of the treasure\"",
+      "description": "Objective text",
+      "defaultValue": "\"Find the location of the treasure\""
+    },
+    {
+      "name": "TimeLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Time limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowDistance",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ContainerName",
+      "type": "classname",
+      "example": "\"ExpansionQuestSeaChest\"",
+      "description": "DayZ classname (e.g. \"ExpansionQuestSeaChest\")",
+      "defaultValue": "\"ExpansionQuestSeaChest\""
+    },
+    {
+      "name": "DigInStash",
+      "type": "int",
+      "example": "1",
+      "description": "Dig in stash",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MarkerName",
+      "type": "string",
+      "example": "\"???\"",
+      "description": "Marker name",
+      "defaultValue": "\"???\""
+    },
+    {
+      "name": "MarkerVisibility",
+      "type": "int",
+      "example": "4",
+      "description": "Marker visibility",
+      "defaultValue": "4"
+    },
+    {
+      "name": "Positions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Positions",
+      "defaultValue": "[3 items]"
+    },
+    {
+      "name": "LootItemsAmount",
+      "type": "int",
+      "example": "0",
+      "description": "Loot items amount (default: 0)",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxDistance",
+      "type": "int",
+      "example": "10",
+      "description": "Max distance (default: 10)",
+      "defaultValue": "10"
+    },
+    {
+      "name": "Loot",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 7 properties",
+      "description": "Loot",
+      "defaultValue": "[5 items]",
+      "nestedSettings": [
+        {
+          "name": "Name",
+          "type": "string",
+          "example": "\"Binoculars\"",
+          "description": "Name",
+          "defaultValue": "\"Binoculars\""
+        },
+        {
+          "name": "Chance",
+          "type": "float",
+          "example": "0.15",
+          "description": "Chance. Range: 0.0–1.0",
+          "defaultValue": "0.30000001192092896"
+        },
+        {
+          "name": "Attachments",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Attachments",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "QuantityPercent",
+          "type": "int",
+          "example": "0",
+          "description": "Quantity percent. Range: 0–100",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "Max",
+          "type": "int",
+          "example": "-1",
+          "description": "Max (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "Min",
+          "type": "int",
+          "example": "0",
+          "description": "Min (default: 0)",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Variants",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Variants",
+          "defaultValue": "[0 items]"
+        }
+      ]
+    }
+  ]
+}

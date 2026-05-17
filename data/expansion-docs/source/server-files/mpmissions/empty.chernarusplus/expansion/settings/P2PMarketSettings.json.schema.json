@@ -1,0 +1,152 @@
+{
+  "name": "P2PMarketSettings",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/settings/P2PMarketSettings.json",
+  "linkedModId": "expansion-market",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "3",
+      "description": "M_version",
+      "defaultValue": "3"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable d",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxListingTime",
+      "type": "int",
+      "example": "691200",
+      "description": "Time duration in milliseconds",
+      "defaultValue": "691200"
+    },
+    {
+      "name": "MaxListings",
+      "type": "int",
+      "example": "20",
+      "description": "Max listings",
+      "defaultValue": "20"
+    },
+    {
+      "name": "ListingOwnerDiscountPercent",
+      "type": "int",
+      "example": "35",
+      "description": "Listing owner discount percent. Range: 0–100",
+      "defaultValue": "70"
+    },
+    {
+      "name": "ListingPricePercent",
+      "type": "int",
+      "example": "15",
+      "description": "Listing price percent. Range: 0–100",
+      "defaultValue": "30"
+    },
+    {
+      "name": "ExcludedClassNames",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Excluded class names",
+      "defaultValue": "[2 items]"
+    },
+    {
+      "name": "MenuCategories",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 5 properties",
+      "description": "Menu categories",
+      "defaultValue": "[7 items]",
+      "nestedSettings": [
+        {
+          "name": "DisplayName",
+          "type": "string",
+          "example": "\"Ammo\"",
+          "description": "Display name",
+          "defaultValue": "\"Ammo\""
+        },
+        {
+          "name": "IconPath",
+          "type": "icon",
+          "example": "\"set:dayz_inventory image:bullets\"",
+          "description": "Icon path",
+          "defaultValue": "\"set:dayz_inventory image:bullets\""
+        },
+        {
+          "name": "Included",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Included",
+          "defaultValue": "[2 items]"
+        },
+        {
+          "name": "Excluded",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Excluded",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "SubCategories",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with DisplayName, IconPath, Included, Excluded",
+          "description": "Sub categories",
+          "defaultValue": "[2 items]",
+          "nestedSettings": [
+            {
+              "name": "DisplayName",
+              "type": "string",
+              "example": "\"Ammo-Boxes\"",
+              "description": "Display name",
+              "defaultValue": "\"Ammo-Boxes\""
+            },
+            {
+              "name": "IconPath",
+              "type": "icon",
+              "example": "\"set:dayz_inventory image:bullets\"",
+              "description": "Icon path",
+              "defaultValue": "\"set:dayz_inventory image:bullets\""
+            },
+            {
+              "name": "Included",
+              "type": "array",
+              "example": "",
+              "arrayItems": "string values",
+              "description": "Included",
+              "defaultValue": "[1 items]"
+            },
+            {
+              "name": "Excluded",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Excluded",
+              "defaultValue": "[0 items]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SalesDepositTime",
+      "type": "int",
+      "example": "691200",
+      "description": "Time duration in milliseconds",
+      "defaultValue": "691200"
+    },
+    {
+      "name": "DisallowUnpersisted",
+      "type": "int",
+      "example": "0",
+      "description": "Disallow unpersisted",
+      "defaultValue": "0"
+    }
+  ]
+}

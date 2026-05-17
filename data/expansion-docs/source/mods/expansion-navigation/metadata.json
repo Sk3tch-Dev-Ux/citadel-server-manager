@@ -1,0 +1,204 @@
+{
+  "id": "expansion-navigation",
+  "name": "Expansion Navigation",
+  "shortName": "Navigation",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Navigation",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792984722",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964116",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "GPS Hud, 3D markers, Improved 2D map and more.",
+  "overview": "Expansion Navigation provides GPS functionality, custom map markers, and 3D waypoints. Players can set personal markers, share locations with group members, and use the GPS device for real-time positioning. Server owners can configure which navigation features are available and restrict them to require in-game items.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-groups"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed.",
+    "Download @ExpansionNavigation from the Steam Workshop.",
+    "Add to your -mod= parameter after Core.",
+    "Configure navigation features and item requirements."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "GPS not showing position",
+      "solution": "Check NeedGPSItemForPosition — player may need the GPS item in inventory."
+    },
+    {
+      "problem": "Map markers not saving",
+      "solution": "Ensure persistence is enabled and marker storage is configured."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Hardcore Navigation",
+      "description": "Require both GPS and map items for full navigation — adds survival challenge."
+    },
+    {
+      "title": "Casual Server",
+      "description": "Disable item requirements for easy access to all navigation features."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "EnableGPS",
+      "example": "0",
+      "description": "Enable GPS positioning feature.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableMap3DMarkers",
+      "example": "0",
+      "description": "Show 3D markers in the world from map markers.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "NeedGPSItemForPosition",
+      "example": "0",
+      "description": "Require players to have a GPS item to see their position.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "NeedMapItemForMap",
+      "example": "0",
+      "description": "Require players to have a map item to open the map.",
+      "defaultValue": "1"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082997399-8f-qv11",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082997399-8g-ezik",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082997399-8h-j6kl",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Hardcore Navigation",
+                        "description": "Require both GPS and map items for full navigation — adds survival challenge."
+                      },
+                      {
+                        "title": "Casual Server",
+                        "description": "Disable item requirements for easy access to all navigation features."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-6sa1e",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082997399-8i-dgqc",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082997399-8j-m5jo",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Navigation provides GPS functionality, custom map markers, and 3D waypoints. Players can set personal markers, share locations with group members, and use the GPS device for real-time positioning. Server owners can configure which navigation features are available and restrict them to require in-game items.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-evtbv",
+                  "content": "Expansion Navigation provides GPS functionality, custom map markers, and 3D waypoints. Players can set personal markers, share locations with group members, and use the GPS device for real-time positioning. Server owners can configure which navigation features are available and restrict them to require in-game items.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082997399-8k-wnsj",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082997399-8l-d9po",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed.",
+                    "Download @ExpansionNavigation from the Steam Workshop.",
+                    "Add to your -mod= parameter after Core.",
+                    "Configure navigation features and item requirements."
+                  ],
+                  "blockId": "block-1773333239007-cqcf2",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082997399-8m-itsl",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082997399-8n-5vyc",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "GPS not showing position",
+                        "description": "Check NeedGPSItemForPosition — player may need the GPS item in inventory."
+                      },
+                      {
+                        "title": "Map markers not saving",
+                        "description": "Ensure persistence is enabled and marker storage is configured."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-djpd3",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "navigation"
+  ]
+}

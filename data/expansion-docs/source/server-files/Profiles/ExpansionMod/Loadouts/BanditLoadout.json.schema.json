@@ -1,0 +1,598 @@
+{
+  "name": "BanditLoadout",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Loadouts/BanditLoadout.json",
+  "linkedModId": "expansion-ai",
+  "settingsSchema": [
+    {
+      "name": "ClassName",
+      "type": "classname",
+      "example": "\"\"",
+      "description": "DayZ classname (e.g. \"\")",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "Include",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Include",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "Chance",
+      "type": "int",
+      "example": "1",
+      "description": "Chance. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Quantity",
+      "type": "object",
+      "example": "",
+      "description": "Quantity",
+      "defaultValue": "{2 keys}",
+      "nestedSettings": [
+        {
+          "name": "Min",
+          "type": "int",
+          "example": "0",
+          "description": "Min (default: 0)",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Max",
+          "type": "int",
+          "example": "0",
+          "description": "Max (default: 0)",
+          "defaultValue": "0"
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Health",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "InventoryAttachments",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with SlotName, Items",
+      "description": "Inventory attachments",
+      "defaultValue": "[8 items]",
+      "nestedSettings": [
+        {
+          "name": "SlotName",
+          "type": "string",
+          "example": "\"Body\"",
+          "description": "Slot name",
+          "defaultValue": "\"Body\""
+        },
+        {
+          "name": "Items",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with 9 properties",
+          "description": "Items",
+          "defaultValue": "[37 items]",
+          "nestedSettings": [
+            {
+              "name": "ClassName",
+              "type": "classname",
+              "example": "\"GorkaEJacket_Autumn\"",
+              "description": "DayZ classname (e.g. \"GorkaEJacket_Autumn\")",
+              "defaultValue": "\"GorkaEJacket_Autumn\""
+            },
+            {
+              "name": "Include",
+              "type": "string",
+              "example": "\"\"",
+              "description": "Include",
+              "defaultValue": "\"\""
+            },
+            {
+              "name": "Chance",
+              "type": "int",
+              "example": "1",
+              "description": "Chance. Range: 0–100",
+              "defaultValue": "1"
+            },
+            {
+              "name": "Quantity",
+              "type": "map",
+              "example": "",
+              "mapKeyType": "string",
+              "description": "Quantity",
+              "defaultValue": "{ \"Min\": 0, … (2 entries) }",
+              "mapValueType": "int"
+            },
+            {
+              "name": "Health",
+              "type": "array",
+              "example": "",
+              "arrayItems": "objects with Min, Max, Zone",
+              "description": "Health",
+              "defaultValue": "[1 items]",
+              "nestedSettings": [
+                {
+                  "name": "Min",
+                  "type": "float",
+                  "example": "0.699999988079071",
+                  "description": "Min (default: 0.699999988079071)",
+                  "defaultValue": "0.699999988079071"
+                },
+                {
+                  "name": "Max",
+                  "type": "int",
+                  "example": "1",
+                  "description": "Max (default: 1)",
+                  "defaultValue": "1"
+                },
+                {
+                  "name": "Zone",
+                  "type": "string",
+                  "example": "\"\"",
+                  "description": "Zone",
+                  "defaultValue": "\"\""
+                }
+              ]
+            },
+            {
+              "name": "InventoryAttachments",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Inventory attachments",
+              "defaultValue": "[0 items]"
+            },
+            {
+              "name": "InventoryCargo",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Inventory cargo",
+              "defaultValue": "[0 items]"
+            },
+            {
+              "name": "ConstructionPartsBuilt",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Construction parts built",
+              "defaultValue": "[0 items]"
+            },
+            {
+              "name": "Sets",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Sets",
+              "defaultValue": "[0 items]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "InventoryCargo",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 9 properties",
+      "description": "Inventory cargo",
+      "defaultValue": "[4 items]",
+      "nestedSettings": [
+        {
+          "name": "ClassName",
+          "type": "classname",
+          "example": "\"Apple\"",
+          "description": "DayZ classname (e.g. \"Apple\")",
+          "defaultValue": "\"Apple\""
+        },
+        {
+          "name": "Include",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Include",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "Chance",
+          "type": "float",
+          "example": "0.05",
+          "description": "Chance. Range: 0.0–1.0",
+          "defaultValue": "0.10000000149011612"
+        },
+        {
+          "name": "Quantity",
+          "type": "map",
+          "example": "",
+          "mapKeyType": "string",
+          "description": "Quantity",
+          "defaultValue": "{ \"Min\": 0, … (2 entries) }",
+          "mapValueType": "int"
+        },
+        {
+          "name": "Health",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Health",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "InventoryAttachments",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Inventory attachments",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "InventoryCargo",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Inventory cargo",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "ConstructionPartsBuilt",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Construction parts built",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Sets",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Sets",
+          "defaultValue": "[0 items]"
+        }
+      ]
+    },
+    {
+      "name": "ConstructionPartsBuilt",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Construction parts built",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "Sets",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 9 properties",
+      "description": "Sets",
+      "defaultValue": "[19 items]",
+      "nestedSettings": [
+        {
+          "name": "ClassName",
+          "type": "classname",
+          "example": "\"WEAPON\"",
+          "description": "DayZ classname (e.g. \"WEAPON\")",
+          "defaultValue": "\"WEAPON\""
+        },
+        {
+          "name": "Include",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Include",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "Chance",
+          "type": "int",
+          "example": "1",
+          "description": "Chance. Range: 0–100",
+          "defaultValue": "1"
+        },
+        {
+          "name": "Quantity",
+          "type": "map",
+          "example": "",
+          "mapKeyType": "string",
+          "description": "Quantity",
+          "defaultValue": "{ \"Min\": 0, … (2 entries) }",
+          "mapValueType": "int"
+        },
+        {
+          "name": "Health",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Health",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "InventoryAttachments",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with SlotName, Items",
+          "description": "Inventory attachments",
+          "defaultValue": "[1 items]",
+          "nestedSettings": [
+            {
+              "name": "SlotName",
+              "type": "string",
+              "example": "\"Shoulder\"",
+              "description": "Slot name",
+              "defaultValue": "\"Shoulder\""
+            },
+            {
+              "name": "Items",
+              "type": "array",
+              "example": "",
+              "arrayItems": "objects with 9 properties",
+              "description": "Items",
+              "defaultValue": "[1 items]",
+              "nestedSettings": [
+                {
+                  "name": "ClassName",
+                  "type": "classname",
+                  "example": "\"AK101\"",
+                  "description": "DayZ classname (e.g. \"AK101\")",
+                  "defaultValue": "\"AK101\""
+                },
+                {
+                  "name": "Include",
+                  "type": "string",
+                  "example": "\"\"",
+                  "description": "Include",
+                  "defaultValue": "\"\""
+                },
+                {
+                  "name": "Chance",
+                  "type": "int",
+                  "example": "1",
+                  "description": "Chance. Range: 0–100",
+                  "defaultValue": "1"
+                },
+                {
+                  "name": "Quantity",
+                  "type": "map",
+                  "example": "",
+                  "mapKeyType": "string",
+                  "description": "Quantity",
+                  "defaultValue": "{ \"Min\": 0, … (2 entries) }",
+                  "mapValueType": "int"
+                },
+                {
+                  "name": "Health",
+                  "type": "array",
+                  "example": "",
+                  "arrayItems": "items",
+                  "description": "Health",
+                  "defaultValue": "[0 items]"
+                },
+                {
+                  "name": "InventoryAttachments",
+                  "type": "array",
+                  "example": "",
+                  "arrayItems": "objects with SlotName, Items",
+                  "description": "Inventory attachments",
+                  "defaultValue": "[1 items]",
+                  "nestedSettings": [
+                    {
+                      "name": "SlotName",
+                      "type": "string",
+                      "example": "\"\"",
+                      "description": "Slot name",
+                      "defaultValue": "\"\""
+                    },
+                    {
+                      "name": "Items",
+                      "type": "array",
+                      "example": "",
+                      "arrayItems": "objects with 9 properties",
+                      "description": "Items",
+                      "defaultValue": "[10 items]",
+                      "nestedSettings": [
+                        {
+                          "name": "ClassName",
+                          "type": "classname",
+                          "example": "\"Mag_AK101_30Rnd\"",
+                          "description": "DayZ classname (e.g. \"Mag_AK101_30Rnd\")",
+                          "defaultValue": "\"Mag_AK101_30Rnd\""
+                        },
+                        {
+                          "name": "Include",
+                          "type": "string",
+                          "example": "\"\"",
+                          "description": "Include",
+                          "defaultValue": "\"\""
+                        },
+                        {
+                          "name": "Chance",
+                          "type": "int",
+                          "example": "1",
+                          "description": "Chance. Range: 0–100",
+                          "defaultValue": "1"
+                        },
+                        {
+                          "name": "Quantity",
+                          "type": "map",
+                          "example": "",
+                          "mapKeyType": "string",
+                          "description": "Quantity",
+                          "defaultValue": "{ \"Min\": 0, … (2 entries) }",
+                          "mapValueType": "int"
+                        },
+                        {
+                          "name": "Health",
+                          "type": "array",
+                          "example": "",
+                          "arrayItems": "items",
+                          "description": "Health",
+                          "defaultValue": "[0 items]"
+                        },
+                        {
+                          "name": "InventoryAttachments",
+                          "type": "array",
+                          "example": "",
+                          "arrayItems": "items",
+                          "description": "Inventory attachments",
+                          "defaultValue": "[0 items]"
+                        },
+                        {
+                          "name": "InventoryCargo",
+                          "type": "array",
+                          "example": "",
+                          "arrayItems": "items",
+                          "description": "Inventory cargo",
+                          "defaultValue": "[0 items]"
+                        },
+                        {
+                          "name": "ConstructionPartsBuilt",
+                          "type": "array",
+                          "example": "",
+                          "arrayItems": "items",
+                          "description": "Construction parts built",
+                          "defaultValue": "[0 items]"
+                        },
+                        {
+                          "name": "Sets",
+                          "type": "array",
+                          "example": "",
+                          "arrayItems": "items",
+                          "description": "Sets",
+                          "defaultValue": "[0 items]"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "InventoryCargo",
+                  "type": "array",
+                  "example": "",
+                  "arrayItems": "items",
+                  "description": "Inventory cargo",
+                  "defaultValue": "[0 items]"
+                },
+                {
+                  "name": "ConstructionPartsBuilt",
+                  "type": "array",
+                  "example": "",
+                  "arrayItems": "items",
+                  "description": "Construction parts built",
+                  "defaultValue": "[0 items]"
+                },
+                {
+                  "name": "Sets",
+                  "type": "array",
+                  "example": "",
+                  "arrayItems": "items",
+                  "description": "Sets",
+                  "defaultValue": "[0 items]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "InventoryCargo",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with 9 properties",
+          "description": "Inventory cargo",
+          "defaultValue": "[2 items]",
+          "nestedSettings": [
+            {
+              "name": "ClassName",
+              "type": "classname",
+              "example": "\"Mag_AK101_30Rnd\"",
+              "description": "DayZ classname (e.g. \"Mag_AK101_30Rnd\")",
+              "defaultValue": "\"Mag_AK101_30Rnd\""
+            },
+            {
+              "name": "Include",
+              "type": "string",
+              "example": "\"\"",
+              "description": "Include",
+              "defaultValue": "\"\""
+            },
+            {
+              "name": "Chance",
+              "type": "int",
+              "example": "1",
+              "description": "Chance. Range: 0–100",
+              "defaultValue": "1"
+            },
+            {
+              "name": "Quantity",
+              "type": "map",
+              "example": "",
+              "mapKeyType": "string",
+              "description": "Quantity",
+              "defaultValue": "{ \"Min\": 0, … (2 entries) }",
+              "mapValueType": "int"
+            },
+            {
+              "name": "Health",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Health",
+              "defaultValue": "[0 items]"
+            },
+            {
+              "name": "InventoryAttachments",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Inventory attachments",
+              "defaultValue": "[0 items]"
+            },
+            {
+              "name": "InventoryCargo",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Inventory cargo",
+              "defaultValue": "[0 items]"
+            },
+            {
+              "name": "ConstructionPartsBuilt",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Construction parts built",
+              "defaultValue": "[0 items]"
+            },
+            {
+              "name": "Sets",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Sets",
+              "defaultValue": "[0 items]"
+            }
+          ]
+        },
+        {
+          "name": "ConstructionPartsBuilt",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Construction parts built",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Sets",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Sets",
+          "defaultValue": "[0 items]"
+        }
+      ]
+    }
+  ]
+}

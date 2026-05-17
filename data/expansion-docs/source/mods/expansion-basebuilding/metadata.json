@@ -1,0 +1,223 @@
+{
+  "id": "expansion-basebuilding",
+  "name": "Expansion Base Building",
+  "shortName": "Base Building",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-BaseBuilding",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792982513",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964121",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Territory system with modular constructions, codelocks, safes, and configurable raiding and basebuilding settings.",
+  "overview": "Expansion Base Building introduces new basebuilding constructions and a territory system.\n\n## Key Features\n\n- **Territory System** — Build and claim your territory with friends to protect your base from raiders\n- **Territory Flags** — Tons of new territory flag designs\n- **Codelocks** — Secure your base with combination locks\n- **Modular Constructions** — Walls, floors, ramps, and stairs that snap together\n- **Safes** — Secure storage containers\n- **Raiding Settings** — Full control over raid mechanics\n- **Building Settings** — Configure what can be built and where\n- **Territory Settings** — Manage territory size, limits, and permissions\n- **Build Anywhere** — Option to allow construction outside territories\n\n### Integration with Other Mods\n\n- Combined with **Community Online Tools (COT)**: Admin menu to manage all territories on your server\n- Combined with **Expansion Licensed**: Arma 2 props added as deployables (barbwire, signs, tents, gunrack, etc.)\n- Combined with **Expansion Spawn Selection**: Ability to respawn on your territory\n- Combined with **CodeLock Bridge**: Expansion Codelock compatible with multiple mods using the CodeLock mod",
+  "dependencies": [
+    "expansion-core",
+    "expansion-book",
+    "expansion-licensed"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-groups"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed.",
+    "Download @ExpansionBaseBuilding from the Steam Workshop.",
+    "Add to your -mod= parameter after Core.",
+    "Configure building parameters and raid settings.",
+    "Set territory and building limits as needed."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Players can't place structures",
+      "solution": "Check territory limits and ensure the player is within their territory radius."
+    },
+    {
+      "problem": "Bases disappearing after restart",
+      "solution": "Verify persistence is enabled and the database is correctly configured."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "PvE Server (No Raiding)",
+      "description": "Set EnableRaiding to 0 for peaceful base building without raid risk."
+    },
+    {
+      "title": "Hardcore Raiding",
+      "description": "Enable all raid tools and reduce structure health for intense PvP raiding."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "Enabled",
+      "example": "0",
+      "description": "Enable or disable the base building system.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxBuildHeight",
+      "example": "5",
+      "description": "Maximum number of floors a base can be built upward.",
+      "defaultValue": "10"
+    },
+    {
+      "name": "TerritorySize",
+      "example": "100",
+      "description": "Radius of the territory flag protection area in meters.",
+      "defaultValue": "60"
+    },
+    {
+      "name": "MaxTerritoriesPerPlayer",
+      "example": "2",
+      "description": "Maximum territories a single player can own.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableRaiding",
+      "example": "0",
+      "description": "Allow or prevent base raiding.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DestroyableWithMelee",
+      "example": "1",
+      "description": "Whether structures can be damaged with melee weapons.",
+      "defaultValue": "0"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082991656-61-ibmf",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082991656-62-sadk",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082991656-63-82zf",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "PvE Server (No Raiding)",
+                        "description": "Set EnableRaiding to 0 for peaceful base building without raid risk."
+                      },
+                      {
+                        "title": "Hardcore Raiding",
+                        "description": "Enable all raid tools and reduce structure health for intense PvP raiding."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-x1o6p",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082991656-64-l7a7",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082991656-65-vbq0",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Base Building introduces new basebuilding constructions and a territory system.\n\n## Key Features\n\n- **Territory System** — Build and claim your territory with friends to protect your base from raiders\n- **Territory Flags** — Tons of new territory flag designs\n- **Codelocks** — Secure your base with combination locks\n- **Modular Constructions** — Walls, floors, ramps, and stairs that snap together\n- **Safes** — Secure storage containers\n- **Raiding Settings** — Full control over raid mechanics\n- **Building Settings** — Configure what can be built and where\n- **Territory Settings** — Manage territory size, limits, and permissions\n- **Build Anywhere** — Option to allow construction outside territories\n\n### Integration with Other Mods\n\n- Combined with **Community Online Tools (COT)**: Admin menu to manage all territories on your server\n- Combined with **Expansion Licensed**: Arma 2 props added as deployables (barbwire, signs, tents, gunrack, etc.)\n- Combined with **Expansion Spawn Selection**: Ability to respawn on your territory\n- Combined with **CodeLock Bridge**: Expansion Codelock compatible with multiple mods using the CodeLock mod",
+                "_blockData": {
+                  "blockId": "block-1773333239007-0fr0a",
+                  "content": "Expansion Base Building introduces new basebuilding constructions and a territory system.\n\n## Key Features\n\n- **Territory System** — Build and claim your territory with friends to protect your base from raiders\n- **Territory Flags** — Tons of new territory flag designs\n- **Codelocks** — Secure your base with combination locks\n- **Modular Constructions** — Walls, floors, ramps, and stairs that snap together\n- **Safes** — Secure storage containers\n- **Raiding Settings** — Full control over raid mechanics\n- **Building Settings** — Configure what can be built and where\n- **Territory Settings** — Manage territory size, limits, and permissions\n- **Build Anywhere** — Option to allow construction outside territories\n\n### Integration with Other Mods\n\n- Combined with **Community Online Tools (COT)**: Admin menu to manage all territories on your server\n- Combined with **Expansion Licensed**: Arma 2 props added as deployables (barbwire, signs, tents, gunrack, etc.)\n- Combined with **Expansion Spawn Selection**: Ability to respawn on your territory\n- Combined with **CodeLock Bridge**: Expansion Codelock compatible with multiple mods using the CodeLock mod",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082991656-66-qkt7",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082991656-67-cgsb",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed.",
+                    "Download @ExpansionBaseBuilding from the Steam Workshop.",
+                    "Add to your -mod= parameter after Core.",
+                    "Configure building parameters and raid settings.",
+                    "Set territory and building limits as needed."
+                  ],
+                  "blockId": "block-1773333239007-9sn00",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082991656-68-3n0e",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082991656-69-vrob",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Players can't place structures",
+                        "description": "Check territory limits and ensure the player is within their territory radius."
+                      },
+                      {
+                        "title": "Bases disappearing after restart",
+                        "description": "Verify persistence is enabled and the database is correctly configured."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-jadyz",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [
+    "basebuilding-guide",
+    "crafting-guide"
+  ],
+  "changelogKeywords": [
+    "basebuilding"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "id": "config-1778065678585-zlsb",
+  "name": "Objective_AIESCORT_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Objectives/AIVIP/Objective_AIESCORT_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "28",
+      "description": "Config version",
+      "defaultValue": "28"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ObjectiveType",
+      "type": "enum",
+      "example": "9",
+      "description": "Objective type selector (0–9)",
+      "defaultValue": "9"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Bring the Survivor to the marked location.\"",
+      "description": "Objective text",
+      "defaultValue": "\"Bring the Survivor to the marked location.\""
+    },
+    {
+      "name": "TimeLimit",
+      "type": "int",
+      "example": "180",
+      "description": "Time limit (default: 180)",
+      "defaultValue": "180"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Position",
+      "type": "vector",
+      "example": "3193.590087890625, 296.7070007324219, 6090.56982421875",
+      "description": "Position",
+      "defaultValue": "3193.590087890625, 296.7070007324219, 6090.56982421875"
+    },
+    {
+      "name": "MaxDistance",
+      "type": "int",
+      "example": "20",
+      "description": "Max distance (default: 20)",
+      "defaultValue": "20"
+    },
+    {
+      "name": "MarkerName",
+      "type": "string",
+      "example": "\"Escort Survivor\"",
+      "description": "Marker name",
+      "defaultValue": "\"Escort Survivor\""
+    },
+    {
+      "name": "ShowDistance",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CanLootAI",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable loot ai",
+      "defaultValue": "0"
+    },
+    {
+      "name": "NPCLoadoutFile",
+      "type": "classname",
+      "example": "\"SurvivorLoadout\"",
+      "description": "DayZ classname (e.g. \"SurvivorLoadout\")",
+      "defaultValue": "\"SurvivorLoadout\""
+    },
+    {
+      "name": "NPCClassName",
+      "type": "classname",
+      "example": "\"eAI_SurvivorM_Oliver\"",
+      "description": "DayZ classname (e.g. \"eAI_SurvivorM_Oliver\")",
+      "defaultValue": "\"eAI_SurvivorM_Oliver\""
+    },
+    {
+      "name": "NPCName",
+      "type": "string",
+      "example": "\"Survivior\"",
+      "description": "Npc name",
+      "defaultValue": "\"Survivior\""
+    }
+  ]
+}

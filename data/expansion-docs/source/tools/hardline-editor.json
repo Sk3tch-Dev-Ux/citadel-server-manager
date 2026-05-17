@@ -1,0 +1,1876 @@
+{
+  "id": "hardline-editor",
+  "name": "Hardline Editor",
+  "description": "Configure Expansion Hardline settings — reputation, item rarity tiers, entity values, and market gating. Generates HardlineSettings.json.",
+  "iconName": "Shield",
+  "keywords": [
+    "hardline",
+    "reputation",
+    "rarity",
+    "faction",
+    "entity",
+    "market",
+    "progression"
+  ],
+  "enabled": true,
+  "toolType": "official",
+  "isVisual": true,
+  "outputModes": [
+    "generate"
+  ],
+  "downloadFilename": "HardlineSettings.json",
+  "tabIcons": {
+    "General": "Settings",
+    "Entities": "Users",
+    "Reputation": "Shield",
+    "Item Rarity": "Gem"
+  },
+  "formFields": [
+    {
+      "id": "hl-v1",
+      "key": "m_Version",
+      "tab": "General",
+      "type": "number",
+      "group": "System Toggles",
+      "label": "Config Version",
+      "colSpan": 4,
+      "readOnly": false,
+      "description": "m_Version — auto-increments on each export. Usually 10 for current Expansion.",
+      "defaultValue": "10"
+    },
+    {
+      "id": "hl-t1",
+      "key": "ShowHardlineHUD",
+      "tab": "General",
+      "type": "boolean",
+      "group": "System Toggles",
+      "label": "Show Hardline HUD",
+      "colSpan": 2,
+      "description": "Show reputation indicator in the main HUD",
+      "defaultValue": "true"
+    },
+    {
+      "id": "hl-t2",
+      "key": "UseReputation",
+      "tab": "General",
+      "type": "boolean",
+      "group": "System Toggles",
+      "label": "Use Reputation",
+      "colSpan": 2,
+      "description": "Enable hardline reputation — players gain/lose points from actions",
+      "defaultValue": "true"
+    },
+    {
+      "id": "hl-t3",
+      "key": "UseFactionReputation",
+      "tab": "General",
+      "type": "boolean",
+      "group": "System Toggles",
+      "label": "Use Faction Reputation",
+      "colSpan": 2,
+      "description": "Track reputation individually per eAIFaction",
+      "defaultValue": "true"
+    },
+    {
+      "id": "hl-t4",
+      "key": "EnableFactionPersistence",
+      "tab": "General",
+      "type": "boolean",
+      "group": "System Toggles",
+      "label": "Enable Faction Persistence",
+      "colSpan": 2,
+      "description": "Keep faction assignment across server restarts",
+      "defaultValue": "true"
+    },
+    {
+      "id": "hl-t5",
+      "key": "EnableItemRarity",
+      "tab": "General",
+      "type": "boolean",
+      "group": "System Toggles",
+      "label": "Enable Item Rarity",
+      "colSpan": 2,
+      "description": "Display rarity on items in tooltips and icons",
+      "defaultValue": "true"
+    },
+    {
+      "id": "hl-t6",
+      "key": "UseItemRarityOnInventoryIcons",
+      "tab": "General",
+      "type": "boolean",
+      "group": "System Toggles",
+      "label": "Rarity on Inventory Icons",
+      "colSpan": 2,
+      "description": "Colorize inventory icons and slots with rarity color",
+      "defaultValue": "true"
+    },
+    {
+      "id": "hl-t7",
+      "key": "UseItemRarityForMarketPurchase",
+      "tab": "General",
+      "type": "boolean",
+      "group": "System Toggles",
+      "label": "Rarity for Market Buy",
+      "colSpan": 2,
+      "description": "Require minimum reputation to BUY items from market",
+      "defaultValue": "false"
+    },
+    {
+      "id": "hl-t8",
+      "key": "UseItemRarityForMarketSell",
+      "tab": "General",
+      "type": "boolean",
+      "group": "System Toggles",
+      "label": "Rarity for Market Sell",
+      "colSpan": 2,
+      "description": "Require minimum reputation to SELL items at market",
+      "defaultValue": "false"
+    },
+    {
+      "id": "hl-p1",
+      "key": "MaxReputation",
+      "tab": "General",
+      "type": "number",
+      "group": "Parameters",
+      "label": "Max Reputation",
+      "colSpan": 2,
+      "description": "Maximum reputation a player can reach (int32 max)",
+      "defaultValue": "2147483647",
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "0",
+          "message": "Must be ≥ 0"
+        },
+        {
+          "type": "max",
+          "value": "2147483647",
+          "message": "Must be ≤ 2147483647"
+        }
+      ]
+    },
+    {
+      "id": "hl-p2",
+      "key": "ReputationLossOnDeath",
+      "tab": "General",
+      "type": "number",
+      "group": "Parameters",
+      "label": "Reputation Loss on Death",
+      "colSpan": 2,
+      "description": "Points lost when killed by another player/entity",
+      "defaultValue": "100",
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "-2147483647",
+          "message": "Must be ≥ -2147483647"
+        },
+        {
+          "type": "max",
+          "value": "2147483647",
+          "message": "Must be ≤ 2147483647"
+        }
+      ]
+    },
+    {
+      "id": "hl-p3",
+      "key": "DefaultItemRarity",
+      "tab": "General",
+      "type": "select",
+      "group": "Parameters",
+      "label": "Default Item Rarity",
+      "colSpan": 2,
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "description": "Fallback rarity for items not listed in ItemRarity table",
+      "defaultValue": "2",
+      "optionColors": [
+        "#808080",
+        "#4caf6e",
+        "#42a5f5",
+        "#ab47bc",
+        "#ff7043",
+        "#ffd54f",
+        "#ef5350",
+        "#26c6da"
+      ],
+      "optionLabels": [
+        "Poor",
+        "Common",
+        "Uncommon",
+        "Rare",
+        "Epic",
+        "Legendary",
+        "Mythic",
+        "Exotic"
+      ]
+    },
+    {
+      "id": "hl-r1",
+      "key": "PoorItemRequirement",
+      "tab": "Reputation",
+      "type": "number",
+      "group": "Rarity Reputation Requirements",
+      "label": "Poor Requirement",
+      "colSpan": 1,
+      "description": "Min reputation to buy/sell Poor items (0 = unrestricted)",
+      "defaultValue": "0",
+      "optionColors": [
+        "#808080"
+      ]
+    },
+    {
+      "id": "hl-r2",
+      "key": "CommonItemRequirement",
+      "tab": "Reputation",
+      "type": "number",
+      "group": "Rarity Reputation Requirements",
+      "label": "Common Requirement",
+      "colSpan": 1,
+      "description": "Min reputation to buy/sell Common items",
+      "defaultValue": "0",
+      "optionColors": [
+        "#4caf6e"
+      ]
+    },
+    {
+      "id": "hl-r3",
+      "key": "UncommonItemRequirement",
+      "tab": "Reputation",
+      "type": "number",
+      "group": "Rarity Reputation Requirements",
+      "label": "Uncommon Requirement",
+      "colSpan": 1,
+      "description": "Min reputation to buy/sell Uncommon items",
+      "defaultValue": "100",
+      "optionColors": [
+        "#42a5f5"
+      ]
+    },
+    {
+      "id": "hl-r4",
+      "key": "RareItemRequirement",
+      "tab": "Reputation",
+      "type": "number",
+      "group": "Rarity Reputation Requirements",
+      "label": "Rare Requirement",
+      "colSpan": 1,
+      "description": "Min reputation to buy/sell Rare items",
+      "defaultValue": "300",
+      "optionColors": [
+        "#ab47bc"
+      ]
+    },
+    {
+      "id": "hl-r5",
+      "key": "EpicItemRequirement",
+      "tab": "Reputation",
+      "type": "number",
+      "group": "Rarity Reputation Requirements",
+      "label": "Epic Requirement",
+      "colSpan": 2,
+      "description": "Min reputation to buy/sell Epic items",
+      "defaultValue": "600",
+      "optionColors": [
+        "#ff7043"
+      ]
+    },
+    {
+      "id": "hl-r6",
+      "key": "LegendaryItemRequirement",
+      "tab": "Reputation",
+      "type": "number",
+      "group": "Rarity Reputation Requirements",
+      "label": "Legendary Requirement",
+      "colSpan": 2,
+      "description": "Min reputation to buy/sell Legendary items",
+      "defaultValue": "1000",
+      "optionColors": [
+        "#ffd54f"
+      ]
+    },
+    {
+      "id": "hl-r7",
+      "key": "MythicItemRequirement",
+      "tab": "Reputation",
+      "type": "number",
+      "group": "Rarity Reputation Requirements",
+      "label": "Mythic Requirement",
+      "colSpan": 2,
+      "description": "Min reputation to buy/sell Mythic items",
+      "defaultValue": "2000",
+      "optionColors": [
+        "#ef5350"
+      ]
+    },
+    {
+      "id": "hl-r8",
+      "key": "ExoticItemRequirement",
+      "tab": "Reputation",
+      "type": "number",
+      "group": "Rarity Reputation Requirements",
+      "label": "Exotic Requirement",
+      "colSpan": 2,
+      "description": "Min reputation to buy/sell Exotic items",
+      "defaultValue": "5000",
+      "optionColors": [
+        "#26c6da"
+      ]
+    },
+    {
+      "id": "hl-ir1",
+      "key": "ItemRarity",
+      "tab": "Item Rarity",
+      "type": "repeater",
+      "group": "Item Rarity Table",
+      "label": "Item Rarity Assignments",
+      "colSpan": 4,
+      "richTable": true,
+      "subFields": [
+        {
+          "id": "hlir1",
+          "key": "name",
+          "type": "text",
+          "label": "Classname",
+          "placeholder": "e.g. m4a1",
+          "autocomplete": true,
+          "defaultValue": ""
+        },
+        {
+          "id": "hlir2",
+          "key": "rarity",
+          "type": "select",
+          "label": "Rarity",
+          "options": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8"
+          ],
+          "defaultValue": "2",
+          "optionColors": [
+            "#808080",
+            "#4caf6e",
+            "#42a5f5",
+            "#ab47bc",
+            "#ff7043",
+            "#ffd54f",
+            "#ef5350",
+            "#26c6da"
+          ],
+          "optionLabels": [
+            "Poor",
+            "Common",
+            "Uncommon",
+            "Rare",
+            "Epic",
+            "Legendary",
+            "Mythic",
+            "Exotic"
+          ]
+        }
+      ],
+      "description": "Assign rarity tiers to specific item classnames. Items not listed use the default rarity.",
+      "autocomplete": true,
+      "defaultValue": "[]"
+    },
+    {
+      "id": "hl-e1",
+      "key": "EntityReputation",
+      "tab": "Entities",
+      "type": "repeater",
+      "group": "Entity Reputation",
+      "label": "Entity Reputation Values",
+      "colSpan": 4,
+      "richTable": true,
+      "subFields": [
+        {
+          "id": "hle1",
+          "key": "name",
+          "type": "text",
+          "label": "Entity Class",
+          "placeholder": "e.g. ZombieBase",
+          "autocomplete": true,
+          "defaultValue": ""
+        },
+        {
+          "id": "hle2",
+          "key": "value",
+          "type": "number",
+          "label": "Rep Value",
+          "defaultValue": "10"
+        }
+      ],
+      "description": "Reputation points gained/lost for killing each entity type",
+      "autocomplete": true,
+      "defaultValue": "[{\"name\":\"ZombieBase\",\"value\":\"10\"},{\"name\":\"PlayerBase\",\"value\":\"100\"},{\"name\":\"AnimalBase\",\"value\":\"5\"},{\"name\":\"eAIBase\",\"value\":\"50\"},{\"name\":\"ZmbM_NBC_Grey\",\"value\":\"20\"}]"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "hl-toolbar",
+      "type": "toolbar",
+      "props": {}
+    },
+    {
+      "id": "hl-help",
+      "type": "contextual-help",
+      "props": {}
+    },
+    {
+      "id": "hl-tabs",
+      "type": "tabs-container",
+      "props": {
+        "label": "Hardline Settings"
+      },
+      "children": [
+        {
+          "id": "hl-tab-general",
+          "type": "tab-pane",
+          "props": {
+            "icon": "Settings",
+            "label": "General"
+          },
+          "children": [
+            {
+              "id": "hl-general-validation",
+              "type": "ui-component",
+              "props": {
+                "componentKey": "ui-general-validation"
+              }
+            },
+            {
+              "id": "hl-sec-toggles",
+              "type": "section",
+              "props": {
+                "icon": "ToggleLeft",
+                "label": "System Toggles",
+                "collapsible": true
+              },
+              "children": [
+                {
+                  "id": "hl-row-t1",
+                  "type": "row",
+                  "props": {
+                    "gap": "md",
+                    "columns": 2
+                  },
+                  "children": [
+                    {
+                      "id": "hl-f-t2",
+                      "type": "field-ref",
+                      "fieldId": "hl-t1"
+                    },
+                    {
+                      "id": "hl-f-t3",
+                      "type": "field-ref",
+                      "fieldId": "hl-t2"
+                    },
+                    {
+                      "id": "hl-f-t4",
+                      "type": "field-ref",
+                      "fieldId": "hl-t3"
+                    },
+                    {
+                      "id": "hl-f-t5",
+                      "type": "field-ref",
+                      "fieldId": "hl-t4"
+                    },
+                    {
+                      "id": "hl-f-t6",
+                      "type": "field-ref",
+                      "fieldId": "hl-t5"
+                    },
+                    {
+                      "id": "hl-f-t7",
+                      "type": "field-ref",
+                      "fieldId": "hl-t6"
+                    },
+                    {
+                      "id": "hl-f-t8",
+                      "type": "field-ref",
+                      "fieldId": "hl-t7"
+                    },
+                    {
+                      "id": "hl-f-t9",
+                      "type": "field-ref",
+                      "fieldId": "hl-t8"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "hl-sec-params",
+              "type": "section",
+              "props": {
+                "icon": "SlidersHorizontal",
+                "label": "Parameters",
+                "collapsible": true
+              },
+              "children": [
+                {
+                  "id": "hl-row-p1",
+                  "type": "row",
+                  "props": {
+                    "gap": "md",
+                    "columns": 3
+                  },
+                  "children": [
+                    {
+                      "id": "hl-f-p1",
+                      "type": "field-ref",
+                      "fieldId": "hl-p1"
+                    },
+                    {
+                      "id": "hl-f-p2",
+                      "type": "field-ref",
+                      "fieldId": "hl-p2"
+                    },
+                    {
+                      "id": "hl-f-p3",
+                      "type": "field-ref",
+                      "fieldId": "hl-p3"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hl-tab-rep",
+          "type": "tab-pane",
+          "props": {
+            "icon": "Shield",
+            "label": "Reputation"
+          },
+          "children": [
+            {
+              "id": "hl-sec-req",
+              "type": "section",
+              "props": {
+                "icon": "Shield",
+                "label": "Rarity Reputation Requirements",
+                "collapsible": true
+              },
+              "children": [
+                {
+                  "id": "hl-info-req",
+                  "type": "info-block",
+                  "props": {
+                    "content": "Minimum reputation required to buy/sell items of each rarity tier at the market. Set to **0** to disable."
+                  }
+                },
+                {
+                  "id": "hl-rep-validation",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-rep-validation"
+                  }
+                },
+                {
+                  "id": "hl-row-req1",
+                  "type": "row",
+                  "props": {
+                    "gap": "md",
+                    "columns": 4
+                  },
+                  "children": [
+                    {
+                      "id": "hl-rc-poor",
+                      "type": "ui-component",
+                      "props": {
+                        "label": "Poor",
+                        "componentKey": "ui-rep-card",
+                        "componentValue": "PoorItemRequirement"
+                      }
+                    },
+                    {
+                      "id": "hl-rc-common",
+                      "type": "ui-component",
+                      "props": {
+                        "label": "Common",
+                        "componentKey": "ui-rep-card",
+                        "componentValue": "CommonItemRequirement"
+                      }
+                    },
+                    {
+                      "id": "hl-rc-uncommon",
+                      "type": "ui-component",
+                      "props": {
+                        "label": "Uncommon",
+                        "componentKey": "ui-rep-card",
+                        "componentValue": "UncommonItemRequirement"
+                      }
+                    },
+                    {
+                      "id": "hl-rc-rare",
+                      "type": "ui-component",
+                      "props": {
+                        "label": "Rare",
+                        "componentKey": "ui-rep-card",
+                        "componentValue": "RareItemRequirement"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "hl-row-req2",
+                  "type": "row",
+                  "props": {
+                    "gap": "md",
+                    "columns": 4
+                  },
+                  "children": [
+                    {
+                      "id": "hl-rc-epic",
+                      "type": "ui-component",
+                      "props": {
+                        "label": "Epic",
+                        "componentKey": "ui-rep-card",
+                        "componentValue": "EpicItemRequirement"
+                      }
+                    },
+                    {
+                      "id": "hl-rc-legendary",
+                      "type": "ui-component",
+                      "props": {
+                        "label": "Legendary",
+                        "componentKey": "ui-rep-card",
+                        "componentValue": "LegendaryItemRequirement"
+                      }
+                    },
+                    {
+                      "id": "hl-rc-mythic",
+                      "type": "ui-component",
+                      "props": {
+                        "label": "Mythic",
+                        "componentKey": "ui-rep-card",
+                        "componentValue": "MythicItemRequirement"
+                      }
+                    },
+                    {
+                      "id": "hl-rc-exotic",
+                      "type": "ui-component",
+                      "props": {
+                        "label": "Exotic",
+                        "componentKey": "ui-rep-card",
+                        "componentValue": "ExoticItemRequirement"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hl-tab-rarity",
+          "type": "tab-pane",
+          "props": {
+            "icon": "Gem",
+            "label": "Item Rarity"
+          },
+          "children": [
+            {
+              "id": "hl-sec-ir",
+              "type": "section",
+              "props": {
+                "icon": "Gem",
+                "label": "Item Rarity Assignments",
+                "hideHeader": true,
+                "collapsible": false
+              },
+              "children": [
+                {
+                  "id": "hl-ir-add",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-table-add-row",
+                    "componentValue": "ItemRarity"
+                  }
+                },
+                {
+                  "id": "hl-ir-controls",
+                  "type": "row",
+                  "props": {
+                    "gap": "sm",
+                    "layout": "flex",
+                    "columns": 3
+                  },
+                  "children": [
+                    {
+                      "id": "hl-ir-search",
+                      "type": "ui-component",
+                      "props": {
+                        "componentKey": "ui-table-search",
+                        "componentValue": "ItemRarity"
+                      }
+                    },
+                    {
+                      "id": "hl-ir-filter",
+                      "type": "ui-component",
+                      "props": {
+                        "componentKey": "ui-table-filter",
+                        "componentValue": "ItemRarity"
+                      }
+                    },
+                    {
+                      "id": "hl-ir-sort",
+                      "type": "ui-component",
+                      "props": {
+                        "componentKey": "ui-table-sort",
+                        "componentValue": "ItemRarity"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "hl-ir-bulk",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-table-bulk-actions",
+                    "componentValue": "ItemRarity"
+                  }
+                },
+                {
+                  "id": "hl-ir-rows",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-table-rows",
+                    "componentValue": "ItemRarity"
+                  }
+                },
+                {
+                  "id": "hl-ir-pag",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-table-pagination",
+                    "componentValue": "ItemRarity"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hl-tab-ent",
+          "type": "tab-pane",
+          "props": {
+            "icon": "Users",
+            "label": "Entities"
+          },
+          "children": [
+            {
+              "id": "hl-sec-ent",
+              "type": "section",
+              "props": {
+                "icon": "Users",
+                "label": "Entity Reputation Values",
+                "hideHeader": true,
+                "collapsible": false
+              },
+              "children": [
+                {
+                  "id": "hl-info-ent",
+                  "type": "info-block",
+                  "props": {
+                    "content": "Reputation gained (+) or lost (−) when eliminating an entity. Supports base class names like `ZombieBase`."
+                  }
+                },
+                {
+                  "id": "hl-er-add",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-table-add-row",
+                    "componentValue": "EntityReputation"
+                  }
+                },
+                {
+                  "id": "hl-er-controls",
+                  "type": "row",
+                  "props": {
+                    "gap": "sm",
+                    "layout": "flex",
+                    "columns": 3
+                  },
+                  "children": [
+                    {
+                      "id": "hl-er-search",
+                      "type": "ui-component",
+                      "props": {
+                        "componentKey": "ui-table-search",
+                        "componentValue": "EntityReputation"
+                      }
+                    },
+                    {
+                      "id": "hl-er-sort",
+                      "type": "ui-component",
+                      "props": {
+                        "componentKey": "ui-table-sort",
+                        "componentValue": "EntityReputation"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "hl-er-bulk",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-table-bulk-actions",
+                    "componentValue": "EntityReputation"
+                  }
+                },
+                {
+                  "id": "hl-er-rows",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-table-rows",
+                    "componentValue": "EntityReputation"
+                  }
+                },
+                {
+                  "id": "hl-er-pag",
+                  "type": "ui-component",
+                  "props": {
+                    "componentKey": "ui-table-pagination",
+                    "componentValue": "EntityReputation"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tutorialSteps": [
+    {
+      "title": "⚙️ System Toggles",
+      "targetTab": "General",
+      "description": "Enable or disable core features: UseReputation, EnableItemRarity, UseFactionReputation, and more.",
+      "highlightSelector": "[data-tutorial='hl-sec-toggles']"
+    },
+    {
+      "title": "⚙️ Global Parameters",
+      "targetTab": "General",
+      "description": "Set MaxReputation (cap), ReputationLossOnDeath, and DefaultItemRarity (fallback for unlisted items).",
+      "highlightSelector": "[data-tutorial='hl-sec-params']"
+    },
+    {
+      "title": "🛡️ Reputation Thresholds",
+      "targetTab": "Reputation",
+      "description": "Set minimum reputation to buy/sell items of each rarity tier. Set to 0 for unrestricted access.",
+      "highlightSelector": "[data-tutorial='hl-sec-req']"
+    },
+    {
+      "title": "💎 Item Rarity Table",
+      "targetTab": "Item Rarity",
+      "description": "Assign rarity tiers to item classnames. Use the search bar, filters, and bulk actions to manage large lists.",
+      "highlightSelector": "[data-tutorial='hl-sec-ir']"
+    },
+    {
+      "title": "📥 Bulk Import",
+      "targetTab": "Item Rarity",
+      "description": "Use the Import button to paste classname lists or load a types.xml file with automatic nominal→rarity mapping.",
+      "highlightSelector": "[data-tutorial='hl-ir-add']"
+    },
+    {
+      "title": "👾 Entity Kill Rewards",
+      "targetTab": "Entities",
+      "description": "Configure reputation points gained/lost for killing entities. Use base classes (ZombieBase) for broad rules.",
+      "highlightSelector": "[data-tutorial='hl-sec-ent']"
+    },
+    {
+      "title": "📤 Export",
+      "description": "Download the generated HardlineSettings.json from the toolbar. Place in your server's ExpansionMod/Settings folder.",
+      "highlightSelector": "[data-tutorial='hl-toolbar']"
+    }
+  ],
+  "blocks": [],
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "_seedVersion": 17,
+  "nodeGraph": {
+    "nodes": [
+      {
+        "id": "c1",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "blue",
+          "label": "Boolean Toggles → Bool-to-Int"
+        }
+      },
+      {
+        "id": "c2",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "green",
+          "label": "Integer Parameters (pass-through)"
+        }
+      },
+      {
+        "id": "c3",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "purple",
+          "label": "Repeaters → Object Maps"
+        }
+      },
+      {
+        "id": "c4",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "orange",
+          "label": "Assembly → Field Order → Output"
+        }
+      },
+      {
+        "id": "c5",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "teal",
+          "label": "Validation & Stats (node-driven)"
+        }
+      },
+      {
+        "id": "i1",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "ShowHardlineHUD",
+          "fieldKey": "ShowHardlineHUD",
+          "fieldType": "boolean"
+        }
+      },
+      {
+        "id": "i2",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "UseReputation",
+          "fieldKey": "UseReputation",
+          "fieldType": "boolean"
+        }
+      },
+      {
+        "id": "i3",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "UseFactionReputation",
+          "fieldKey": "UseFactionReputation",
+          "fieldType": "boolean"
+        }
+      },
+      {
+        "id": "i4",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "EnableFactionPersistence",
+          "fieldKey": "EnableFactionPersistence",
+          "fieldType": "boolean"
+        }
+      },
+      {
+        "id": "i5",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "EnableItemRarity",
+          "fieldKey": "EnableItemRarity",
+          "fieldType": "boolean"
+        }
+      },
+      {
+        "id": "i6",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "UseItemRarityOnInventoryIcons",
+          "fieldKey": "UseItemRarityOnInventoryIcons",
+          "fieldType": "boolean"
+        }
+      },
+      {
+        "id": "i7",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "UseItemRarityForMarketPurchase",
+          "fieldKey": "UseItemRarityForMarketPurchase",
+          "fieldType": "boolean"
+        }
+      },
+      {
+        "id": "i8",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "UseItemRarityForMarketSell",
+          "fieldKey": "UseItemRarityForMarketSell",
+          "fieldType": "boolean"
+        }
+      },
+      {
+        "id": "b1",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "→ Int",
+          "outputKey": "ShowHardlineHUD",
+          "expression": "",
+          "transformType": "bool-to-int"
+        }
+      },
+      {
+        "id": "b2",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "→ Int",
+          "outputKey": "UseReputation",
+          "expression": "",
+          "transformType": "bool-to-int"
+        }
+      },
+      {
+        "id": "b3",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "→ Int",
+          "outputKey": "UseFactionReputation",
+          "expression": "",
+          "transformType": "bool-to-int"
+        }
+      },
+      {
+        "id": "b4",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "→ Int",
+          "outputKey": "EnableFactionPersistence",
+          "expression": "",
+          "transformType": "bool-to-int"
+        }
+      },
+      {
+        "id": "b5",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "→ Int",
+          "outputKey": "EnableItemRarity",
+          "expression": "",
+          "transformType": "bool-to-int"
+        }
+      },
+      {
+        "id": "b6",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "→ Int",
+          "outputKey": "UseItemRarityOnInventoryIcons",
+          "expression": "",
+          "transformType": "bool-to-int"
+        }
+      },
+      {
+        "id": "b7",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "→ Int",
+          "outputKey": "UseItemRarityForMarketPurchase",
+          "expression": "",
+          "transformType": "bool-to-int"
+        }
+      },
+      {
+        "id": "b8",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "→ Int",
+          "outputKey": "UseItemRarityForMarketSell",
+          "expression": "",
+          "transformType": "bool-to-int"
+        }
+      },
+      {
+        "id": "i10",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "m_Version",
+          "fieldKey": "m_Version",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i11",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "MaxReputation",
+          "fieldKey": "MaxReputation",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i12",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "ReputationLossOnDeath",
+          "fieldKey": "ReputationLossOnDeath",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i13",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "DefaultItemRarity",
+          "fieldKey": "DefaultItemRarity",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i14",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "PoorItemRequirement",
+          "fieldKey": "PoorItemRequirement",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i15",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "CommonItemRequirement",
+          "fieldKey": "CommonItemRequirement",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i16",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "UncommonItemRequirement",
+          "fieldKey": "UncommonItemRequirement",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i17",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "RareItemRequirement",
+          "fieldKey": "RareItemRequirement",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i18",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "EpicItemRequirement",
+          "fieldKey": "EpicItemRequirement",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i19",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "LegendaryItemRequirement",
+          "fieldKey": "LegendaryItemRequirement",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i20",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "MythicItemRequirement",
+          "fieldKey": "MythicItemRequirement",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i21",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "ExoticItemRequirement",
+          "fieldKey": "ExoticItemRequirement",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "i30",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "EntityReputation",
+          "fieldKey": "EntityReputation",
+          "fieldType": "repeater"
+        }
+      },
+      {
+        "id": "i31",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "ItemRarity",
+          "fieldKey": "ItemRarity",
+          "fieldType": "repeater"
+        }
+      },
+      {
+        "id": "r1",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Entity → Obj",
+          "outputKey": "EntityReputation",
+          "expression": "{\"keyField\":\"name\",\"valueField\":\"value\"}",
+          "transformType": "repeater-to-object"
+        }
+      },
+      {
+        "id": "r2",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Rarity → Obj",
+          "outputKey": "ItemRarity",
+          "expression": "{\"keyField\":\"name\",\"valueField\":\"rarity\"}",
+          "transformType": "repeater-to-object"
+        }
+      },
+      {
+        "id": "asm",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Assemble JSON",
+          "outputKey": "assembled",
+          "expression": "",
+          "transformType": "json-assemble"
+        }
+      },
+      {
+        "id": "ord",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Key Order",
+          "outputKey": "ordered",
+          "expression": "[\"m_Version\",\"PoorItemRequirement\",\"CommonItemRequirement\",\"UncommonItemRequirement\",\"RareItemRequirement\",\"EpicItemRequirement\",\"LegendaryItemRequirement\",\"MythicItemRequirement\",\"ExoticItemRequirement\",\"ShowHardlineHUD\",\"UseReputation\",\"UseFactionReputation\",\"EnableFactionPersistence\",\"EnableItemRarity\",\"UseItemRarityOnInventoryIcons\",\"UseItemRarityForMarketPurchase\",\"UseItemRarityForMarketSell\",\"MaxReputation\",\"ReputationLossOnDeath\",\"DefaultItemRarity\",\"EntityReputation\",\"ItemRarity\"]",
+          "transformType": "field-order"
+        }
+      },
+      {
+        "id": "out",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "HardlineSettings.json",
+          "outputKey": "HardlineSettings",
+          "outputType": "object",
+          "displayType": "json"
+        }
+      },
+      {
+        "id": "v-clamp-max",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Clamp MaxRep",
+          "outputKey": "clampedMaxRep",
+          "expression": "0,2147483647",
+          "transformType": "clamp"
+        }
+      },
+      {
+        "id": "v-cmp-poor-common",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Poor ≤ Common?",
+          "outputKey": "poorLeCommon",
+          "expression": "{{PoorItemRequirement}} <= {{CommonItemRequirement}}",
+          "transformType": "compare"
+        }
+      },
+      {
+        "id": "v-cmp-common-uncommon",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Common ≤ Uncommon?",
+          "outputKey": "commonLeUncommon",
+          "expression": "{{CommonItemRequirement}} <= {{UncommonItemRequirement}}",
+          "transformType": "compare"
+        }
+      },
+      {
+        "id": "v-cmp-uncommon-rare",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Uncommon ≤ Rare?",
+          "outputKey": "uncommonLeRare",
+          "expression": "{{UncommonItemRequirement}} <= {{RareItemRequirement}}",
+          "transformType": "compare"
+        }
+      },
+      {
+        "id": "s-entity-count",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Entity Count",
+          "outputKey": "entityCount",
+          "expression": "{\"formula\":\"{{acc}} + 1\",\"initial\":\"0\"}",
+          "transformType": "array-reduce"
+        }
+      },
+      {
+        "id": "s-item-count",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Item Count",
+          "outputKey": "itemCount",
+          "expression": "{\"formula\":\"{{acc}} + 1\",\"initial\":\"0\"}",
+          "transformType": "array-reduce"
+        }
+      },
+      {
+        "id": "s-asm",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Stats Summary",
+          "outputKey": "statsSummary",
+          "expression": "",
+          "transformType": "json-assemble"
+        }
+      },
+      {
+        "id": "out-stats",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Validation Summary",
+          "outputKey": "ValidationSummary",
+          "outputType": "object",
+          "displayType": "json"
+        }
+      },
+      {
+        "id": "s-chart",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Rarity Chart",
+          "outputKey": "rarityChart",
+          "expression": "{\"series\":[\"PoorItemRequirement\",\"CommonItemRequirement\",\"UncommonItemRequirement\",\"RareItemRequirement\",\"EpicItemRequirement\",\"LegendaryItemRequirement\",\"MythicItemRequirement\",\"ExoticItemRequirement\"],\"paramRange\":[1,8,1]}",
+          "transformType": "chart-data"
+        }
+      },
+      {
+        "id": "out-chart",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Rarity Reputation Chart",
+          "outputKey": "RarityChart",
+          "outputType": "object",
+          "displayType": "chart"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "eb1",
+        "source": "i1",
+        "target": "b1"
+      },
+      {
+        "id": "eb2",
+        "source": "i2",
+        "target": "b2"
+      },
+      {
+        "id": "eb3",
+        "source": "i3",
+        "target": "b3"
+      },
+      {
+        "id": "eb4",
+        "source": "i4",
+        "target": "b4"
+      },
+      {
+        "id": "eb5",
+        "source": "i5",
+        "target": "b5"
+      },
+      {
+        "id": "eb6",
+        "source": "i6",
+        "target": "b6"
+      },
+      {
+        "id": "eb7",
+        "source": "i7",
+        "target": "b7"
+      },
+      {
+        "id": "eb8",
+        "source": "i8",
+        "target": "b8"
+      },
+      {
+        "id": "ea1",
+        "source": "b1",
+        "target": "asm"
+      },
+      {
+        "id": "ea2",
+        "source": "b2",
+        "target": "asm"
+      },
+      {
+        "id": "ea3",
+        "source": "b3",
+        "target": "asm"
+      },
+      {
+        "id": "ea4",
+        "source": "b4",
+        "target": "asm"
+      },
+      {
+        "id": "ea5",
+        "source": "b5",
+        "target": "asm"
+      },
+      {
+        "id": "ea6",
+        "source": "b6",
+        "target": "asm"
+      },
+      {
+        "id": "ea7",
+        "source": "b7",
+        "target": "asm"
+      },
+      {
+        "id": "ea8",
+        "source": "b8",
+        "target": "asm"
+      },
+      {
+        "id": "en1",
+        "source": "i10",
+        "target": "asm"
+      },
+      {
+        "id": "en2",
+        "source": "i11",
+        "target": "asm"
+      },
+      {
+        "id": "en3",
+        "source": "i12",
+        "target": "asm"
+      },
+      {
+        "id": "en4",
+        "source": "i13",
+        "target": "asm"
+      },
+      {
+        "id": "en5",
+        "source": "i14",
+        "target": "asm"
+      },
+      {
+        "id": "en6",
+        "source": "i15",
+        "target": "asm"
+      },
+      {
+        "id": "en7",
+        "source": "i16",
+        "target": "asm"
+      },
+      {
+        "id": "en8",
+        "source": "i17",
+        "target": "asm"
+      },
+      {
+        "id": "en9",
+        "source": "i18",
+        "target": "asm"
+      },
+      {
+        "id": "en10",
+        "source": "i19",
+        "target": "asm"
+      },
+      {
+        "id": "en11",
+        "source": "i20",
+        "target": "asm"
+      },
+      {
+        "id": "en12",
+        "source": "i21",
+        "target": "asm"
+      },
+      {
+        "id": "er1",
+        "source": "i30",
+        "target": "r1"
+      },
+      {
+        "id": "er2",
+        "source": "i31",
+        "target": "r2"
+      },
+      {
+        "id": "ea9",
+        "source": "r1",
+        "target": "asm"
+      },
+      {
+        "id": "ea10",
+        "source": "r2",
+        "target": "asm"
+      },
+      {
+        "id": "easm",
+        "source": "asm",
+        "target": "ord"
+      },
+      {
+        "id": "eord",
+        "source": "ord",
+        "target": "out"
+      },
+      {
+        "id": "ev1",
+        "source": "i11",
+        "target": "v-clamp-max"
+      },
+      {
+        "id": "ev2",
+        "source": "i14",
+        "target": "v-cmp-poor-common"
+      },
+      {
+        "id": "ev3",
+        "source": "i15",
+        "target": "v-cmp-poor-common"
+      },
+      {
+        "id": "ev4",
+        "source": "i15",
+        "target": "v-cmp-common-uncommon"
+      },
+      {
+        "id": "ev5",
+        "source": "i16",
+        "target": "v-cmp-common-uncommon"
+      },
+      {
+        "id": "ev6",
+        "source": "i16",
+        "target": "v-cmp-uncommon-rare"
+      },
+      {
+        "id": "ev7",
+        "source": "i17",
+        "target": "v-cmp-uncommon-rare"
+      },
+      {
+        "id": "es1",
+        "source": "i30",
+        "target": "s-entity-count"
+      },
+      {
+        "id": "es2",
+        "source": "i31",
+        "target": "s-item-count"
+      },
+      {
+        "id": "es3",
+        "source": "v-clamp-max",
+        "target": "s-asm"
+      },
+      {
+        "id": "es4",
+        "source": "v-cmp-poor-common",
+        "target": "s-asm"
+      },
+      {
+        "id": "es5",
+        "source": "v-cmp-common-uncommon",
+        "target": "s-asm"
+      },
+      {
+        "id": "es6",
+        "source": "v-cmp-uncommon-rare",
+        "target": "s-asm"
+      },
+      {
+        "id": "es7",
+        "source": "s-entity-count",
+        "target": "s-asm"
+      },
+      {
+        "id": "es8",
+        "source": "s-item-count",
+        "target": "s-asm"
+      },
+      {
+        "id": "es9",
+        "source": "s-asm",
+        "target": "out-stats"
+      },
+      {
+        "id": "ec1",
+        "source": "i14",
+        "target": "s-chart"
+      },
+      {
+        "id": "ec2",
+        "source": "i15",
+        "target": "s-chart"
+      },
+      {
+        "id": "ec3",
+        "source": "i16",
+        "target": "s-chart"
+      },
+      {
+        "id": "ec4",
+        "source": "i17",
+        "target": "s-chart"
+      },
+      {
+        "id": "ec5",
+        "source": "i18",
+        "target": "s-chart"
+      },
+      {
+        "id": "ec6",
+        "source": "i19",
+        "target": "s-chart"
+      },
+      {
+        "id": "ec7",
+        "source": "i20",
+        "target": "s-chart"
+      },
+      {
+        "id": "ec8",
+        "source": "i21",
+        "target": "s-chart"
+      },
+      {
+        "id": "ec9",
+        "source": "s-chart",
+        "target": "out-chart"
+      }
+    ]
+  }
+}

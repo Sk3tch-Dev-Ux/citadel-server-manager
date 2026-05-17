@@ -1,0 +1,201 @@
+{
+  "id": "expansion-core",
+  "name": "Expansion Core",
+  "shortName": "Core",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Core",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2291785308",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2291785546",
+  "isThirdParty": false,
+  "includedInBundle": false,
+  "description": "The foundational module required by all other Expansion mods. Provides shared libraries, APIs, safezone system, and core functionalities.",
+  "overview": "Expansion Core acts as the foundation for all Expansion mods and is required by every module in the suite. Without Core, no other Expansion mod can function.\n\n## Key Features\n\n- **Safezones** — Configurable safe areas where players are protected from damage\n- **Expansion Related Logs** — Detailed logging system for all Expansion mod activity\n- **Debug Settings** — Tools for server administrators to troubleshoot issues\n- **Configuration Management** — Centralized config system for all Expansion modules\n- **Player Data Synchronization** — Handles player state across Expansion systems\n- **Inter-Mod Communication** — APIs that allow Expansion modules to work together seamlessly",
+  "dependencies": [],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-ai",
+    "expansion-missions",
+    "expansion-vehicles",
+    "expansion-basebuilding",
+    "expansion-navigation",
+    "expansion-market",
+    "expansion-chat",
+    "expansion-groups",
+    "expansion-hardline",
+    "expansion-quests",
+    "expansion-book",
+    "expansion-personal-storage",
+    "expansion-spawn-selection",
+    "expansion-licensed",
+    "expansion-animations",
+    "expansion-name-tags",
+    "expansion-map-assets",
+    "expansion-weapons"
+  ],
+  "installation": [
+    "Download the latest Expansion Core from the Steam Workshop or the official Expansion GitHub releases.",
+    "Place the @ExpansionCore folder in your server's root directory alongside your other mods.",
+    "Add @ExpansionCore to your server's -mod= launch parameter.",
+    "Ensure Expansion Core is loaded BEFORE any other Expansion mods in the load order.",
+    "Start your server — Core will generate default configuration files in your server profile directory under ExpansionMod/Settings/.",
+    "Restart the server after reviewing and adjusting the generated config files."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Server crashes on startup with Expansion Core",
+      "solution": "Ensure Expansion Core is compatible with your DayZ server version. Check the Expansion changelog for version requirements. Delete the settings folder and let it regenerate."
+    },
+    {
+      "problem": "Config files not generating",
+      "solution": "Make sure the server profile path is correctly set and the server has write permissions to the profile directory."
+    },
+    {
+      "problem": "Other Expansion mods not loading",
+      "solution": "Verify that @ExpansionCore is listed BEFORE other Expansion mods in the -mod= parameter."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Basic Server Setup",
+      "description": "Install Core as the foundation before adding any other Expansion modules. This is the minimum requirement for any Expansion-enabled server."
+    },
+    {
+      "title": "Debug Mode for Development",
+      "description": "Enable debug logs when developing custom scripts or troubleshooting mod conflicts. Set EnableDebugLogs to 1 to get detailed output in your server logs."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "EnableDebugLogs",
+      "example": "1",
+      "description": "Enables verbose debug logging for troubleshooting.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableNotifications",
+      "example": "0",
+      "description": "Enables in-game notification system for players.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PlayerLocationNotifier",
+      "example": "0",
+      "description": "Shows player location updates in the HUD.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PlayerLocationNotifierDelay",
+      "example": "60",
+      "description": "Delay in seconds between location notifications.",
+      "defaultValue": "30"
+    },
+    {
+      "name": "EnableGlobalChat",
+      "example": "0",
+      "description": "Enables or disables the global chat channel.",
+      "defaultValue": "1"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082993306-6s-0crl",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082993306-6t-xrx2",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082993306-6u-867d",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Core as our engine under the hood. it doesn't do much you'll notice directly, but nothing else works without it. Every single Expansion module depends on it, so it's always the first thing you install.\n\nWhat you should know: It **includes safezones**.\n\nYou won't spend much time configuring Core directly.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-sa2zu",
+                  "content": "Expansion Core as our engine under the hood. it doesn't do much you'll notice directly, but nothing else works without it. Every single Expansion module depends on it, so it's always the first thing you install.\n\nWhat you should know: It **includes safezones**.\n\nYou won't spend much time configuring Core directly.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082993306-6v-stdz",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082993306-6w-mt57",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Download the latest Expansion Core from the Steam Workshop.",
+                    "Place the @DayZ-Expansion-Core folder in your server's root directory alongside your other mods.",
+                    "Add @DayZ-Expansion-Core to your server's -mod= launch parameter.",
+                    "Core will generate default configuration files in your server profile directory under `ExpansionMod/Settings/`."
+                  ],
+                  "blockId": "block-1773333239007-yrda7",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082993306-6x-debo",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082993306-6y-fppv",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Server crashes on startup with Expansion Core",
+                        "description": "Ensure Expansion Core is compatible with your DayZ server version. Check the Expansion changelog for version requirements. Delete the settings folder and let it regenerate."
+                      },
+                      {
+                        "title": "Config files not generating",
+                        "description": "Make sure the server profile path is correctly set and the server has write permissions to the profile directory."
+                      },
+                      {
+                        "title": "Other Expansion mods not loading",
+                        "description": "Verify that @ExpansionCore is listed BEFORE other Expansion mods in the -mod= parameter."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-7mq52",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "core"
+  ]
+}

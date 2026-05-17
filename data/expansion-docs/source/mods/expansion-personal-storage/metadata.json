@@ -1,0 +1,208 @@
+{
+  "id": "expansion-personal-storage",
+  "name": "Expansion Personal Storage",
+  "shortName": "Personal Storage",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Personal-Storage",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2946236937",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2946236521",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Per-player private storage system at defined locations. Players deposit and retrieve items only visible to them.",
+  "overview": "The Personal Storage system works **outside and separately** from the normal DayZ container/cargo system. It allows server owners to create storage points at defined positions where players can deposit and retrieve items that are **only visible to the owning player**.\n\nDeposited items can only be retrieved at the same storage where they were deposited, unless the storage is configured as global.\n\n## Key Features\n\n- **Private Storage** — Items are only visible to the player who deposited them\n- **Category Sorting** — Configure menu categories to organize stored items\n- **Storage Case Support** — Optional personal storage case system\n- **Item Exclusions** — Prevent specific items from being deposited\n- **Per-Storage Item Limits** — Control how many items each storage point can hold",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @ExpansionPersonalStorage from the Steam Workshop.",
+    "Add @ExpansionPersonalStorage to your -mod= parameter after Core.",
+    "Start the server to generate PersonalStorageSettings.json.",
+    "Configure storage NPC positions and item limits.",
+    "Restart the server."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Storage NPC not appearing",
+      "solution": "Verify the storage trader configuration file has correct coordinates and is valid JSON."
+    },
+    {
+      "problem": "Items not depositable",
+      "solution": "Check ExcludedClassNames to ensure the item class isn't blocked. Verify MaxItemsPerStorage hasn't been reached."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Safe Item Banking",
+      "description": "Provide players with a secure way to store valuable items without risk of raiding."
+    },
+    {
+      "title": "Trader Area Storage",
+      "description": "Place personal storage NPCs near trader zones so players can stash items while trading."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable the personal storage system.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UsePersonalStorageCase",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable the personal storage case system as an alternative access method.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxItemsPerStorage",
+      "type": "int",
+      "example": "30",
+      "description": "Maximum items per storage a player can deposit. Only counts main items, not their attachments or cargo.",
+      "defaultValue": "15"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082994848-7f-zxkj",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082994848-7g-a845",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082994848-7h-hl1c",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Safe Item Banking",
+                        "description": "Provide players with a secure way to store valuable items without risk of raiding."
+                      },
+                      {
+                        "title": "Trader Area Storage",
+                        "description": "Place personal storage NPCs near trader zones so players can stash items while trading."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-ullkb",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082994848-7i-l44k",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082994848-7j-luol",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "The Personal Storage system works **outside and separately** from the normal DayZ container/cargo system. It allows server owners to create storage points at defined positions where players can deposit and retrieve items that are **only visible to the owning player**.\n\nDeposited items can only be retrieved at the same storage where they were deposited, unless the storage is configured as global.\n\n## Key Features\n\n- **Private Storage** — Items are only visible to the player who deposited them\n- **Category Sorting** — Configure menu categories to organize stored items\n- **Storage Case Support** — Optional personal storage case system\n- **Item Exclusions** — Prevent specific items from being deposited\n- **Per-Storage Item Limits** — Control how many items each storage point can hold",
+                "_blockData": {
+                  "blockId": "block-1773333239007-isujz",
+                  "content": "The Personal Storage system works **outside and separately** from the normal DayZ container/cargo system. It allows server owners to create storage points at defined positions where players can deposit and retrieve items that are **only visible to the owning player**.\n\nDeposited items can only be retrieved at the same storage where they were deposited, unless the storage is configured as global.\n\n## Key Features\n\n- **Private Storage** — Items are only visible to the player who deposited them\n- **Category Sorting** — Configure menu categories to organize stored items\n- **Storage Case Support** — Optional personal storage case system\n- **Item Exclusions** — Prevent specific items from being deposited\n- **Per-Storage Item Limits** — Control how many items each storage point can hold",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082994848-7k-nhnu",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082994848-7l-ppn1",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @ExpansionPersonalStorage from the Steam Workshop.",
+                    "Add @ExpansionPersonalStorage to your -mod= parameter after Core.",
+                    "Start the server to generate PersonalStorageSettings.json.",
+                    "Configure storage NPC positions and item limits.",
+                    "Restart the server."
+                  ],
+                  "blockId": "block-1773333239007-6tjzs",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082994848-7m-4tyx",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082994848-7n-z7qn",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Storage NPC not appearing",
+                        "description": "Verify the storage trader configuration file has correct coordinates and is valid JSON."
+                      },
+                      {
+                        "title": "Items not depositable",
+                        "description": "Check ExcludedClassNames to ensure the item class isn't blocked. Verify MaxItemsPerStorage hasn't been reached."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-pu2ql",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [
+    "json-validator"
+  ],
+  "linkedGuides": [
+    "expansion-personal-storage"
+  ],
+  "changelogKeywords": [
+    "personal storage"
+  ]
+}

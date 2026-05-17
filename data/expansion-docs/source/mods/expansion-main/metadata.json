@@ -1,0 +1,205 @@
+{
+  "id": "expansion-main",
+  "name": "Expansion",
+  "shortName": "Expansion",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2116151222",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2178159764",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "The legacy DayZ Expansion mod featuring Reimagined Chernarus, Grave Crosses, Kill/Death Feed, Autowalk, Player List, and Street Lights.",
+  "overview": "DayZ-Expansion is the main client/server mod that adds visual overhauls, quality-of-life features, and new gameplay mechanics to DayZ.\n\n## Key Features\n\n- **Reimagined Chernarus** — Nature has taken over: many locations have been partially or completely reworked with an overgrown apocalyptic feel. Houses feature new interiors, exteriors, and lighting.\n- **Street Lights** — Repair a large generator to make your favorite city glow again at night.\n- **Grave Cross** — Dead bodies can be replaced with a grave cross that also contains the body's items.\n- **Kill/Death Feed** — Announces and displays player deaths for all conditions to all active players.\n- **Autowalk / Autosprint** — Keybindings to enable autowalk and autosprint for long-distance travel.\n- **In-Game Player List** — A keybinding to display a player list with all active players and their character statistics.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-map-assets"
+  ],
+  "installation": [
+    "Subscribe to DayZ-Expansion on the Steam Workshop (ID 2116151222).",
+    "Place the @DayZ-Expansion folder in your server's root directory.",
+    "Add @DayZ-Expansion to your server's -mod= launch parameter AFTER @ExpansionCore.",
+    "Start the server — configuration files will be generated in your server profile directory.",
+    "Restart after reviewing and adjusting the generated config files."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Reimagined Chernarus changes not visible",
+      "solution": "Ensure the mod is loaded on both client and server. Map changes require the client to have the mod subscribed and loaded."
+    },
+    {
+      "problem": "Street lights not working",
+      "solution": "Players need to find and repair a large generator near the city. Check that the street light feature is enabled in the server config."
+    },
+    {
+      "problem": "Kill feed not showing",
+      "solution": "Verify the kill feed is enabled in the Expansion notification settings. Check RPT logs for errors."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Immersive Chernarus Overhaul",
+      "description": "Use Reimagined Chernarus to give your server a unique, overgrown post-apocalyptic atmosphere with reworked locations and lighting."
+    },
+    {
+      "title": "PvP Kill Feed",
+      "description": "Enable the Kill/Death Feed to display player kills server-wide, adding a competitive element to your server."
+    },
+    {
+      "title": "Night-Time City Gameplay",
+      "description": "Combine Street Lights with generator repair mechanics to create lit urban areas at night."
+    },
+    {
+      "title": "Quality of Life",
+      "description": "Autowalk and the in-game player list reduce friction for players traveling long distances or looking for teammates."
+    }
+  ],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082987129-4c-b3u5",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082987129-4d-febc",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082987129-4e-plsh",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Immersive Chernarus Overhaul",
+                        "description": "Use Reimagined Chernarus to give your server a unique, overgrown post-apocalyptic atmosphere with reworked locations and lighting."
+                      },
+                      {
+                        "title": "PvP Kill Feed",
+                        "description": "Enable the Kill/Death Feed to display player kills server-wide, adding a competitive element to your server."
+                      },
+                      {
+                        "title": "Night-Time City Gameplay",
+                        "description": "Combine Street Lights with generator repair mechanics to create lit urban areas at night."
+                      },
+                      {
+                        "title": "Quality of Life",
+                        "description": "Autowalk and the in-game player list reduce friction for players traveling long distances or looking for teammates."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-8fnav",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082987129-4f-4s1t",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082987129-4g-qbqk",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "DayZ-Expansion is the main client/server mod that adds visual overhauls, quality-of-life features, and new gameplay mechanics to DayZ.\n\n## Key Features\n\n- **Reimagined Chernarus** — Nature has taken over: many locations have been partially or completely reworked with an overgrown apocalyptic feel. Houses feature new interiors, exteriors, and lighting.\n- **Street Lights** — Repair a large generator to make your favorite city glow again at night.\n- **Grave Cross** — Dead bodies can be replaced with a grave cross that also contains the body's items.\n- **Kill/Death Feed** — Announces and displays player deaths for all conditions to all active players.\n- **Autowalk / Autosprint** — Keybindings to enable autowalk and autosprint for long-distance travel.\n- **In-Game Player List** — A keybinding to display a player list with all active players and their character statistics.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-y01su",
+                  "content": "DayZ-Expansion is the main client/server mod that adds visual overhauls, quality-of-life features, and new gameplay mechanics to DayZ.\n\n## Key Features\n\n- **Reimagined Chernarus** — Nature has taken over: many locations have been partially or completely reworked with an overgrown apocalyptic feel. Houses feature new interiors, exteriors, and lighting.\n- **Street Lights** — Repair a large generator to make your favorite city glow again at night.\n- **Grave Cross** — Dead bodies can be replaced with a grave cross that also contains the body's items.\n- **Kill/Death Feed** — Announces and displays player deaths for all conditions to all active players.\n- **Autowalk / Autosprint** — Keybindings to enable autowalk and autosprint for long-distance travel.\n- **In-Game Player List** — A keybinding to display a player list with all active players and their character statistics.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082987129-4h-qx8e",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082987129-4i-fbbg",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Subscribe to DayZ-Expansion on the Steam Workshop (ID 2116151222).",
+                    "Place the @DayZ-Expansion folder in your server's root directory.",
+                    "Add @DayZ-Expansion to your server's -mod= launch parameter AFTER @ExpansionCore.",
+                    "Start the server — configuration files will be generated in your server profile directory.",
+                    "Restart after reviewing and adjusting the generated config files."
+                  ],
+                  "blockId": "block-1773333239007-a5mte",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082987129-4j-sf01",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082987129-4k-fy10",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Reimagined Chernarus changes not visible",
+                        "description": "Ensure the mod is loaded on both client and server. Map changes require the client to have the mod subscribed and loaded."
+                      },
+                      {
+                        "title": "Street lights not working",
+                        "description": "Players need to find and repair a large generator near the city. Check that the street light feature is enabled in the server config."
+                      },
+                      {
+                        "title": "Kill feed not showing",
+                        "description": "Verify the kill feed is enabled in the Expansion notification settings. Check RPT logs for errors."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-ksb4j",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "expansion"
+  ]
+}

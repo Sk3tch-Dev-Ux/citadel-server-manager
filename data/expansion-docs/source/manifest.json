@@ -1,0 +1,21 @@
+{
+  "project": "DayzServerController",
+  "source": "https://dayzexpansion.com",
+  "generatedAt": "2026-05-17T15:00:21.868Z",
+  "wikiVersion": "v26.05.16.23",
+  "counts": {
+    "mods": 24,
+    "settingsFiles": 50,
+    "tools": 10,
+    "jsonTemplates": 117,
+    "jsonForms": 2
+  },
+  "layout": {
+    "mods/<mod-id>/metadata.json": "Mod overview, installation, troubleshooting, deps, conflicts",
+    "mods/<mod-id>/settings/<File>.schema.json": "Per-settings-file schema",
+    "server-files/<actual server path>.schema.json": "Schema mirrored at real DayZ server location",
+    "tools/<tool-id>.json": "Tool definition (form fields, output modes)",
+    "templates/<template>.json": "JSON skeletons for settings files",
+    "forms/<form>.json": "Form layouts for editing settings"
+  }
+}

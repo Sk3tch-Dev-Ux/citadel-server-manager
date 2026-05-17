@@ -1,0 +1,180 @@
+{
+  "id": "config-1778065678575-6k8t",
+  "name": "P2PTrader_1",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/p2pmarket/P2PTrader_1.json",
+  "linkedModId": "expansion-market",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "8",
+      "description": "M_version",
+      "defaultValue": "8"
+    },
+    {
+      "name": "m_TraderID",
+      "type": "int",
+      "example": "1",
+      "description": "M_trader id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "m_ClassName",
+      "type": "classname",
+      "example": "\"\"",
+      "description": "DayZ classname (e.g. \"\")",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "m_Position",
+      "type": "vector",
+      "example": "3697.77001953125, 402.0119934082031, 5971.1201171875",
+      "description": "M_position",
+      "defaultValue": "3697.77001953125, 402.0119934082031, 5971.1201171875"
+    },
+    {
+      "name": "m_Orientation",
+      "type": "vector",
+      "example": "150.1320037841797, 0, 0",
+      "description": "M_orientation",
+      "defaultValue": "150.1320037841797, 0, 0"
+    },
+    {
+      "name": "m_LoadoutFile",
+      "type": "string",
+      "example": "\"YellowKingLoadout\"",
+      "description": "M_loadout file",
+      "defaultValue": "\"YellowKingLoadout\""
+    },
+    {
+      "name": "m_VehicleSpawnPosition",
+      "type": "vector",
+      "example": "3728.43994140625, 401.6659851074219, 6011.509765625",
+      "description": "M_vehicle spawn position",
+      "defaultValue": "3728.43994140625, 401.6659851074219, 6011.509765625"
+    },
+    {
+      "name": "m_WatercraftSpawnPosition",
+      "type": "vector",
+      "example": "0, 0, 0",
+      "description": "M_watercraft spawn position",
+      "defaultValue": "0, 0, 0"
+    },
+    {
+      "name": "m_AircraftSpawnPosition",
+      "type": "vector",
+      "example": "0, 0, 0",
+      "description": "M_aircraft spawn position",
+      "defaultValue": "0, 0, 0"
+    },
+    {
+      "name": "m_DisplayName",
+      "type": "string",
+      "example": "\"Unknown\"",
+      "description": "M_display name",
+      "defaultValue": "\"Unknown\""
+    },
+    {
+      "name": "m_DisplayIcon",
+      "type": "icon",
+      "example": "\"Deliver\"",
+      "description": "M_display icon",
+      "defaultValue": "\"Deliver\""
+    },
+    {
+      "name": "m_Faction",
+      "type": "string",
+      "example": "\"InvincibleObservers\"",
+      "description": "M_faction",
+      "defaultValue": "\"InvincibleObservers\""
+    },
+    {
+      "name": "m_Waypoints",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "M_waypoints",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "m_EmoteID",
+      "type": "int",
+      "example": "46",
+      "description": "M_emote id",
+      "defaultValue": "46"
+    },
+    {
+      "name": "m_EmoteIsStatic",
+      "type": "int",
+      "example": "0",
+      "description": "M_emote is static",
+      "defaultValue": "0"
+    },
+    {
+      "name": "m_RequiredFaction",
+      "type": "string",
+      "example": "\"\"",
+      "description": "M_required faction",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "m_UseReputation",
+      "type": "int",
+      "example": "0",
+      "description": "M_use reputation",
+      "defaultValue": "0"
+    },
+    {
+      "name": "m_MinRequiredReputation",
+      "type": "int",
+      "example": "0",
+      "description": "M_min required reputation",
+      "defaultValue": "0"
+    },
+    {
+      "name": "m_MaxRequiredReputation",
+      "type": "color",
+      "example": "2147483647",
+      "toolLink": "/tools/argb-calculator",
+      "description": "M_max required reputation",
+      "defaultValue": "2147483647"
+    },
+    {
+      "name": "m_RequiredCompletedQuestID",
+      "type": "int",
+      "example": "-1",
+      "description": "M_required completed quest id",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "m_IsGlobalTrader",
+      "type": "int",
+      "example": "0",
+      "description": "M_is global trader",
+      "defaultValue": "0"
+    },
+    {
+      "name": "m_Currencies",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "M_currencies",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "m_DisplayCurrencyValue",
+      "type": "int",
+      "example": "1",
+      "description": "M_display currency value",
+      "defaultValue": "1"
+    },
+    {
+      "name": "m_DisplayCurrencyName",
+      "type": "string",
+      "example": "\"\"",
+      "description": "M_display currency name",
+      "defaultValue": "\"\""
+    }
+  ]
+}

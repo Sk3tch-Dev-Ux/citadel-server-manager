@@ -1,0 +1,94 @@
+{
+  "name": "NameTagsSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/NameTagsSettings.json",
+  "linkedModId": "expansion-name-tags",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "4",
+      "description": "M_version",
+      "defaultValue": "4"
+    },
+    {
+      "name": "EnablePlayerTags",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable player tags",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PlayerTagViewRange",
+      "type": "int",
+      "example": "5",
+      "description": "Player tag view range (default: 5)",
+      "defaultValue": "5"
+    },
+    {
+      "name": "PlayerTagsIcon",
+      "type": "icon",
+      "example": "\"Persona\"",
+      "description": "Player tags icon",
+      "defaultValue": "\"Persona\""
+    },
+    {
+      "name": "PlayerTagsColor",
+      "type": "color",
+      "example": "-1",
+      "toolLink": "/tools/argb-calculator",
+      "description": "ARGB color value (-1 = default/disabled)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "PlayerNameColor",
+      "type": "color",
+      "example": "-1",
+      "toolLink": "/tools/argb-calculator",
+      "description": "ARGB color value (-1 = default/disabled)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "OnlyInSafeZones",
+      "type": "int",
+      "example": "0",
+      "description": "Only in safe zones",
+      "defaultValue": "0"
+    },
+    {
+      "name": "OnlyInTerritories",
+      "type": "int",
+      "example": "0",
+      "description": "Only in territories",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ShowPlayerItemInHands",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable player item in hands",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ShowNPCTags",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable npc tags",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ShowPlayerFaction",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable player faction",
+      "defaultValue": "0"
+    },
+    {
+      "name": "UseRarityColorForItemInHands",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable rarity color for item in hands",
+      "defaultValue": "0"
+    }
+  ]
+}

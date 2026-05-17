@@ -1,0 +1,236 @@
+{
+  "name": "GarageSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/GarageSettings.json",
+  "linkedModId": "expansion-basebuilding",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "6",
+      "description": "M_version",
+      "defaultValue": "6"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable d",
+      "defaultValue": "1"
+    },
+    {
+      "name": "AllowStoringDEVehicles",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable storing de vehicles",
+      "defaultValue": "0"
+    },
+    {
+      "name": "GarageMode",
+      "type": "enum",
+      "example": "0",
+      "enumValues": [
+        {
+          "label": "Territory",
+          "value": "0"
+        },
+        {
+          "label": "Personal",
+          "value": "1"
+        }
+      ],
+      "description": "0 - Territory Mode. The player needs to be a member of a territory to store/retrive vehicles. | 1 - Personal Mode. Can store/retrive vehicles without any requirement.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "GarageStoreMode",
+      "type": "enum",
+      "example": "0",
+      "enumValues": [
+        {
+          "label": "Personal",
+          "value": "0"
+        },
+        {
+          "label": "TerritoryShared",
+          "value": "1"
+        },
+        {
+          "label": "TerritoryTyrannical",
+          "value": "2"
+        }
+      ],
+      "description": "0 - Personal mode. Player can store vehicles where he was the last driver | 1 - Shared mode. All territory members can store a vehicles where the last vehicle driver was a territory member. | 2 - Only the territory owner and moderators can store vehicles of territory members.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "GarageRetrieveMode",
+      "type": "enum",
+      "example": "0",
+      "enumValues": [
+        {
+          "label": "Personal",
+          "value": "0"
+        },
+        {
+          "label": "TerritoryShared",
+          "value": "1"
+        },
+        {
+          "label": "TerritoryTyrannical",
+          "value": "2"
+        }
+      ],
+      "description": "0 - Personal mode. Only the player who stored the vehicle can retrieve it. | 1 - Shared mode. All vehicles can be retrieved by all territory members. | 2 - Tyranical mode. Only the territory owner and moderators can retrieve vehicles.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxStorableVehicles",
+      "type": "int",
+      "example": "2",
+      "description": "Max storable vehicles",
+      "defaultValue": "2"
+    },
+    {
+      "name": "VehicleSearchRadius",
+      "type": "int",
+      "example": "20",
+      "description": "Vehicle search radius (default: 20)",
+      "defaultValue": "20"
+    },
+    {
+      "name": "MaxDistanceFromStoredPosition",
+      "type": "int",
+      "example": "150",
+      "description": "Max distance from stored position",
+      "defaultValue": "150"
+    },
+    {
+      "name": "CanStoreWithCargo",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable store with cargo",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseVirtualStorageForCargo",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable virtual storage for cargo",
+      "defaultValue": "0"
+    },
+    {
+      "name": "NeedKeyToStore",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable key to store",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EntityWhitelist",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Entity whitelist",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "EnableGroupFeatures",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable group features",
+      "defaultValue": "1"
+    },
+    {
+      "name": "GroupStoreMode",
+      "type": "enum",
+      "example": "2",
+      "enumValues": [
+        {
+          "label": "StoreOnly",
+          "value": "0"
+        },
+        {
+          "label": "RetrieveOnly",
+          "value": "1"
+        },
+        {
+          "label": "StoreAndRetrieve",
+          "value": "2"
+        }
+      ],
+      "description": "0 - Group members can only store vehicles of other group members. | 1 - Group members can only retrieve vehicles of other group members. | 2 - Group members can store and retrieve vehicles of other group members.",
+      "defaultValue": "2"
+    },
+    {
+      "name": "EnableMarketFeatures",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable market features",
+      "defaultValue": "1"
+    },
+    {
+      "name": "StorePricePercent",
+      "type": "int",
+      "example": "3",
+      "description": "Store price percent. Range: 0–100",
+      "defaultValue": "5"
+    },
+    {
+      "name": "StaticStorePrice",
+      "type": "int",
+      "example": "0",
+      "description": "Static store price",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxStorableTier1",
+      "type": "int",
+      "example": "2",
+      "description": "Max storable tier1",
+      "defaultValue": "2"
+    },
+    {
+      "name": "MaxStorableTier2",
+      "type": "int",
+      "example": "4",
+      "description": "Max storable tier2",
+      "defaultValue": "4"
+    },
+    {
+      "name": "MaxStorableTier3",
+      "type": "int",
+      "example": "6",
+      "description": "Max storable tier3",
+      "defaultValue": "6"
+    },
+    {
+      "name": "MaxRangeTier1",
+      "type": "int",
+      "example": "20",
+      "description": "Max range tier1",
+      "defaultValue": "20"
+    },
+    {
+      "name": "MaxRangeTier2",
+      "type": "int",
+      "example": "30",
+      "description": "Max range tier2",
+      "defaultValue": "30"
+    },
+    {
+      "name": "MaxRangeTier3",
+      "type": "int",
+      "example": "40",
+      "description": "Max range tier3",
+      "defaultValue": "40"
+    },
+    {
+      "name": "ParkingMeterEnableFlavor",
+      "type": "int",
+      "example": "1",
+      "description": "Parking meter enable flavor",
+      "defaultValue": "1"
+    }
+  ]
+}

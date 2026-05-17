@@ -1,0 +1,297 @@
+{
+  "id": "config-1778065678590-ftj2",
+  "name": "RaidSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/RaidSettings.json",
+  "linkedModId": "expansion-basebuilding",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "5",
+      "description": "M_version",
+      "defaultValue": "5"
+    },
+    {
+      "name": "BaseBuildingRaidMode",
+      "type": "enum",
+      "example": "0",
+      "description": "Base building raid mode selector (0–5)",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ExplosionTime",
+      "type": "int",
+      "example": "30",
+      "description": "Time duration in seconds",
+      "defaultValue": "30"
+    },
+    {
+      "name": "ExplosiveDamageWhitelist",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Explosive damage whitelist",
+      "defaultValue": "[9 items]"
+    },
+    {
+      "name": "EnableExplosiveWhitelist",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable explosive whitelist",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ExplosionDamageMultiplier",
+      "type": "int",
+      "example": "25",
+      "description": "Explosion damage multiplier. Range: 0–100",
+      "defaultValue": "50"
+    },
+    {
+      "name": "ProjectileDamageMultiplier",
+      "type": "int",
+      "example": "1",
+      "description": "Projectile damage multiplier. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CanRaidSafes",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable raid safes",
+      "defaultValue": "1"
+    },
+    {
+      "name": "SafeRaidUseSchedule",
+      "type": "int",
+      "example": "1",
+      "description": "Safe raid use schedule",
+      "defaultValue": "1"
+    },
+    {
+      "name": "SafeExplosionDamageMultiplier",
+      "type": "int",
+      "example": "9",
+      "description": "Safe explosion damage multiplier. Range: 0–100",
+      "defaultValue": "17"
+    },
+    {
+      "name": "SafeProjectileDamageMultiplier",
+      "type": "int",
+      "example": "1",
+      "description": "Safe projectile damage multiplier. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "SafeRaidTools",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Safe raid tools",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "SafeRaidToolTimeSeconds",
+      "type": "int",
+      "example": "600",
+      "description": "Time duration in seconds",
+      "defaultValue": "600"
+    },
+    {
+      "name": "SafeRaidToolCycles",
+      "type": "int",
+      "example": "5",
+      "description": "Safe raid tool cycles",
+      "defaultValue": "5"
+    },
+    {
+      "name": "SafeRaidToolDamagePercent",
+      "type": "int",
+      "example": "50",
+      "description": "Safe raid tool damage percent. Range: 0–100",
+      "defaultValue": "100"
+    },
+    {
+      "name": "CanRaidBarbedWire",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable raid barbed wire",
+      "defaultValue": "1"
+    },
+    {
+      "name": "BarbedWireRaidTools",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Barbed wire raid tools",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "BarbedWireRaidToolTimeSeconds",
+      "type": "int",
+      "example": "300",
+      "description": "Time duration in seconds",
+      "defaultValue": "300"
+    },
+    {
+      "name": "BarbedWireRaidToolCycles",
+      "type": "int",
+      "example": "5",
+      "description": "Barbed wire raid tool cycles",
+      "defaultValue": "5"
+    },
+    {
+      "name": "BarbedWireRaidToolDamagePercent",
+      "type": "int",
+      "example": "50",
+      "description": "Barbed wire raid tool damage percent. Range: 0–100",
+      "defaultValue": "100"
+    },
+    {
+      "name": "CanRaidLocksOnWalls",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable raid locks on walls",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CanRaidLocksOnFences",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable raid locks on fences",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CanRaidLocksOnTents",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable raid locks on tents",
+      "defaultValue": "0"
+    },
+    {
+      "name": "LockRaidTools",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Lock raid tools",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "LockOnWallRaidToolTimeSeconds",
+      "type": "int",
+      "example": "900",
+      "description": "Time duration in seconds",
+      "defaultValue": "900"
+    },
+    {
+      "name": "LockOnFenceRaidToolTimeSeconds",
+      "type": "int",
+      "example": "900",
+      "description": "Time duration in seconds",
+      "defaultValue": "900"
+    },
+    {
+      "name": "LockOnTentRaidToolTimeSeconds",
+      "type": "int",
+      "example": "600",
+      "description": "Time duration in seconds",
+      "defaultValue": "600"
+    },
+    {
+      "name": "LockRaidToolCycles",
+      "type": "int",
+      "example": "5",
+      "description": "Lock raid tool cycles",
+      "defaultValue": "5"
+    },
+    {
+      "name": "LockRaidToolDamagePercent",
+      "type": "int",
+      "example": "50",
+      "description": "Lock raid tool damage percent. Range: 0–100",
+      "defaultValue": "100"
+    },
+    {
+      "name": "CanRaidLocksOnContainers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable raid locks on containers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "LockOnContainerRaidUseSchedule",
+      "type": "int",
+      "example": "1",
+      "description": "Lock on container raid use schedule",
+      "defaultValue": "1"
+    },
+    {
+      "name": "LockOnContainerRaidTools",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Lock on container raid tools",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "LockOnContainerRaidToolTimeSeconds",
+      "type": "int",
+      "example": "600",
+      "description": "Time duration in seconds",
+      "defaultValue": "600"
+    },
+    {
+      "name": "LockOnContainerRaidToolCycles",
+      "type": "int",
+      "example": "5",
+      "description": "Lock on container raid tool cycles",
+      "defaultValue": "5"
+    },
+    {
+      "name": "LockOnContainerRaidToolDamagePercent",
+      "type": "int",
+      "example": "50",
+      "description": "Lock on container raid tool damage percent. Range: 0–100",
+      "defaultValue": "100"
+    },
+    {
+      "name": "Schedule",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Weekday, StartHour, StartMinute, DurationMinutes",
+      "description": "Schedule",
+      "defaultValue": "[7 items]",
+      "nestedSettings": [
+        {
+          "name": "Weekday",
+          "type": "string",
+          "example": "\"Sunday\"",
+          "description": "Weekday",
+          "defaultValue": "\"Sunday\""
+        },
+        {
+          "name": "StartHour",
+          "type": "int",
+          "example": "0",
+          "description": "Start hour",
+          "defaultValue": "0"
+        },
+        {
+          "name": "StartMinute",
+          "type": "int",
+          "example": "0",
+          "description": "Start minute",
+          "defaultValue": "0"
+        },
+        {
+          "name": "DurationMinutes",
+          "type": "int",
+          "example": "720",
+          "description": "Duration minutes. Range: 0–100",
+          "defaultValue": "1440"
+        }
+      ]
+    }
+  ]
+}

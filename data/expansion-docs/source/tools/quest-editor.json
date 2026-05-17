@@ -1,0 +1,30 @@
+{
+  "id": "quest-editor",
+  "name": "Quest Editor",
+  "description": "Visual node-graph editor for building Expansion quest chains with draggable nodes, bezier connections, objectives, rewards, and ZIP import/export.",
+  "iconName": "Map",
+  "keywords": [
+    "quest",
+    "editor",
+    "node",
+    "graph",
+    "chain",
+    "objective",
+    "npc",
+    "visual"
+  ],
+  "enabled": true,
+  "outputModes": [],
+  "fullWidthOutput": true,
+  "formFields": [],
+  "outputWrapperKey": "",
+  "templates": [],
+  "blocks": [],
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "_seedVersion": 1,
+  "nodeGraph": {
+    "nodes": [],
+    "edges": []
+  }
+}

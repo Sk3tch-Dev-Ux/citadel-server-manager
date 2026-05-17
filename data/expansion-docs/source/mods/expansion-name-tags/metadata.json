@@ -1,0 +1,207 @@
+{
+  "id": "expansion-name-tags",
+  "name": "Expansion Name Tags",
+  "shortName": "Name Tags",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Name-Tags",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2576460232",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2607805287",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Displays survivor name tags with configurable visibility, safezone/territory restrictions, and color/distance tweaks.",
+  "overview": "DayZ Expansion Name Tags allows players to see the name of another survivor. The feature can be tweaked to show only the username without the icon, or restrict visibility to safezones only (or territories as well if Expansion BaseBuilding is loaded).\n\nYou can customize the colors and distances.\n\n## Key Features\n\n- **Proximity-Based Display** — Names only appear when players are within a configurable range\n- **Safezone/Territory Restriction** — Optionally show name tags only inside safezones or territories\n- **Customizable Colors & Distances** — Full control over appearance\n\n### Integration with Other Mods\n\n- Combined with **Expansion AI**: Display nametags on NPCs and show the faction name\n- Combined with **Expansion Hardline**: Display the rarity of the held item in the player's hand",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-groups"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @DayZ-Expansion-Name-Tags from the Steam Workshop.",
+    "Add @DayZ-Expansion-Name-Tags to your -mod= parameter after Core.",
+    "Start the server to generate Name Tag configuration files.",
+    "Configure visibility range and display settings."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Name tags not appearing",
+      "solution": "Verify Enabled is set to 1 and MaxRange is above 0. Check the mod is loaded after Core."
+    },
+    {
+      "problem": "Names showing for enemies",
+      "solution": "Set OnlyShowForGroup to 1 to restrict tags to group members only."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "PvE Friendly",
+      "description": "Enable name tags with a generous range so players can identify each other easily."
+    },
+    {
+      "title": "Group Only",
+      "description": "Set OnlyShowForGroup to 1 so only party members see each other's names — maintains PvP tension with strangers."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable the name tag system.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxRange",
+      "type": "float",
+      "example": "50.0",
+      "description": "Maximum distance in meters at which name tags are visible.",
+      "defaultValue": "25.0"
+    },
+    {
+      "name": "OnlyShowForGroup",
+      "type": "bool",
+      "example": "1",
+      "description": "Only show name tags for players in the same group/party.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ShowOnAim",
+      "type": "bool",
+      "example": "0",
+      "description": "Show name tags when aiming at a player.",
+      "defaultValue": "1"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082985349-3l-br01",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082985349-3m-9rjm",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082985349-3n-n4fg",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "PvE Friendly",
+                        "description": "Enable name tags with a generous range so players can identify each other easily."
+                      },
+                      {
+                        "title": "Group Only",
+                        "description": "Set OnlyShowForGroup to 1 so only party members see each other's names — maintains PvP tension with strangers."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-0dy97",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082985349-3o-4zc4",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082985349-3p-hlu8",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "DayZ Expansion Name Tags allows players to see the name of another survivor. The feature can be tweaked to show only the username without the icon, or restrict visibility to safezones only (or territories as well if Expansion BaseBuilding is loaded).\n\nYou can customize the colors and distances.\n\n## Key Features\n\n- **Proximity-Based Display** — Names only appear when players are within a configurable range\n- **Safezone/Territory Restriction** — Optionally show name tags only inside safezones or territories\n- **Customizable Colors & Distances** — Full control over appearance\n\n### Integration with Other Mods\n\n- Combined with **Expansion AI**: Display nametags on NPCs and show the faction name\n- Combined with **Expansion Hardline**: Display the rarity of the held item in the player's hand",
+                "_blockData": {
+                  "blockId": "block-1773333239007-eufwh",
+                  "content": "DayZ Expansion Name Tags allows players to see the name of another survivor. The feature can be tweaked to show only the username without the icon, or restrict visibility to safezones only (or territories as well if Expansion BaseBuilding is loaded).\n\nYou can customize the colors and distances.\n\n## Key Features\n\n- **Proximity-Based Display** — Names only appear when players are within a configurable range\n- **Safezone/Territory Restriction** — Optionally show name tags only inside safezones or territories\n- **Customizable Colors & Distances** — Full control over appearance\n\n### Integration with Other Mods\n\n- Combined with **Expansion AI**: Display nametags on NPCs and show the faction name\n- Combined with **Expansion Hardline**: Display the rarity of the held item in the player's hand",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082985349-3q-k948",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082985349-3r-cyhz",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @DayZ-Expansion-Name-Tags from the Steam Workshop.",
+                    "Add @DayZ-Expansion-Name-Tags to your -mod= parameter after Core.",
+                    "Start the server to generate Name Tag configuration files.",
+                    "Configure visibility range and display settings."
+                  ],
+                  "blockId": "block-1773333239007-8qs60",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082985349-3s-z9pe",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082985349-3t-o0qo",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Name tags not appearing",
+                        "description": "Verify Enabled is set to 1 and MaxRange is above 0. Check the mod is loaded after Core."
+                      },
+                      {
+                        "title": "Names showing for enemies",
+                        "description": "Set OnlyShowForGroup to 1 to restrict tags to group members only."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-ck1kd",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": []
+}

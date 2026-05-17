@@ -1,0 +1,184 @@
+{
+  "id": "expansion-bundle",
+  "name": "Expansion Bundle",
+  "shortName": "Bundle",
+  "version": "1.9.18",
+  "modFolderName": "DayZ-Expansion-Bundle",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2572331007",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2540096189",
+  "isThirdParty": false,
+  "includedInBundle": false,
+  "description": "All-in-one package bundling most Expansion modules. Requires Licensed separately; Animations recommended.",
+  "overview": "The Expansion Bundle includes the content of all Expansion mods **except**:\n\n- **DayZ-Expansion-Licensed** — Required to be loaded alongside this mod\n- **DayZ-Expansion-Animations** — Not included (recommended but optional)\n\nA feature-rich modification for DayZ that brings many long-awaited features and quality-of-life improvements.\n\n## What's Included\n\n- **Reimagined Chernarus** — Reworked locations with overgrown apocalyptic feel, new interiors/exteriors, and street lights\n- **New Vehicles** — Helicopters (MH-6, Merlin, UH1H, Gyrocopter), boats, and ground vehicles (Vodnik, Tractor, etc.)\n- **Improved Base Building** — Modular parts that snap in place, helipads, ramps, gunracks, and more\n- **Larger Arsenal** — New guns including M9, MP5, MP7, M79, RPG, LAW, MPX, KEDR, M16A4, Benelli M4, and more\n- **Airdrops** — Random supply drops with valuable loot\n- **Groups/Parties** — Team up, manage your group, see teammates on the map\n- **Territories** — Claim and build in your territory, manage members\n- **AI System** — Survivor AI with patrols, guards, and factions\n- **Market & Trading** — Full trader system with dynamic pricing\n- **Quests** — MMO-like quest system with NPC quest givers\n- **And much more** — Chat, Navigation, Hardline, Spawn Selection, Personal Storage, Name Tags\n\n> **Tip:** Even when using the bundle, you still need to add the individual mod folder names to your `-mod=` launch parameter.",
+  "dependencies": [
+    "cf-community-framework",
+    "dabs-framework",
+    "expansion-licensed"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-licensed",
+    "expansion-animations"
+  ],
+  "installation": [
+    "Subscribe to DayZ-Expansion-Bundle on the Steam Workshop.",
+    "Place the @DayZ-Expansion-Bundle folder in your server's root directory.",
+    "Add @DayZ-Expansion-Bundle to your -mod= parameter after @CF and @DabsFramework.",
+    "Note: You still need @ExpansionLicensed and @ExpansionAnimations separately if needed.",
+    "Start the server to generate configuration files for each included module."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Individual mod settings not generating",
+      "solution": "The bundle still generates individual config files per module. Check your server profile folder for each module's settings."
+    },
+    {
+      "problem": "Missing vehicle models",
+      "solution": "The bundle does not include Expansion Licensed. Subscribe to it separately for vehicle assets."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Quick Setup",
+      "description": "Use the bundle for fastest installation — one subscription covers most Expansion modules."
+    },
+    {
+      "title": "Full Expansion Server",
+      "description": "Combine the bundle with Licensed and Animations for a complete Expansion experience."
+    }
+  ],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082984674-3c-cec8",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082984674-3d-5fes",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082984674-3e-6brq",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Quick Setup",
+                        "description": "Use the bundle for fastest installation — one subscription covers most Expansion modules."
+                      },
+                      {
+                        "title": "Full Expansion Server",
+                        "description": "Combine the bundle with Licensed and Animations for a complete Expansion experience."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-72mh6",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082984674-3f-lsqa",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082984674-3g-wdbz",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "The Expansion Bundle includes the content of all Expansion mods **except**:\n\n- **DayZ-Expansion-Licensed** — Required to be loaded alongside this mod\n- **DayZ-Expansion-Animations** — Not included (recommended but optional)\n\nA feature-rich modification for DayZ that brings many long-awaited features and quality-of-life improvements.\n\n## What's Included\n\n- **Reimagined Chernarus** — Reworked locations with overgrown apocalyptic feel, new interiors/exteriors, and street lights\n- **New Vehicles** — Helicopters (MH-6, Merlin, UH1H, Gyrocopter), boats, and ground vehicles (Vodnik, Tractor, etc.)\n- **Improved Base Building** — Modular parts that snap in place, helipads, ramps, gunracks, and more\n- **Larger Arsenal** — New guns including M9, MP5, MP7, M79, RPG, LAW, MPX, KEDR, M16A4, Benelli M4, and more\n- **Airdrops** — Random supply drops with valuable loot\n- **Groups/Parties** — Team up, manage your group, see teammates on the map\n- **Territories** — Claim and build in your territory, manage members\n- **AI System** — Survivor AI with patrols, guards, and factions\n- **Market & Trading** — Full trader system with dynamic pricing\n- **Quests** — MMO-like quest system with NPC quest givers\n- **And much more** — Chat, Navigation, Hardline, Spawn Selection, Personal Storage, Name Tags\n\n> **Tip:** Even when using the bundle, you still need to add the individual mod folder names to your `-mod=` launch parameter.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-368ye",
+                  "content": "The Expansion Bundle includes the content of all Expansion mods **except**:\n\n- **DayZ-Expansion-Licensed** — Required to be loaded alongside this mod\n- **DayZ-Expansion-Animations** — Not included (recommended but optional)\n\nA feature-rich modification for DayZ that brings many long-awaited features and quality-of-life improvements.\n\n## What's Included\n\n- **Reimagined Chernarus** — Reworked locations with overgrown apocalyptic feel, new interiors/exteriors, and street lights\n- **New Vehicles** — Helicopters (MH-6, Merlin, UH1H, Gyrocopter), boats, and ground vehicles (Vodnik, Tractor, etc.)\n- **Improved Base Building** — Modular parts that snap in place, helipads, ramps, gunracks, and more\n- **Larger Arsenal** — New guns including M9, MP5, MP7, M79, RPG, LAW, MPX, KEDR, M16A4, Benelli M4, and more\n- **Airdrops** — Random supply drops with valuable loot\n- **Groups/Parties** — Team up, manage your group, see teammates on the map\n- **Territories** — Claim and build in your territory, manage members\n- **AI System** — Survivor AI with patrols, guards, and factions\n- **Market & Trading** — Full trader system with dynamic pricing\n- **Quests** — MMO-like quest system with NPC quest givers\n- **And much more** — Chat, Navigation, Hardline, Spawn Selection, Personal Storage, Name Tags\n\n> **Tip:** Even when using the bundle, you still need to add the individual mod folder names to your `-mod=` launch parameter.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082984674-3h-2c64",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082984674-3i-hmoq",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Subscribe to DayZ-Expansion-Bundle on the Steam Workshop.",
+                    "Place the @DayZ-Expansion-Bundle folder in your server's root directory.",
+                    "Add @DayZ-Expansion-Bundle to your -mod= parameter after @CF and @DabsFramework.",
+                    "Note: You still need @ExpansionLicensed and @ExpansionAnimations separately if needed.",
+                    "Start the server to generate configuration files for each included module."
+                  ],
+                  "blockId": "block-1773333239007-bilrr",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082984674-3j-5a7x",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082984674-3k-78us",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Individual mod settings not generating",
+                        "description": "The bundle still generates individual config files per module. Check your server profile folder for each module's settings."
+                      },
+                      {
+                        "title": "Missing vehicle models",
+                        "description": "The bundle does not include Expansion Licensed. Subscribe to it separately for vehicle assets."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-fny0s",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "bundle"
+  ]
+}

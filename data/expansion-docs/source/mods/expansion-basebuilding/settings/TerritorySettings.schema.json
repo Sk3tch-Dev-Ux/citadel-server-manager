@@ -1,0 +1,100 @@
+{
+  "id": "config-1778065678591-v1rw",
+  "name": "TerritorySettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/TerritorySettings.json",
+  "linkedModId": "expansion-basebuilding",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "6",
+      "description": "M_version",
+      "defaultValue": "6"
+    },
+    {
+      "name": "EnableTerritories",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable territories",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseWholeMapForInviteList",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable whole map for invite list",
+      "defaultValue": "0"
+    },
+    {
+      "name": "TerritorySize",
+      "type": "int",
+      "example": "150",
+      "description": "Territory size (default: 150)",
+      "defaultValue": "150"
+    },
+    {
+      "name": "TerritoryPerimeterSize",
+      "type": "int",
+      "example": "150",
+      "description": "Territory perimeter size (default: 150)",
+      "defaultValue": "150"
+    },
+    {
+      "name": "MaxMembersInTerritory",
+      "type": "int",
+      "example": "10",
+      "description": "Max members in territory",
+      "defaultValue": "10"
+    },
+    {
+      "name": "MaxTerritoryPerPlayer",
+      "type": "int",
+      "example": "1",
+      "description": "Max territory per player",
+      "defaultValue": "1"
+    },
+    {
+      "name": "TerritoryInviteAcceptRadius",
+      "type": "int",
+      "example": "150",
+      "description": "Territory invite accept radius (default: 150)",
+      "defaultValue": "150"
+    },
+    {
+      "name": "AuthenticateCodeLockIfTerritoryMember",
+      "type": "bool",
+      "example": "0",
+      "description": "Authenticate code lock if territory member",
+      "defaultValue": "0"
+    },
+    {
+      "name": "InviteCooldown",
+      "type": "int",
+      "example": "0",
+      "description": "Invite cooldown",
+      "defaultValue": "0"
+    },
+    {
+      "name": "OnlyInviteGroupMember",
+      "type": "bool",
+      "example": "0",
+      "description": "Only invite group member",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxCodeLocksOnBBPerTerritory",
+      "type": "int",
+      "example": "-1",
+      "description": "Max code locks on bb per territory",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "MaxCodeLocksOnItemsPerTerritory",
+      "type": "int",
+      "example": "-1",
+      "description": "Max code locks on items per territory",
+      "defaultValue": "-1"
+    }
+  ]
+}

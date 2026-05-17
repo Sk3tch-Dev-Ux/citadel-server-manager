@@ -1,0 +1,413 @@
+{
+  "name": "Objective_AIP_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Objectives/AIPatrol/Objective_AIP_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "28",
+      "description": "Config version",
+      "defaultValue": "28"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ObjectiveType",
+      "type": "enum",
+      "example": "7",
+      "description": "Objective type selector (0–7)",
+      "defaultValue": "7"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Kill all 5 units of the bandit patrol at the marked location\"",
+      "description": "Objective text",
+      "defaultValue": "\"Kill all 5 units of the bandit patrol at the marked location\""
+    },
+    {
+      "name": "TimeLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Time limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxDistance",
+      "type": "int",
+      "example": "-1",
+      "description": "Max distance (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "MinDistance",
+      "type": "int",
+      "example": "-1",
+      "description": "Min distance (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "AllowedWeapons",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Allowed weapons",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "AllowedDamageZones",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Allowed damage zones",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "AISpawn",
+      "type": "object",
+      "example": "",
+      "description": "Ai spawn",
+      "defaultValue": "{46 keys}",
+      "nestedSettings": [
+        {
+          "name": "Name",
+          "type": "string",
+          "example": "\"Bandit\"",
+          "description": "Name",
+          "defaultValue": "\"Bandit\""
+        },
+        {
+          "name": "Persist",
+          "type": "int",
+          "example": "0",
+          "description": "Persist",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Faction",
+          "type": "string",
+          "example": "\"West\"",
+          "description": "Faction",
+          "defaultValue": "\"West\""
+        },
+        {
+          "name": "Formation",
+          "type": "string",
+          "example": "\"Vee\"",
+          "description": "Formation",
+          "defaultValue": "\"Vee\""
+        },
+        {
+          "name": "FormationScale",
+          "type": "float",
+          "example": "0.75",
+          "description": "Formation scale. Range: 0.0–1.0",
+          "defaultValue": "1.5"
+        },
+        {
+          "name": "FormationLooseness",
+          "type": "int",
+          "example": "0",
+          "description": "Formation looseness",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Loadout",
+          "type": "string",
+          "example": "\"BanditLoadout\"",
+          "description": "Loadout",
+          "defaultValue": "\"BanditLoadout\""
+        },
+        {
+          "name": "Units",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Units",
+          "defaultValue": "[31 items]"
+        },
+        {
+          "name": "NumberOfAI",
+          "type": "int",
+          "example": "5",
+          "description": "Number of ai",
+          "defaultValue": "5"
+        },
+        {
+          "name": "NumberOfAIMax",
+          "type": "int",
+          "example": "0",
+          "description": "Number of ai max (default: 0)",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Behaviour",
+          "type": "classname",
+          "example": "\"HALT_OR_LOOP\"",
+          "description": "DayZ classname (e.g. \"HALT_OR_LOOP\")",
+          "defaultValue": "\"HALT_OR_LOOP\""
+        },
+        {
+          "name": "LootingBehaviour",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Looting behaviour",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "Speed",
+          "type": "string",
+          "example": "\"JOG\"",
+          "description": "Speed",
+          "defaultValue": "\"JOG\""
+        },
+        {
+          "name": "UnderThreatSpeed",
+          "type": "string",
+          "example": "\"SPRINT\"",
+          "description": "Under threat speed",
+          "defaultValue": "\"SPRINT\""
+        },
+        {
+          "name": "DefaultStance",
+          "type": "string",
+          "example": "\"STANDING\"",
+          "description": "Default stance",
+          "defaultValue": "\"STANDING\""
+        },
+        {
+          "name": "DefaultLookAngle",
+          "type": "int",
+          "example": "0",
+          "description": "Default look angle",
+          "defaultValue": "0"
+        },
+        {
+          "name": "CanBeLooted",
+          "type": "bool",
+          "example": "1",
+          "description": "Enable or disable be looted",
+          "defaultValue": "1"
+        },
+        {
+          "name": "LootDropOnDeath",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Loot drop on death",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "UnlimitedReload",
+          "type": "int",
+          "example": "1",
+          "description": "Unlimited reload",
+          "defaultValue": "1"
+        },
+        {
+          "name": "SniperProneDistanceThreshold",
+          "type": "int",
+          "example": "300",
+          "description": "Sniper prone distance threshold (default: 300)",
+          "defaultValue": "300"
+        },
+        {
+          "name": "AccuracyMin",
+          "type": "float",
+          "example": "0.5",
+          "description": "Accuracy min (default: 0.5)",
+          "defaultValue": "0.5"
+        },
+        {
+          "name": "AccuracyMax",
+          "type": "float",
+          "example": "0.800000011920929",
+          "description": "Accuracy max (default: 0.800000011920929)",
+          "defaultValue": "0.800000011920929"
+        },
+        {
+          "name": "ThreatDistanceLimit",
+          "type": "int",
+          "example": "500",
+          "description": "Threat distance limit (default: 500)",
+          "defaultValue": "500"
+        },
+        {
+          "name": "NoiseInvestigationDistanceLimit",
+          "type": "int",
+          "example": "-1",
+          "description": "Noise investigation distance limit (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "MaxFlankingDistance",
+          "type": "int",
+          "example": "-1",
+          "description": "Max flanking distance (default: -1)",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "EnableFlankingOutsideCombat",
+          "type": "int",
+          "example": "-1",
+          "description": "Enable flanking outside combat",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "DamageMultiplier",
+          "type": "int",
+          "example": "1",
+          "description": "Damage multiplier. Range: 0–100",
+          "defaultValue": "1"
+        },
+        {
+          "name": "DamageReceivedMultiplier",
+          "type": "int",
+          "example": "1",
+          "description": "Damage received multiplier. Range: 0–100",
+          "defaultValue": "1"
+        },
+        {
+          "name": "HeadshotResistance",
+          "type": "int",
+          "example": "0",
+          "description": "Headshot resistance",
+          "defaultValue": "0"
+        },
+        {
+          "name": "ShoryukenChance",
+          "type": "int",
+          "example": "0",
+          "description": "Shoryuken chance. Range: 0–100",
+          "defaultValue": "0"
+        },
+        {
+          "name": "ShoryukenDamageMultiplier",
+          "type": "int",
+          "example": "0",
+          "description": "Shoryuken damage multiplier. Range: 0–100",
+          "defaultValue": "0"
+        },
+        {
+          "name": "CanSpawnInContaminatedArea",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable spawn in contaminated area",
+          "defaultValue": "0"
+        },
+        {
+          "name": "CanBeTriggeredByAI",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable be triggered by ai",
+          "defaultValue": "0"
+        },
+        {
+          "name": "MinDistRadius",
+          "type": "int",
+          "example": "50",
+          "description": "Min dist radius (default: 50)",
+          "defaultValue": "50"
+        },
+        {
+          "name": "MaxDistRadius",
+          "type": "int",
+          "example": "500",
+          "description": "Max dist radius (default: 500)",
+          "defaultValue": "500"
+        },
+        {
+          "name": "DespawnRadius",
+          "type": "int",
+          "example": "600",
+          "description": "Despawn radius (default: 600)",
+          "defaultValue": "600"
+        },
+        {
+          "name": "MinSpreadRadius",
+          "type": "int",
+          "example": "0",
+          "description": "Min spread radius (default: 0)",
+          "defaultValue": "0"
+        },
+        {
+          "name": "MaxSpreadRadius",
+          "type": "int",
+          "example": "0",
+          "description": "Max spread radius (default: 0)",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Chance",
+          "type": "int",
+          "example": "1",
+          "description": "Chance. Range: 0–100",
+          "defaultValue": "1"
+        },
+        {
+          "name": "DespawnTime",
+          "type": "int",
+          "example": "1",
+          "description": "Time duration in seconds",
+          "defaultValue": "1"
+        },
+        {
+          "name": "RespawnTime",
+          "type": "int",
+          "example": "1",
+          "description": "Time duration in seconds",
+          "defaultValue": "1"
+        },
+        {
+          "name": "LoadBalancingCategory",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Load balancing category",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "ObjectClassName",
+          "type": "classname",
+          "example": "\"\"",
+          "description": "DayZ classname (e.g. \"\")",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "WaypointInterpolation",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Waypoint interpolation",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "UseRandomWaypointAsStartPoint",
+          "type": "bool",
+          "example": "1",
+          "description": "Enable or disable random waypoint as start point",
+          "defaultValue": "1"
+        },
+        {
+          "name": "Waypoints",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Waypoints",
+          "defaultValue": "[5 items]"
+        }
+      ]
+    }
+  ]
+}

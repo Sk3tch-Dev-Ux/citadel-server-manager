@@ -1,0 +1,6 @@
+{
+  "id": "tpl-atm",
+  "name": "ATM",
+  "template": "{\n  \"PlayerID\": \"string\",\n  \"MoneyDeposited\": \"number\"\n}",
+  "description": "Auto-generated validation template for ATM"
+}

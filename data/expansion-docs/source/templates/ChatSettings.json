@@ -1,0 +1,6 @@
+{
+  "id": "tpl-chatsettings",
+  "name": "ChatSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"EnableGlobalChat\": \"number\",\n  \"EnablePartyChat\": \"number\",\n  \"EnableTransportChat\": \"number\",\n  \"EnableExpansionChat\": \"number\",\n  \"ChatColors\": {\n    \"SystemChatColor\": \"string\",\n    \"AdminChatColor\": \"string\",\n    \"GlobalChatColor\": \"string\",\n    \"DirectChatColor\": \"string\",\n    \"TransportChatColor\": \"string\",\n    \"PartyChatColor\": \"string\",\n    \"TransmitterChatColor\": \"string\",\n    \"StatusMessageColor\": \"string\",\n    \"ActionMessageColor\": \"string\",\n    \"FriendlyMessageColor\": \"string\",\n    \"ImportantMessageColor\": \"string\",\n    \"DefaultMessageColor\": \"string\"\n  },\n  \"BlacklistedWords\": []\n}",
+  "description": "Auto-generated validation template for ChatSettings"
+}

@@ -1,0 +1,137 @@
+{
+  "id": "expansion-licensed",
+  "name": "Expansion Licensed",
+  "shortName": "Licensed",
+  "version": "1.9.18",
+  "modFolderName": "DayZ-Expansion-Licensed",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2116157322",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2178159769",
+  "isThirdParty": false,
+  "includedInBundle": false,
+  "description": "Licensed material from Bohemia Interactive (ADPL-SA) containing vehicle models, textures, and assets for the Expansion suite.",
+  "overview": "DayZ-Expansion-Licensed contains licensed material from Bohemia Interactive that has been licensed under ADPL-SA (Arma Development Public License – Share Alike).\n\nThis mod is required alongside Expansion Core for the vehicle system and other features that use licensed content. It does not have its own configuration files — it provides assets consumed by other Expansion modules like Vehicles.\n\n## License Terms\n\n- **Attribution** — You must attribute the material as specified by the author or licensor\n- **Noncommercial** — You may not use this material for any commercial purposes\n- **Arma and DayZ Only** — You may not convert or adapt this material for use in other games\n- **Share Alike** — If you adapt or build upon this material, you must distribute under the same license",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-vehicles"
+  ],
+  "installation": [
+    "Download @ExpansionLicensed from the Steam Workshop.",
+    "Place the @ExpansionLicensed folder in your server's root directory.",
+    "Add @ExpansionLicensed to your -mod= parameter alongside @ExpansionCore.",
+    "Both clients and servers must have this mod loaded."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Missing vehicle models or textures",
+      "solution": "Ensure @ExpansionLicensed is installed and loaded. Both client and server must have it."
+    },
+    {
+      "problem": "Client kicks or signature errors",
+      "solution": "Make sure the mod version matches between client and server. Check .bikey files in the keys directory."
+    }
+  ],
+  "useCases": [],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082987716-4l-8021",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082987716-4m-mi6u",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082987716-4n-y02a",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "DayZ-Expansion-Licensed contains licensed material from Bohemia Interactive that has been licensed under ADPL-SA (Arma Development Public License – Share Alike).\n\nThis mod is required alongside Expansion Core for the vehicle system and other features that use licensed content. It does not have its own configuration files — it provides assets consumed by other Expansion modules like Vehicles.\n\n## License Terms\n\n- **Attribution** — You must attribute the material as specified by the author or licensor\n- **Noncommercial** — You may not use this material for any commercial purposes\n- **Arma and DayZ Only** — You may not convert or adapt this material for use in other games\n- **Share Alike** — If you adapt or build upon this material, you must distribute under the same license",
+                "_blockData": {
+                  "blockId": "block-1773333239007-ufxjj",
+                  "content": "DayZ-Expansion-Licensed contains licensed material from Bohemia Interactive that has been licensed under ADPL-SA (Arma Development Public License – Share Alike).\n\nThis mod is required alongside Expansion Core for the vehicle system and other features that use licensed content. It does not have its own configuration files — it provides assets consumed by other Expansion modules like Vehicles.\n\n## License Terms\n\n- **Attribution** — You must attribute the material as specified by the author or licensor\n- **Noncommercial** — You may not use this material for any commercial purposes\n- **Arma and DayZ Only** — You may not convert or adapt this material for use in other games\n- **Share Alike** — If you adapt or build upon this material, you must distribute under the same license",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082987716-4o-fygz",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082987716-4p-0jq2",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Download @ExpansionLicensed from the Steam Workshop.",
+                    "Place the @ExpansionLicensed folder in your server's root directory.",
+                    "Add @ExpansionLicensed to your -mod= parameter alongside @ExpansionCore.",
+                    "Both clients and servers must have this mod loaded."
+                  ],
+                  "blockId": "block-1773333239007-ofeal",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082987716-4q-vo72",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082987716-4r-ff5w",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Missing vehicle models or textures",
+                        "description": "Ensure @ExpansionLicensed is installed and loaded. Both client and server must have it."
+                      },
+                      {
+                        "title": "Client kicks or signature errors",
+                        "description": "Make sure the mod version matches between client and server. Check .bikey files in the keys directory."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-ybhh4",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "licensed"
+  ]
+}

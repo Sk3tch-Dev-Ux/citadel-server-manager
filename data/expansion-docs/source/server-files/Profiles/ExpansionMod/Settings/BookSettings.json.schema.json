@@ -1,0 +1,279 @@
+{
+  "name": "BookSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/BookSettings.json",
+  "linkedModId": "expansion-book",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "5",
+      "description": "M_version",
+      "defaultValue": "5"
+    },
+    {
+      "name": "EnableStatusTab",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable status tab",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnablePartyTab",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable party tab",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableServerInfoTab",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable server info tab",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableServerRulesTab",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable server rules tab",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableTerritoryTab",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable territory tab",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableBookMenu",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable book menu",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CreateBookmarks",
+      "type": "int",
+      "example": "0",
+      "description": "Create bookmarks",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ShowHaBStats",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable ha b stats",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPlayerFaction",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable player faction",
+      "defaultValue": "0"
+    },
+    {
+      "name": "RuleCategories",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with CategoryName, Rules",
+      "description": "Rule categories",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "CategoryName",
+          "type": "string",
+          "example": "\"General\"",
+          "description": "Category name",
+          "defaultValue": "\"General\""
+        },
+        {
+          "name": "Rules",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with RuleParagraph, RuleText",
+          "description": "Rules",
+          "defaultValue": "[5 items]",
+          "nestedSettings": [
+            {
+              "name": "RuleParagraph",
+              "type": "string",
+              "example": "\"1.1.\"",
+              "description": "Rule paragraph",
+              "defaultValue": "\"1.1.\""
+            },
+            {
+              "name": "RuleText",
+              "type": "string",
+              "example": "\"Insults, discrimination, extremist and racist statements or texts are taboo.\"",
+              "description": "Rule text",
+              "defaultValue": "\"Insults, discrimination, extremist and racist statements or texts are taboo.\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DisplayServerSettingsInServerInfoTab",
+      "type": "int",
+      "example": "1",
+      "description": "Display server settings in server info tab",
+      "defaultValue": "1"
+    },
+    {
+      "name": "SettingCategories",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with CategoryName, Settings",
+      "description": "Setting categories",
+      "defaultValue": "[5 items]",
+      "nestedSettings": [
+        {
+          "name": "CategoryName",
+          "type": "string",
+          "example": "\"Base-Building Settings\"",
+          "description": "Category name",
+          "defaultValue": "\"Base-Building Settings\""
+        },
+        {
+          "name": "Settings",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with SettingTitle, SettingText, SettingValue",
+          "description": "Settings",
+          "defaultValue": "[2 items]",
+          "nestedSettings": [
+            {
+              "name": "SettingTitle",
+              "type": "classname",
+              "example": "\"Expansion.Settings.BaseBuilding.CanCraftVanillaBasebuilding\"",
+              "description": "DayZ classname (e.g. \"Expansion.Settings.BaseBuilding.CanCraftVanillaBasebuilding\")",
+              "defaultValue": "\"Expansion.Settings.BaseBuilding.CanCraftVanillaBasebuilding\""
+            },
+            {
+              "name": "SettingText",
+              "type": "string",
+              "example": "\"\"",
+              "description": "Setting text",
+              "defaultValue": "\"\""
+            },
+            {
+              "name": "SettingValue",
+              "type": "string",
+              "example": "\"\"",
+              "description": "Setting value",
+              "defaultValue": "\"\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Links",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Name, URL, IconName, IconColor",
+      "description": "Links",
+      "defaultValue": "[9 items]",
+      "nestedSettings": [
+        {
+          "name": "Name",
+          "type": "string",
+          "example": "\"Homepage\"",
+          "description": "Name",
+          "defaultValue": "\"Homepage\""
+        },
+        {
+          "name": "URL",
+          "type": "string",
+          "example": "\"https://www.google.com/\"",
+          "description": "Url",
+          "defaultValue": "\"https://www.google.com/\""
+        },
+        {
+          "name": "IconName",
+          "type": "icon",
+          "example": "\"Homepage\"",
+          "description": "Icon name",
+          "defaultValue": "\"Homepage\""
+        },
+        {
+          "name": "IconColor",
+          "type": "color",
+          "example": "-14473430",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Icon color",
+          "defaultValue": "-14473430"
+        }
+      ]
+    },
+    {
+      "name": "Descriptions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with CategoryName, Descriptions",
+      "description": "Descriptions",
+      "defaultValue": "[2 items]",
+      "nestedSettings": [
+        {
+          "name": "CategoryName",
+          "type": "string",
+          "example": "\"General Info\"",
+          "description": "Category name",
+          "defaultValue": "\"General Info\""
+        },
+        {
+          "name": "Descriptions",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with DescriptionText",
+          "description": "Descriptions",
+          "defaultValue": "[3 items]",
+          "nestedSettings": [
+            {
+              "name": "DescriptionText",
+              "type": "string",
+              "example": "\"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.\"",
+              "description": "Description text",
+              "defaultValue": "\"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CraftingCategories",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with CategoryName, Results",
+      "description": "Crafting categories",
+      "defaultValue": "[15 items]",
+      "nestedSettings": [
+        {
+          "name": "CategoryName",
+          "type": "string",
+          "example": "\"Accessories\"",
+          "description": "Category name",
+          "defaultValue": "\"Accessories\""
+        },
+        {
+          "name": "Results",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Results",
+          "defaultValue": "[3 items]"
+        }
+      ]
+    },
+    {
+      "name": "EnableCraftingRecipesTab",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable crafting recipes tab",
+      "defaultValue": "1"
+    }
+  ]
+}

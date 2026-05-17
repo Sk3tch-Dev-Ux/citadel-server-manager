@@ -1,0 +1,108 @@
+{
+  "id": "config-diff",
+  "name": "Config Diff",
+  "description": "Compare two JSON configs side-by-side and see highlighted differences. Load configs from the config directory for quick comparison.",
+  "iconName": "GitCompare",
+  "keywords": [
+    "diff",
+    "compare",
+    "config",
+    "json"
+  ],
+  "enabled": true,
+  "isVisual": true,
+  "outputModes": [
+    "diff"
+  ],
+  "fullWidthOutput": true,
+  "formFields": [],
+  "layoutTree": [
+    {
+      "id": "cd-toolbar",
+      "type": "toolbar",
+      "props": {}
+    },
+    {
+      "id": "cd-help",
+      "type": "contextual-help",
+      "props": {}
+    },
+    {
+      "id": "cd-diff",
+      "type": "diff-panel",
+      "props": {}
+    }
+  ],
+  "blocks": [],
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "_seedVersion": 2,
+  "nodeGraph": {
+    "nodes": [
+      {
+        "id": "c1",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "blue",
+          "label": "Compare two JSON configs — differences highlighted"
+        }
+      },
+      {
+        "id": "n1",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Original JSON",
+          "fieldKey": "leftJson",
+          "fieldType": "textarea"
+        }
+      },
+      {
+        "id": "n2",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Modified JSON",
+          "fieldKey": "rightJson",
+          "fieldType": "textarea"
+        }
+      },
+      {
+        "id": "n3",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Diff Result",
+          "outputKey": "DiffResult",
+          "outputType": "object",
+          "displayType": "json"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n1",
+        "target": "n3"
+      },
+      {
+        "id": "e2",
+        "source": "n2",
+        "target": "n3"
+      }
+    ]
+  }
+}

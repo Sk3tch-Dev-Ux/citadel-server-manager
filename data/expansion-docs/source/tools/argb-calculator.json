@@ -1,0 +1,633 @@
+{
+  "id": "argb-calculator",
+  "name": "ARGB ↔ Int",
+  "description": "Convert between ARGB color values and signed 32-bit integer representations used in DayZ configs. Includes a visual color picker and reverse integer-to-RGBA conversion.",
+  "iconName": "Palette",
+  "keywords": [
+    "color",
+    "argb",
+    "integer",
+    "convert",
+    "hex",
+    "rgba",
+    "picker"
+  ],
+  "enabled": true,
+  "isVisual": true,
+  "outputModes": [
+    "calculator"
+  ],
+  "formFields": [
+    {
+      "id": "f0",
+      "key": "pickerColor",
+      "type": "color",
+      "group": "Color Picker",
+      "label": "Color Picker",
+      "colSpan": 4,
+      "description": "Pick a color visually - channel sliders below update automatically",
+      "defaultValue": "#ffffff",
+      "syncToFields": {
+        "b": "parseInt('{{value}}'.replace('#','').substring(4,6), 16) || 0",
+        "g": "parseInt('{{value}}'.replace('#','').substring(2,4), 16) || 0",
+        "r": "parseInt('{{value}}'.replace('#','').substring(0,2), 16) || 0"
+      }
+    },
+    {
+      "id": "f1",
+      "key": "r",
+      "type": "slider",
+      "group": "Channels",
+      "label": "Red",
+      "colSpan": 1,
+      "defaultValue": "255",
+      "sliderConfig": {
+        "max": 255,
+        "min": 0,
+        "step": 1
+      },
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "0",
+          "message": "Must be 0–255"
+        },
+        {
+          "type": "max",
+          "value": "255",
+          "message": "Must be 0–255"
+        }
+      ]
+    },
+    {
+      "id": "f2",
+      "key": "g",
+      "type": "slider",
+      "group": "Channels",
+      "label": "Green",
+      "colSpan": 1,
+      "defaultValue": "255",
+      "sliderConfig": {
+        "max": 255,
+        "min": 0,
+        "step": 1
+      },
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "0",
+          "message": "Must be 0–255"
+        },
+        {
+          "type": "max",
+          "value": "255",
+          "message": "Must be 0–255"
+        }
+      ]
+    },
+    {
+      "id": "f3",
+      "key": "b",
+      "type": "slider",
+      "group": "Channels",
+      "label": "Blue",
+      "colSpan": 1,
+      "defaultValue": "255",
+      "sliderConfig": {
+        "max": 255,
+        "min": 0,
+        "step": 1
+      },
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "0",
+          "message": "Must be 0–255"
+        },
+        {
+          "type": "max",
+          "value": "255",
+          "message": "Must be 0–255"
+        }
+      ]
+    },
+    {
+      "id": "f4",
+      "key": "a",
+      "type": "slider",
+      "group": "Channels",
+      "label": "Alpha",
+      "colSpan": 1,
+      "defaultValue": "255",
+      "sliderConfig": {
+        "max": 255,
+        "min": 0,
+        "step": 1
+      },
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "0",
+          "message": "Must be 0–255"
+        },
+        {
+          "type": "max",
+          "value": "255",
+          "message": "Must be 0–255"
+        }
+      ]
+    },
+    {
+      "id": "f5",
+      "key": "integerInput",
+      "type": "text",
+      "group": "Reverse Conversion",
+      "label": "Integer to RGBA",
+      "colSpan": 4,
+      "description": "Paste a signed 32-bit integer (e.g. -1 or -16777216) to convert back to RGBA channels",
+      "placeholder": "e.g. -1 or -16777216",
+      "defaultValue": "",
+      "syncToFields": {
+        "a": "((parseInt('{{value}}') || 0) >>> 24) & 255",
+        "b": "(parseInt('{{value}}') || 0) & 255",
+        "g": "((parseInt('{{value}}') || 0) >>> 8) & 255",
+        "r": "((parseInt('{{value}}') || 0) >>> 16) & 255"
+      }
+    }
+  ],
+  "tutorialSteps": [
+    {
+      "title": "🎨 Color Picker & Channels",
+      "description": "Use the color picker to select a color visually, or adjust individual RGBA channels with the sliders below. Changes sync automatically.",
+      "highlightSelector": "[data-tutorial='ac-left']"
+    },
+    {
+      "title": "🔢 Integer Output",
+      "demoValues": {
+        "a": "255",
+        "b": "255",
+        "g": "0",
+        "r": "128"
+      },
+      "description": "The calculator converts your RGBA values to a signed 32-bit integer used in DayZ configs (e.g. ARGB color fields in Expansion settings).",
+      "highlightSelector": "[data-tutorial='ac-right']"
+    },
+    {
+      "title": "🔄 Reverse Conversion",
+      "demoValues": {
+        "a": "255",
+        "b": "255",
+        "g": "255",
+        "r": "255"
+      },
+      "description": "Paste a signed integer (e.g. -1 or -16777216) into the 'Integer to RGBA' field to convert it back to individual RGBA channels.",
+      "highlightSelector": "[data-tutorial='ac-sec-reverse']"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ac-toolbar",
+      "type": "toolbar",
+      "props": {}
+    },
+    {
+      "id": "ac-help",
+      "type": "contextual-help",
+      "props": {}
+    },
+    {
+      "id": "ac-root",
+      "type": "row",
+      "props": {
+        "gap": "lg",
+        "columns": 2
+      },
+      "children": [
+        {
+          "id": "ac-left",
+          "type": "column",
+          "props": {
+            "colSpan": 1
+          },
+          "children": [
+            {
+              "id": "ac-sec-picker",
+              "type": "section",
+              "props": {
+                "icon": "Palette",
+                "label": "Color Picker",
+                "collapsible": false
+              },
+              "children": [
+                {
+                  "id": "ac-f0",
+                  "type": "field-ref",
+                  "fieldId": "f0"
+                }
+              ]
+            },
+            {
+              "id": "ac-sec-channels",
+              "type": "section",
+              "props": {
+                "icon": "SlidersHorizontal",
+                "label": "Channels",
+                "collapsible": false
+              },
+              "children": [
+                {
+                  "id": "ac-ch-row",
+                  "type": "row",
+                  "props": {
+                    "gap": "sm",
+                    "columns": 4
+                  },
+                  "children": [
+                    {
+                      "id": "ac-ch-r",
+                      "type": "column",
+                      "props": {
+                        "colSpan": 1
+                      },
+                      "children": [
+                        {
+                          "id": "ac-f1",
+                          "type": "field-ref",
+                          "fieldId": "f1"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "ac-ch-g",
+                      "type": "column",
+                      "props": {
+                        "colSpan": 1
+                      },
+                      "children": [
+                        {
+                          "id": "ac-f2",
+                          "type": "field-ref",
+                          "fieldId": "f2"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "ac-ch-b",
+                      "type": "column",
+                      "props": {
+                        "colSpan": 1
+                      },
+                      "children": [
+                        {
+                          "id": "ac-f3",
+                          "type": "field-ref",
+                          "fieldId": "f3"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "ac-ch-a",
+                      "type": "column",
+                      "props": {
+                        "colSpan": 1
+                      },
+                      "children": [
+                        {
+                          "id": "ac-f4",
+                          "type": "field-ref",
+                          "fieldId": "f4"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ac-sec-reverse",
+              "type": "section",
+              "props": {
+                "icon": "ArrowLeftRight",
+                "label": "Reverse Conversion",
+                "collapsible": true,
+                "defaultCollapsed": true
+              },
+              "children": [
+                {
+                  "id": "ac-f5",
+                  "type": "field-ref",
+                  "fieldId": "f5"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ac-right",
+          "type": "column",
+          "props": {
+            "colSpan": 1
+          },
+          "children": [
+            {
+              "id": "ac-calc",
+              "type": "calculator-output",
+              "props": {}
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [],
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "_seedVersion": 10,
+  "toolType": "official",
+  "_editPath": "/admin/custom-tools/argb-calculator",
+  "_isVisual": true,
+  "_toolType": "official",
+  "_viewPath": "/tools/custom/argb-calculator",
+  "_isCommunityPage": false,
+  "nodeGraph": {
+    "nodes": [
+      {
+        "id": "c1",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "blue",
+          "label": "RGBA channel inputs from sliders"
+        }
+      },
+      {
+        "id": "c2",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "orange",
+          "label": "Bitwise math: ARGB integer from channels"
+        }
+      },
+      {
+        "id": "c3",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "green",
+          "label": "Format: hex2() pads to 2-digit hex per channel"
+        }
+      },
+      {
+        "id": "c4",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "purple",
+          "label": "Output displays"
+        }
+      },
+      {
+        "id": "n1",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Red",
+          "fieldKey": "r",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n2",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Green",
+          "fieldKey": "g",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n3",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Blue",
+          "fieldKey": "b",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n4",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Alpha",
+          "fieldKey": "a",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n5",
+        "type": "math",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "ARGB Integer",
+          "outputKey": "intValue",
+          "expression": "(({{a}} << 24) | ({{r}} << 16) | ({{g}} << 8) | {{b}}) | 0"
+        }
+      },
+      {
+        "id": "n6",
+        "type": "format",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "ARGB Hex",
+          "outputKey": "argbHex",
+          "expression": "#hex2({{a}})hex2({{r}})hex2({{g}})hex2({{b}})"
+        }
+      },
+      {
+        "id": "n7",
+        "type": "format",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "RGBA Hex",
+          "outputKey": "rgbaHex",
+          "expression": "#hex2({{r}})hex2({{g}})hex2({{b}})hex2({{a}})"
+        }
+      },
+      {
+        "id": "n8",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Integer Value",
+          "outputKey": "IntegerValue",
+          "outputType": "number",
+          "displayType": "number"
+        }
+      },
+      {
+        "id": "n9",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "ARGB Hex",
+          "outputKey": "ARGBHex",
+          "outputType": "string",
+          "displayType": "text"
+        }
+      },
+      {
+        "id": "n10",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "RGBA Hex",
+          "outputKey": "RGBAHex",
+          "outputType": "string",
+          "displayType": "text"
+        }
+      },
+      {
+        "id": "n11",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Color Preview",
+          "outputKey": "ColorPreview",
+          "outputType": "string",
+          "displayType": "color"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n1",
+        "target": "n5"
+      },
+      {
+        "id": "e2",
+        "source": "n2",
+        "target": "n5"
+      },
+      {
+        "id": "e3",
+        "source": "n3",
+        "target": "n5"
+      },
+      {
+        "id": "e4",
+        "source": "n4",
+        "target": "n5"
+      },
+      {
+        "id": "e5",
+        "source": "n1",
+        "target": "n6"
+      },
+      {
+        "id": "e6",
+        "source": "n2",
+        "target": "n6"
+      },
+      {
+        "id": "e7",
+        "source": "n3",
+        "target": "n6"
+      },
+      {
+        "id": "e8",
+        "source": "n4",
+        "target": "n6"
+      },
+      {
+        "id": "e9",
+        "source": "n1",
+        "target": "n7"
+      },
+      {
+        "id": "e10",
+        "source": "n2",
+        "target": "n7"
+      },
+      {
+        "id": "e11",
+        "source": "n3",
+        "target": "n7"
+      },
+      {
+        "id": "e12",
+        "source": "n4",
+        "target": "n7"
+      },
+      {
+        "id": "e13",
+        "source": "n5",
+        "target": "n8"
+      },
+      {
+        "id": "e14",
+        "source": "n6",
+        "target": "n9"
+      },
+      {
+        "id": "e15",
+        "source": "n7",
+        "target": "n10"
+      },
+      {
+        "id": "e16",
+        "source": "n7",
+        "target": "n11"
+      }
+    ]
+  }
+}

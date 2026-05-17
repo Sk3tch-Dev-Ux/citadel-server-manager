@@ -1,0 +1,57 @@
+{
+  "name": "MissionSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/MissionSettings.json",
+  "linkedModId": "expansion-missions",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "2",
+      "description": "M_version",
+      "defaultValue": "2"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable d",
+      "defaultValue": "1"
+    },
+    {
+      "name": "InitialMissionStartDelay",
+      "type": "int",
+      "example": "300000",
+      "description": "Initial mission start delay (default: 300000)",
+      "defaultValue": "300000"
+    },
+    {
+      "name": "TimeBetweenMissions",
+      "type": "int",
+      "example": "3600000",
+      "description": "Time duration in milliseconds",
+      "defaultValue": "3600000"
+    },
+    {
+      "name": "MinMissions",
+      "type": "int",
+      "example": "0",
+      "description": "Min missions",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxMissions",
+      "type": "int",
+      "example": "1",
+      "description": "Max missions",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MinPlayersToStartMissions",
+      "type": "int",
+      "example": "0",
+      "description": "Min players to start missions",
+      "defaultValue": "0"
+    }
+  ]
+}

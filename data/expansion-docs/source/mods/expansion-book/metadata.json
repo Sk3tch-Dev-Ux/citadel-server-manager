@@ -1,0 +1,254 @@
+{
+  "id": "expansion-book",
+  "name": "Expansion Book",
+  "shortName": "Book",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Book",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2572324799",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2540092673",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "In-game book menu with server info, rules, crafting recipes, party management, and territory management tabs.",
+  "overview": "Expansion Book provides an in-game menu (opened with B by default) that serves as a central hub for server information, rules, party management, territory management, and player status.\n\n## Available Tabs\n\n- **Status Tab** — Character info including health, hunger, thirst values\n- **Party Tab** — Create and manage parties, invite players (uses PartySettings.json)\n- **Territory Tab** — Manage territories, invite/kick members (uses TerritorySettings.json)\n- **Server Info Tab** — Custom server description, buttons linking to Discord/forums/websites\n- **Server Rules Tab** — Categorized server rules displayed in-game\n- **Crafting Tab** — Reference crafting recipes with icons\n\nEach tab can be individually enabled or disabled through BookSettings.json.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-groups",
+    "expansion-basebuilding"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @ExpansionBook from the Steam Workshop.",
+    "Add @ExpansionBook to your -mod= parameter after Core.",
+    "Start the server to generate BookSettings.json.",
+    "Configure which tabs are enabled and customize server info and rules.",
+    "Restart the server for changes to take effect."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Book not opening with B key",
+      "solution": "Ensure EnableBookMenu is set to 1 and the mod is loaded correctly."
+    },
+    {
+      "problem": "Party tab missing",
+      "solution": "Check EnablePartyTab is set to 1. The Groups mod must also be installed for full party functionality."
+    },
+    {
+      "problem": "Rules not displaying",
+      "solution": "Verify RuleCategories array is properly formatted with CategoryName and Rules arrays."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Server Info Hub",
+      "description": "Use the book as a central information hub with your server's rules, Discord link, and donation page."
+    },
+    {
+      "title": "Minimal UI",
+      "description": "Disable unnecessary tabs like crafting and territory for a streamlined player experience."
+    },
+    {
+      "title": "Rule Enforcement",
+      "description": "Display categorized server rules (General, PvP, Base Building, etc.) that players can reference in-game."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "EnableStatusTab",
+      "type": "bool",
+      "example": "0",
+      "description": "Show the player status/profile tab with health, hunger, and thirst info.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnablePartyTab",
+      "type": "bool",
+      "example": "0",
+      "description": "Show the party management tab. Disabling prevents players from creating parties.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableServerInfoTab",
+      "type": "bool",
+      "example": "0",
+      "description": "Show the server info page with description and redirect buttons.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableServerRulesTab",
+      "type": "bool",
+      "example": "0",
+      "description": "Show the server rules tab with categorized rules.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableTerritoryTab",
+      "type": "bool",
+      "example": "0",
+      "description": "Show the territory management tab. Disabling prevents territory member management.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableBookMenu",
+      "type": "bool",
+      "example": "0",
+      "description": "Master toggle for the entire book. Set to 0 to completely disable the B-key menu.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CreateBookmarks",
+      "type": "bool",
+      "example": "1",
+      "description": "Display bookmark tabs at the top of the book for quick navigation between categories.",
+      "defaultValue": "0"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082992720-6j-2hxs",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082992720-6k-uf2n",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082992720-6l-y7df",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Server Info Hub",
+                        "description": "Use the book as a central information hub with your server's rules, Discord link, and donation page."
+                      },
+                      {
+                        "title": "Minimal UI",
+                        "description": "Disable unnecessary tabs like crafting and territory for a streamlined player experience."
+                      },
+                      {
+                        "title": "Rule Enforcement",
+                        "description": "Display categorized server rules (General, PvP, Base Building, etc.) that players can reference in-game."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-i9adu",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082992720-6m-4q48",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082992720-6n-fjdu",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Book provides an in-game menu (opened with B by default) that serves as a central hub for server information, rules, party management, territory management, and player status.\n\n## Available Tabs\n\n- **Status Tab** — Character info including health, hunger, thirst values\n- **Party Tab** — Create and manage parties, invite players (uses PartySettings.json)\n- **Territory Tab** — Manage territories, invite/kick members (uses TerritorySettings.json)\n- **Server Info Tab** — Custom server description, buttons linking to Discord/forums/websites\n- **Server Rules Tab** — Categorized server rules displayed in-game\n- **Crafting Tab** — Reference crafting recipes with icons\n\nEach tab can be individually enabled or disabled through BookSettings.json.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-fce4e",
+                  "content": "Expansion Book provides an in-game menu (opened with B by default) that serves as a central hub for server information, rules, party management, territory management, and player status.\n\n## Available Tabs\n\n- **Status Tab** — Character info including health, hunger, thirst values\n- **Party Tab** — Create and manage parties, invite players (uses PartySettings.json)\n- **Territory Tab** — Manage territories, invite/kick members (uses TerritorySettings.json)\n- **Server Info Tab** — Custom server description, buttons linking to Discord/forums/websites\n- **Server Rules Tab** — Categorized server rules displayed in-game\n- **Crafting Tab** — Reference crafting recipes with icons\n\nEach tab can be individually enabled or disabled through BookSettings.json.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082992720-6o-m6jq",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082992720-6p-d8sj",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @ExpansionBook from the Steam Workshop.",
+                    "Add @ExpansionBook to your -mod= parameter after Core.",
+                    "Start the server to generate BookSettings.json.",
+                    "Configure which tabs are enabled and customize server info and rules.",
+                    "Restart the server for changes to take effect."
+                  ],
+                  "blockId": "block-1773333239007-ywpl9",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082992720-6q-k8ro",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082992720-6r-retv",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Book not opening with B key",
+                        "description": "Ensure EnableBookMenu is set to 1 and the mod is loaded correctly."
+                      },
+                      {
+                        "title": "Party tab missing",
+                        "description": "Check EnablePartyTab is set to 1. The Groups mod must also be installed for full party functionality."
+                      },
+                      {
+                        "title": "Rules not displaying",
+                        "description": "Verify RuleCategories array is properly formatted with CategoryName and Rules arrays."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-0o1dv",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [
+    "json-validator"
+  ],
+  "linkedGuides": [
+    "expansion-book-config"
+  ],
+  "changelogKeywords": [
+    "book"
+  ]
+}

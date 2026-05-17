@@ -1,0 +1,6 @@
+{
+  "id": "tpl-logssettings",
+  "name": "LogsSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Safezone\": \"number\",\n  \"AdminTools\": \"number\",\n  \"ExplosionDamageSystem\": \"number\",\n  \"VehicleCarKey\": \"number\",\n  \"VehicleTowing\": \"number\",\n  \"VehicleLockPicking\": \"number\",\n  \"VehicleDestroyed\": \"number\",\n  \"VehicleAttachments\": \"number\",\n  \"VehicleEnter\": \"number\",\n  \"VehicleLeave\": \"number\",\n  \"VehicleDeleted\": \"number\",\n  \"VehicleEngine\": \"number\",\n  \"BaseBuildingRaiding\": \"number\",\n  \"CodeLockRaiding\": \"number\",\n  \"Territory\": \"number\",\n  \"Killfeed\": \"number\",\n  \"SpawnSelection\": \"number\",\n  \"Party\": \"number\",\n  \"MissionAirdrop\": \"number\",\n  \"Chat\": \"number\",\n  \"Market\": \"number\",\n  \"ATM\": \"number\",\n  \"AIGeneral\": \"number\",\n  \"AIPatrol\": \"number\",\n  \"AIObjectPatrol\": \"number\",\n  \"LogToScripts\": \"number\",\n  \"LogToADM\": \"number\",\n  \"Hardline\": \"number\",\n  \"Garage\": \"number\",\n  \"VehicleCover\": \"number\",\n  \"EntityStorage\": \"number\",\n  \"Quests\": \"number\"\n}",
+  "description": "Auto-generated validation template for LogsSettings"
+}

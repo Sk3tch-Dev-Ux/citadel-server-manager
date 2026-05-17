@@ -1,0 +1,168 @@
+{
+  "id": "cf-community-framework",
+  "name": "Community Framework (CF)",
+  "shortName": "CF",
+  "version": "",
+  "modFolderName": "CF",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=1559212036",
+  "isThirdParty": true,
+  "includedInBundle": false,
+  "description": "Core dependency required by most DayZ mods. Provides shared libraries, configuration systems, and scripting APIs used across the modding ecosystem.",
+  "overview": "Community Framework (CF) is the foundational modding library for DayZ. Created and maintained by the DayZ modding community, it serves as a **universal dependency** that nearly every community-made mod requires.\n\n### What CF Provides\n\n- **Shared Scripting Libraries** — Common utility functions, data structures, and helper classes that mods use to avoid reinventing the wheel.\n- **Configuration Framework** — A standardized system for reading/writing JSON configuration files, used by mods like Expansion, COT, and many others.\n- **Module System** — A plugin-style architecture allowing mods to register themselves, declare dependencies, and hook into lifecycle events.\n- **Permissions System** — Low-level permission APIs that admin tools like COT build upon.\n- **Keybinding & Input Handling** — Shared input management so mods can register custom keybinds without conflicting with each other.\n- **UI Framework** — Base UI classes and dialog systems used by mod GUIs.\n\n### Why It Matters\n\nWithout CF, the vast majority of DayZ mods simply will not load. It must always be loaded **first** in your mod order (before all other community mods).\n\n> **Note:** CF is a client-and-server mod — it must be installed on both the server and all connecting clients.",
+  "dependencies": [],
+  "conflicts": [],
+  "relatedMods": [],
+  "installation": [
+    "Subscribe to Community Framework on the Steam Workshop (Workshop ID: 1559212036).",
+    "The mod will auto-download to your Steam Workshop content folder.",
+    "Copy or symlink the @CF folder to your DayZ server root directory.",
+    "Add @CF to your server's -mod= startup parameter. It must be listed BEFORE any mods that depend on it.",
+    "CF is also required on the client side — players must subscribe to it as well.",
+    "Restart your server. CF will generate its configuration files on first boot."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Mods failing to load",
+      "solution": "Ensure CF is loaded first in -mod= order, before any mods that depend on it."
+    },
+    {
+      "problem": "Version mismatch errors",
+      "solution": "Update CF to the latest version. Some mods require specific CF versions."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Universal Dependency",
+      "description": "CF is required by nearly all community mods — it must always be installed."
+    },
+    {
+      "title": "Permission Foundation",
+      "description": "CF's permission system is used by admin tools like COT for granular access control."
+    }
+  ],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082991061-5s-rd5o",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082991061-5t-0ok1",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082991061-5u-tr4n",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Universal Dependency",
+                        "description": "CF is required by nearly all community mods."
+                      },
+                      {
+                        "title": "Permission Foundation",
+                        "description": "CF's permission system is used by admin tools like COT for granular access control."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-4mmqg",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082991061-5v-nno0",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082991061-5w-33ix",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Community Framework (CF) is the foundational modding library for DayZ. Created and maintained by the DayZ modding community, it serves as a **universal dependency** that nearly every community-made mod requires.\n\n### What CF Provides\n\n- **Shared Scripting Libraries** - Common utility functions, data structures, and helper classes that mods use to avoid reinventing the wheel.\n- **Configuration Framework** - A standardized system for reading/writing JSON configuration files, used by mods like Expansion, COT, and many others.\n- **Module System** - A plugin-style architecture allowing mods to register themselves, declare dependencies, and hook into lifecycle events.\n- **Permissions System** - Low-level permission APIs that admin tools like COT build upon.\n- **Keybinding & Input Handling** - Shared input management so mods can register custom keybinds without conflicting with each other.\n- **UI Framework** - Base UI classes and dialog systems used by mod GUIs.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-fbmgc",
+                  "content": "Community Framework (CF) is the foundational modding library for DayZ. Created and maintained by the DayZ modding community, it serves as a **universal dependency** that nearly every community-made mod requires.\n\n### What CF Provides\n\n- **Shared Scripting Libraries** - Common utility functions, data structures, and helper classes that mods use to avoid reinventing the wheel.\n- **Configuration Framework** - A standardized system for reading/writing JSON configuration files, used by mods like Expansion, COT, and many others.\n- **Module System** - A plugin-style architecture allowing mods to register themselves, declare dependencies, and hook into lifecycle events.\n- **Permissions System** - Low-level permission APIs that admin tools like COT build upon.\n- **Keybinding & Input Handling** - Shared input management so mods can register custom keybinds without conflicting with each other.\n- **UI Framework** - Base UI classes and dialog systems used by mod GUIs.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082991061-5x-l710",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082991061-5y-b0n9",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Subscribe to Community Framework on the Steam Workshop.",
+                    "Copy the @CF folder to your DayZ server root directory.",
+                    "Add @CF to your server's -mod= startup parameter.",
+                    "CF is also required on the client side - players must subscribe to it as well."
+                  ],
+                  "blockId": "block-1773333239007-0qa5u",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082991061-5z-t5mi",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082991061-60-t9ll",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "use-cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "\"can't compile \"engine\" script module! DayZExpansion/core/scripts/1_Core/dayzexpansion_core\\cf_log.c(1): Unknown type 'CF_Log'",
+                        "description": "Your server is not loading CF or is loading a extremely old version of CF"
+                      }
+                    ]
+                  },
+                  "blockId": "block-1774108627986-09opd",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": []
+}

@@ -1,0 +1,6 @@
+{
+  "id": "tpl-notificationschedulersettings",
+  "name": "NotificationSchedulerSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"UTC\": \"number\",\n  \"UseMissionTime\": \"number\",\n  \"Notifications\": [\n    {\n      \"Hour\": \"number\",\n      \"Minute\": \"number\",\n      \"Second\": \"number\",\n      \"Title\": \"string\",\n      \"Text\": \"string\",\n      \"Icon\": \"string\",\n      \"Color\": \"string\"\n    }\n  ]\n}",
+  "description": "Auto-generated validation template for NotificationSchedulerSettings"
+}

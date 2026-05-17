@@ -1,0 +1,247 @@
+{
+  "id": "expansion-ai",
+  "name": "Expansion AI",
+  "shortName": "AI",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-AI",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792982069",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964120",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Adds survivor AI units with team behavior, patrols, combat, recruitment, and faction systems.",
+  "overview": "DayZ Expansion AI is the direct follow-up of the discontinued EnfusionAI mod. It introduces survivor AI to the game with advanced behavioral capabilities.\n\n## Key Features\n\n- **Team Behavior** — AI can behave as a team and follow a team leader\n- **12 Formation Groups** — Different tactical formations for AI squads\n- **Advanced Movement** — AI can vault over objects and open doors\n- **Vehicle Passengers** — AI can sit as passengers in vehicles\n- **Patrol Waypoints** — AI can follow waypoints (patrols)\n- **Long-Range Combat** — Engage in fights up to 1000m based on distance, line of sight, weapon type, ammo type, and configured accuracy\n- **Taunting** — AI can taunt their victims\n- **Recruitment** — AI can be recruited by players\n- **Equipment Usage** — AI can use flashlights and night vision\n- **Safezone Guards** — AI guards to protect safezones\n- **AI Factions** — Faction system for organizing AI groups\n\n### Integration with Other Mods\n\n- Combined with **Expansion Market**: AI Trader NPCs\n- Combined with **Expansion Quests**: AI Quest NPCs",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-missions"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @ExpansionAI from the Steam Workshop.",
+    "Place the @ExpansionAI folder in your server's root directory.",
+    "Add @ExpansionAI to your -mod= parameter AFTER @ExpansionCore.",
+    "Start the server to generate AI configuration files.",
+    "Configure patrol routes and AI behavior in the generated settings files."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "AI not spawning",
+      "solution": "Check that Enabled is set to 1, verify patrol files are valid JSON, and ensure MaxAI limit hasn't been reached."
+    },
+    {
+      "problem": "AI are too accurate",
+      "solution": "Lower AccuracyMax to 0.4-0.5 for more balanced engagements."
+    },
+    {
+      "problem": "Server performance issues with AI",
+      "solution": "Reduce MaxAI count and increase MinDistanceToPlayer to reduce active AI density."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Military Base Guards",
+      "description": "Set up stationary AI guards at military locations with military-grade loadouts. Use STATIONARY behavior with a small patrol radius."
+    },
+    {
+      "title": "Roaming Bandit Patrols",
+      "description": "Create hostile AI patrols along roads and key routes. Use PATROL behavior with waypoints along major roads."
+    },
+    {
+      "title": "Town Defense",
+      "description": "Place friendly AI in towns to protect players from zombies and hostile AI."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "Enabled",
+      "example": "0",
+      "description": "Master switch to enable or disable AI spawning.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxAI",
+      "example": "50",
+      "description": "Maximum number of AI units that can exist simultaneously.",
+      "defaultValue": "100"
+    },
+    {
+      "name": "DespawnTime",
+      "example": "600",
+      "description": "Time in seconds before an AI unit despawns after losing aggro.",
+      "defaultValue": "300"
+    },
+    {
+      "name": "AccuracyMin",
+      "example": "0.1",
+      "description": "Minimum accuracy of AI (0.0 to 1.0).",
+      "defaultValue": "0.3"
+    },
+    {
+      "name": "AccuracyMax",
+      "example": "0.6",
+      "description": "Maximum accuracy of AI (0.0 to 1.0).",
+      "defaultValue": "0.8"
+    },
+    {
+      "name": "MinDistanceToPlayer",
+      "example": "150",
+      "description": "Minimum spawn distance from players in meters.",
+      "defaultValue": "200"
+    },
+    {
+      "name": "MaxDistanceToPlayer",
+      "example": "1000",
+      "description": "Maximum spawn distance from players in meters.",
+      "defaultValue": "800"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082989004-51-p0kt",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082989004-52-7wih",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082989004-53-unn9",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Military Base Guards",
+                        "description": "Set up stationary AI guards at military locations with military-grade loadouts. Use STATIONARY behavior with a small patrol radius."
+                      },
+                      {
+                        "title": "Roaming Bandit Patrols",
+                        "description": "Create hostile AI patrols along roads and key routes. Use PATROL behavior with waypoints along major roads."
+                      },
+                      {
+                        "title": "Town Defense",
+                        "description": "Place friendly AI in towns to protect players from zombies and hostile AI."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-2j1rx",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082989004-54-ojea",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082989004-55-4qm3",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "DayZ Expansion AI is the direct follow-up of the discontinued EnfusionAI mod. It introduces survivor AI to the game with advanced behavioral capabilities.\n\n## Key Features\n\n- **Team Behavior** — AI can behave as a team and follow a team leader\n- **12 Formation Groups** — Different tactical formations for AI squads\n- **Advanced Movement** — AI can vault over objects and open doors\n- **Vehicle Passengers** — AI can sit as passengers in vehicles\n- **Patrol Waypoints** — AI can follow waypoints (patrols)\n- **Long-Range Combat** — Engage in fights up to 1000m based on distance, line of sight, weapon type, ammo type, and configured accuracy\n- **Taunting** — AI can taunt their victims\n- **Recruitment** — AI can be recruited by players\n- **Equipment Usage** — AI can use flashlights and night vision\n- **Safezone Guards** — AI guards to protect safezones\n- **AI Factions** — Faction system for organizing AI groups\n\n### Integration with Other Mods\n\n- Combined with **Expansion Market**: AI Trader NPCs\n- Combined with **Expansion Quests**: AI Quest NPCs",
+                "_blockData": {
+                  "blockId": "block-1773333239007-ctdl5",
+                  "content": "DayZ Expansion AI is the direct follow-up of the discontinued EnfusionAI mod. It introduces survivor AI to the game with advanced behavioral capabilities.\n\n## Key Features\n\n- **Team Behavior** — AI can behave as a team and follow a team leader\n- **12 Formation Groups** — Different tactical formations for AI squads\n- **Advanced Movement** — AI can vault over objects and open doors\n- **Vehicle Passengers** — AI can sit as passengers in vehicles\n- **Patrol Waypoints** — AI can follow waypoints (patrols)\n- **Long-Range Combat** — Engage in fights up to 1000m based on distance, line of sight, weapon type, ammo type, and configured accuracy\n- **Taunting** — AI can taunt their victims\n- **Recruitment** — AI can be recruited by players\n- **Equipment Usage** — AI can use flashlights and night vision\n- **Safezone Guards** — AI guards to protect safezones\n- **AI Factions** — Faction system for organizing AI groups\n\n### Integration with Other Mods\n\n- Combined with **Expansion Market**: AI Trader NPCs\n- Combined with **Expansion Quests**: AI Quest NPCs",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082989004-56-twth",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082989004-57-m7o8",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @ExpansionAI from the Steam Workshop.",
+                    "Place the @ExpansionAI folder in your server's root directory.",
+                    "Add @ExpansionAI to your -mod= parameter AFTER @ExpansionCore.",
+                    "Start the server to generate AI configuration files.",
+                    "Configure patrol routes and AI behavior in the generated settings files."
+                  ],
+                  "blockId": "block-1773333239007-8kddx",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082989004-58-d8dp",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082989004-59-qjan",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "AI not spawning",
+                        "description": "Check that Enabled is set to 1, verify patrol files are valid JSON, and ensure MaxAI limit hasn't been reached."
+                      },
+                      {
+                        "title": "AI are too accurate",
+                        "description": "Lower AccuracyMax to 0.4-0.5 for more balanced engagements."
+                      },
+                      {
+                        "title": "Server performance issues with AI",
+                        "description": "Reduce MaxAI count and increase MinDistanceToPlayer to reduce active AI density."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-y0gg5",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [
+    "json-validator"
+  ],
+  "linkedGuides": [
+    "ai-patrol-setup",
+    "ai-loadouts"
+  ],
+  "changelogKeywords": [
+    "ai"
+  ]
+}
