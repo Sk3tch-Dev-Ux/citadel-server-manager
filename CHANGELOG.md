@@ -6,6 +6,51 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.18.4 — 2026-05-17
+
+Third hotfix for the v2.18.x setup wizard. v2.18.3 wasn't sufficient —
+in testing the wizard was still 403'ing on Auto-Detect IP because
+`/api/setup/admin` never set the `auth-token` HttpOnly cookie that
+audit M11 expects for browser session auth. Without the cookie, the
+wizard had no credentials for `requireSetupMode` to validate. See
+[`RELEASE_NOTES_v2.18.4.md`](./RELEASE_NOTES_v2.18.4.md) for the full
+narrative.
+
+### Fixed
+- **Auto-Detect IP and post-admin wizard steps still 403'd in v2.18.3**
+  because the wizard wasn't actually sending an Authorization header.
+  Audit M11 moved browser session auth from `localStorage` Bearer
+  headers to an HttpOnly `auth-token` cookie set by `/api/auth/login`,
+  but `/api/setup/admin` had never been updated to set the same cookie.
+  Fix paired both ends: `/api/setup/admin` now sets the `auth-token`
+  cookie alongside the JSON token return (matches `/api/auth/login`),
+  and `extractSetupToken()` in `requireSetupMode` now reads from
+  `req.cookies['auth-token']` first.
+
+---
+
+## v2.18.3 — 2026-05-17
+
+Critical fix for the v2.18.x setup wizard's post-admin steps. v2.18.2
+unblocked admin creation; v2.18.3 unblocks the rest of the wizard
+(network, Steam, complete). See
+[`RELEASE_NOTES_v2.18.3.md`](./RELEASE_NOTES_v2.18.3.md) for the full
+narrative.
+
+### Fixed
+- **Setup wizard's post-admin steps returned 403** — Auto-Detect IP,
+  network save, Steam configuration, and Complete Setup all failed
+  silently after the admin step succeeded. POST `/api/setup/admin`
+  writes the first-run marker for security (audit C5), but every
+  other setup endpoint was gated by the same marker check, so the
+  wizard locked itself out of its own remaining steps. `requireSetupMode`
+  now also accepts a valid root-admin JWT — the token issued by the
+  admin step — so the wizard can finish. Audit C5 is unaffected:
+  unauthenticated re-arm of `/api/setup/admin` still returns 403 once
+  the marker is written.
+
+---
+
 ## v2.18.2 — 2026-05-17
 
 Critical fix for a v2.18.1 regression that locked new and re-installed
