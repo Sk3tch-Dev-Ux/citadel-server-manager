@@ -110,11 +110,49 @@ function getSetupState() {
   return 'complete';
 }
 
-function requireSetupMode(req, res, next) {
-  if (getSetupState() === 'complete') {
-    return res.status(403).json({ error: 'Setup already completed' });
+/**
+ * Extract a Bearer token from the Authorization header (or `?token=` query).
+ * Kept inline so requireSetupMode can authenticate without taking a hard
+ * dependency on the global auth middleware (which has more behavior than we
+ * need here — permissions, revocation, mustChangePassword, etc.).
+ */
+function extractSetupToken(req) {
+  // Cookie first — that's the M11 audit-blessed transport. /api/auth/login
+  // sets `auth-token` and the wizard now does the same on /api/setup/admin
+  // so the browser auto-attaches it to every subsequent same-origin request.
+  if (req.cookies && typeof req.cookies['auth-token'] === 'string' && req.cookies['auth-token']) {
+    return req.cookies['auth-token'];
   }
-  next();
+  const header = req.headers && req.headers.authorization;
+  if (header && header.startsWith('Bearer ')) return header.slice(7);
+  if (req.query && req.query.token) return String(req.query.token);
+  return null;
+}
+
+function requireSetupMode(req, res, next) {
+  // Allow if setup is not yet complete (initial admin creation flow).
+  if (getSetupState() !== 'complete') return next();
+
+  // Setup is marked complete — typically because POST /api/setup/admin just
+  // ran and wrote the first-run marker (audit C5, prevents unauthenticated
+  // re-arm of admin creation). The wizard's subsequent steps still need to
+  // work, so allow the request through if it carries a valid JWT for a
+  // root admin (the token issued by /api/setup/admin). Without this branch,
+  // network-detect / steam / complete all return 403 mid-wizard and setup
+  // can never finish (v2.18.x regression chain).
+  try {
+    const token = extractSetupToken(req);
+    if (token) {
+      const decoded = jwt.verify(token, ctx.CONFIG.jwtSecret);
+      const user = ctx.users.find(u => u.id === decoded.id);
+      if (user && user.isRoot) {
+        req.user = decoded;
+        return next();
+      }
+    }
+  } catch { /* fall through to 403 below */ }
+
+  return res.status(403).json({ error: 'Setup already completed' });
 }
 
 module.exports = function(app) {
@@ -194,6 +232,17 @@ module.exports = function(app) {
         ctx.CONFIG.jwtSecret,
         { expiresIn: '24h' }
       );
+
+      // Audit M11 parity — /api/auth/login sets the JWT as an HttpOnly
+      // cookie on the same `auth-token` name; the wizard's subsequent
+      // setup endpoints rely on that cookie for auth (browser auto-
+      // attaches it with credentials: 'include'). Without this line the
+      // post-admin steps (network-detect, steam, complete) silently
+      // 403'd because requireSetupMode could find no token to validate.
+      res.cookie('auth-token', token, {
+        maxAge: 24 * 60 * 60 * 1000,  // matches the 24h JWT expiry above
+        path: '/',
+      });
 
       logger.info({ username }, 'Setup: Admin account created');
       res.json({
