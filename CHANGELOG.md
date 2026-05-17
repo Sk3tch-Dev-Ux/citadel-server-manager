@@ -6,6 +6,72 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.18.0 — 2026-05-17
+
+Complete rebuild of Citadel's DayZ Expansion support against the new
+official wiki at [dayzexpansion.com](https://dayzexpansion.com). No
+PBO/mod change required — server-side and desktop-side only. See
+[`RELEASE_NOTES_v2.18.0.md`](./RELEASE_NOTES_v2.18.0.md) for the full
+narrative and admin-facing notes.
+
+### Added
+- **50 Expansion JSON Schemas** (was 4) sourced from the official wiki,
+  covering every Expansion settings file the wiki documents — AI, base
+  building, quests, missions, vehicles, navigation, personal storage,
+  spawn selection, P2P market, and more.
+- **24-mod metadata index** at `backend/schemas/expansion/_mods.json` —
+  workshop URLs, deps, conflicts, versions, wiki links per mod.
+- **117 JSON skeleton templates** under
+  `backend/schemas/expansion-templates/` for every documented config
+  file (settings, quests, NPCs, objectives, market categories).
+- **2 form layouts** under `backend/schemas/expansion-forms/`
+  (`Trader_Item_Entry`, `Spawn_Location_Entry`).
+- **Template picker in Files page** — `+` button in the Explorer
+  sidebar opens a searchable modal of all 117 templates; pick one,
+  confirm the target path, and the file is created with a backup
+  snapshot and auto-opens in a new editor tab.
+- **"Docs ↗" deep-links** in Expansion Editor, Trader Editor, and
+  Quest Editor pages, routing to the matching wiki tool (Hardline
+  Editor, Quest Editor, Market Editor, Settings Editor, mod page).
+- **New API surface** at `/api/expansion-docs/*` — `/version`, `/mods`,
+  `/templates`, `/templates/:name`, `/forms`. Auth-gated,
+  path-traversal-safe.
+- **`scripts/sync-expansion-docs/`** — re-runnable sync pipeline.
+  Refreshing for a new wiki release is one command.
+
+### Changed
+- **HardlineSettings:** 13 → 23 fields. Adds the full item rarity tier
+  system, `EntityReputation`, `EnableFactionPersistence`, etc.
+  Schema `m_Version=11`.
+- **MarketSettings:** 9 → 28 fields. Adds `Currencies`, `CurrencyIcon`,
+  ATM subsystem, spawn positions, large vehicles, and more.
+  Schema `m_Version=17`.
+- **GeneralSettings:** 18 → 26 fields. Adds `EnableAutoRun`,
+  `EnableEarPlugs`, full Gravecross suite, `EnableLighthouses`,
+  `EnableHUDNightvisionOverlay`, `DisableShootToUnlock`.
+  Schema `m_Version=16`.
+- **TerritorySettings:** 10 → 13 fields, with three field renames to
+  match upstream (`MaxMembersPerTerritory` → `MaxMembersInTerritory`,
+  `TerritoryPerPlayer` → `MaxTerritoryPerPlayer`,
+  `EnableTerritoryMember` → `OnlyInviteGroupMember`).
+  Schema `m_Version=6`.
+- **`backend/schemas/expansion/manifest.json`** rebuilt from upstream
+  with proper `schemaFile` pointers, so `mod-config-schema.js` now
+  associates schemas with files (returned an empty bundle before).
+- Adapter preserves rich type info: `enum_string` with labels, `color`
+  (`format: 'argb-int'`), `vector`, `classname`, `icon`, and `map`
+  with key/value type hints.
+
+### Fixed
+- **`mod-config-schema.js` returned an empty bundle for Expansion** —
+  the legacy manifest had no `schemaFile` field on any entry, so the
+  loader silently associated zero schemas. Now returns 50.
+- **Stale field set in the 4 in-tree Expansion schemas** caused valid
+  modern config files to flag "unknown field" warnings (item rarity
+  tiers, ATM settings, etc.).
+
+---
+
 ## v2.17.0 — 2026-04-30
 
 Live Dashboard usability + map tile proxy + a long list of @CitadelAdmin
