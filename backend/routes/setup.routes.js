@@ -63,41 +63,48 @@ function firstRunMarkerExists() {
 /**
  * Determine setup state:
  * - 'needs_setup': No users exist (cold start)
- * - 'needs_setup': Only the bare default admin AND no first-run marker
- *                  AND no other state has been configured (servers, etc.)
- * - 'complete':    Anything else, including any time the first-run marker
- *                  has been written.
+ * - 'needs_setup': Only the bare default admin exists — the user has no
+ *                  usable login yet, so the wizard MUST stay available even
+ *                  if leftover servers/state from a prior install are present.
+ * - 'complete':    First-run marker is written, OR at least one usable admin
+ *                  account exists.
  *
- * The first-run marker is the authoritative latch. The other checks are
- * defense-in-depth so even a missing marker on a populated install does
- * not re-open the wizard.
+ * The first-run marker is the authoritative security latch — once written,
+ * setup is locked forever even if users.json is deleted. The "only default
+ * admin" branch lets the wizard recover from an install that landed on a
+ * populated data/ directory but has no real admin yet (v2.18.1 regression,
+ * fixed in v2.18.2).
  */
 function getSetupState() {
   // Authoritative latch — once set, never unset by any code path.
   if (firstRunMarkerExists()) return 'complete';
 
+  // Cold start — no users at all.
   if (ctx.users.length === 0) return 'needs_setup';
 
+  // Only the bare default admin exists. The user can't log in with their own
+  // credentials yet, so the wizard MUST remain available — even if servers
+  // or other state from a previous install are present in the data dir.
+  // The marker check above is still the authoritative security latch; once
+  // a real admin is provisioned, POST /api/setup/admin stays locked.
+  const onlyDefaultAdmin = ctx.users.length === 1
+    && ctx.users[0].username === 'admin'
+    && ctx.users[0].isRoot;
+  if (onlyDefaultAdmin) return 'needs_setup';
+
+  // Past this point we have at least one usable admin account.
   // Belt-and-suspenders: any non-default state means setup ran in the past.
-  // Reading these signals avoids resurrection of the wizard on installs
-  // where the marker file went missing (manual cleanup, partial restore).
+  // Lazily write the marker so the wizard never re-arms even if the marker
+  // file is lost (manual cleanup, partial restore).
   const hasNonDefaultUser = ctx.users.some(u => !u.isRoot)
     || ctx.users.some(u => u.isRoot && u.username !== 'admin');
   const hasServers = Array.isArray(ctx.servers) && ctx.servers.length > 0;
 
   if (hasNonDefaultUser || hasServers) {
-    // We're clearly past first run; lazily write the marker so we never
-    // re-evaluate this branch again. If write fails we still report
-    // 'complete' — refusing to lock would be a bigger security issue.
     try { writeFirstRunMarker(); } catch (err) {
       logger.warn({ err: err.message }, 'Setup: failed to lazily write first-run marker');
     }
     return 'complete';
-  }
-
-  // Truly first-run: no marker, single bare default admin, no servers.
-  if (ctx.users.length === 1 && ctx.users[0].username === 'admin' && ctx.users[0].isRoot) {
-    return 'needs_setup';
   }
 
   return 'complete';
