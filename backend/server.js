@@ -232,6 +232,7 @@ require('./routes/mod-config.routes')(app);
 require('./routes/expansion-docs.routes')(app);
 require('./routes/expansion-quests.routes')(app);
 require('./routes/expansion-trader.routes')(app);
+require('./routes/expansion-loadouts.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);
 require('./routes/restart-scheduler.routes')(app);

@@ -41,6 +41,7 @@ const ExpansionEditorPage = lazy(() => import('./pages/ExpansionEditorPage'));
 const TraderEditorPage = lazy(() => import('./pages/TraderEditorPage'));
 const LootVisualizerPage = lazy(() => import('./pages/LootVisualizerPage'));
 const QuestCreatorPage = lazy(() => import('./pages/QuestCreatorPage'));
+const LoadoutsPage = lazy(() => import('./pages/LoadoutsPage'));
 const RestartSchedulerPage = lazy(() => import('./pages/RestartSchedulerPage'));
 const LiveDashboardPage = lazy(() => import('./pages/LiveDashboardPage'));
 const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
@@ -174,6 +175,7 @@ export default function AppRouter() {
             <Route path="trader-editor" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={TraderEditorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="loot-visualizer" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={LootVisualizerPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="quest-creator" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={QuestCreatorPage} /></Lazy></ErrorBoundary></PermGuard>} />
+            <Route path="loadouts" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={LoadoutsPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ErrorBoundary><Lazy><ServerPage Component={RestartSchedulerPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="live" element={<ErrorBoundary><Lazy><ServerPage Component={LiveDashboardPage} /></Lazy></ErrorBoundary>} />
             <Route path="kill-feed" element={<ErrorBoundary><Lazy><ServerPage Component={KillFeedPage} /></Lazy></ErrorBoundary>} />

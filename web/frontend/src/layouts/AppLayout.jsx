@@ -248,6 +248,7 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'expansion', icon: <Puzzle size={16} />, label: 'Expansion' },
     { id: 'trader-editor', icon: <ShoppingCart size={16} />, label: 'Trader Editor' },
     { id: 'quest-creator', icon: <Star size={16} />, label: 'Quest Creator' },
+    { id: 'loadouts', icon: <Shield size={16} />, label: 'Loadouts' },
   ];
 
   const configItems = [
