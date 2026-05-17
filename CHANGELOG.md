@@ -6,6 +6,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.18.2 — 2026-05-17
+
+Critical fix for a v2.18.1 regression that locked new and re-installed
+users out of first-time setup with a `403 Forbidden`. See
+[`RELEASE_NOTES_v2.18.2.md`](./RELEASE_NOTES_v2.18.2.md) for the full
+narrative.
+
+### Fixed
+- **Setup wizard returned 403 on POST `/api/setup/admin`** when the
+  `data/` directory had servers from a prior install but no real admin
+  user yet. `getSetupState()` checked `hasServers` before the
+  "only default admin exists" branch, so any leftover server state
+  caused the wizard to latch itself out before the user could ever
+  create a real admin. Reordered the checks; the first-run security
+  marker still works the same way (once a real admin exists, setup
+  stays locked forever).
+
+---
+
 ## v2.18.1 — 2026-05-17
 
 Critical fix for v2.18.0 launch issues + Loadouts editor + Quest badge
