@@ -1,0 +1,6 @@
+{
+  "id": "tpl-components",
+  "name": "Components",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"DisplayName\": \"string\",\n  \"MinRequiredReputation\": \"number\",\n  \"MaxRequiredReputation\": \"number\",\n  \"RequiredFaction\": \"string\",\n  \"RequiredCompletedQuestID\": \"number\",\n  \"TraderIcon\": \"string\",\n  \"Currencies\": [\n    \"string\"\n  ],\n  \"DisplayCurrencyValue\": \"number\",\n  \"DisplayCurrencyName\": \"string\",\n  \"UseCategoryOrder\": \"number\",\n  \"Categories\": [\n    \"string\"\n  ],\n  \"Items\": {\n    \"string\": \"number\"\n  }\n}",
+  "description": "Auto-generated validation template for Components"
+}

@@ -1,0 +1,201 @@
+{
+  "name": "Airdrop_Random_Balota",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/missions/Airdrop_Random_Balota.json",
+  "linkedModId": "expansion-missions",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "3",
+      "description": "M_version",
+      "defaultValue": "3"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable d",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Weight",
+      "type": "int",
+      "example": "147",
+      "description": "Weight. Range: 0–100",
+      "defaultValue": "294"
+    },
+    {
+      "name": "MissionMaxTime",
+      "type": "int",
+      "example": "1200",
+      "description": "Time duration in milliseconds",
+      "defaultValue": "1200"
+    },
+    {
+      "name": "MissionName",
+      "type": "classname",
+      "example": "\"Random_Balota\"",
+      "description": "DayZ classname (e.g. \"Random_Balota\")",
+      "defaultValue": "\"Random_Balota\""
+    },
+    {
+      "name": "Difficulty",
+      "type": "enum",
+      "example": "0",
+      "description": "Difficulty selector (0–5)",
+      "defaultValue": "0"
+    },
+    {
+      "name": "Objective",
+      "type": "int",
+      "example": "0",
+      "description": "Objective",
+      "defaultValue": "0"
+    },
+    {
+      "name": "Reward",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Reward",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "ShowNotification",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable notification",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Height",
+      "type": "int",
+      "example": "450",
+      "description": "Height (default: 450)",
+      "defaultValue": "450"
+    },
+    {
+      "name": "DropZoneHeight",
+      "type": "int",
+      "example": "450",
+      "description": "Drop zone height (default: 450)",
+      "defaultValue": "450"
+    },
+    {
+      "name": "Speed",
+      "type": "enum_string",
+      "example": "25",
+      "enumValues": [
+        {
+          "label": "Walk",
+          "value": "WALK"
+        },
+        {
+          "label": "Jog",
+          "value": "JOG"
+        },
+        {
+          "label": "Sprint",
+          "value": "SPRINT"
+        }
+      ],
+      "description": "Speed (default: 25)",
+      "defaultValue": "25"
+    },
+    {
+      "name": "DropZoneSpeed",
+      "type": "int",
+      "example": "25",
+      "description": "Drop zone speed (default: 25)",
+      "defaultValue": "25"
+    },
+    {
+      "name": "Container",
+      "type": "string",
+      "example": "\"Random\"",
+      "description": "Container",
+      "defaultValue": "\"Random\""
+    },
+    {
+      "name": "FallSpeed",
+      "type": "float",
+      "example": "4.5",
+      "description": "Fall speed (default: 4.5)",
+      "defaultValue": "4.5"
+    },
+    {
+      "name": "DropLocation",
+      "type": "object",
+      "example": "",
+      "description": "Drop location",
+      "defaultValue": "{4 keys}",
+      "nestedSettings": [
+        {
+          "name": "x",
+          "type": "int",
+          "example": "5043",
+          "description": "X",
+          "defaultValue": "5043"
+        },
+        {
+          "name": "z",
+          "type": "int",
+          "example": "2505",
+          "description": "Z",
+          "defaultValue": "2505"
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "example": "\"Balota\"",
+          "description": "Name",
+          "defaultValue": "\"Balota\""
+        },
+        {
+          "name": "Radius",
+          "type": "int",
+          "example": "100",
+          "description": "Radius (default: 100)",
+          "defaultValue": "100"
+        }
+      ]
+    },
+    {
+      "name": "Infected",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Infected",
+      "defaultValue": "[]"
+    },
+    {
+      "name": "ItemCount",
+      "type": "int",
+      "example": "-1",
+      "description": "Item count (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "InfectedCount",
+      "type": "int",
+      "example": "-1",
+      "description": "Infected count (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "AirdropPlaneClassName",
+      "type": "classname",
+      "example": "\"\"",
+      "description": "DayZ classname (e.g. \"\")",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "Loot",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Loot",
+      "defaultValue": "[]"
+    }
+  ]
+}

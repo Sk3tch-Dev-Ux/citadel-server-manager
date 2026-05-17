@@ -1,0 +1,210 @@
+{
+  "id": "expansion-spawn-selection",
+  "name": "Expansion Spawn Selection",
+  "shortName": "Spawn Selection",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Spawn-Selection",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2804241648",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2804242070",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Custom spawn location selection UI with configurable starting gear and outfit randomization.",
+  "overview": "Expansion Spawn Selection replaces the vanilla spawn system with a configurable spawn location picker. Players see a map interface where they can choose their preferred spawn point.\n\n## Key Features\n\n- **Spawn Location UI** — Players choose from configured spawn points on a visual map\n- **Custom Starting Gear** — Define clothing and inventory items per spawn or globally\n- **Outfit Randomization** — Configure multiple outfit options that are randomly selected\n- **Per-Slot Clothing** — Configure headgear, glasses, masks, tops, vests, gloves, pants, belts, shoes, armbands, and backpacks\n- **Random Health** — Option to spawn clothing in random or pristine condition\n\nSettings are found in `mpmissions/dayzOffline.<mapname>/expansion/settings/SpawnSettings.json`.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @ExpansionSpawnSelection from the Steam Workshop.",
+    "Add @ExpansionSpawnSelection to your -mod= parameter after Core.",
+    "Start the server to generate SpawnSettings.json in your mission settings folder.",
+    "Configure spawn locations and starting gear.",
+    "Restart the server."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Spawn selection UI not appearing",
+      "solution": "Ensure the mod is loaded correctly and SpawnSettings.json has valid spawn locations defined."
+    },
+    {
+      "problem": "Custom clothing not applying",
+      "solution": "Verify EnableCustomClothing is set to 1 and clothing classnames are valid DayZ item names."
+    },
+    {
+      "problem": "Players spawning at wrong positions",
+      "solution": "Check SpawnLocations coordinates are valid for your map. Invalid positions fall back to vanilla spawns."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Themed Spawns",
+      "description": "Create themed spawn locations with matching gear — military outpost spawns with military gear, civilian town spawns with civilian clothes."
+    },
+    {
+      "title": "Balanced Starts",
+      "description": "Give all players the same starting gear regardless of spawn location for balanced gameplay."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "EnableCustomClothing",
+      "type": "bool",
+      "example": "0",
+      "description": "Use custom clothing configuration instead of vanilla default spawning gear.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "SetRandomHealth",
+      "type": "bool",
+      "example": "1",
+      "description": "Spawn clothing in random condition instead of pristine.",
+      "defaultValue": "0"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082995406-7o-i0p4",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082995406-7p-2ii4",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082995406-7q-h4nl",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Themed Spawns",
+                        "description": "Create themed spawn locations with matching gear — military outpost spawns with military gear, civilian town spawns with civilian clothes."
+                      },
+                      {
+                        "title": "Balanced Starts",
+                        "description": "Give all players the same starting gear regardless of spawn location for balanced gameplay."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-v59wa",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082995406-7r-xkmy",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082995406-7s-e648",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Spawn Selection replaces the vanilla spawn system with a configurable spawn location picker. Players see a map interface where they can choose their preferred spawn point.\n\n## Key Features\n\n- **Spawn Location UI** — Players choose from configured spawn points on a visual map\n- **Custom Starting Gear** — Define clothing and inventory items per spawn or globally\n- **Outfit Randomization** — Configure multiple outfit options that are randomly selected\n- **Per-Slot Clothing** — Configure headgear, glasses, masks, tops, vests, gloves, pants, belts, shoes, armbands, and backpacks\n- **Random Health** — Option to spawn clothing in random or pristine condition\n\nSettings are found in `mpmissions/dayzOffline.<mapname>/expansion/settings/SpawnSettings.json`.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-clp6h",
+                  "content": "Expansion Spawn Selection replaces the vanilla spawn system with a configurable spawn location picker. Players see a map interface where they can choose their preferred spawn point.\n\n## Key Features\n\n- **Spawn Location UI** — Players choose from configured spawn points on a visual map\n- **Custom Starting Gear** — Define clothing and inventory items per spawn or globally\n- **Outfit Randomization** — Configure multiple outfit options that are randomly selected\n- **Per-Slot Clothing** — Configure headgear, glasses, masks, tops, vests, gloves, pants, belts, shoes, armbands, and backpacks\n- **Random Health** — Option to spawn clothing in random or pristine condition\n\nSettings are found in `mpmissions/dayzOffline.<mapname>/expansion/settings/SpawnSettings.json`.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082995406-7t-dst2",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082995406-7u-aaoz",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @ExpansionSpawnSelection from the Steam Workshop.",
+                    "Add @ExpansionSpawnSelection to your -mod= parameter after Core.",
+                    "Start the server to generate SpawnSettings.json in your mission settings folder.",
+                    "Configure spawn locations and starting gear.",
+                    "Restart the server."
+                  ],
+                  "blockId": "block-1773333239007-40yfl",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082995406-7v-5w4r",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082995406-7w-tg70",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Spawn selection UI not appearing",
+                        "description": "Ensure the mod is loaded correctly and SpawnSettings.json has valid spawn locations defined."
+                      },
+                      {
+                        "title": "Custom clothing not applying",
+                        "description": "Verify EnableCustomClothing is set to 1 and clothing classnames are valid DayZ item names."
+                      },
+                      {
+                        "title": "Players spawning at wrong positions",
+                        "description": "Check SpawnLocations coordinates are valid for your map. Invalid positions fall back to vanilla spawns."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-6ibjg",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [
+    "json-validator"
+  ],
+  "linkedGuides": [
+    "expansion-spawn-selection"
+  ],
+  "changelogKeywords": [
+    "spawnselection",
+    "spawn selection"
+  ]
+}

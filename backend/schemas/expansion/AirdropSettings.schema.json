@@ -1,0 +1,318 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AirdropSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-missions",
+  "x-filePath": "Profiles/ExpansionMod/Settings/AirdropSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "8"
+      ],
+      "type": "integer",
+      "default": 8
+    },
+    "ServerMarkerOnDropLocation": {
+      "description": "Server marker on drop location",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Server3DMarkerOnDropLocation": {
+      "description": "Server3 d marker on drop location",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ShowAirdropTypeOnMarker": {
+      "description": "Enable or disable airdrop type on marker",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "HideCargoWhileParachuteIsDeployed": {
+      "description": "Hide cargo while parachute is deployed",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "HeightIsRelativeToGroundLevel": {
+      "description": "Height is relative to ground level selector (0–5)",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Height": {
+      "description": "Height (default: 450)",
+      "examples": [
+        "450"
+      ],
+      "type": "integer",
+      "default": 450
+    },
+    "DropZoneHeight": {
+      "description": "Drop zone height (default: 450)",
+      "examples": [
+        "450"
+      ],
+      "type": "integer",
+      "default": 450
+    },
+    "FollowTerrainFraction": {
+      "description": "Follow terrain fraction",
+      "examples": [
+        "0.5"
+      ],
+      "type": "number",
+      "default": 0.5
+    },
+    "Speed": {
+      "description": "Speed (default: 35)",
+      "examples": [
+        "35"
+      ],
+      "type": "string",
+      "enum": [
+        "WALK",
+        "JOG",
+        "SPRINT"
+      ],
+      "x-enumLabels": {
+        "WALK": "Walk",
+        "JOG": "Jog",
+        "SPRINT": "Sprint"
+      },
+      "default": "35"
+    },
+    "DropZoneSpeed": {
+      "description": "Drop zone speed (default: 35)",
+      "examples": [
+        "35"
+      ],
+      "type": "integer",
+      "default": 35
+    },
+    "Radius": {
+      "description": "Radius (default: 1)",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "InfectedSpawnRadius": {
+      "description": "Infected spawn radius (default: 50)",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 50
+    },
+    "InfectedSpawnInterval": {
+      "description": "Infected spawn interval (default: 250)",
+      "examples": [
+        "250"
+      ],
+      "type": "integer",
+      "default": 250
+    },
+    "ItemCount": {
+      "description": "Item count (default: 50)",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 50
+    },
+    "AirdropPlaneClassName": {
+      "description": "DayZ classname (e.g. \"\")",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "format": "dayz-classname",
+      "default": ""
+    },
+    "DropZoneProximityDistance": {
+      "description": "Drop zone proximity distance (default: 1500)",
+      "examples": [
+        "1500"
+      ],
+      "type": "integer",
+      "default": 1500
+    },
+    "ExplodeAirVehiclesOnCollision": {
+      "description": "Explode air vehicles on collision",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "Containers": {
+      "description": "Containers",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Container": {
+            "description": "DayZ classname (e.g. \"ExpansionAirdropContainer\")",
+            "examples": [
+              "\"ExpansionAirdropContainer\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "ExpansionAirdropContainer"
+          },
+          "FallSpeed": {
+            "description": "Fall speed (default: 4.5)",
+            "examples": [
+              "4.5"
+            ],
+            "type": "number",
+            "default": 4.5
+          },
+          "Usage": {
+            "description": "Usage",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "Weight": {
+            "description": "Weight. Range: 0–100",
+            "examples": [
+              "3"
+            ],
+            "type": "integer",
+            "default": 5
+          },
+          "Infected": {
+            "description": "Infected",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "ItemCount": {
+            "description": "Item count (default: 30)",
+            "examples": [
+              "30"
+            ],
+            "type": "integer",
+            "default": 30
+          },
+          "InfectedCount": {
+            "description": "Infected count (default: 25)",
+            "examples": [
+              "25"
+            ],
+            "type": "integer",
+            "default": 25
+          },
+          "SpawnInfectedForPlayerCalledDrops": {
+            "description": "Spawn infected for player called drops",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "ExplodeAirVehiclesOnCollision": {
+            "description": "Explode air vehicles on collision",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "Loot": {
+            "description": "Loot",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "description": "Name",
+                  "examples": [
+                    "\"SewingKit\""
+                  ],
+                  "type": "string",
+                  "default": "SewingKit"
+                },
+                "Chance": {
+                  "description": "Chance. Range: 0.0–1.0",
+                  "examples": [
+                    "0.13"
+                  ],
+                  "type": "number",
+                  "default": 0.25
+                },
+                "Attachments": {
+                  "description": "Attachments",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "QuantityPercent": {
+                  "description": "Quantity percent. Range: 0–100",
+                  "examples": [
+                    "0"
+                  ],
+                  "type": "integer",
+                  "default": -1
+                },
+                "Max": {
+                  "description": "Max (default: -1)",
+                  "examples": [
+                    "-1"
+                  ],
+                  "type": "integer",
+                  "default": -1
+                },
+                "Min": {
+                  "description": "Min (default: 0)",
+                  "examples": [
+                    "0"
+                  ],
+                  "type": "integer",
+                  "default": 0
+                },
+                "Variants": {
+                  "description": "Variants",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                }
+              }
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    }
+  }
+}

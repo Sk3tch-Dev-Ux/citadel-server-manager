@@ -1,0 +1,802 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AIPatrolSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-ai",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/settings/AIPatrolSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "32"
+      ],
+      "type": "integer",
+      "default": 32
+    },
+    "Enabled": {
+      "description": "Enable or disable d",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "FormationScale": {
+      "description": "Formation scale. Range: 0–100",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "DespawnTime": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "600"
+      ],
+      "type": "integer",
+      "default": 600
+    },
+    "RespawnTime": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "MinDistRadius": {
+      "description": "Min dist radius (default: 1)",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "MaxDistRadius": {
+      "description": "Max dist radius (default: 1000)",
+      "examples": [
+        "1000"
+      ],
+      "type": "integer",
+      "default": 1000
+    },
+    "DespawnRadius": {
+      "description": "Despawn radius (default: 1100)",
+      "examples": [
+        "1100"
+      ],
+      "type": "integer",
+      "default": 1100
+    },
+    "AccuracyMin": {
+      "description": "Accuracy min (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "AccuracyMax": {
+      "description": "Accuracy max (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "ThreatDistanceLimit": {
+      "description": "Threat distance limit (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "NoiseInvestigationDistanceLimit": {
+      "description": "Noise investigation distance limit (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "MaxFlankingDistance": {
+      "description": "Max flanking distance (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "EnableFlankingOutsideCombat": {
+      "description": "Enable flanking outside combat",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "DamageMultiplier": {
+      "description": "Damage multiplier. Range: 0–100",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "DamageReceivedMultiplier": {
+      "description": "Damage received multiplier. Range: 0–100",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "ShoryukenChance": {
+      "description": "Shoryuken chance. Range: 0.0–1.0",
+      "examples": [
+        "0"
+      ],
+      "type": "number",
+      "default": 0.009999999776482582
+    },
+    "ShoryukenDamageMultiplier": {
+      "description": "Shoryuken damage multiplier. Range: 0–100",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 3
+    },
+    "LoadBalancingCategories": {
+      "description": "Load balancing categories",
+      "type": "object",
+      "properties": {
+        "Example": {
+          "description": "Example",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "MinPlayers": {
+                "description": "Min players",
+                "examples": [
+                  "0"
+                ],
+                "type": "integer",
+                "default": 0
+              },
+              "MaxPlayers": {
+                "description": "Max players",
+                "examples": [
+                  "255"
+                ],
+                "type": "integer",
+                "default": 255
+              },
+              "MaxPatrols": {
+                "description": "Max patrols",
+                "examples": [
+                  "-1"
+                ],
+                "type": "integer",
+                "default": -1
+              }
+            }
+          },
+          "default": []
+        },
+        "Quest": {
+          "description": "Quest",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "MinPlayers": {
+                "description": "Min players",
+                "examples": [
+                  "0"
+                ],
+                "type": "integer",
+                "default": 0
+              },
+              "MaxPlayers": {
+                "description": "Max players",
+                "examples": [
+                  "255"
+                ],
+                "type": "integer",
+                "default": 255
+              },
+              "MaxPatrols": {
+                "description": "Max patrols",
+                "examples": [
+                  "-1"
+                ],
+                "type": "integer",
+                "default": -1
+              }
+            }
+          },
+          "default": []
+        },
+        "Global": {
+          "description": "Global",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "MinPlayers": {
+                "description": "Min players",
+                "examples": [
+                  "0"
+                ],
+                "type": "integer",
+                "default": 0
+              },
+              "MaxPlayers": {
+                "description": "Max players",
+                "examples": [
+                  "10"
+                ],
+                "type": "integer",
+                "default": 10
+              },
+              "MaxPatrols": {
+                "description": "Max patrols",
+                "examples": [
+                  "10"
+                ],
+                "type": "integer",
+                "default": 10
+              }
+            }
+          },
+          "default": []
+        },
+        "HelicopterWreck": {
+          "description": "Helicopter wreck",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "MinPlayers": {
+                "description": "Min players",
+                "examples": [
+                  "0"
+                ],
+                "type": "integer",
+                "default": 0
+              },
+              "MaxPlayers": {
+                "description": "Max players",
+                "examples": [
+                  "255"
+                ],
+                "type": "integer",
+                "default": 255
+              },
+              "MaxPatrols": {
+                "description": "Max patrols",
+                "examples": [
+                  "3"
+                ],
+                "type": "integer",
+                "default": 3
+              }
+            }
+          },
+          "default": []
+        },
+        "ObjectPatrol": {
+          "description": "Object patrol",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "MinPlayers": {
+                "description": "Min players",
+                "examples": [
+                  "0"
+                ],
+                "type": "integer",
+                "default": 0
+              },
+              "MaxPlayers": {
+                "description": "Max players",
+                "examples": [
+                  "255"
+                ],
+                "type": "integer",
+                "default": 255
+              },
+              "MaxPatrols": {
+                "description": "Max patrols",
+                "examples": [
+                  "5"
+                ],
+                "type": "integer",
+                "default": 5
+              }
+            }
+          },
+          "default": []
+        },
+        "ContaminatedArea": {
+          "description": "Contaminated area",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "MinPlayers": {
+                "description": "Min players",
+                "examples": [
+                  "0"
+                ],
+                "type": "integer",
+                "default": 0
+              },
+              "MaxPlayers": {
+                "description": "Max players",
+                "examples": [
+                  "255"
+                ],
+                "type": "integer",
+                "default": 255
+              },
+              "MaxPatrols": {
+                "description": "Max patrols",
+                "examples": [
+                  "2"
+                ],
+                "type": "integer",
+                "default": 2
+              }
+            }
+          },
+          "default": []
+        },
+        "Patrol": {
+          "description": "Patrol",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "MinPlayers": {
+                "description": "Min players",
+                "examples": [
+                  "0"
+                ],
+                "type": "integer",
+                "default": 0
+              },
+              "MaxPlayers": {
+                "description": "Max players",
+                "examples": [
+                  "255"
+                ],
+                "type": "integer",
+                "default": 255
+              },
+              "MaxPatrols": {
+                "description": "Max patrols",
+                "examples": [
+                  "5"
+                ],
+                "type": "integer",
+                "default": 5
+              }
+            }
+          },
+          "default": []
+        }
+      },
+      "default": {}
+    },
+    "Patrols": {
+      "description": "Patrols",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "description": "Name",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          },
+          "Persist": {
+            "description": "Persist",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "Faction": {
+            "description": "Faction",
+            "examples": [
+              "\"West\""
+            ],
+            "type": "string",
+            "default": "West"
+          },
+          "Formation": {
+            "description": "Formation",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          },
+          "FormationScale": {
+            "description": "Formation scale. Range: 0–100",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "FormationLooseness": {
+            "description": "Formation looseness",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "Loadout": {
+            "description": "Loadout",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          },
+          "Units": {
+            "description": "Units",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "NumberOfAI": {
+            "description": "Number of ai",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          },
+          "NumberOfAIMax": {
+            "description": "Number of ai max (default: 3)",
+            "examples": [
+              "3"
+            ],
+            "type": "integer",
+            "default": 3
+          },
+          "Behaviour": {
+            "description": "DayZ classname (e.g. \"HALT_OR_ALTERNATE\")",
+            "examples": [
+              "\"HALT_OR_ALTERNATE\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "HALT_OR_ALTERNATE"
+          },
+          "LootingBehaviour": {
+            "description": "Looting behaviour",
+            "examples": [
+              "\"DEFAULT\""
+            ],
+            "type": "string",
+            "default": "DEFAULT"
+          },
+          "Speed": {
+            "description": "Speed",
+            "examples": [
+              "\"WALK\""
+            ],
+            "type": "string",
+            "default": "WALK"
+          },
+          "UnderThreatSpeed": {
+            "description": "Under threat speed",
+            "examples": [
+              "\"SPRINT\""
+            ],
+            "type": "string",
+            "default": "SPRINT"
+          },
+          "DefaultStance": {
+            "description": "Default stance",
+            "examples": [
+              "\"STANDING\""
+            ],
+            "type": "string",
+            "default": "STANDING"
+          },
+          "DefaultLookAngle": {
+            "description": "Default look angle",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "CanBeLooted": {
+            "description": "Enable or disable be looted",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 1
+          },
+          "LootDropOnDeath": {
+            "description": "Loot drop on death",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          },
+          "UnlimitedReload": {
+            "description": "Unlimited reload",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "SniperProneDistanceThreshold": {
+            "description": "Sniper prone distance threshold (default: 0)",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "AccuracyMin": {
+            "description": "Accuracy min (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "AccuracyMax": {
+            "description": "Accuracy max (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "ThreatDistanceLimit": {
+            "description": "Threat distance limit (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "NoiseInvestigationDistanceLimit": {
+            "description": "Noise investigation distance limit (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "MaxFlankingDistance": {
+            "description": "Max flanking distance (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "EnableFlankingOutsideCombat": {
+            "description": "Enable flanking outside combat",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "DamageMultiplier": {
+            "description": "Damage multiplier. Range: 0–100",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "DamageReceivedMultiplier": {
+            "description": "Damage received multiplier. Range: 0–100",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "HeadshotResistance": {
+            "description": "Headshot resistance",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "ShoryukenChance": {
+            "description": "Shoryuken chance. Range: 0–100",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "ShoryukenDamageMultiplier": {
+            "description": "Shoryuken damage multiplier. Range: 0–100",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "CanSpawnInContaminatedArea": {
+            "description": "Enable or disable spawn in contaminated area",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 0
+          },
+          "CanBeTriggeredByAI": {
+            "description": "Enable or disable be triggered by ai",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 0
+          },
+          "MinDistRadius": {
+            "description": "Min dist radius (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "MaxDistRadius": {
+            "description": "Max dist radius (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "DespawnRadius": {
+            "description": "Despawn radius (default: -1)",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "MinSpreadRadius": {
+            "description": "Min spread radius (default: 5)",
+            "examples": [
+              "5"
+            ],
+            "type": "integer",
+            "default": 5
+          },
+          "MaxSpreadRadius": {
+            "description": "Max spread radius (default: 20)",
+            "examples": [
+              "20"
+            ],
+            "type": "integer",
+            "default": 20
+          },
+          "Chance": {
+            "description": "Chance. Range: 0–100",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          },
+          "DespawnTime": {
+            "description": "Time duration in seconds",
+            "examples": [
+              "-1"
+            ],
+            "type": "integer",
+            "default": -1
+          },
+          "RespawnTime": {
+            "description": "Respawn time",
+            "examples": [
+              "-2"
+            ],
+            "x-toolLink": "/tools/argb-calculator",
+            "type": "integer",
+            "format": "argb-int",
+            "default": -2
+          },
+          "LoadBalancingCategory": {
+            "description": "DayZ classname (e.g. \"HelicopterWreck\")",
+            "examples": [
+              "\"HelicopterWreck\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "HelicopterWreck"
+          },
+          "ObjectClassName": {
+            "description": "DayZ classname (e.g. \"Wreck_UH1Y\")",
+            "examples": [
+              "\"Wreck_UH1Y\""
+            ],
+            "type": "string",
+            "format": "dayz-classname",
+            "default": "Wreck_UH1Y"
+          },
+          "WaypointInterpolation": {
+            "description": "Waypoint interpolation",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          },
+          "UseRandomWaypointAsStartPoint": {
+            "description": "Enable or disable random waypoint as start point",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 0
+          },
+          "Waypoints": {
+            "description": "Waypoints",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    }
+  }
+}

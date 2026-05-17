@@ -1,116 +1,472 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Expansion General Settings",
+  "title": "GeneralSettings",
   "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-main",
+  "x-filePath": "Profiles/ExpansionMod/Settings/GeneralSettings.json",
   "properties": {
-    "EnableAirdrop": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "16"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable the airdrop system"
+      "default": 16
     },
-    "EnableBaseBuilding": {
+    "DisableShootToUnlock": {
+      "description": "Enable or disable shoot to unlock",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable the Expansion base building system"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
-    "EnableChat": {
+    "EnableGravecross": {
+      "description": "Enable or disable gravecross",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable Expansion chat system (global, side, admin)"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
-    "EnableGarageVehicle": {
+    "EnableAIGravecross": {
+      "description": "Enable or disable ai gravecross",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable the vehicle garage system"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
-    "EnableHardline": {
+    "GravecrossDeleteBody": {
+      "description": "Gravecross delete body",
+      "examples": [
+        "1"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 0,
-      "description": "Enable the reputation/hardline system"
+      "default": 1
     },
-    "EnableMarket": {
+    "GravecrossTimeThreshold": {
+      "description": "Gravecross time threshold (default: 1200)",
+      "examples": [
+        "1200"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable the market/trader system"
+      "default": 1200
     },
-    "EnableMission": {
+    "GravecrossSpawnTimeDelay": {
+      "description": "Gravecross spawn time delay (default: 180)",
+      "examples": [
+        "180"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable the AI mission system"
+      "default": 180
     },
-    "EnableNavigation": {
-      "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable GPS and navigation features"
-    },
-    "EnableNotification": {
-      "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable in-game notifications"
-    },
-    "EnablePersonalStorage": {
-      "type": "integer",
-      "enum": [0, 1],
-      "default": 0,
-      "description": "Enable personal storage system"
-    },
-    "EnableSpawnSelection": {
-      "type": "integer",
-      "enum": [0, 1],
-      "default": 0,
-      "description": "Enable spawn selection screen"
-    },
-    "EnableTerritory": {
-      "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable the territory/flag system"
-    },
-    "EnableVehicle": {
-      "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable Expansion vehicle features"
-    },
-    "NVGBrightness": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "default": 2.5,
-      "description": "Night vision goggle brightness multiplier"
-    },
-    "DisableMagicCrosshair": {
-      "type": "integer",
-      "enum": [0, 1],
-      "default": 0,
-      "description": "Disable the magic crosshair feature"
+    "Mapping": {
+      "description": "Mapping",
+      "type": "object",
+      "properties": {
+        "UseCustomMappingModule": {
+          "description": "Enable or disable custom mapping module",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ],
+          "default": 0
+        },
+        "Mapping": {
+          "description": "Mapping",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "BuildingInteriors": {
+          "description": "Building interiors",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "default": 0
+        },
+        "Interiors": {
+          "description": "Interiors",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "BuildingIvys": {
+          "description": "Building ivys",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "default": {}
     },
     "EnableLamps": {
+      "description": "0 - Disable Street-Lights | 1 - Will use and spawn Generators for Street-Lights | 2 - Street-Lights always on",
+      "examples": [
+        "3"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable street lamps and environmental lights"
+      "default": 3
+    },
+    "LampAmount_OneInX": {
+      "description": "Lamp amount_one in x",
+      "examples": [
+        "3"
+      ],
+      "type": "integer",
+      "default": 3
+    },
+    "LampSelectionMode": {
+      "description": "How lamps with lights are distributed across the map",
+      "examples": [
+        "\"FARTHEST_RANDOM\""
+      ],
+      "type": "string",
+      "enum": [
+        "RANDOM",
+        "FARTHEST",
+        "FARTHEST_RANDOM"
+      ],
+      "x-enumLabels": {
+        "RANDOM": "RANDOM (Completely random, may flicker)",
+        "FARTHEST": "FARTHEST (Optimized farthest point sampling)",
+        "FARTHEST_RANDOM": "FARTHEST_RANDOM (OFPS with random distribution)"
+      },
+      "default": "FARTHEST_RANDOM"
     },
     "EnableGenerators": {
+      "description": "Enable or disable generators",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable generators powering lights and appliances"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
-    "EnableGlobalChat": {
+    "EnableLighthouses": {
+      "description": "Enable or disable lighthouses",
+      "examples": [
+        "1"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable global chat channel"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableHUDNightvisionOverlay": {
+      "description": "Enable or disable hud nightvision overlay",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "DisableMagicCrosshair": {
+      "description": "Enable or disable magic crosshair",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "EnableAutoRun": {
+      "description": "Enable or disable auto run",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseDeathScreen": {
+      "description": "Enable or disable death screen",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseDeathScreenStatistics": {
+      "description": "Enable or disable death screen statistics",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseExpansionMainMenuLogo": {
+      "description": "Enable or disable expansion main menu logo",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseExpansionMainMenuIcons": {
+      "description": "Enable or disable expansion main menu icons",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseExpansionMainMenuIntroScene": {
+      "description": "Enable or disable expansion main menu intro scene",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseNewsFeedInGameMenu": {
+      "description": "Enable or disable news feed in game menu",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseHUDColors": {
+      "description": "Enable or disable hud colors",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "HUDColors": {
+      "description": "Hud colors",
+      "type": "object",
+      "properties": {
+        "StaminaBarColor": {
+          "description": "Stamina bar color",
+          "examples": [
+            "FFFFFFFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "StaminaBarColorHalf": {
+          "description": "Stamina bar color half",
+          "examples": [
+            "FFFFFFFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "StaminaBarColorLow": {
+          "description": "Stamina bar color low",
+          "examples": [
+            "FFFFFFFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "NotifierDividerColor": {
+          "description": "Notifier divider color",
+          "examples": [
+            "DCDCDCFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "TemperatureBurningColor": {
+          "description": "Temperature burning color",
+          "examples": [
+            "DC0000FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "TemperatureHotColor": {
+          "description": "Temperature hot color",
+          "examples": [
+            "DCDC00FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "TemperatureIdealColor": {
+          "description": "Temperature ideal color",
+          "examples": [
+            "DCDCDCFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "TemperatureColdColor": {
+          "description": "Temperature cold color",
+          "examples": [
+            "00CED1FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int",
+          "default": 0
+        },
+        "TemperatureFreezingColor": {
+          "description": "Temperature freezing color",
+          "examples": [
+            "1E90DCFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int",
+          "default": 1
+        },
+        "NotifiersIdealColor": {
+          "description": "Notifiers ideal color",
+          "examples": [
+            "DCDCDCFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "NotifiersHalfColor": {
+          "description": "Notifiers half color",
+          "examples": [
+            "DCDC00FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "NotifiersLowColor": {
+          "description": "Notifiers low color",
+          "examples": [
+            "DC0000FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "ReputationBaseColor": {
+          "description": "Reputation base color",
+          "examples": [
+            "DCDCDCFF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "ReputationMedColor": {
+          "description": "Reputation med color",
+          "examples": [
+            "DCDC00FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        },
+        "ReputationHighColor": {
+          "description": "Reputation high color",
+          "examples": [
+            "DC0000FF"
+          ],
+          "x-toolLink": "/tools/argb-calculator",
+          "type": "integer",
+          "format": "argb-int"
+        }
+      },
+      "default": {}
+    },
+    "EnableEarPlugs": {
+      "description": "Enable or disable ear plugs",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "InGameMenuLogoPath": {
+      "description": "In game menu logo path",
+      "examples": [
+        "\"set:expansion_iconset image:logo_expansion_white\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "set:expansion_iconset image:logo_expansion_white"
     }
   }
 }

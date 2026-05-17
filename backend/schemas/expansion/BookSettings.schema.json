@@ -1,0 +1,346 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BookSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-book",
+  "x-filePath": "Profiles/ExpansionMod/Settings/BookSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "EnableStatusTab": {
+      "description": "Enable or disable status tab",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnablePartyTab": {
+      "description": "Enable or disable party tab",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableServerInfoTab": {
+      "description": "Enable or disable server info tab",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableServerRulesTab": {
+      "description": "Enable or disable server rules tab",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableTerritoryTab": {
+      "description": "Enable or disable territory tab",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableBookMenu": {
+      "description": "Enable or disable book menu",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CreateBookmarks": {
+      "description": "Create bookmarks",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "ShowHaBStats": {
+      "description": "Enable or disable ha b stats",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ShowPlayerFaction": {
+      "description": "Enable or disable player faction",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "RuleCategories": {
+      "description": "Rule categories",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "CategoryName": {
+            "description": "Category name",
+            "examples": [
+              "\"General\""
+            ],
+            "type": "string",
+            "default": "General"
+          },
+          "Rules": {
+            "description": "Rules",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "RuleParagraph": {
+                  "description": "Rule paragraph",
+                  "examples": [
+                    "\"1.1.\""
+                  ],
+                  "type": "string",
+                  "default": "1.1."
+                },
+                "RuleText": {
+                  "description": "Rule text",
+                  "examples": [
+                    "\"Insults, discrimination, extremist and racist statements or texts are taboo.\""
+                  ],
+                  "type": "string",
+                  "default": "Insults, discrimination, extremist and racist statements or texts are taboo."
+                }
+              }
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "DisplayServerSettingsInServerInfoTab": {
+      "description": "Display server settings in server info tab",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "SettingCategories": {
+      "description": "Setting categories",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "CategoryName": {
+            "description": "Category name",
+            "examples": [
+              "\"Base-Building Settings\""
+            ],
+            "type": "string",
+            "default": "Base-Building Settings"
+          },
+          "Settings": {
+            "description": "Settings",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "SettingTitle": {
+                  "description": "DayZ classname (e.g. \"Expansion.Settings.BaseBuilding.CanCraftVanillaBasebuilding\")",
+                  "examples": [
+                    "\"Expansion.Settings.BaseBuilding.CanCraftVanillaBasebuilding\""
+                  ],
+                  "type": "string",
+                  "format": "dayz-classname",
+                  "default": "Expansion.Settings.BaseBuilding.CanCraftVanillaBasebuilding"
+                },
+                "SettingText": {
+                  "description": "Setting text",
+                  "examples": [
+                    "\"\""
+                  ],
+                  "type": "string",
+                  "default": ""
+                },
+                "SettingValue": {
+                  "description": "Setting value",
+                  "examples": [
+                    "\"\""
+                  ],
+                  "type": "string",
+                  "default": ""
+                }
+              }
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "Links": {
+      "description": "Links",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "description": "Name",
+            "examples": [
+              "\"Homepage\""
+            ],
+            "type": "string",
+            "default": "Homepage"
+          },
+          "URL": {
+            "description": "Url",
+            "examples": [
+              "\"https://www.google.com/\""
+            ],
+            "type": "string",
+            "default": "https://www.google.com/"
+          },
+          "IconName": {
+            "description": "Icon name",
+            "examples": [
+              "\"Homepage\""
+            ],
+            "type": "string",
+            "format": "expansion-icon",
+            "default": "Homepage"
+          },
+          "IconColor": {
+            "description": "Icon color",
+            "examples": [
+              "-14473430"
+            ],
+            "x-toolLink": "/tools/argb-calculator",
+            "type": "integer",
+            "format": "argb-int",
+            "default": -14473430
+          }
+        }
+      },
+      "default": []
+    },
+    "Descriptions": {
+      "description": "Descriptions",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "CategoryName": {
+            "description": "Category name",
+            "examples": [
+              "\"General Info\""
+            ],
+            "type": "string",
+            "default": "General Info"
+          },
+          "Descriptions": {
+            "description": "Descriptions",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "DescriptionText": {
+                  "description": "Description text",
+                  "examples": [
+                    "\"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.\""
+                  ],
+                  "type": "string",
+                  "default": "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
+                }
+              }
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "CraftingCategories": {
+      "description": "Crafting categories",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "CategoryName": {
+            "description": "Category name",
+            "examples": [
+              "\"Accessories\""
+            ],
+            "type": "string",
+            "default": "Accessories"
+          },
+          "Results": {
+            "description": "Results",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "EnableCraftingRecipesTab": {
+      "description": "Enable or disable crafting recipes tab",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    }
+  }
+}

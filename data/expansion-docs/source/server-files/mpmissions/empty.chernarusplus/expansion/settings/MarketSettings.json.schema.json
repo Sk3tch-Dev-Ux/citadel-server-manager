@@ -1,0 +1,566 @@
+{
+  "name": "MarketSettings",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/settings/MarketSettings.json",
+  "linkedModId": "expansion-market",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "17",
+      "description": "M_version",
+      "defaultValue": "17"
+    },
+    {
+      "name": "MarketSystemEnabled",
+      "type": "int",
+      "example": "1",
+      "description": "Market system enabled",
+      "defaultValue": "1"
+    },
+    {
+      "name": "NetworkCategories",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Network categories",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "CurrencyIcon",
+      "type": "icon",
+      "example": "\"DayZExpansion/Core/GUI/icons/misc/coinstack2_64x64.edds\"",
+      "description": "Currency icon",
+      "defaultValue": "\"DayZExpansion/Core/GUI/icons/misc/coinstack2_64x64.edds\""
+    },
+    {
+      "name": "ATMSystemEnabled",
+      "type": "int",
+      "example": "1",
+      "description": "Atm system enabled",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxDepositMoney",
+      "type": "int",
+      "example": "100000",
+      "description": "Max deposit money",
+      "defaultValue": "100000"
+    },
+    {
+      "name": "DefaultDepositMoney",
+      "type": "int",
+      "example": "10000",
+      "description": "Default deposit money",
+      "defaultValue": "10000"
+    },
+    {
+      "name": "ATMPlayerTransferEnabled",
+      "type": "int",
+      "example": "1",
+      "description": "Atm player transfer enabled",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ATMPartyLockerEnabled",
+      "type": "int",
+      "example": "1",
+      "description": "Atm party locker enabled",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxPartyDepositMoney",
+      "type": "int",
+      "example": "100000",
+      "description": "Max party deposit money",
+      "defaultValue": "100000"
+    },
+    {
+      "name": "UseWholeMapForATMPlayerList",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable whole map for atm player list",
+      "defaultValue": "0"
+    },
+    {
+      "name": "SellPricePercent",
+      "type": "int",
+      "example": "38",
+      "description": "Sell price percent. Range: 0–100",
+      "defaultValue": "75"
+    },
+    {
+      "name": "NetworkBatchSize",
+      "type": "int",
+      "example": "100",
+      "description": "Network batch size (default: 100)",
+      "defaultValue": "100"
+    },
+    {
+      "name": "MaxVehicleDistanceToTrader",
+      "type": "int",
+      "example": "120",
+      "description": "Max vehicle distance to trader",
+      "defaultValue": "120"
+    },
+    {
+      "name": "MaxLargeVehicleDistanceToTrader",
+      "type": "int",
+      "example": "744",
+      "description": "Max large vehicle distance to trader",
+      "defaultValue": "744"
+    },
+    {
+      "name": "LargeVehicles",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Large vehicles",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "LandSpawnPositions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Position, Orientation",
+      "description": "Land spawn positions",
+      "defaultValue": "[6 items]",
+      "nestedSettings": [
+        {
+          "name": "Position",
+          "type": "vector",
+          "example": "11903.400390625, 140, 12455.099609375",
+          "description": "Position",
+          "defaultValue": "11903.400390625, 140, 12455.099609375"
+        },
+        {
+          "name": "Orientation",
+          "type": "vector",
+          "example": "24, 0, 0",
+          "description": "Orientation",
+          "defaultValue": "24, 0, 0"
+        }
+      ]
+    },
+    {
+      "name": "AirSpawnPositions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Position, Orientation",
+      "description": "Air spawn positions",
+      "defaultValue": "[5 items]",
+      "nestedSettings": [
+        {
+          "name": "Position",
+          "type": "vector",
+          "example": "12178.900390625, 140, 12638.400390625",
+          "description": "Position",
+          "defaultValue": "12178.900390625, 140, 12638.400390625"
+        },
+        {
+          "name": "Orientation",
+          "type": "vector",
+          "example": "-157.1999969482422, 0, 0",
+          "description": "Orientation",
+          "defaultValue": "-157.1999969482422, 0, 0"
+        }
+      ]
+    },
+    {
+      "name": "WaterSpawnPositions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Position, Orientation",
+      "description": "Water spawn positions",
+      "defaultValue": "[6 items]",
+      "nestedSettings": [
+        {
+          "name": "Position",
+          "type": "vector",
+          "example": "1759, 0, 1994",
+          "description": "Position",
+          "defaultValue": "1759, 0, 1994"
+        },
+        {
+          "name": "Orientation",
+          "type": "vector",
+          "example": "0, 0, 0",
+          "description": "Orientation",
+          "defaultValue": "0, 0, 0"
+        }
+      ]
+    },
+    {
+      "name": "MarketMenuColors",
+      "type": "object",
+      "example": "",
+      "description": "Market menu colors",
+      "defaultValue": "{38 keys}",
+      "nestedSettings": [
+        {
+          "name": "BaseColorVignette",
+          "type": "color",
+          "example": "000000C8",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Base color vignette",
+          "defaultValue": "000000C8"
+        },
+        {
+          "name": "BaseColorHeaders",
+          "type": "color",
+          "example": "13171BFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Base color headers",
+          "defaultValue": "13171BFF"
+        },
+        {
+          "name": "BaseColorLabels",
+          "type": "color",
+          "example": "27272DFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Base color labels",
+          "defaultValue": "27272DFF"
+        },
+        {
+          "name": "BaseColorText",
+          "type": "color",
+          "example": "FBFCFEFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Base color text",
+          "defaultValue": "FBFCFEFF"
+        },
+        {
+          "name": "BaseColorCheckboxes",
+          "type": "color",
+          "example": "FBFCFEFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Base color checkboxes",
+          "defaultValue": "FBFCFEFF"
+        },
+        {
+          "name": "BaseColorInfoSectionBackground",
+          "type": "color",
+          "example": "2225268C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Base color info section background",
+          "defaultValue": "2225268C"
+        },
+        {
+          "name": "BaseColorTooltipsHeaders",
+          "type": "color",
+          "example": "000000F0",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Base color tooltips headers",
+          "defaultValue": "000000F0"
+        },
+        {
+          "name": "BaseColorTooltipsBackground",
+          "type": "color",
+          "example": "000000DC",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Base color tooltips background",
+          "defaultValue": "000000DC"
+        },
+        {
+          "name": "ColorDecreaseQuantityButton",
+          "type": "color",
+          "example": "DD262614",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color decrease quantity button",
+          "defaultValue": "DD262614"
+        },
+        {
+          "name": "ColorDecreaseQuantityIcon",
+          "type": "color",
+          "example": "DD262628",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color decrease quantity icon",
+          "defaultValue": "DD262628"
+        },
+        {
+          "name": "ColorSetQuantityButton",
+          "type": "color",
+          "example": "C7265114",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color set quantity button",
+          "defaultValue": "C7265114"
+        },
+        {
+          "name": "ColorIncreaseQuantityButton",
+          "type": "color",
+          "example": "A0CC7114",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color increase quantity button",
+          "defaultValue": "A0CC7114"
+        },
+        {
+          "name": "ColorIncreaseQuantityIcon",
+          "type": "color",
+          "example": "A0CC7128",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color increase quantity icon",
+          "defaultValue": "A0CC7128"
+        },
+        {
+          "name": "ColorSellPanel",
+          "type": "color",
+          "example": "27272DFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color sell panel",
+          "defaultValue": "27272DFF"
+        },
+        {
+          "name": "ColorSellButton",
+          "type": "color",
+          "example": "DD262628",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color sell button",
+          "defaultValue": "DD262628"
+        },
+        {
+          "name": "ColorBuyPanel",
+          "type": "color",
+          "example": "27272DFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color buy panel",
+          "defaultValue": "27272DFF"
+        },
+        {
+          "name": "ColorBuyButton",
+          "type": "color",
+          "example": "A0CC7128",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color buy button",
+          "defaultValue": "A0CC7128"
+        },
+        {
+          "name": "ColorMarketIcon",
+          "type": "color",
+          "example": "E241428C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color market icon",
+          "defaultValue": "E241428C"
+        },
+        {
+          "name": "ColorFilterOptionsButton",
+          "type": "color",
+          "example": "C726518C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color filter options button",
+          "defaultValue": "C726518C"
+        },
+        {
+          "name": "ColorFilterOptionsIcon",
+          "type": "color",
+          "example": "C726518C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color filter options icon",
+          "defaultValue": "C726518C"
+        },
+        {
+          "name": "ColorSearchFilterButton",
+          "type": "color",
+          "example": "C726518C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color search filter button",
+          "defaultValue": "C726518C"
+        },
+        {
+          "name": "ColorCategoryButton",
+          "type": "color",
+          "example": "C726518C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color category button",
+          "defaultValue": "C726518C"
+        },
+        {
+          "name": "ColorCategoryCollapseIcon",
+          "type": "color",
+          "example": "C726518C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color category collapse icon",
+          "defaultValue": "C726518C"
+        },
+        {
+          "name": "ColorCurrencyDenominationText",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color currency denomination text",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorItemButton",
+          "type": "color",
+          "example": "C726518C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item button",
+          "defaultValue": "C726518C"
+        },
+        {
+          "name": "ColorItemInfoIcon",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item info icon",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorItemInfoTitle",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item info title",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorItemInfoHasContainerItems",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item info has container items",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorItemInfoHasAttachments",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item info has attachments",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorItemInfoHasBullets",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item info has bullets",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorItemInfoIsAttachment",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item info is attachment",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorItemInfoIsEquipped",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item info is equipped",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorItemInfoAttachments",
+          "type": "color",
+          "example": "FFB418FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color item info attachments",
+          "defaultValue": "FFB418FF"
+        },
+        {
+          "name": "ColorToggleCategoriesText",
+          "type": "color",
+          "example": "C726518C",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color toggle categories text",
+          "defaultValue": "C726518C"
+        },
+        {
+          "name": "ColorCategoryCorners",
+          "type": "color",
+          "example": "FBFCFEFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color category corners",
+          "defaultValue": "FBFCFEFF"
+        },
+        {
+          "name": "ColorCategoryBackground",
+          "type": "color",
+          "example": "222526FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color category background",
+          "defaultValue": "222526FF"
+        },
+        {
+          "name": "ColorPlayerStock",
+          "type": "color",
+          "example": "2980B9FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color player stock",
+          "defaultValue": "2980B9FF"
+        },
+        {
+          "name": "ColorRequirementsNotMet",
+          "type": "color",
+          "example": "EB4635FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Color requirements not met",
+          "defaultValue": "EB4635FF"
+        }
+      ]
+    },
+    {
+      "name": "Currencies",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Currencies",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "VehicleKeys",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Vehicle keys",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "MaxSZVehicleParkingTime",
+      "type": "int",
+      "example": "1800",
+      "description": "Time duration in milliseconds",
+      "defaultValue": "1800"
+    },
+    {
+      "name": "SZVehicleParkingTicketFine",
+      "type": "int",
+      "example": "0",
+      "description": "Sz vehicle parking ticket fine",
+      "defaultValue": "0"
+    },
+    {
+      "name": "SZVehicleParkingFineUseKey",
+      "type": "int",
+      "example": "1",
+      "description": "Sz vehicle parking fine use key",
+      "defaultValue": "1"
+    },
+    {
+      "name": "TrainSpawnPositions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Train spawn positions",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "DisallowUnpersisted",
+      "type": "int",
+      "example": "0",
+      "description": "Disallow unpersisted",
+      "defaultValue": "0"
+    },
+    {
+      "name": "DisableClientSellTransactionDetails",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable client sell transaction details",
+      "defaultValue": "0"
+    }
+  ]
+}

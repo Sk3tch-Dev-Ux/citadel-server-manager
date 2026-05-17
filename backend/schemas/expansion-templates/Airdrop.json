@@ -1,0 +1,6 @@
+{
+  "id": "tpl-airdrop",
+  "name": "Airdrop",
+  "template": "{\n  \"Loot\": [],\n  \"Speed\": \"number\",\n  \"Height\": \"number\",\n  \"Reward\": \"string\",\n  \"Weight\": \"number\",\n  \"Enabled\": \"number\",\n  \"Infected\": [],\n  \"Container\": \"string\",\n  \"FallSpeed\": \"number\",\n  \"ItemCount\": \"number\",\n  \"Objective\": \"number\",\n  \"m_Version\": \"number\",\n  \"Difficulty\": \"number\",\n  \"MissionName\": \"string\",\n  \"DropLocation\": {\n    \"x\": \"number\",\n    \"z\": \"number\",\n    \"Name\": \"string\",\n    \"Radius\": \"number\"\n  },\n  \"DropZoneSpeed\": \"number\",\n  \"InfectedCount\": \"number\",\n  \"DropZoneHeight\": \"number\",\n  \"MissionMaxTime\": \"number\",\n  \"ShowNotification\": \"number\",\n  \"AirdropPlaneClassName\": \"string\"\n}",
+  "description": "Auto-generated validation template for Airdrop"
+}

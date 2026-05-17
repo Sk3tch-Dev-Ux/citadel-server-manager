@@ -1,0 +1,6 @@
+{
+  "id": "tpl-market-category",
+  "name": "Market_Category",
+  "template": "{\n  \"Icon\": \"string\",\n  \"Color\": \"string\",\n  \"Items\": {\n    \"string\": \"string\"\n  },\n  \"m_Version\": \"number\",\n  \"IsExchange\": \"number\",\n  \"DisplayName\": \"string\",\n  \"InitStockPercent\": \"number\"\n}",
+  "description": "Auto-generated validation template for Market_Category"
+}

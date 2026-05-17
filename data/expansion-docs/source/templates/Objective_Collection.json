@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-collection",
+  "name": "Objective_Collection",
+  "template": "{\n  \"ID\": \"number\",\n  \"Active\": \"number\",\n  \"TimeLimit\": \"number\",\n  \"Collections\": [\n    {\n      \"Amount\": \"number\",\n      \"ClassName\": \"string\",\n      \"QuantityPercent\": \"number\",\n      \"MinQuantityPercent\": \"number\"\n    }\n  ],\n  \"ShowDistance\": \"number\",\n  \"ConfigVersion\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"ObjectiveType\": \"number\",\n  \"NeedAnyCollection\": \"number\",\n  \"AddItemsToNearbyMarketZone\": \"number\"\n}",
+  "description": "Auto-generated validation template for Objective_Collection"
+}

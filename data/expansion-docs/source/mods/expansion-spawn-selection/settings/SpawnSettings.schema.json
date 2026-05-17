@@ -1,0 +1,467 @@
+{
+  "id": "config-1778065678580-ipll",
+  "name": "SpawnSettings",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/settings/SpawnSettings.json",
+  "linkedModId": "expansion-spawn-selection",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "8",
+      "description": "M_version",
+      "defaultValue": "8"
+    },
+    {
+      "name": "SpawnLocations",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 5 properties",
+      "description": "Spawn locations",
+      "defaultValue": "[4 items]",
+      "nestedSettings": [
+        {
+          "name": "Name",
+          "type": "string",
+          "example": "\"Green Mountain\"",
+          "description": "Name",
+          "defaultValue": "\"Green Mountain\""
+        },
+        {
+          "name": "Faction",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Faction",
+          "defaultValue": "\"\""
+        },
+        {
+          "name": "Reputation",
+          "type": "int",
+          "example": "0",
+          "description": "Reputation",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Positions",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Positions",
+          "defaultValue": "[1 items]"
+        },
+        {
+          "name": "UseCooldown",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable cooldown",
+          "defaultValue": "0"
+        }
+      ]
+    },
+    {
+      "name": "StartingClothing",
+      "type": "object",
+      "example": "",
+      "description": "Starting clothing",
+      "defaultValue": "{13 keys}",
+      "nestedSettings": [
+        {
+          "name": "EnableCustomClothing",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable custom clothing",
+          "defaultValue": "0"
+        },
+        {
+          "name": "SetRandomHealth",
+          "type": "int",
+          "example": "1",
+          "description": "Set random health",
+          "defaultValue": "1"
+        },
+        {
+          "name": "Headgear",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Headgear",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Glasses",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Glasses",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Masks",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Masks",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Tops",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Tops",
+          "defaultValue": "[10 items]"
+        },
+        {
+          "name": "Vests",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Vests",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Gloves",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Gloves",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Pants",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Pants",
+          "defaultValue": "[10 items]"
+        },
+        {
+          "name": "Belts",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Belts",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Shoes",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Shoes",
+          "defaultValue": "[5 items]"
+        },
+        {
+          "name": "Armbands",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Armbands",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "Backpacks",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Backpacks",
+          "defaultValue": "[4 items]"
+        }
+      ]
+    },
+    {
+      "name": "EnableSpawnSelection",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable spawn selection",
+      "defaultValue": "0"
+    },
+    {
+      "name": "SpawnOnTerritory",
+      "type": "int",
+      "example": "0",
+      "description": "Spawn on territory",
+      "defaultValue": "0"
+    },
+    {
+      "name": "StartingGear",
+      "type": "object",
+      "example": "",
+      "description": "Starting gear",
+      "defaultValue": "{9 keys}",
+      "nestedSettings": [
+        {
+          "name": "EnableStartingGear",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable starting gear",
+          "defaultValue": "0"
+        },
+        {
+          "name": "ApplyEnergySources",
+          "type": "int",
+          "example": "1",
+          "description": "Apply energy sources",
+          "defaultValue": "1"
+        },
+        {
+          "name": "SetRandomHealth",
+          "type": "int",
+          "example": "1",
+          "description": "Set random health",
+          "defaultValue": "1"
+        },
+        {
+          "name": "UpperGear",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with ClassName, Quantity, Attachments",
+          "description": "Upper gear",
+          "defaultValue": "[2 items]",
+          "nestedSettings": [
+            {
+              "name": "ClassName",
+              "type": "classname",
+              "example": "\"Rag\"",
+              "description": "DayZ classname (e.g. \"Rag\")",
+              "defaultValue": "\"Rag\""
+            },
+            {
+              "name": "Quantity",
+              "type": "int",
+              "example": "4",
+              "description": "Quantity",
+              "defaultValue": "4"
+            },
+            {
+              "name": "Attachments",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Attachments",
+              "defaultValue": "[0 items]"
+            }
+          ]
+        },
+        {
+          "name": "PantsGear",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Pants gear",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "BackpackGear",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Backpack gear",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "VestGear",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Vest gear",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "PrimaryWeapon",
+          "type": "object",
+          "example": "",
+          "description": "Primary weapon",
+          "defaultValue": "{3 keys}",
+          "nestedSettings": [
+            {
+              "name": "ClassName",
+              "type": "classname",
+              "example": "\"\"",
+              "description": "DayZ classname (e.g. \"\")",
+              "defaultValue": "\"\""
+            },
+            {
+              "name": "Quantity",
+              "type": "int",
+              "example": "0",
+              "description": "Quantity",
+              "defaultValue": "0"
+            },
+            {
+              "name": "Attachments",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Attachments",
+              "defaultValue": "[0 items]"
+            }
+          ]
+        },
+        {
+          "name": "SecondaryWeapon",
+          "type": "object",
+          "example": "",
+          "description": "Secondary weapon",
+          "defaultValue": "{3 keys}",
+          "nestedSettings": [
+            {
+              "name": "ClassName",
+              "type": "classname",
+              "example": "\"\"",
+              "description": "DayZ classname (e.g. \"\")",
+              "defaultValue": "\"\""
+            },
+            {
+              "name": "Quantity",
+              "type": "int",
+              "example": "0",
+              "description": "Quantity",
+              "defaultValue": "0"
+            },
+            {
+              "name": "Attachments",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Attachments",
+              "defaultValue": "[0 items]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UseLoadouts",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable loadouts",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaleLoadouts",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Loadout, Chance",
+      "description": "Male loadouts",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "Loadout",
+          "type": "string",
+          "example": "\"PlayerSurvivorLoadout\"",
+          "description": "Loadout",
+          "defaultValue": "\"PlayerSurvivorLoadout\""
+        },
+        {
+          "name": "Chance",
+          "type": "int",
+          "example": "1",
+          "description": "Chance. Range: 0–100",
+          "defaultValue": "1"
+        }
+      ]
+    },
+    {
+      "name": "FemaleLoadouts",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Loadout, Chance",
+      "description": "Female loadouts",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "Loadout",
+          "type": "string",
+          "example": "\"PlayerSurvivorLoadout\"",
+          "description": "Loadout",
+          "defaultValue": "\"PlayerSurvivorLoadout\""
+        },
+        {
+          "name": "Chance",
+          "type": "int",
+          "example": "1",
+          "description": "Chance. Range: 0–100",
+          "defaultValue": "1"
+        }
+      ]
+    },
+    {
+      "name": "SpawnHealthValue",
+      "type": "int",
+      "example": "100",
+      "description": "Spawn health value",
+      "defaultValue": "100"
+    },
+    {
+      "name": "SpawnEnergyValue",
+      "type": "int",
+      "example": "1000",
+      "description": "Spawn energy value",
+      "defaultValue": "1000"
+    },
+    {
+      "name": "SpawnWaterValue",
+      "type": "int",
+      "example": "1000",
+      "description": "Spawn water value",
+      "defaultValue": "1000"
+    },
+    {
+      "name": "EnableRespawnCooldowns",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable respawn cooldowns",
+      "defaultValue": "1"
+    },
+    {
+      "name": "RespawnCooldown",
+      "type": "int",
+      "example": "120",
+      "description": "Respawn cooldown",
+      "defaultValue": "120"
+    },
+    {
+      "name": "TerritoryRespawnCooldown",
+      "type": "int",
+      "example": "240",
+      "description": "Territory respawn cooldown",
+      "defaultValue": "240"
+    },
+    {
+      "name": "PunishMultispawn",
+      "type": "int",
+      "example": "1",
+      "description": "Punish multispawn",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PunishCooldown",
+      "type": "int",
+      "example": "120",
+      "description": "Punish cooldown",
+      "defaultValue": "120"
+    },
+    {
+      "name": "PunishTimeframe",
+      "type": "int",
+      "example": "300",
+      "description": "Time duration in seconds",
+      "defaultValue": "300"
+    },
+    {
+      "name": "CreateDeathMarker",
+      "type": "int",
+      "example": "1",
+      "description": "Create death marker",
+      "defaultValue": "1"
+    },
+    {
+      "name": "BackgroundImagePath",
+      "type": "icon",
+      "example": "\"DayZExpansion/SpawnSelection/GUI/textures/wood_background.edds\"",
+      "description": "Background image path",
+      "defaultValue": "\"DayZExpansion/SpawnSelection/GUI/textures/wood_background.edds\""
+    }
+  ]
+}

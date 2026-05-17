@@ -1,0 +1,6 @@
+{
+  "id": "tpl-playerlistsettings",
+  "name": "PlayerListSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"EnablePlayerList\": \"number\",\n  \"EnableTooltip\": \"number\"\n}",
+  "description": "Auto-generated validation template for PlayerListSettings"
+}

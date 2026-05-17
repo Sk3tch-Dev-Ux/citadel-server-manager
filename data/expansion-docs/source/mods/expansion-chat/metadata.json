@@ -1,0 +1,210 @@
+{
+  "id": "expansion-chat",
+  "name": "Expansion Chat",
+  "shortName": "Chat",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Chat",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792982897",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964106",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Improved chat system with channels and muting system.",
+  "overview": "Expansion Chat replaces the vanilla chat with a feature-rich communication system. It supports multiple chat channels (global, proximity, group, admin), customizable colors, and chat history. Server admins can moderate chat, set up auto-messages, and configure channel permissions.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-groups"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed.",
+    "Download @ExpansionChat from the Steam Workshop.",
+    "Add to your -mod= parameter after Core.",
+    "Configure chat channels and permissions."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Chat messages not appearing",
+      "solution": "Verify chat settings are valid and the chat mod is loaded after Core."
+    },
+    {
+      "problem": "Global chat spam",
+      "solution": "Consider adding a message cooldown or disabling global chat."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Proximity Only",
+      "description": "Disable global chat and only allow proximity communication for immersive gameplay."
+    },
+    {
+      "title": "Full Communication",
+      "description": "Enable all channels for maximum player interaction."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "EnableGlobalChat",
+      "example": "0",
+      "description": "Enable the global chat channel.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableProximityChat",
+      "example": "0",
+      "description": "Enable proximity-based local chat.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ProximityRadius",
+      "example": "100",
+      "description": "Radius in meters for proximity chat.",
+      "defaultValue": "50"
+    },
+    {
+      "name": "EnableGroupChat",
+      "example": "0",
+      "description": "Enable group-only chat channel.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ChatHistoryLength",
+      "example": "50",
+      "description": "Number of messages to keep in chat history.",
+      "defaultValue": "100"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082993804-6z-7wc8",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082993804-70-v1tr",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082993804-71-o5tb",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Proximity Only",
+                        "description": "Disable global chat and only allow proximity communication for immersive gameplay."
+                      },
+                      {
+                        "title": "Full Communication",
+                        "description": "Enable all channels for maximum player interaction."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-j65e2",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082993804-72-f1js",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082993804-73-9yj6",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Chat replaces the vanilla chat with a feature-rich communication system. It supports multiple chat channels (global, proximity, group, admin), customizable colors, and chat history. Server admins can moderate chat, set up auto-messages, and configure channel permissions.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-jo1q3",
+                  "content": "Expansion Chat replaces the vanilla chat with a feature-rich communication system. It supports multiple chat channels (global, proximity, group, admin), customizable colors, and chat history. Server admins can moderate chat, set up auto-messages, and configure channel permissions.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082993804-74-q3dv",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082993804-75-dmqu",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed.",
+                    "Download @ExpansionChat from the Steam Workshop.",
+                    "Add to your -mod= parameter after Core.",
+                    "Configure chat channels and permissions."
+                  ],
+                  "blockId": "block-1773333239007-2k8jm",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082993804-76-fwhk",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082993804-77-3b5t",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Chat messages not appearing",
+                        "description": "Verify chat settings are valid and the chat mod is loaded after Core."
+                      },
+                      {
+                        "title": "Global chat spam",
+                        "description": "Consider adding a message cooldown or disabling global chat."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-7zj7b",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "chat"
+  ]
+}

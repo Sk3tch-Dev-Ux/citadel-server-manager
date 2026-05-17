@@ -1,0 +1,290 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QuestSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-quests",
+  "x-filePath": "Profiles/ExpansionMod/Settings/QuestSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "10"
+      ],
+      "type": "integer",
+      "default": 10
+    },
+    "EnableQuests": {
+      "description": "Enable or disable quests",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "EnableQuestLogTab": {
+      "description": "Enable or disable quest log tab",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CreateQuestNPCMarkers": {
+      "description": "Create quest npc markers",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "QuestAcceptedTitle": {
+      "description": "Quest accepted title",
+      "examples": [
+        "\"Quest Accepted\""
+      ],
+      "type": "string",
+      "default": "Quest Accepted"
+    },
+    "QuestAcceptedText": {
+      "description": "Quest accepted text",
+      "examples": [
+        "\"The quest %1 has been accepted!\""
+      ],
+      "type": "string",
+      "default": "The quest %1 has been accepted!"
+    },
+    "QuestCompletedTitle": {
+      "description": "Quest completed title",
+      "examples": [
+        "\"Quest Completed\""
+      ],
+      "type": "string",
+      "default": "Quest Completed"
+    },
+    "QuestCompletedText": {
+      "description": "Quest completed text",
+      "examples": [
+        "\"All objectives of the quest %1 have been completed\""
+      ],
+      "type": "string",
+      "default": "All objectives of the quest %1 have been completed"
+    },
+    "QuestFailedTitle": {
+      "description": "Quest failed title",
+      "examples": [
+        "\"Quest Failed\""
+      ],
+      "type": "string",
+      "default": "Quest Failed"
+    },
+    "QuestFailedText": {
+      "description": "Quest failed text",
+      "examples": [
+        "\"The quest %1 failed!\""
+      ],
+      "type": "string",
+      "default": "The quest %1 failed!"
+    },
+    "QuestCanceledTitle": {
+      "description": "Quest canceled title",
+      "examples": [
+        "\"Quest Canceled\""
+      ],
+      "type": "string",
+      "default": "Quest Canceled"
+    },
+    "QuestCanceledText": {
+      "description": "Quest canceled text",
+      "examples": [
+        "\"The quest %1 has been canceled!\""
+      ],
+      "type": "string",
+      "default": "The quest %1 has been canceled!"
+    },
+    "QuestTurnInTitle": {
+      "description": "Quest turn in title",
+      "examples": [
+        "\"Quest Turn-In\""
+      ],
+      "type": "string",
+      "default": "Quest Turn-In"
+    },
+    "QuestTurnInText": {
+      "description": "Quest turn in text",
+      "examples": [
+        "\"The quest %1 has been completed!\""
+      ],
+      "type": "string",
+      "default": "The quest %1 has been completed!"
+    },
+    "QuestObjectiveCompletedTitle": {
+      "description": "Quest objective completed title",
+      "examples": [
+        "\"Objective Completed\""
+      ],
+      "type": "string",
+      "default": "Objective Completed"
+    },
+    "QuestObjectiveCompletedText": {
+      "description": "Quest objective completed text",
+      "examples": [
+        "\"You have completed the objective %1 of the quest %2.\""
+      ],
+      "type": "string",
+      "default": "You have completed the objective %1 of the quest %2."
+    },
+    "QuestCooldownTitle": {
+      "description": "Quest cooldown title",
+      "examples": [
+        "\"Quest Cooldown\""
+      ],
+      "type": "string",
+      "default": "Quest Cooldown"
+    },
+    "QuestCooldownText": {
+      "description": "Quest cooldown text",
+      "examples": [
+        "\"This quest is still on cooldown! Come back in %1\""
+      ],
+      "type": "string",
+      "default": "This quest is still on cooldown! Come back in %1"
+    },
+    "QuestNotInGroupTitle": {
+      "description": "Quest not in group title",
+      "examples": [
+        "\"Group Quest\""
+      ],
+      "type": "string",
+      "default": "Group Quest"
+    },
+    "QuestNotInGroupText": {
+      "description": "Quest not in group text",
+      "examples": [
+        "\"Group quests can only be accepted while in a group!\""
+      ],
+      "type": "string",
+      "default": "Group quests can only be accepted while in a group!"
+    },
+    "QuestNotGroupOwnerTitle": {
+      "description": "Quest not group owner title",
+      "examples": [
+        "\"Group Quest\""
+      ],
+      "type": "string",
+      "default": "Group Quest"
+    },
+    "QuestNotGroupOwnerText": {
+      "description": "Quest not group owner text",
+      "examples": [
+        "\"Only a group owner can accept and turn-in a group quest!\""
+      ],
+      "type": "string",
+      "default": "Only a group owner can accept and turn-in a group quest!"
+    },
+    "GroupQuestMode": {
+      "description": "Group quest mode selector (0–5)",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "AchievementCompletedTitle": {
+      "description": "Achievement completed title",
+      "examples": [
+        "\"Achievement \\\"%1\\\" completed!\""
+      ],
+      "type": "string",
+      "default": "Achievement \\\"%1\\\" completed!"
+    },
+    "AchievementCompletedText": {
+      "description": "Achievement completed text",
+      "examples": [
+        "\"%1\""
+      ],
+      "type": "string",
+      "default": "%1"
+    },
+    "WeeklyResetDay": {
+      "description": "Weekly reset day",
+      "examples": [
+        "\"Wednesday\""
+      ],
+      "type": "string",
+      "default": "Wednesday"
+    },
+    "WeeklyResetMinute": {
+      "description": "Weekly reset minute",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "WeeklyResetHour": {
+      "description": "Weekly reset hour",
+      "examples": [
+        "8"
+      ],
+      "type": "integer",
+      "default": 8
+    },
+    "DailyResetHour": {
+      "description": "Daily reset hour",
+      "examples": [
+        "8"
+      ],
+      "type": "integer",
+      "default": 8
+    },
+    "DailyResetMinute": {
+      "description": "Daily reset minute",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "UseUTCTime": {
+      "description": "Enable or disable utc time",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "UseQuestNPCIndicators": {
+      "description": "Enable or disable quest npc indicators",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "MaxActiveQuests": {
+      "description": "Max active quests",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    }
+  }
+}

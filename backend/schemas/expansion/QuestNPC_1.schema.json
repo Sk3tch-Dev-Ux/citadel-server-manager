@@ -1,0 +1,161 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QuestNPC_1",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-quests",
+  "x-filePath": "Profiles/ExpansionMod/Quests/NPCs/QuestNPC_1.json",
+  "properties": {
+    "ConfigVersion": {
+      "description": "Config version",
+      "examples": [
+        "6"
+      ],
+      "type": "integer",
+      "default": 6
+    },
+    "ID": {
+      "description": "Id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ClassName": {
+      "description": "DayZ classname (e.g. \"ExpansionQuestNPCAIDenis\")",
+      "examples": [
+        "\"ExpansionQuestNPCAIDenis\""
+      ],
+      "type": "string",
+      "format": "dayz-classname",
+      "default": "ExpansionQuestNPCAIDenis"
+    },
+    "Position": {
+      "description": "Position",
+      "examples": [
+        "3706.27001953125, 402.0119934082031, 5987.080078125"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "3706.27001953125, 402.0119934082031, 5987.080078125"
+    },
+    "Orientation": {
+      "description": "Orientation",
+      "examples": [
+        "282, 0, 0"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "282, 0, 0"
+    },
+    "NPCName": {
+      "description": "Npc name",
+      "examples": [
+        "\"Peter\""
+      ],
+      "type": "string",
+      "default": "Peter"
+    },
+    "DefaultNPCText": {
+      "description": "Default npc text",
+      "examples": [
+        "\"Hmm?\""
+      ],
+      "type": "string",
+      "default": "Hmm?"
+    },
+    "Waypoints": {
+      "description": "Waypoints",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "NPCEmoteID": {
+      "description": "Npc emote id",
+      "examples": [
+        "46"
+      ],
+      "type": "integer",
+      "default": 46
+    },
+    "NPCEmoteIsStatic": {
+      "description": "Npc emote is static",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "NPCLoadoutFile": {
+      "description": "Npc loadout file",
+      "examples": [
+        "\"NBCLoadout\""
+      ],
+      "type": "string",
+      "default": "NBCLoadout"
+    },
+    "NPCInteractionEmoteID": {
+      "description": "Npc interaction emote id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "NPCQuestCancelEmoteID": {
+      "description": "Npc quest cancel emote id",
+      "examples": [
+        "60"
+      ],
+      "type": "integer",
+      "default": 60
+    },
+    "NPCQuestStartEmoteID": {
+      "description": "Npc quest start emote id",
+      "examples": [
+        "58"
+      ],
+      "type": "integer",
+      "default": 58
+    },
+    "NPCQuestCompleteEmoteID": {
+      "description": "Npc quest complete emote id",
+      "examples": [
+        "39"
+      ],
+      "type": "integer",
+      "default": 39
+    },
+    "NPCFaction": {
+      "description": "Npc faction",
+      "examples": [
+        "\"InvincibleObservers\""
+      ],
+      "type": "string",
+      "default": "InvincibleObservers"
+    },
+    "NPCType": {
+      "description": "Npc type selector (0–5)",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "Active": {
+      "description": "Enable or disable active",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    }
+  }
+}

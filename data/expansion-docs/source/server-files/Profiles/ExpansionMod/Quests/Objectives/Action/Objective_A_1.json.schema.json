@@ -1,0 +1,81 @@
+{
+  "name": "Objective_A_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Objectives/Action/Objective_A_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "28",
+      "description": "Config version",
+      "defaultValue": "28"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ObjectiveType",
+      "type": "enum",
+      "example": "10",
+      "description": "Objective type selector (0–10)",
+      "defaultValue": "10"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Lockpick a vehicle:\"",
+      "description": "Objective text",
+      "defaultValue": "\"Lockpick a vehicle:\""
+    },
+    {
+      "name": "TimeLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Time limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ActionNames",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Action names",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "AllowedClassNames",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Allowed class names",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "ExcludedClassNames",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Excluded class names",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "ExecutionAmount",
+      "type": "int",
+      "example": "1",
+      "description": "Execution amount (default: 1)",
+      "defaultValue": "1"
+    }
+  ]
+}

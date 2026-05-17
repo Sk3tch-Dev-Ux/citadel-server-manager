@@ -1,0 +1,372 @@
+{
+  "name": "Quest_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Quests/Quest_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "22",
+      "description": "Config version",
+      "defaultValue": "22"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Type",
+      "type": "enum",
+      "example": "1",
+      "description": "Type selector (0–5)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Title",
+      "type": "string",
+      "example": "\"A dirty rat's job\"",
+      "description": "Title",
+      "defaultValue": "\"A dirty rat's job\""
+    },
+    {
+      "name": "Descriptions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Descriptions",
+      "defaultValue": "[3 items]"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Deliver the note and talk to Steve.\"",
+      "description": "Objective text",
+      "defaultValue": "\"Deliver the note and talk to Steve.\""
+    },
+    {
+      "name": "FollowUpQuest",
+      "type": "int",
+      "example": "2",
+      "description": "Follow up quest",
+      "defaultValue": "2"
+    },
+    {
+      "name": "Repeatable",
+      "type": "int",
+      "example": "0",
+      "description": "Repeatable",
+      "defaultValue": "0"
+    },
+    {
+      "name": "IsDailyQuest",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable daily quest",
+      "defaultValue": "0"
+    },
+    {
+      "name": "IsWeeklyQuest",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable weekly quest",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CancelQuestOnPlayerDeath",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable cel quest on player death",
+      "defaultValue": "0"
+    },
+    {
+      "name": "Autocomplete",
+      "type": "int",
+      "example": "0",
+      "description": "Autocomplete",
+      "defaultValue": "0"
+    },
+    {
+      "name": "IsGroupQuest",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable group quest",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ObjectSetFileName",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Object set file name",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "QuestItems",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with ClassName, Amount",
+      "description": "Quest items",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "ClassName",
+          "type": "classname",
+          "example": "\"SledgeHammer\"",
+          "description": "DayZ classname (e.g. \"SledgeHammer\")",
+          "defaultValue": "\"SledgeHammer\""
+        },
+        {
+          "name": "Amount",
+          "type": "int",
+          "example": "1",
+          "description": "Amount (default: 1)",
+          "defaultValue": "1"
+        }
+      ]
+    },
+    {
+      "name": "Rewards",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 7 properties",
+      "description": "Rewards",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "ClassName",
+          "type": "classname",
+          "example": "\"ExpansionBanknoteHryvnia\"",
+          "description": "DayZ classname (e.g. \"ExpansionBanknoteHryvnia\")",
+          "defaultValue": "\"ExpansionBanknoteHryvnia\""
+        },
+        {
+          "name": "Amount",
+          "type": "int",
+          "example": "100",
+          "description": "Amount (default: 100)",
+          "defaultValue": "100"
+        },
+        {
+          "name": "Attachments",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Attachments",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "DamagePercent",
+          "type": "int",
+          "example": "0",
+          "description": "Damage percent. Range: 0–100",
+          "defaultValue": "0"
+        },
+        {
+          "name": "HealthPercent",
+          "type": "int",
+          "example": "0",
+          "description": "Health percent. Range: 0–100",
+          "defaultValue": "0"
+        },
+        {
+          "name": "QuestID",
+          "type": "int",
+          "example": "-1",
+          "description": "Quest id",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "Chance",
+          "type": "int",
+          "example": "1",
+          "description": "Chance. Range: 0–100",
+          "defaultValue": "1"
+        }
+      ]
+    },
+    {
+      "name": "NeedToSelectReward",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable to select reward",
+      "defaultValue": "0"
+    },
+    {
+      "name": "RandomReward",
+      "type": "int",
+      "example": "0",
+      "description": "Random reward",
+      "defaultValue": "0"
+    },
+    {
+      "name": "RandomRewardAmount",
+      "type": "int",
+      "example": "-1",
+      "description": "Random reward amount (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "RewardsForGroupOwnerOnly",
+      "type": "int",
+      "example": "1",
+      "description": "Rewards for group owner only",
+      "defaultValue": "1"
+    },
+    {
+      "name": "RewardBehavior",
+      "type": "int",
+      "example": "0",
+      "description": "Reward behavior",
+      "defaultValue": "0"
+    },
+    {
+      "name": "QuestGiverIDs",
+      "type": "array",
+      "example": "",
+      "arrayItems": "numeric values",
+      "description": "Quest giver i ds",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "QuestTurnInIDs",
+      "type": "array",
+      "example": "",
+      "arrayItems": "numeric values",
+      "description": "Quest turn in i ds",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "IsAchievement",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable achievement",
+      "defaultValue": "0"
+    },
+    {
+      "name": "Objectives",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with ConfigVersion, ID, ObjectiveType",
+      "description": "Objectives",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "ConfigVersion",
+          "type": "int",
+          "example": "28",
+          "description": "Config version",
+          "defaultValue": "28"
+        },
+        {
+          "name": "ID",
+          "type": "int",
+          "example": "1",
+          "description": "Id",
+          "defaultValue": "1"
+        },
+        {
+          "name": "ObjectiveType",
+          "type": "enum",
+          "example": "5",
+          "description": "Objective type selector (0–5)",
+          "defaultValue": "5"
+        }
+      ]
+    },
+    {
+      "name": "QuestColor",
+      "type": "int",
+      "example": "0",
+      "description": "Quest color",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ReputationReward",
+      "type": "int",
+      "example": "0",
+      "description": "Reputation reward",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ReputationRequirement",
+      "type": "int",
+      "example": "-1",
+      "description": "Reputation requirement",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "PreQuestIDs",
+      "type": "array",
+      "example": "",
+      "arrayItems": "numeric values",
+      "description": "Pre quest i ds",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "RequiredFaction",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Required faction",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "FactionReward",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Faction reward",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "PlayerNeedQuestItems",
+      "type": "int",
+      "example": "1",
+      "description": "Player need quest items",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DeleteQuestItems",
+      "type": "int",
+      "example": "1",
+      "description": "Delete quest items",
+      "defaultValue": "1"
+    },
+    {
+      "name": "SequentialObjectives",
+      "type": "int",
+      "example": "1",
+      "description": "Sequential objectives",
+      "defaultValue": "1"
+    },
+    {
+      "name": "FactionReputationRequirements",
+      "type": "object",
+      "example": "",
+      "description": "Faction reputation requirements",
+      "defaultValue": "{0 keys}"
+    },
+    {
+      "name": "FactionReputationRewards",
+      "type": "object",
+      "example": "",
+      "description": "Faction reputation rewards",
+      "defaultValue": "{0 keys}"
+    },
+    {
+      "name": "SuppressQuestLogOnCompetion",
+      "type": "int",
+      "example": "0",
+      "description": "Suppress quest log on competion",
+      "defaultValue": "0"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    }
+  ]
+}

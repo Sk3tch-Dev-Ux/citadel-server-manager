@@ -1,0 +1,117 @@
+{
+  "id": "config-1778065678585-s60y",
+  "name": "Objective_D_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Objectives/Delivery/Objective_D_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "28",
+      "description": "Config version",
+      "defaultValue": "28"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ObjectiveType",
+      "type": "enum",
+      "example": "5",
+      "description": "Objective type selector (0–5)",
+      "defaultValue": "5"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Deliver the note to Steve\"",
+      "description": "Objective text",
+      "defaultValue": "\"Deliver the note to Steve\""
+    },
+    {
+      "name": "TimeLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Time limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Collections",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Amount, ClassName, QuantityPercent, MinQuantityPercent",
+      "description": "Collections",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "Amount",
+          "type": "int",
+          "example": "1",
+          "description": "Amount (default: 1)",
+          "defaultValue": "1"
+        },
+        {
+          "name": "ClassName",
+          "type": "classname",
+          "example": "\"ExpansionQuestItemPaper\"",
+          "description": "DayZ classname (e.g. \"ExpansionQuestItemPaper\")",
+          "defaultValue": "\"ExpansionQuestItemPaper\""
+        },
+        {
+          "name": "QuantityPercent",
+          "type": "int",
+          "example": "0",
+          "description": "Quantity percent. Range: 0–100",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "MinQuantityPercent",
+          "type": "int",
+          "example": "0",
+          "description": "Min quantity percent. Range: 0–100",
+          "defaultValue": "-1"
+        }
+      ]
+    },
+    {
+      "name": "ShowDistance",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance",
+      "defaultValue": "1"
+    },
+    {
+      "name": "AddItemsToNearbyMarketZone",
+      "type": "int",
+      "example": "0",
+      "description": "Add items to nearby market zone",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxDistance",
+      "type": "int",
+      "example": "20",
+      "description": "Max distance (default: 20)",
+      "defaultValue": "20"
+    },
+    {
+      "name": "MarkerName",
+      "type": "string",
+      "example": "\"Talk to Steve\"",
+      "description": "Marker name",
+      "defaultValue": "\"Talk to Steve\""
+    }
+  ]
+}

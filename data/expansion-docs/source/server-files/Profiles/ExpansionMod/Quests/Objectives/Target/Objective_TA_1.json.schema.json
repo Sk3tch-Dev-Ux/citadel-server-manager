@@ -1,0 +1,132 @@
+{
+  "name": "Objective_TA_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Objectives/Target/Objective_TA_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "28",
+      "description": "Config version",
+      "defaultValue": "28"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ObjectiveType",
+      "type": "enum",
+      "example": "2",
+      "description": "Objective type selector (0–5)",
+      "defaultValue": "2"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Kill 10 Infected with a sledgehammer\"",
+      "description": "Objective text",
+      "defaultValue": "\"Kill 10 Infected with a sledgehammer\""
+    },
+    {
+      "name": "TimeLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Time limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Position",
+      "type": "vector",
+      "example": "2596.699951171875, 306.1000061035156, 6378.47021484375",
+      "description": "Position",
+      "defaultValue": "2596.699951171875, 306.1000061035156, 6378.47021484375"
+    },
+    {
+      "name": "MaxDistance",
+      "type": "int",
+      "example": "150",
+      "description": "Max distance (default: 150)",
+      "defaultValue": "150"
+    },
+    {
+      "name": "MinDistance",
+      "type": "int",
+      "example": "-1",
+      "description": "Min distance (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Amount",
+      "type": "int",
+      "example": "10",
+      "description": "Amount (default: 10)",
+      "defaultValue": "10"
+    },
+    {
+      "name": "ClassNames",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Class names",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "CountSelfKill",
+      "type": "int",
+      "example": "0",
+      "description": "Count self kill",
+      "defaultValue": "0"
+    },
+    {
+      "name": "AllowedWeapons",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Allowed weapons",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "ExcludedClassNames",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Excluded class names",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "CountAIPlayers",
+      "type": "int",
+      "example": "0",
+      "description": "Count ai players",
+      "defaultValue": "0"
+    },
+    {
+      "name": "AllowedTargetFactions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Allowed target factions",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "AllowedDamageZones",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Allowed damage zones",
+      "defaultValue": "[0 items]"
+    }
+  ]
+}

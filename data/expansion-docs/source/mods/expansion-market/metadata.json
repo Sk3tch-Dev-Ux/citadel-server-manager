@@ -1,0 +1,225 @@
+{
+  "id": "expansion-market",
+  "name": "Expansion Market",
+  "shortName": "Market",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Market",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2572328470",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2540095036",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Full trader system with configurable markets, dynamic pricing, and trading zones.",
+  "overview": "Expansion Market adds a complete trading system to DayZ. Server owners can create trader NPCs, define item catalogs with prices, set up safe trading zones, and configure dynamic pricing based on supply and demand. The market supports multiple currencies, categories, and trader locations.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-groups"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed.",
+    "Download @ExpansionMarket from the Steam Workshop.",
+    "Add to your -mod= parameter after Core.",
+    "Configure trader zones, items, and pricing.",
+    "Set up trader NPC positions in the world."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Traders not appearing",
+      "solution": "Verify trader position files have correct coordinates and the trader object is spawned in the map."
+    },
+    {
+      "problem": "Items showing wrong prices",
+      "solution": "Check market category files for correct price thresholds."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Static Economy",
+      "description": "Disable dynamic pricing for predictable, fixed item prices."
+    },
+    {
+      "title": "Player-Driven Economy",
+      "description": "Enable dynamic pricing with high fluctuation for a realistic economy."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "Enabled",
+      "example": "0",
+      "description": "Enable or disable the market system.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxItemsPerTrader",
+      "example": "100",
+      "description": "Maximum items a single trader can list.",
+      "defaultValue": "200"
+    },
+    {
+      "name": "EnableDynamicPricing",
+      "example": "0",
+      "description": "Enable supply/demand based price fluctuation.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PriceFluctuation",
+      "example": "0.5",
+      "description": "Maximum price change percentage per cycle (0.0-1.0).",
+      "defaultValue": "0.2"
+    },
+    {
+      "name": "ATMEnabled",
+      "example": "0",
+      "description": "Enable the ATM banking system.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxBankBalance",
+      "example": "500000",
+      "description": "Maximum amount a player can store in the bank.",
+      "defaultValue": "1000000"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082985895-3u-h3sg",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082985895-3v-l3h0",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082985895-3w-wj7n",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Static Economy",
+                        "description": "Disable dynamic pricing for predictable, fixed item prices."
+                      },
+                      {
+                        "title": "Player-Driven Economy",
+                        "description": "Enable dynamic pricing with high fluctuation for a realistic economy."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-l2byp",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082985895-3x-n365",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082985895-3y-xceb",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Market adds a complete trading system to DayZ. Server owners can create trader NPCs, define item catalogs with prices, set up safe trading zones, and configure dynamic pricing based on supply and demand. The market supports multiple currencies, categories, and trader locations.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-ujb9e",
+                  "content": "Expansion Market adds a complete trading system to DayZ. Server owners can create trader NPCs, define item catalogs with prices, set up safe trading zones, and configure dynamic pricing based on supply and demand. The market supports multiple currencies, categories, and trader locations.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082985895-3z-tdro",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082985895-40-2aha",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed.",
+                    "Download @ExpansionMarket from the Steam Workshop.",
+                    "Add to your -mod= parameter after Core.",
+                    "Configure trader zones, items, and pricing.",
+                    "Set up trader NPC positions in the world."
+                  ],
+                  "blockId": "block-1773333239007-ezzvh",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082985895-41-bot2",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082985895-42-5u4m",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Traders not appearing",
+                        "description": "Verify trader position files have correct coordinates and the trader object is spawned in the map."
+                      },
+                      {
+                        "title": "Items showing wrong prices",
+                        "description": "Check market category files for correct price thresholds."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-kadbh",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [
+    "argb-calculator",
+    "json-validator",
+    "json-form"
+  ],
+  "linkedGuides": [
+    "market-setup",
+    "market-categories"
+  ],
+  "changelogKeywords": [
+    "market"
+  ]
+}

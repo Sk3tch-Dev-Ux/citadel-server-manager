@@ -1,0 +1,174 @@
+{
+  "id": "config-1778065678578-j5w2",
+  "name": "HardlineSettings",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/settings/HardlineSettings.json",
+  "linkedModId": "expansion-hardline",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "11",
+      "description": "M_version",
+      "defaultValue": "11"
+    },
+    {
+      "name": "PoorItemRequirement",
+      "type": "int",
+      "example": "0",
+      "description": "Poor item requirement",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CommonItemRequirement",
+      "type": "int",
+      "example": "0",
+      "description": "Common item requirement",
+      "defaultValue": "0"
+    },
+    {
+      "name": "UncommonItemRequirement",
+      "type": "int",
+      "example": "1000",
+      "description": "Uncommon item requirement",
+      "defaultValue": "1000"
+    },
+    {
+      "name": "RareItemRequirement",
+      "type": "int",
+      "example": "2000",
+      "description": "Rare item requirement",
+      "defaultValue": "2000"
+    },
+    {
+      "name": "EpicItemRequirement",
+      "type": "int",
+      "example": "3000",
+      "description": "Epic item requirement",
+      "defaultValue": "3000"
+    },
+    {
+      "name": "LegendaryItemRequirement",
+      "type": "int",
+      "example": "4000",
+      "description": "Legendary item requirement",
+      "defaultValue": "4000"
+    },
+    {
+      "name": "MythicItemRequirement",
+      "type": "int",
+      "example": "5000",
+      "description": "Mythic item requirement",
+      "defaultValue": "5000"
+    },
+    {
+      "name": "ExoticItemRequirement",
+      "type": "int",
+      "example": "10000",
+      "description": "Exotic item requirement",
+      "defaultValue": "10000"
+    },
+    {
+      "name": "ShowHardlineHUD",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable hardline hud",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseReputation",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable reputation",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseFactionReputation",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable faction reputation",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableFactionPersistence",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable faction persistence",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableItemRarity",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable item rarity",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseItemRarityOnInventoryIcons",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable item rarity on inventory icons",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseItemRarityForMarketPurchase",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable item rarity for market purchase",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseItemRarityForMarketSell",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable item rarity for market sell",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxReputation",
+      "type": "int",
+      "example": "90000",
+      "description": "Max reputation",
+      "defaultValue": "90000"
+    },
+    {
+      "name": "ReputationLossOnDeath",
+      "type": "int",
+      "example": "100",
+      "description": "Reputation loss on death",
+      "defaultValue": "100"
+    },
+    {
+      "name": "DefaultItemRarity",
+      "type": "int",
+      "example": "2",
+      "description": "Default item rarity",
+      "defaultValue": "2"
+    },
+    {
+      "name": "ItemRarityParentSearch",
+      "type": "int",
+      "example": "0",
+      "description": "Item rarity parent search",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EntityReputation",
+      "type": "map",
+      "example": "",
+      "mapKeyType": "string",
+      "description": "Entity reputation",
+      "defaultValue": "{ \"Animal_GallusGallusDomesticus\": 1, … (10 entries) }",
+      "mapValueType": "int"
+    },
+    {
+      "name": "ItemRarity",
+      "type": "map",
+      "example": "",
+      "mapKeyType": "string",
+      "description": "Item rarity",
+      "defaultValue": "{ \"aviatorglasses\": 3, … (1345 entries) }",
+      "mapValueType": "int"
+    }
+  ]
+}

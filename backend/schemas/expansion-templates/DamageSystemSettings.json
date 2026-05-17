@@ -1,0 +1,6 @@
+{
+  "id": "tpl-damagesystemsettings",
+  "name": "DamageSystemSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"CheckForBlockingObjects\": \"number\",\n  \"ExplosionTargets\": [\n    \"string\"\n  ],\n  \"ExplosiveProjectiles\": {\n    \"string\": \"string\"\n  }\n}",
+  "description": "Auto-generated validation template for DamageSystemSettings"
+}

@@ -1,0 +1,6 @@
+{
+  "id": "tpl-muzzles",
+  "name": "Muzzles",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"DisplayName\": \"string\",\n  \"Icon\": \"string\",\n  \"Color\": \"string\",\n  \"IsExchange\": \"number\",\n  \"InitStockPercent\": \"number\",\n  \"Items\": [\n    {\n      \"ClassName\": \"string\",\n      \"MaxPriceThreshold\": \"number\",\n      \"MinPriceThreshold\": \"number\",\n      \"SellPricePercent\": \"number\",\n      \"MaxStockThreshold\": \"number\",\n      \"MinStockThreshold\": \"number\",\n      \"QuantityPercent\": \"number\",\n      \"SpawnAttachments\": [],\n      \"Variants\": []\n    }\n  ]\n}",
+  "description": "Auto-generated validation template for Muzzles"
+}

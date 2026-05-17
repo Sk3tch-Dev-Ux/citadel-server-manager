@@ -1,0 +1,213 @@
+{
+  "id": "expansion-missions",
+  "name": "Expansion Missions",
+  "shortName": "Missions",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Missions",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792984177",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2792964110",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Adds a dynamic mission system with configurable objectives, rewards, and events.",
+  "overview": "Expansion Missions provides a flexible mission framework that creates dynamic objectives for players. Missions can range from simple supply drops to complex multi-stage events involving AI combat. Server owners can configure mission types, frequency, rewards, and difficulty. The system supports custom mission creation for advanced users.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-ai"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed.",
+    "Download @ExpansionMissions from the Steam Workshop.",
+    "Add to your -mod= parameter after Core.",
+    "Start server to generate mission configuration files.",
+    "Configure mission types and parameters in the settings."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Missions not spawning",
+      "solution": "Verify Enabled is set to 1 and that MissionInterval hasn't been set too high."
+    },
+    {
+      "problem": "Mission rewards not appearing",
+      "solution": "Check reward configuration files for valid item classnames."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Airdrop Events",
+      "description": "Configure supply drop missions that notify all players and create high-risk PvP hotspots."
+    },
+    {
+      "title": "Timed Objectives",
+      "description": "Set up missions that must be completed within a time limit for bonus rewards."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "Enabled",
+      "example": "0",
+      "description": "Enable or disable the mission system.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MissionInterval",
+      "example": "900",
+      "description": "Time in seconds between mission spawns.",
+      "defaultValue": "1800"
+    },
+    {
+      "name": "MaxMissions",
+      "example": "5",
+      "description": "Maximum concurrent active missions.",
+      "defaultValue": "3"
+    },
+    {
+      "name": "MissionCleanupTime",
+      "example": "300",
+      "description": "Seconds before completed/failed missions are cleaned up.",
+      "defaultValue": "600"
+    },
+    {
+      "name": "EnableMissionNotifications",
+      "example": "0",
+      "description": "Show notifications when missions start or complete.",
+      "defaultValue": "1"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082988454-4s-75jm",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082988454-4t-ewhr",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082988454-4u-v6xq",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Airdrop Events",
+                        "description": "Configure supply drop missions that notify all players and create high-risk PvP hotspots."
+                      },
+                      {
+                        "title": "Timed Objectives",
+                        "description": "Set up missions that must be completed within a time limit for bonus rewards."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-s8tq5",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082988454-4v-dd8t",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082988454-4w-2zmz",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Missions provides a flexible mission framework that creates dynamic objectives for players. Missions can range from simple supply drops to complex multi-stage events involving AI combat. Server owners can configure mission types, frequency, rewards, and difficulty. The system supports custom mission creation for advanced users.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-8sri7",
+                  "content": "Expansion Missions provides a flexible mission framework that creates dynamic objectives for players. Missions can range from simple supply drops to complex multi-stage events involving AI combat. Server owners can configure mission types, frequency, rewards, and difficulty. The system supports custom mission creation for advanced users.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082988454-4x-5y7i",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082988454-4y-405q",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed.",
+                    "Download @ExpansionMissions from the Steam Workshop.",
+                    "Add to your -mod= parameter after Core.",
+                    "Start server to generate mission configuration files.",
+                    "Configure mission types and parameters in the settings."
+                  ],
+                  "blockId": "block-1773333239007-fmuz0",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082988454-4z-ua9x",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082988454-50-cua6",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Missions not spawning",
+                        "description": "Verify Enabled is set to 1 and that MissionInterval hasn't been set too high."
+                      },
+                      {
+                        "title": "Mission rewards not appearing",
+                        "description": "Check reward configuration files for valid item classnames."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-1ttoc",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [],
+  "changelogKeywords": [
+    "missions",
+    "mission"
+  ]
+}

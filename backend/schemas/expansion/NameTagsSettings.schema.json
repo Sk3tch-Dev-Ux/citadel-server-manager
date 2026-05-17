@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NameTagsSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-name-tags",
+  "x-filePath": "Profiles/ExpansionMod/Settings/NameTagsSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "4"
+      ],
+      "type": "integer",
+      "default": 4
+    },
+    "EnablePlayerTags": {
+      "description": "Enable or disable player tags",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "PlayerTagViewRange": {
+      "description": "Player tag view range (default: 5)",
+      "examples": [
+        "5"
+      ],
+      "type": "integer",
+      "default": 5
+    },
+    "PlayerTagsIcon": {
+      "description": "Player tags icon",
+      "examples": [
+        "\"Persona\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "Persona"
+    },
+    "PlayerTagsColor": {
+      "description": "ARGB color value (-1 = default/disabled)",
+      "examples": [
+        "-1"
+      ],
+      "x-toolLink": "/tools/argb-calculator",
+      "type": "integer",
+      "format": "argb-int",
+      "default": -1
+    },
+    "PlayerNameColor": {
+      "description": "ARGB color value (-1 = default/disabled)",
+      "examples": [
+        "-1"
+      ],
+      "x-toolLink": "/tools/argb-calculator",
+      "type": "integer",
+      "format": "argb-int",
+      "default": -1
+    },
+    "OnlyInSafeZones": {
+      "description": "Only in safe zones",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "OnlyInTerritories": {
+      "description": "Only in territories",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "ShowPlayerItemInHands": {
+      "description": "Enable or disable player item in hands",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "ShowNPCTags": {
+      "description": "Enable or disable npc tags",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "ShowPlayerFaction": {
+      "description": "Enable or disable player faction",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "UseRarityColorForItemInHands": {
+      "description": "Enable or disable rarity color for item in hands",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    }
+  }
+}

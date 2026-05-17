@@ -1,0 +1,252 @@
+{
+  "name": "MapSettings",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/settings/MapSettings.json",
+  "linkedModId": "expansion-navigation",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "5",
+      "description": "M_version",
+      "defaultValue": "5"
+    },
+    {
+      "name": "EnableMap",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable map",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseMapOnMapItem",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable map on map item",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPlayerPosition",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable player position",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowMapStats",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable map stats",
+      "defaultValue": "1"
+    },
+    {
+      "name": "NeedPenItemForCreateMarker",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable pen item for create marker",
+      "defaultValue": "0"
+    },
+    {
+      "name": "NeedGPSItemForCreateMarker",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable gps item for create marker",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CanCreateMarker",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable create marker",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CanCreate3DMarker",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable create3 d marker",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CanOpenMapWithKeyBinding",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable open map with key binding",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowDistanceOnPersonalMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance on personal markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableHUDGPS",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable hudgps",
+      "defaultValue": "1"
+    },
+    {
+      "name": "NeedGPSItemForKeyBinding",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable gps item for key binding",
+      "defaultValue": "1"
+    },
+    {
+      "name": "NeedMapItemForKeyBinding",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable map item for key binding",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableServerMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable server markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowNameOnServerMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable name on server markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowDistanceOnServerMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance on server markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ServerMarkers",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 9 properties",
+      "description": "Server markers",
+      "defaultValue": "[6 items]",
+      "nestedSettings": [
+        {
+          "name": "m_UID",
+          "type": "classname",
+          "example": "\"ServerMarker_Trader_Krasno\"",
+          "description": "DayZ classname (e.g. \"ServerMarker_Trader_Krasno\")",
+          "defaultValue": "\"ServerMarker_Trader_Krasno\""
+        },
+        {
+          "name": "m_Visibility",
+          "type": "int",
+          "example": "6",
+          "description": "M_visibility",
+          "defaultValue": "6"
+        },
+        {
+          "name": "m_Is3D",
+          "type": "int",
+          "example": "1",
+          "description": "M_is3 d",
+          "defaultValue": "1"
+        },
+        {
+          "name": "m_Text",
+          "type": "string",
+          "example": "\"Traders - Krasnostav Airstrip\"",
+          "description": "M_text",
+          "defaultValue": "\"Traders - Krasnostav Airstrip\""
+        },
+        {
+          "name": "m_IconName",
+          "type": "icon",
+          "example": "\"Trader\"",
+          "description": "M_icon name",
+          "defaultValue": "\"Trader\""
+        },
+        {
+          "name": "m_Color",
+          "type": "color",
+          "example": "-13710223",
+          "toolLink": "/tools/argb-calculator",
+          "description": "M_color",
+          "defaultValue": "-13710223"
+        },
+        {
+          "name": "m_Position",
+          "type": "vector",
+          "example": "11882, 143, 12466",
+          "description": "M_position",
+          "defaultValue": "11882, 143, 12466"
+        },
+        {
+          "name": "m_Locked",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable m_locked",
+          "defaultValue": "0"
+        },
+        {
+          "name": "m_Persist",
+          "type": "int",
+          "example": "1",
+          "description": "M_persist",
+          "defaultValue": "1"
+        }
+      ]
+    },
+    {
+      "name": "EnableHUDCompass",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable hud compass",
+      "defaultValue": "1"
+    },
+    {
+      "name": "NeedCompassItemForHUDCompass",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable compass item for hud compass",
+      "defaultValue": "1"
+    },
+    {
+      "name": "NeedGPSItemForHUDCompass",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable gps item for hud compass",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CompassColor",
+      "type": "color",
+      "example": "-1",
+      "toolLink": "/tools/argb-calculator",
+      "description": "ARGB color value (-1 = default/disabled)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "CreateDeathMarker",
+      "type": "int",
+      "example": "1",
+      "description": "Create death marker",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PlayerLocationNotifier",
+      "type": "int",
+      "example": "1",
+      "description": "Player location notifier",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CompassBadgesColor",
+      "type": "color",
+      "example": "-1946157056",
+      "toolLink": "/tools/argb-calculator",
+      "description": "Compass badges color",
+      "defaultValue": "-1946157056"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "settings-editor",
+  "name": "Settings Editor",
+  "description": "Create and edit Expansion config files — SafeZones, BaseBuilding, Trader Zones, AI Patrols, Player Spawns, and Map Markers with a visual map editor.",
+  "iconName": "MapPinned",
+  "keywords": [
+    "zone",
+    "safezone",
+    "basebuilding",
+    "polygon",
+    "circle",
+    "cylinder",
+    "territory",
+    "no-build",
+    "expansion",
+    "settings",
+    "editor",
+    "patrols",
+    "spawns",
+    "markers"
+  ],
+  "enabled": true,
+  "toolType": "official",
+  "isVisual": true,
+  "outputModes": [
+    "generate"
+  ],
+  "downloadFilename": "ExpansionZone.json",
+  "tabIcons": {
+    "Zone": "MapPin",
+    "Flags": "Flag",
+    "Advanced": "Settings"
+  },
+  "formFields": [
+    {
+      "id": "se-ce1",
+      "key": "configEditor",
+      "type": "config-editor",
+      "group": "",
+      "label": "",
+      "colSpan": 4,
+      "description": "Import and edit Expansion config files — SafeZones, BaseBuilding, Trader Zones, AI Patrols, Player Spawns, and Map Markers with a visual editor.",
+      "defaultValue": "{}"
+    }
+  ],
+  "blocks": [],
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "_seedVersion": 4,
+  "_editPath": "/admin/custom-tools/settings-editor",
+  "_isVisual": true,
+  "_toolType": "official",
+  "_viewPath": "/tools/custom/settings-editor",
+  "_isCommunityPage": false,
+  "nodeGraph": {
+    "nodes": [
+      {
+        "id": "n-input",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Zone Settings",
+          "fields": [
+            "zoneName",
+            "zoneType",
+            "zoneCenter",
+            "zoneRadius",
+            "zoneHeight",
+            "zoneEnabled"
+          ]
+        }
+      },
+      {
+        "id": "n-out",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Zone Config JSON",
+          "outputKey": "ZoneConfig",
+          "outputType": "object",
+          "displayType": "json"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n-input",
+        "target": "n-out"
+      }
+    ]
+  }
+}

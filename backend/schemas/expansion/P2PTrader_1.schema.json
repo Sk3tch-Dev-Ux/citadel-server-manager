@@ -1,0 +1,211 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "P2PTrader_1",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-market",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/p2pmarket/P2PTrader_1.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "8"
+      ],
+      "type": "integer",
+      "default": 8
+    },
+    "m_TraderID": {
+      "description": "M_trader id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "m_ClassName": {
+      "description": "DayZ classname (e.g. \"\")",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "format": "dayz-classname",
+      "default": ""
+    },
+    "m_Position": {
+      "description": "M_position",
+      "examples": [
+        "3697.77001953125, 402.0119934082031, 5971.1201171875"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "3697.77001953125, 402.0119934082031, 5971.1201171875"
+    },
+    "m_Orientation": {
+      "description": "M_orientation",
+      "examples": [
+        "150.1320037841797, 0, 0"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "150.1320037841797, 0, 0"
+    },
+    "m_LoadoutFile": {
+      "description": "M_loadout file",
+      "examples": [
+        "\"YellowKingLoadout\""
+      ],
+      "type": "string",
+      "default": "YellowKingLoadout"
+    },
+    "m_VehicleSpawnPosition": {
+      "description": "M_vehicle spawn position",
+      "examples": [
+        "3728.43994140625, 401.6659851074219, 6011.509765625"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "3728.43994140625, 401.6659851074219, 6011.509765625"
+    },
+    "m_WatercraftSpawnPosition": {
+      "description": "M_watercraft spawn position",
+      "examples": [
+        "0, 0, 0"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "0, 0, 0"
+    },
+    "m_AircraftSpawnPosition": {
+      "description": "M_aircraft spawn position",
+      "examples": [
+        "0, 0, 0"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "0, 0, 0"
+    },
+    "m_DisplayName": {
+      "description": "M_display name",
+      "examples": [
+        "\"Unknown\""
+      ],
+      "type": "string",
+      "default": "Unknown"
+    },
+    "m_DisplayIcon": {
+      "description": "M_display icon",
+      "examples": [
+        "\"Deliver\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "Deliver"
+    },
+    "m_Faction": {
+      "description": "M_faction",
+      "examples": [
+        "\"InvincibleObservers\""
+      ],
+      "type": "string",
+      "default": "InvincibleObservers"
+    },
+    "m_Waypoints": {
+      "description": "M_waypoints",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "m_EmoteID": {
+      "description": "M_emote id",
+      "examples": [
+        "46"
+      ],
+      "type": "integer",
+      "default": 46
+    },
+    "m_EmoteIsStatic": {
+      "description": "M_emote is static",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "m_RequiredFaction": {
+      "description": "M_required faction",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "default": ""
+    },
+    "m_UseReputation": {
+      "description": "M_use reputation",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "m_MinRequiredReputation": {
+      "description": "M_min required reputation",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "m_MaxRequiredReputation": {
+      "description": "M_max required reputation",
+      "examples": [
+        "2147483647"
+      ],
+      "x-toolLink": "/tools/argb-calculator",
+      "type": "integer",
+      "format": "argb-int",
+      "default": 2147483647
+    },
+    "m_RequiredCompletedQuestID": {
+      "description": "M_required completed quest id",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "m_IsGlobalTrader": {
+      "description": "M_is global trader",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "m_Currencies": {
+      "description": "M_currencies",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "m_DisplayCurrencyValue": {
+      "description": "M_display currency value",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "m_DisplayCurrencyName": {
+      "description": "M_display currency name",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "default": ""
+    }
+  }
+}

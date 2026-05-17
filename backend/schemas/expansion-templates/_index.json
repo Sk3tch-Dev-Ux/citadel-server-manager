@@ -1,0 +1,587 @@
+[
+  {
+    "id": "tpl-trader",
+    "name": "Trader",
+    "description": "Auto-generated validation template for Trader"
+  },
+  {
+    "id": "tpl-coresettings",
+    "name": "CoreSettings",
+    "description": "Auto-generated validation template for CoreSettings"
+  },
+  {
+    "id": "tpl-weapons",
+    "name": "Weapons",
+    "description": "Auto-generated validation template for Weapons"
+  },
+  {
+    "id": "tpl-objective-d-example",
+    "name": "Objective_D_Example",
+    "description": "Auto-generated validation template for Objective_D_Example"
+  },
+  {
+    "id": "tpl-objective-crafting",
+    "name": "Objective_Crafting",
+    "description": "Auto-generated validation template for Objective_Crafting"
+  },
+  {
+    "id": "tpl-vehicle-parts",
+    "name": "Vehicle_Parts",
+    "description": "Auto-generated validation template for Vehicle_Parts"
+  },
+  {
+    "id": "tpl-airdrop",
+    "name": "Airdrop",
+    "description": "Auto-generated validation template for Airdrop"
+  },
+  {
+    "id": "tpl-questnpc-example",
+    "name": "QuestNPC_Example",
+    "description": "Auto-generated validation template for QuestNPC_Example"
+  },
+  {
+    "id": "tpl-questnpc-2",
+    "name": "QuestNPC_2",
+    "description": "Auto-generated validation template for QuestNPC_2"
+  },
+  {
+    "id": "tpl-damagesystemsettings",
+    "name": "DamageSystemSettings",
+    "description": "Auto-generated validation template for DamageSystemSettings"
+  },
+  {
+    "id": "tpl-socialmediasettings",
+    "name": "SocialMediaSettings",
+    "description": "Auto-generated validation template for SocialMediaSettings"
+  },
+  {
+    "id": "tpl-clothing-accessories",
+    "name": "Clothing_Accessories",
+    "description": "Auto-generated validation template for Clothing_Accessories"
+  },
+  {
+    "id": "tpl-objective-t-example",
+    "name": "Objective_T_Example",
+    "description": "Auto-generated validation template for Objective_T_Example"
+  },
+  {
+    "id": "tpl-fishing",
+    "name": "Fishing",
+    "description": "Auto-generated validation template for Fishing"
+  },
+  {
+    "id": "spawn-selection",
+    "name": "Spawn Selection Config",
+    "description": "Validates spawn selection configuration"
+  },
+  {
+    "id": "tpl-objective-aip-1",
+    "name": "Objective_AIP_1",
+    "description": "Auto-generated validation template for Objective_AIP_1"
+  },
+  {
+    "id": "tpl-objective-treasurehunt",
+    "name": "Objective_TreasureHunt",
+    "description": "Auto-generated validation template for Objective_TreasureHunt"
+  },
+  {
+    "id": "tpl-objective-ta-example",
+    "name": "Objective_TA_Example",
+    "description": "Auto-generated validation template for Objective_TA_Example"
+  },
+  {
+    "id": "tpl-objective-aip-example",
+    "name": "Objective_AIP_Example",
+    "description": "Auto-generated validation template for Objective_AIP_Example"
+  },
+  {
+    "id": "tpl-objective-ta-1",
+    "name": "Objective_TA_1",
+    "description": "Auto-generated validation template for Objective_TA_1"
+  },
+  {
+    "id": "tpl-playerlistsettings",
+    "name": "PlayerListSettings",
+    "description": "Auto-generated validation template for PlayerListSettings"
+  },
+  {
+    "id": "tpl-objective-c-example",
+    "name": "Objective_C_Example",
+    "description": "Auto-generated validation template for Objective_C_Example"
+  },
+  {
+    "id": "tpl-objective-a-example",
+    "name": "Objective_A_Example",
+    "description": "Auto-generated validation template for Objective_A_Example"
+  },
+  {
+    "id": "tpl-traderzone",
+    "name": "TraderZone",
+    "description": "Auto-generated validation template for TraderZone"
+  },
+  {
+    "id": "tpl-p2ptrader",
+    "name": "P2PTrader",
+    "description": "Auto-generated validation template for P2PTrader"
+  },
+  {
+    "id": "tpl-example",
+    "name": "Example",
+    "description": "Auto-generated validation template for Example"
+  },
+  {
+    "id": "tpl-personalstoragesettings",
+    "name": "PersonalStorageSettings",
+    "description": "Auto-generated validation template for PersonalStorageSettings"
+  },
+  {
+    "id": "tpl-notificationschedulersettings",
+    "name": "NotificationSchedulerSettings",
+    "description": "Auto-generated validation template for NotificationSchedulerSettings"
+  },
+  {
+    "id": "tpl-territorysettings",
+    "name": "TerritorySettings",
+    "description": "Auto-generated validation template for TerritorySettings"
+  },
+  {
+    "id": "trader-config",
+    "name": "Trader Config",
+    "description": "Validates a trader configuration JSON file"
+  },
+  {
+    "id": "tpl-personalstorage-example",
+    "name": "PersonalStorage_Example",
+    "description": "Auto-generated validation template for PersonalStorage_Example"
+  },
+  {
+    "id": "tpl-objective-aiescort-example",
+    "name": "Objective_AIESCORT_Example",
+    "description": "Auto-generated validation template for Objective_AIESCORT_Example"
+  },
+  {
+    "id": "tpl-objective-th-example",
+    "name": "Objective_TH_Example",
+    "description": "Auto-generated validation template for Objective_TH_Example"
+  },
+  {
+    "id": "tpl-airdrop-example",
+    "name": "Airdrop_Example",
+    "description": "Auto-generated validation template for Airdrop_Example"
+  },
+  {
+    "id": "tpl-nametagssettings",
+    "name": "NameTagsSettings",
+    "description": "Auto-generated validation template for NameTagsSettings"
+  },
+  {
+    "id": "tpl-examplequest",
+    "name": "ExampleQuest",
+    "description": "Auto-generated validation template for ExampleQuest"
+  },
+  {
+    "id": "tpl-monitoringsettings",
+    "name": "MonitoringSettings",
+    "description": "Auto-generated validation template for MonitoringSettings"
+  },
+  {
+    "id": "tpl-chatsettings",
+    "name": "ChatSettings",
+    "description": "Auto-generated validation template for ChatSettings"
+  },
+  {
+    "id": "tpl-contaminatedarea-example",
+    "name": "ContaminatedArea_Example",
+    "description": "Auto-generated validation template for ContaminatedArea_Example"
+  },
+  {
+    "id": "tpl-ailocationsettings",
+    "name": "AILocationSettings",
+    "description": "Auto-generated validation template for AILocationSettings"
+  },
+  {
+    "id": "tpl-exampleguid",
+    "name": "ExampleGUID",
+    "description": "Auto-generated validation template for ExampleGUID"
+  },
+  {
+    "id": "tpl-objective-aic-example",
+    "name": "Objective_AIC_Example",
+    "description": "Auto-generated validation template for Objective_AIC_Example"
+  },
+  {
+    "id": "tpl-exampleloadout",
+    "name": "ExampleLoadout",
+    "description": "Auto-generated validation template for ExampleLoadout"
+  },
+  {
+    "id": "tpl-quest",
+    "name": "Quest",
+    "description": "Auto-generated validation template for Quest"
+  },
+  {
+    "id": "tpl-objective-cr-example",
+    "name": "Objective_CR_Example",
+    "description": "Auto-generated validation template for Objective_CR_Example"
+  },
+  {
+    "id": "tpl-objective-action",
+    "name": "Objective_Action",
+    "description": "Auto-generated validation template for Objective_Action"
+  },
+  {
+    "id": "tpl-p2pmarketsettings",
+    "name": "P2PMarketSettings",
+    "description": "Auto-generated validation template for P2PMarketSettings"
+  },
+  {
+    "id": "tpl-objective-aiescort",
+    "name": "Objective_AIESCORT",
+    "description": "Auto-generated validation template for Objective_AIESCORT"
+  },
+  {
+    "id": "tpl-p2ptrader-example",
+    "name": "P2PTrader_Example",
+    "description": "Auto-generated validation template for P2PTrader_Example"
+  },
+  {
+    "id": "tpl-raidsettings",
+    "name": "RaidSettings",
+    "description": "Auto-generated validation template for RaidSettings"
+  },
+  {
+    "id": "tpl-objective-th-1",
+    "name": "Objective_TH_1",
+    "description": "Auto-generated validation template for Objective_TH_1"
+  },
+  {
+    "id": "tpl-aircraft",
+    "name": "Aircraft",
+    "description": "Auto-generated validation template for Aircraft"
+  },
+  {
+    "id": "tpl-garagesettings",
+    "name": "GarageSettings",
+    "description": "Auto-generated validation template for GarageSettings"
+  },
+  {
+    "id": "tpl-airdropsettings",
+    "name": "AirdropSettings",
+    "description": "Auto-generated validation template for AirdropSettings"
+  },
+  {
+    "id": "tpl-quest-1",
+    "name": "Quest_1",
+    "description": "Auto-generated validation template for Quest_1"
+  },
+  {
+    "id": "tpl-spawnsettings",
+    "name": "SpawnSettings",
+    "description": "Auto-generated validation template for SpawnSettings"
+  },
+  {
+    "id": "tpl-basebuildingsettings",
+    "name": "BaseBuildingSettings",
+    "description": "Auto-generated validation template for BaseBuildingSettings"
+  },
+  {
+    "id": "tpl-mapsettings",
+    "name": "MapSettings",
+    "description": "Auto-generated validation template for MapSettings"
+  },
+  {
+    "id": "tpl-loadout",
+    "name": "Loadout",
+    "description": "Auto-generated validation template for Loadout"
+  },
+  {
+    "id": "tpl-objective-target",
+    "name": "Objective_Target",
+    "description": "Auto-generated validation template for Objective_Target"
+  },
+  {
+    "id": "tpl-airdrop-random-balota",
+    "name": "Airdrop_Random_Balota",
+    "description": "Auto-generated validation template for Airdrop_Random_Balota"
+  },
+  {
+    "id": "tpl-banditloadout",
+    "name": "BanditLoadout",
+    "description": "Auto-generated validation template for BanditLoadout"
+  },
+  {
+    "id": "tpl-objective-d-1",
+    "name": "Objective_D_1",
+    "description": "Auto-generated validation template for Objective_D_1"
+  },
+  {
+    "id": "tpl-objective-a-1",
+    "name": "Objective_A_1",
+    "description": "Auto-generated validation template for Objective_A_1"
+  },
+  {
+    "id": "tpl-objective-c-1",
+    "name": "Objective_C_1",
+    "description": "Auto-generated validation template for Objective_C_1"
+  },
+  {
+    "id": "tpl-hardlinesettings",
+    "name": "HardlineSettings",
+    "description": "Auto-generated validation template for HardlineSettings"
+  },
+  {
+    "id": "tpl-ammo",
+    "name": "Ammo",
+    "description": "Auto-generated validation template for Ammo"
+  },
+  {
+    "id": "tpl-objective-cr-1",
+    "name": "Objective_CR_1",
+    "description": "Auto-generated validation template for Objective_CR_1"
+  },
+  {
+    "id": "tpl-personalstorage-1",
+    "name": "PersonalStorage_1",
+    "description": "Auto-generated validation template for PersonalStorage_1"
+  },
+  {
+    "id": "tpl-booksettings",
+    "name": "BookSettings",
+    "description": "Auto-generated validation template for BookSettings"
+  },
+  {
+    "id": "tpl-objective-collection",
+    "name": "Objective_Collection",
+    "description": "Auto-generated validation template for Objective_Collection"
+  },
+  {
+    "id": "tpl-contaminatedarea",
+    "name": "ContaminatedArea",
+    "description": "Auto-generated validation template for ContaminatedArea"
+  },
+  {
+    "id": "tpl-personalstorage",
+    "name": "PersonalStorage",
+    "description": "Auto-generated validation template for PersonalStorage"
+  },
+  {
+    "id": "tpl-questnpc",
+    "name": "QuestNPC",
+    "description": "Auto-generated validation template for QuestNPC"
+  },
+  {
+    "id": "tpl-market-category",
+    "name": "Market_Category",
+    "description": "Auto-generated validation template for Market_Category"
+  },
+  {
+    "id": "tpl-atm",
+    "name": "ATM",
+    "description": "Auto-generated validation template for ATM"
+  },
+  {
+    "id": "tpl-personalstoragenewsettings",
+    "name": "PersonalStorageNewSettings",
+    "description": "Auto-generated validation template for PersonalStorageNewSettings"
+  },
+  {
+    "id": "tpl-objective-t-1",
+    "name": "Objective_T_1",
+    "description": "Auto-generated validation template for Objective_T_1"
+  },
+  {
+    "id": "tpl-objective-aicamp",
+    "name": "Objective_AICamp",
+    "description": "Auto-generated validation template for Objective_AICamp"
+  },
+  {
+    "id": "tpl-objective-deliver",
+    "name": "Objective_Deliver",
+    "description": "Auto-generated validation template for Objective_Deliver"
+  },
+  {
+    "id": "tpl-objective-aiescort-1",
+    "name": "Objective_AIESCORT_1",
+    "description": "Auto-generated validation template for Objective_AIESCORT_1"
+  },
+  {
+    "id": "tpl-contaminatedarea-pavlovo-north",
+    "name": "ContaminatedArea_Pavlovo-North",
+    "description": "Auto-generated validation template for ContaminatedArea_Pavlovo-North"
+  },
+  {
+    "id": "tpl-objective-travel",
+    "name": "Objective_Travel",
+    "description": "Auto-generated validation template for Objective_Travel"
+  },
+  {
+    "id": "tpl-partysettings",
+    "name": "PartySettings",
+    "description": "Auto-generated validation template for PartySettings"
+  },
+  {
+    "id": "tpl-aipatrolsettings",
+    "name": "AIPatrolSettings",
+    "description": "Auto-generated validation template for AIPatrolSettings"
+  },
+  {
+    "id": "tpl-objective-aic-1",
+    "name": "Objective_AIC_1",
+    "description": "Auto-generated validation template for Objective_AIC_1"
+  },
+  {
+    "id": "tpl-balotaaircrafts",
+    "name": "BalotaAircrafts",
+    "description": "Auto-generated validation template for BalotaAircrafts"
+  },
+  {
+    "id": "tpl-objective-aipatrol",
+    "name": "Objective_AIPatrol",
+    "description": "Auto-generated validation template for Objective_AIPatrol"
+  },
+  {
+    "id": "tpl-teleporter-1",
+    "name": "Teleporter_1",
+    "description": "Auto-generated validation template for Teleporter_1"
+  },
+  {
+    "id": "tpl-safezonesettings",
+    "name": "SafeZoneSettings",
+    "description": "Auto-generated validation template for SafeZoneSettings"
+  },
+  {
+    "id": "tpl-aisettings",
+    "name": "AISettings",
+    "description": "Auto-generated validation template for AISettings"
+  },
+  {
+    "id": "tpl-medical",
+    "name": "Medical",
+    "description": "Auto-generated validation template for Medical"
+  },
+  {
+    "id": "tpl-objective-c-2",
+    "name": "Objective_C_2",
+    "description": "Auto-generated validation template for Objective_C_2"
+  },
+  {
+    "id": "tpl-components",
+    "name": "Components",
+    "description": "Auto-generated validation template for Components"
+  },
+  {
+    "id": "tpl-special",
+    "name": "Special",
+    "description": "Auto-generated validation template for Special"
+  },
+  {
+    "id": "tpl-attachments",
+    "name": "Attachments",
+    "description": "Auto-generated validation template for Attachments"
+  },
+  {
+    "id": "tpl-boats",
+    "name": "Boats",
+    "description": "Auto-generated validation template for Boats"
+  },
+  {
+    "id": "tpl-muzzles",
+    "name": "Muzzles",
+    "description": "Auto-generated validation template for Muzzles"
+  },
+  {
+    "id": "tpl-helicopters",
+    "name": "Helicopters",
+    "description": "Auto-generated validation template for Helicopters"
+  },
+  {
+    "id": "tpl-handguards",
+    "name": "Handguards",
+    "description": "Auto-generated validation template for Handguards"
+  },
+  {
+    "id": "tpl-vests",
+    "name": "Vests",
+    "description": "Auto-generated validation template for Vests"
+  },
+  {
+    "id": "tpl-missionsettings",
+    "name": "MissionSettings",
+    "description": "Auto-generated validation template for MissionSettings"
+  },
+  {
+    "id": "tpl-notificationsettings",
+    "name": "NotificationSettings",
+    "description": "Auto-generated validation template for NotificationSettings"
+  },
+  {
+    "id": "tpl-navigation",
+    "name": "Navigation",
+    "description": "Auto-generated validation template for Navigation"
+  },
+  {
+    "id": "tpl-meat",
+    "name": "Meat",
+    "description": "Auto-generated validation template for Meat"
+  },
+  {
+    "id": "tpl-objective-c-3",
+    "name": "Objective_C_3",
+    "description": "Auto-generated validation template for Objective_C_3"
+  },
+  {
+    "id": "tpl-questnpc-1",
+    "name": "QuestNPC_1",
+    "description": "Auto-generated validation template for QuestNPC_1"
+  },
+  {
+    "id": "tpl-marketsettings",
+    "name": "MarketSettings",
+    "description": "Auto-generated validation template for MarketSettings"
+  },
+  {
+    "id": "tpl-hats-and-hoods",
+    "name": "Hats_And_Hoods",
+    "description": "Auto-generated validation template for Hats_And_Hoods"
+  },
+  {
+    "id": "tpl-questnpc-3",
+    "name": "QuestNPC_3",
+    "description": "Auto-generated validation template for QuestNPC_3"
+  },
+  {
+    "id": "tpl-melee-weapons",
+    "name": "Melee_Weapons",
+    "description": "Auto-generated validation template for Melee_Weapons"
+  },
+  {
+    "id": "tpl-objective-a-2",
+    "name": "Objective_A_2",
+    "description": "Auto-generated validation template for Objective_A_2"
+  },
+  {
+    "id": "tpl-p2ptrader-1",
+    "name": "P2PTrader_1",
+    "description": "Auto-generated validation template for P2PTrader_1"
+  },
+  {
+    "id": "tpl-generalsettings",
+    "name": "GeneralSettings",
+    "description": "Auto-generated validation template for GeneralSettings"
+  },
+  {
+    "id": "tpl-vehiclesettings",
+    "name": "VehicleSettings",
+    "description": "Auto-generated validation template for VehicleSettings"
+  },
+  {
+    "id": "tpl-logssettings",
+    "name": "LogsSettings",
+    "description": "Auto-generated validation template for LogsSettings"
+  },
+  {
+    "id": "tpl-questsettings",
+    "name": "QuestSettings",
+    "description": "Auto-generated validation template for QuestSettings"
+  }
+]

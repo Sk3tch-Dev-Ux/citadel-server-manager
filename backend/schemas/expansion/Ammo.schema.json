@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ammo",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-market",
+  "x-filePath": "Profiles/ExpansionMod/Market/Ammo.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "12"
+      ],
+      "type": "integer",
+      "default": 12
+    },
+    "DisplayName": {
+      "description": "Plain text or #STR_ localization key",
+      "examples": [
+        "\"#STR_EXPANSION_MARKET_CATEGORY_AMMO\""
+      ],
+      "type": "string",
+      "default": "#STR_EXPANSION_MARKET_CATEGORY_AMMO"
+    },
+    "Icon": {
+      "description": "Icon",
+      "examples": [
+        "\"Deliver\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "Deliver"
+    },
+    "Color": {
+      "description": "Color",
+      "examples": [
+        "FBFCFEFF"
+      ],
+      "x-toolLink": "/tools/argb-calculator",
+      "type": "integer",
+      "format": "argb-int"
+    },
+    "IsExchange": {
+      "description": "Enable or disable exchange",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "InitStockPercent": {
+      "description": "Init stock percent. Range: 0–100",
+      "examples": [
+        "38"
+      ],
+      "type": "integer",
+      "default": 75
+    },
+    "Items": {
+      "description": "Items",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "x-mapKeyType": "string",
+      "default": {}
+    }
+  }
+}

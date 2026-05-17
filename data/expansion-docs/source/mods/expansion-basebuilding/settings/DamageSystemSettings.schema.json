@@ -1,0 +1,47 @@
+{
+  "id": "config-1778065678589-cnyp",
+  "name": "DamageSystemSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/DamageSystemSettings.json",
+  "linkedModId": "expansion-basebuilding",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "1",
+      "description": "M_version",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable d",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CheckForBlockingObjects",
+      "type": "int",
+      "example": "1",
+      "description": "Check for blocking objects",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ExplosionTargets",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Explosion targets",
+      "defaultValue": "[2 items]"
+    },
+    {
+      "name": "ExplosiveProjectiles",
+      "type": "map",
+      "example": "",
+      "mapKeyType": "string",
+      "description": "Explosive projectiles",
+      "defaultValue": "{ \"Bullet_40mm_Explosive\": \"Explosion_40mm_Ammo\" }",
+      "mapValueType": "string"
+    }
+  ]
+}

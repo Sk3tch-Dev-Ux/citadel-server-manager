@@ -1,0 +1,22 @@
+{
+  "name": "MonitoringSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/MonitoringSettings.json",
+  "linkedModId": "expansion-core",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "1",
+      "description": "M_version",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable d",
+      "defaultValue": "1"
+    }
+  ]
+}

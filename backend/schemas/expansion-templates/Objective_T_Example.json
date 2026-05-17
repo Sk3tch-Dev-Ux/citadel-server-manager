@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-t-example",
+  "name": "Objective_T_Example",
+  "template": "{\n  \"ID\": \"number\",\n  \"Active\": \"number\",\n  \"Position\": [\n    \"number\"\n  ],\n  \"TimeLimit\": \"number\",\n  \"MarkerName\": \"string\",\n  \"MaxDistance\": \"number\",\n  \"ShowDistance\": \"number\",\n  \"ConfigVersion\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"ObjectiveType\": \"number\",\n  \"TriggerOnExit\": \"number\",\n  \"TriggerOnEnter\": \"number\"\n}",
+  "description": "Auto-generated validation template for Objective_T_Example"
+}

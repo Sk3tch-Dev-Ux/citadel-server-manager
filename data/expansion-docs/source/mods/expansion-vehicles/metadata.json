@@ -1,0 +1,222 @@
+{
+  "id": "expansion-vehicles",
+  "name": "Expansion Vehicles",
+  "shortName": "Vehicles",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Vehicles",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2291785437",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2291785676",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Adds helicopters, boats, cars, car keys, towing, and vehicle features like destroyable trees and coverable netting.",
+  "overview": "Expansion Vehicles adds a wide variety of new vehicles to DayZ, bringing back iconic vehicles from the DayZ mod era.\n\n## Helicopters\n\n- MH-6 Little Bird\n- Merlin\n- UH1H\n- Gyrocopter\n- Quack\n\n## Boats\n\n- Zodiac\n- Utility (RHIB)\n- LHD (Aircraft Carrier)\n\n## Cars\n\n- Vodnik (amphibious)\n- Tractor\n- Bus\n- UAZ (transport, cargo variants)\n- Landrover\n\n## Additional Features\n\n- **Vanilla Vehicle Skins** — New colored variants of vanilla vehicles\n- **Car Keys** — Lock and unlock vehicles\n- **Towing** — Tow vehicles with other vehicles\n- **Destroyable Trees** — Trees break on vehicle impact\n- **Ruined Doors** — Damaged doors can fall off\n- **Vehicle Netting** — Cover vehicles with camouflage netting\n\n> For additional helicopters, check out the Arma 2 Helicopters Remastered mod.",
+  "dependencies": [
+    "expansion-core",
+    "expansion-licensed"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-navigation"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed.",
+    "Download @ExpansionVehicles from the Steam Workshop.",
+    "Add to your -mod= parameter after Core.",
+    "Configure vehicle spawn points and parameters.",
+    "Add vehicles to your economy files (types.xml) for persistence."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Vehicles not spawning",
+      "solution": "Ensure vehicles are properly added to types.xml with correct nominal values."
+    },
+    {
+      "problem": "Helicopters flipping on spawn",
+      "solution": "Check spawn point coordinates and ensure they are on flat terrain."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Helicopter-Only Server",
+      "description": "Disable ground vehicles and boats, enable only helicopters for a unique high-mobility experience."
+    },
+    {
+      "title": "Realistic Fuel Economy",
+      "description": "Increase fuel consumption multipliers for more challenging vehicle maintenance."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "VehicleSync",
+      "example": "1",
+      "description": "Enable vehicle position synchronization.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "FuelConsumptionMultiplier",
+      "example": "0.5",
+      "description": "Global fuel consumption rate multiplier.",
+      "defaultValue": "1.0"
+    },
+    {
+      "name": "VehicleSpeedMultiplier",
+      "example": "1.2",
+      "description": "Global vehicle speed multiplier.",
+      "defaultValue": "1.0"
+    },
+    {
+      "name": "EnableHelicopters",
+      "example": "0",
+      "description": "Enable or disable helicopter spawning.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableBoats",
+      "example": "0",
+      "description": "Enable or disable boat spawning.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "HelicopterFuelMultiplier",
+      "example": "2.0",
+      "description": "Fuel consumption multiplier specifically for helicopters.",
+      "defaultValue": "1.5"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082996937-86-36q1",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082996937-87-uiby",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082996937-88-k18v",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Helicopter-Only Server",
+                        "description": "Disable ground vehicles and boats, enable only helicopters for a unique high-mobility experience."
+                      },
+                      {
+                        "title": "Realistic Fuel Economy",
+                        "description": "Increase fuel consumption multipliers for more challenging vehicle maintenance."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-loag9",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082996937-89-90v2",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082996937-8a-487t",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Vehicles adds a wide variety of new vehicles to DayZ, bringing back iconic vehicles from the DayZ mod era.\n\n## Helicopters\n\n- MH-6 Little Bird\n- Merlin\n- UH1H\n- Gyrocopter\n- Quack\n\n## Boats\n\n- Zodiac\n- Utility (RHIB)\n- LHD (Aircraft Carrier)\n\n## Cars\n\n- Vodnik (amphibious)\n- Tractor\n- Bus\n- UAZ (transport, cargo variants)\n- Landrover\n\n## Additional Features\n\n- **Vanilla Vehicle Skins** — New colored variants of vanilla vehicles\n- **Car Keys** — Lock and unlock vehicles\n- **Towing** — Tow vehicles with other vehicles\n- **Destroyable Trees** — Trees break on vehicle impact\n- **Ruined Doors** — Damaged doors can fall off\n- **Vehicle Netting** — Cover vehicles with camouflage netting\n\n> For additional helicopters, check out the Arma 2 Helicopters Remastered mod.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-pooor",
+                  "content": "Expansion Vehicles adds a wide variety of new vehicles to DayZ, bringing back iconic vehicles from the DayZ mod era.\n\n## Helicopters\n\n- MH-6 Little Bird\n- Merlin\n- UH1H\n- Gyrocopter\n- Quack\n\n## Boats\n\n- Zodiac\n- Utility (RHIB)\n- LHD (Aircraft Carrier)\n\n## Cars\n\n- Vodnik (amphibious)\n- Tractor\n- Bus\n- UAZ (transport, cargo variants)\n- Landrover\n\n## Additional Features\n\n- **Vanilla Vehicle Skins** — New colored variants of vanilla vehicles\n- **Car Keys** — Lock and unlock vehicles\n- **Towing** — Tow vehicles with other vehicles\n- **Destroyable Trees** — Trees break on vehicle impact\n- **Ruined Doors** — Damaged doors can fall off\n- **Vehicle Netting** — Cover vehicles with camouflage netting\n\n> For additional helicopters, check out the Arma 2 Helicopters Remastered mod.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082996937-8b-xp7l",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082996937-8c-x4zg",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed.",
+                    "Download @ExpansionVehicles from the Steam Workshop.",
+                    "Add to your -mod= parameter after Core.",
+                    "Configure vehicle spawn points and parameters.",
+                    "Add vehicles to your economy files (types.xml) for persistence."
+                  ],
+                  "blockId": "block-1773333239007-6r4i3",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082996937-8d-hxya",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082996937-8e-er7w",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Vehicles not spawning",
+                        "description": "Ensure vehicles are properly added to types.xml with correct nominal values."
+                      },
+                      {
+                        "title": "Helicopters flipping on spawn",
+                        "description": "Check spawn point coordinates and ensure they are on flat terrain."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-z9yjd",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": [
+    "vehicle-guide"
+  ],
+  "changelogKeywords": [
+    "vehicles",
+    "vehicle"
+  ]
+}

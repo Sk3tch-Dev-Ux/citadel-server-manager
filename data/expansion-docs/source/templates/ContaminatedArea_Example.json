@@ -1,0 +1,6 @@
+{
+  "id": "tpl-contaminatedarea-example",
+  "name": "ContaminatedArea_Example",
+  "template": "{\n  \"Data\": {\n    \"Pos\": [\n      \"number\"\n    ],\n    \"Radius\": \"number\",\n    \"NegHeight\": \"number\",\n    \"PosHeight\": \"number\",\n    \"OuterOffset\": \"number\",\n    \"ParticleName\": \"string\",\n    \"InnerPartDist\": \"number\",\n    \"OuterPartDist\": \"number\",\n    \"EffectDuration\": \"number\",\n    \"EffectInterval\": \"number\",\n    \"EffectModifier\": \"number\",\n    \"InnerRingCount\": \"number\",\n    \"VerticalLayers\": \"number\",\n    \"VerticalOffset\": \"number\",\n    \"OuterRingToggle\": \"number\"\n  },\n  \"Reward\": \"string\",\n  \"Weight\": \"number\",\n  \"Enabled\": \"number\",\n  \"Objective\": \"number\",\n  \"m_Version\": \"number\",\n  \"Difficulty\": \"number\",\n  \"PlayerData\": {\n    \"TinyPartName\": \"string\",\n    \"AroundPartName\": \"string\",\n    \"PPERequesterType\": \"string\"\n  },\n  \"MissionName\": \"string\",\n  \"MissionMaxTime\": \"number\",\n  \"StartDecayLifetime\": \"number\",\n  \"FinishDecayLifetime\": \"number\"\n}",
+  "description": "Auto-generated validation template for ContaminatedArea_Example"
+}

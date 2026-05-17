@@ -1,0 +1,36 @@
+{
+  "name": "CoreSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/CoreSettings.json",
+  "linkedModId": "expansion-core",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "9",
+      "description": "M_version",
+      "defaultValue": "9"
+    },
+    {
+      "name": "ServerUpdateRateLimit",
+      "type": "int",
+      "example": "0",
+      "description": "Server update rate limit. Range: 0–100",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ForceExactCEItemLifetime",
+      "type": "int",
+      "example": "0",
+      "description": "Time duration in seconds",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableInventoryCargoTidy",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable inventory cargo tidy",
+      "defaultValue": "0"
+    }
+  ]
+}

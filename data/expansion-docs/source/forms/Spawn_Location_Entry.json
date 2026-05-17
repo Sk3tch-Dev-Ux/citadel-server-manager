@@ -1,0 +1,44 @@
+{
+  "id": "spawn-location",
+  "name": "Spawn Location Entry",
+  "fields": [
+    {
+      "id": "1",
+      "key": "Name",
+      "type": "text",
+      "label": "Name",
+      "required": true,
+      "defaultValue": ""
+    },
+    {
+      "id": "2",
+      "key": "X",
+      "type": "number",
+      "label": "X Position",
+      "defaultValue": "0"
+    },
+    {
+      "id": "3",
+      "key": "Z",
+      "type": "number",
+      "label": "Z Position",
+      "defaultValue": "0"
+    },
+    {
+      "id": "4",
+      "key": "Radius",
+      "type": "number",
+      "label": "Radius",
+      "defaultValue": "500"
+    },
+    {
+      "id": "5",
+      "key": "IsDefault",
+      "type": "boolean",
+      "label": "Is Default",
+      "defaultValue": "false"
+    }
+  ],
+  "wrapperKey": "",
+  "description": "Generate a spawn location JSON entry"
+}

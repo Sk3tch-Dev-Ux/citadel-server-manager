@@ -1,0 +1,1052 @@
+{
+  "id": "trader-price-calculator",
+  "name": "Price Calculator",
+  "description": "Visualize dynamic pricing curves based on stock thresholds and item modifiers. Replicates the exact sell/buy price logic from ExpansionMarketModule.",
+  "iconName": "TrendingUp",
+  "keywords": [
+    "trader",
+    "price",
+    "stock",
+    "economy",
+    "curve",
+    "modifier"
+  ],
+  "enabled": true,
+  "isVisual": true,
+  "outputModes": [
+    "calculator"
+  ],
+  "formFields": [
+    {
+      "id": "f1",
+      "key": "minPrice",
+      "type": "number",
+      "group": "Item Config",
+      "label": "Min Price",
+      "colSpan": 2,
+      "required": true,
+      "description": "MinPriceThreshold — buy price at max stock (abundant = cheap)",
+      "placeholder": "e.g. 100",
+      "defaultValue": "100",
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "0",
+          "message": "Must be ≥ 0"
+        }
+      ]
+    },
+    {
+      "id": "f2",
+      "key": "maxPrice",
+      "type": "number",
+      "group": "Item Config",
+      "label": "Max Price",
+      "colSpan": 2,
+      "required": true,
+      "description": "MaxPriceThreshold — buy price at min stock (scarce = expensive)",
+      "placeholder": "e.g. 1000",
+      "defaultValue": "1000",
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "0",
+          "message": "Must be ≥ 0"
+        }
+      ]
+    },
+    {
+      "id": "f3",
+      "key": "minStock",
+      "type": "number",
+      "group": "Item Config",
+      "label": "Min Stock",
+      "colSpan": 2,
+      "required": true,
+      "description": "MinStockThreshold — stock level where price is at maximum",
+      "placeholder": "e.g. 1",
+      "defaultValue": "1",
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "0",
+          "message": "Must be ≥ 0"
+        }
+      ]
+    },
+    {
+      "id": "f4",
+      "key": "maxStock",
+      "type": "number",
+      "group": "Item Config",
+      "label": "Max Stock",
+      "colSpan": 2,
+      "required": true,
+      "description": "MaxStockThreshold — stock level where price is at minimum",
+      "placeholder": "e.g. 100",
+      "defaultValue": "100",
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "1",
+          "message": "Must be ≥ 1"
+        }
+      ]
+    },
+    {
+      "id": "f5",
+      "key": "sellPercent",
+      "type": "slider",
+      "group": "Zone / Global Config",
+      "label": "Sell Price %",
+      "colSpan": 2,
+      "description": "Base sell price as % of buy price. -1 = not sellable; other negative values are also valid (e.g. inverse pricing).",
+      "defaultValue": "50",
+      "sliderConfig": {
+        "max": 200,
+        "min": -200,
+        "step": 1
+      }
+    },
+    {
+      "id": "f6",
+      "key": "buyPercent",
+      "type": "slider",
+      "group": "Zone / Global Config",
+      "label": "Buy Price %",
+      "colSpan": 2,
+      "description": "Zone-level modifier applied to all buy prices. Negative values are valid.",
+      "defaultValue": "100",
+      "sliderConfig": {
+        "max": 200,
+        "min": -200,
+        "step": 1
+      }
+    },
+    {
+      "id": "f7",
+      "key": "condition",
+      "type": "select",
+      "group": "Sell Modifiers",
+      "label": "Condition",
+      "colSpan": 2,
+      "options": [
+        "Pristine",
+        "Worn",
+        "Damaged",
+        "Badly Damaged",
+        "Ruined"
+      ],
+      "defaultValue": "Pristine",
+      "optionColors": [
+        "#4caf6e",
+        "#42a5f5",
+        "#ff7043",
+        "#ef5350",
+        "#808080"
+      ],
+      "optionLabels": [
+        "Pristine (×1.00)",
+        "Worn (×0.75)",
+        "Damaged (×0.50)",
+        "Badly Damaged (×0.25)",
+        "Ruined (×0.00)"
+      ]
+    },
+    {
+      "id": "f8",
+      "key": "quantityRatio",
+      "type": "slider",
+      "group": "Sell Modifiers",
+      "label": "Quantity %",
+      "colSpan": 2,
+      "description": "Current quantity / max quantity (%)",
+      "defaultValue": "100",
+      "sliderConfig": {
+        "max": 100,
+        "min": 0,
+        "step": 1
+      }
+    },
+    {
+      "id": "f9",
+      "key": "isEdible",
+      "type": "boolean",
+      "group": "Sell Modifiers",
+      "label": "Edible / Food Item",
+      "colSpan": 2,
+      "defaultValue": "false"
+    },
+    {
+      "id": "f10",
+      "key": "destroyOnMin",
+      "type": "boolean",
+      "group": "Sell Modifiers",
+      "label": "Destroy on Min Qty",
+      "colSpan": 2,
+      "conditions": [
+        {
+          "value": "true",
+          "fieldKey": "isEdible",
+          "operator": "eq"
+        }
+      ],
+      "description": "If false, minimum sell factor is 0.25 instead of 0",
+      "defaultValue": "true"
+    },
+    {
+      "id": "f11",
+      "key": "foodStage",
+      "type": "select",
+      "group": "Sell Modifiers",
+      "label": "Food Stage",
+      "colSpan": 2,
+      "options": [
+        "raw",
+        "baked",
+        "boiled",
+        "dried",
+        "burned",
+        "rotten"
+      ],
+      "conditions": [
+        {
+          "value": "true",
+          "fieldKey": "isEdible",
+          "operator": "eq"
+        }
+      ],
+      "defaultValue": "raw",
+      "optionColors": [
+        "#4caf6e",
+        "#ffd54f",
+        "#42a5f5",
+        "#ff7043",
+        "#808080",
+        "#808080"
+      ],
+      "optionLabels": [
+        "Raw (×1.00)",
+        "Baked (×0.75)",
+        "Boiled (×0.50)",
+        "Dried (×0.25)",
+        "Burned (×0.00)",
+        "Rotten (×0.00)"
+      ]
+    }
+  ],
+  "tutorialSteps": [
+    {
+      "title": "💰 Item Price Thresholds",
+      "demoValues": {
+        "maxPrice": "1000",
+        "maxStock": "100",
+        "minPrice": "100",
+        "minStock": "1"
+      },
+      "description": "Set MinPrice and MaxPrice to define the buy price range. MinPrice is what the trader charges when stock is at MaxStock (abundant = cheap). MaxPrice is charged at MinStock (scarce = expensive).",
+      "highlightSelector": "[data-tutorial='tpl-sec-item']"
+    },
+    {
+      "title": "📊 Zone / Global Percentages",
+      "demoValues": {
+        "buyPercent": "100",
+        "sellPercent": "50"
+      },
+      "description": "SellPricePercent controls how much players get when selling (as % of buy price). BuyPricePercent is a zone-level multiplier on all buy prices. Set sell to -1 to make items non-sellable.",
+      "highlightSelector": "[data-tutorial='tpl-sec-zone']"
+    },
+    {
+      "title": "🔧 Sell Modifiers",
+      "demoValues": {
+        "isEdible": "true",
+        "condition": "Damaged",
+        "foodStage": "baked",
+        "quantityRatio": "50"
+      },
+      "description": "Item condition (Pristine → Ruined), quantity percentage, and food stage all reduce the sell price. A Damaged item at 50% quantity sells for much less than a Pristine full one.",
+      "highlightSelector": "[data-tutorial='tpl-sec-sell']"
+    },
+    {
+      "title": "📈 Results & Price Curve",
+      "demoValues": {
+        "isEdible": "false",
+        "condition": "Pristine",
+        "quantityRatio": "100"
+      },
+      "description": "The summary cards show current buy/sell prices and the spread (profit margin). The chart plots buy and sell prices across all stock levels so you can visualize the pricing curve.",
+      "highlightSelector": "[data-tutorial='tpl-right']"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "tpl-toolbar",
+      "type": "toolbar",
+      "props": {}
+    },
+    {
+      "id": "tpl-help",
+      "type": "contextual-help",
+      "props": {}
+    },
+    {
+      "id": "tpl-root-row",
+      "type": "row",
+      "props": {
+        "gap": "lg",
+        "columns": 2
+      },
+      "children": [
+        {
+          "id": "tpl-left",
+          "type": "column",
+          "props": {
+            "colSpan": 1
+          },
+          "children": [
+            {
+              "id": "tpl-sec-item",
+              "type": "section",
+              "props": {
+                "icon": "Settings",
+                "label": "Item Config",
+                "collapsible": true
+              },
+              "children": [
+                {
+                  "id": "tpl-f1",
+                  "type": "field-ref",
+                  "fieldId": "f1"
+                },
+                {
+                  "id": "tpl-f2",
+                  "type": "field-ref",
+                  "fieldId": "f2"
+                },
+                {
+                  "id": "tpl-f3",
+                  "type": "field-ref",
+                  "fieldId": "f3"
+                },
+                {
+                  "id": "tpl-f4",
+                  "type": "field-ref",
+                  "fieldId": "f4"
+                }
+              ]
+            },
+            {
+              "id": "tpl-sec-zone",
+              "type": "section",
+              "props": {
+                "icon": "Globe",
+                "label": "Zone / Global Config",
+                "collapsible": true
+              },
+              "children": [
+                {
+                  "id": "tpl-f5",
+                  "type": "field-ref",
+                  "fieldId": "f5"
+                },
+                {
+                  "id": "tpl-f6",
+                  "type": "field-ref",
+                  "fieldId": "f6"
+                }
+              ]
+            },
+            {
+              "id": "tpl-sec-sell",
+              "type": "section",
+              "props": {
+                "icon": "Tag",
+                "label": "Sell Modifiers",
+                "collapsible": true,
+                "defaultCollapsed": true
+              },
+              "children": [
+                {
+                  "id": "tpl-f7",
+                  "type": "field-ref",
+                  "fieldId": "f7"
+                },
+                {
+                  "id": "tpl-f8",
+                  "type": "field-ref",
+                  "fieldId": "f8"
+                },
+                {
+                  "id": "tpl-f9",
+                  "type": "field-ref",
+                  "fieldId": "f9"
+                },
+                {
+                  "id": "tpl-f10",
+                  "type": "field-ref",
+                  "fieldId": "f10"
+                },
+                {
+                  "id": "tpl-f11",
+                  "type": "field-ref",
+                  "fieldId": "f11"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tpl-right",
+          "type": "column",
+          "props": {
+            "colSpan": 1
+          },
+          "children": [
+            {
+              "id": "tpl-sec-results",
+              "type": "section",
+              "props": {
+                "icon": "TrendingUp",
+                "label": "Price Results",
+                "collapsible": false
+              },
+              "children": [
+                {
+                  "id": "tpl-stats-row",
+                  "type": "row",
+                  "props": {
+                    "gap": "sm",
+                    "columns": 3
+                  },
+                  "children": [
+                    {
+                      "id": "tpl-stat-buy",
+                      "type": "column",
+                      "props": {
+                        "colSpan": 1
+                      },
+                      "children": [
+                        {
+                          "id": "tpl-out-buy",
+                          "type": "output-ref",
+                          "props": {
+                            "outputKeys": [
+                              "CurrentBuyPrice"
+                            ],
+                            "outputDisplay": "stat-card"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "tpl-stat-sell",
+                      "type": "column",
+                      "props": {
+                        "colSpan": 1
+                      },
+                      "children": [
+                        {
+                          "id": "tpl-out-sell",
+                          "type": "output-ref",
+                          "props": {
+                            "outputKeys": [
+                              "CurrentSellPrice"
+                            ],
+                            "outputDisplay": "stat-card"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "tpl-stat-spread",
+                      "type": "column",
+                      "props": {
+                        "colSpan": 1
+                      },
+                      "children": [
+                        {
+                          "id": "tpl-out-spread",
+                          "type": "output-ref",
+                          "props": {
+                            "outputKeys": [
+                              "Spread"
+                            ],
+                            "outputDisplay": "stat-card"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "tpl-sec-chart",
+              "type": "section",
+              "props": {
+                "icon": "BarChart3",
+                "label": "Price vs. Stock",
+                "collapsible": false
+              },
+              "children": [
+                {
+                  "id": "tpl-out-chart",
+                  "type": "output-ref",
+                  "props": {
+                    "chartType": "line",
+                    "outputKeys": [
+                      "PriceCurve"
+                    ],
+                    "outputDisplay": "chart"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [],
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "_seedVersion": 10,
+  "toolType": "official",
+  "_editPath": "/admin/custom-tools/trader-price-calculator",
+  "_isVisual": true,
+  "_toolType": "official",
+  "_viewPath": "/tools/custom/trader-price-calculator",
+  "_isCommunityPage": false,
+  "nodeGraph": {
+    "nodes": [
+      {
+        "id": "c1",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "blue",
+          "label": "Item config & modifier inputs"
+        }
+      },
+      {
+        "id": "c2",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "green",
+          "label": "Lookup tables: condition & food stage → multipliers"
+        }
+      },
+      {
+        "id": "c3",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "orange",
+          "label": "Formula: clamp quantity to 0–1 range"
+        }
+      },
+      {
+        "id": "c4",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "purple",
+          "label": "Math: linear price calculations"
+        }
+      },
+      {
+        "id": "c5",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "red",
+          "label": "Summary stat cards"
+        }
+      },
+      {
+        "id": "c6",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "red",
+          "label": "Price curve chart"
+        }
+      },
+      {
+        "id": "n1",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Min Price",
+          "fieldKey": "minPrice",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n2",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Max Price",
+          "fieldKey": "maxPrice",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n3",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Min Stock",
+          "fieldKey": "minStock",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n4",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Max Stock",
+          "fieldKey": "maxStock",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n5",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Condition",
+          "fieldKey": "condition",
+          "fieldType": "select"
+        }
+      },
+      {
+        "id": "n6",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Sell %",
+          "fieldKey": "sellPercent",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n7",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Buy %",
+          "fieldKey": "buyPercent",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n9",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Food Stage",
+          "fieldKey": "foodStage",
+          "fieldType": "select"
+        }
+      },
+      {
+        "id": "n10",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Quantity %",
+          "fieldKey": "quantityRatio",
+          "fieldType": "number"
+        }
+      },
+      {
+        "id": "n20",
+        "type": "lookup",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Condition Mod",
+          "outputKey": "condMod",
+          "expression": "{\"Pristine\":1,\"Worn\":0.75,\"Damaged\":0.5,\"Badly Damaged\":0.25,\"Ruined\":0}"
+        }
+      },
+      {
+        "id": "n21",
+        "type": "lookup",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Food Stage Mod",
+          "outputKey": "foodMod",
+          "expression": "{\"raw\":1,\"baked\":0.75,\"boiled\":0.5,\"dried\":0.25,\"burned\":0,\"rotten\":0}"
+        }
+      },
+      {
+        "id": "n23",
+        "type": "formula",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Quantity Mod",
+          "outputKey": "quantityMod",
+          "expression": "max(0, min(1, {{quantityRatio}} / 100))"
+        }
+      },
+      {
+        "id": "n30",
+        "type": "math",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Stock Range",
+          "outputKey": "stockRange",
+          "expression": "max(1, {{maxStock}} - {{minStock}})"
+        }
+      },
+      {
+        "id": "n31",
+        "type": "math",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Price Range",
+          "outputKey": "priceRange",
+          "expression": "{{minPrice}} - {{maxPrice}}"
+        }
+      },
+      {
+        "id": "n32",
+        "type": "formula",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Buy @ Min Stock",
+          "outputKey": "buyAtMinStock",
+          "expression": "round({{maxPrice}} * {{buyPercent}} / 100)"
+        }
+      },
+      {
+        "id": "n33",
+        "type": "math",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Sell Modifier",
+          "outputKey": "sellMod",
+          "expression": "{{condMod}} * {{quantityMod}} * {{foodMod}}"
+        }
+      },
+      {
+        "id": "n34",
+        "type": "formula",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Sell @ Min Stock",
+          "outputKey": "sellAtMinStock",
+          "expression": "round({{buyAtMinStock}} * {{sellPercent}} / 100 * {{sellMod}})"
+        }
+      },
+      {
+        "id": "n35",
+        "type": "formula",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Spread",
+          "outputKey": "spread",
+          "expression": "{{buyAtMinStock}} - {{sellAtMinStock}}"
+        }
+      },
+      {
+        "id": "n50",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Current Buy Price",
+          "outputKey": "CurrentBuyPrice",
+          "outputType": "number",
+          "displayType": "number"
+        }
+      },
+      {
+        "id": "n51",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Current Sell Price",
+          "outputKey": "CurrentSellPrice",
+          "outputType": "number",
+          "displayType": "number"
+        }
+      },
+      {
+        "id": "n52",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Spread (Buy − Sell)",
+          "outputKey": "Spread",
+          "outputType": "number",
+          "displayType": "number"
+        }
+      },
+      {
+        "id": "n40",
+        "type": "transform",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Price Curve",
+          "outputKey": "chartData",
+          "expression": "{\"paramRange\":[0,100,2],\"formulaSeries\":{\"Buy Price\":\"round((max(0, min(1, ({{__param}} - {{minStock}}) / {{stockRange}})) * {{priceRange}} + {{maxPrice}}) * {{buyPercent}} / 100)\",\"Sell Price\":\"round((max(0, min(1, ({{__param}} - {{minStock}}) / {{stockRange}})) * {{priceRange}} + {{maxPrice}}) * {{sellPercent}} / 100 * {{sellMod}})\"}}",
+          "transformType": "chart-data"
+        }
+      },
+      {
+        "id": "n54",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Price vs. Stock",
+          "outputKey": "PriceCurve",
+          "outputType": "object",
+          "displayType": "chart"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n5",
+        "target": "n20"
+      },
+      {
+        "id": "e2",
+        "source": "n9",
+        "target": "n21"
+      },
+      {
+        "id": "e6",
+        "source": "n10",
+        "target": "n23"
+      },
+      {
+        "id": "e10",
+        "source": "n3",
+        "target": "n30"
+      },
+      {
+        "id": "e11",
+        "source": "n4",
+        "target": "n30"
+      },
+      {
+        "id": "e12",
+        "source": "n1",
+        "target": "n31"
+      },
+      {
+        "id": "e13",
+        "source": "n2",
+        "target": "n31"
+      },
+      {
+        "id": "e14",
+        "source": "n2",
+        "target": "n32"
+      },
+      {
+        "id": "e15",
+        "source": "n7",
+        "target": "n32"
+      },
+      {
+        "id": "e16",
+        "source": "n20",
+        "target": "n33"
+      },
+      {
+        "id": "e17",
+        "source": "n23",
+        "target": "n33"
+      },
+      {
+        "id": "e18",
+        "source": "n21",
+        "target": "n33"
+      },
+      {
+        "id": "e19",
+        "source": "n32",
+        "target": "n34"
+      },
+      {
+        "id": "e20",
+        "source": "n6",
+        "target": "n34"
+      },
+      {
+        "id": "e21",
+        "source": "n33",
+        "target": "n34"
+      },
+      {
+        "id": "e40",
+        "source": "n32",
+        "target": "n35"
+      },
+      {
+        "id": "e41",
+        "source": "n34",
+        "target": "n35"
+      },
+      {
+        "id": "e50",
+        "source": "n32",
+        "target": "n50"
+      },
+      {
+        "id": "e51",
+        "source": "n34",
+        "target": "n51"
+      },
+      {
+        "id": "e52",
+        "source": "n35",
+        "target": "n52"
+      },
+      {
+        "id": "e30",
+        "source": "n1",
+        "target": "n40"
+      },
+      {
+        "id": "e31",
+        "source": "n2",
+        "target": "n40"
+      },
+      {
+        "id": "e32",
+        "source": "n3",
+        "target": "n40"
+      },
+      {
+        "id": "e33",
+        "source": "n4",
+        "target": "n40"
+      },
+      {
+        "id": "e34",
+        "source": "n6",
+        "target": "n40"
+      },
+      {
+        "id": "e35",
+        "source": "n7",
+        "target": "n40"
+      },
+      {
+        "id": "e36",
+        "source": "n30",
+        "target": "n40"
+      },
+      {
+        "id": "e37",
+        "source": "n31",
+        "target": "n40"
+      },
+      {
+        "id": "e38",
+        "source": "n33",
+        "target": "n40"
+      },
+      {
+        "id": "e54",
+        "source": "n40",
+        "target": "n54"
+      }
+    ]
+  }
+}

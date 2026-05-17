@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Objective_CR_1",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-quests",
+  "x-filePath": "Profiles/ExpansionMod/Quests/Objectives/Crafting/Objective_CR_1.json",
+  "properties": {
+    "ConfigVersion": {
+      "description": "Config version",
+      "examples": [
+        "28"
+      ],
+      "type": "integer",
+      "default": 28
+    },
+    "ID": {
+      "description": "Id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ObjectiveType": {
+      "description": "Objective type selector (0–11)",
+      "examples": [
+        "11"
+      ],
+      "type": "integer",
+      "default": 11
+    },
+    "ObjectiveText": {
+      "description": "Objective text",
+      "examples": [
+        "\"Craft a improvised fishing rod:\""
+      ],
+      "type": "string",
+      "default": "Craft a improvised fishing rod:"
+    },
+    "TimeLimit": {
+      "description": "Time limit (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "Active": {
+      "description": "Enable or disable active",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "ItemNames": {
+      "description": "Item names",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "ExecutionAmount": {
+      "description": "Execution amount (default: 1)",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    }
+  }
+}

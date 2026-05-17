@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BalotaAircrafts",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-market",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/traderzones/BalotaAircrafts.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "6"
+      ],
+      "type": "integer",
+      "default": 6
+    },
+    "m_DisplayName": {
+      "description": "M_display name",
+      "examples": [
+        "\"Balota Aircrafts Trading Zone\""
+      ],
+      "type": "string",
+      "default": "Balota Aircrafts Trading Zone"
+    },
+    "Position": {
+      "description": "Position",
+      "examples": [
+        "4971, 10.5, 2436.360107421875"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "4971, 10.5, 2436.360107421875"
+    },
+    "Radius": {
+      "description": "Radius (default: 100)",
+      "examples": [
+        "100"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "BuyPricePercent": {
+      "description": "Buy price percent. Range: 0–100",
+      "examples": [
+        "50"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "SellPricePercent": {
+      "description": "Sell price percent. Range: 0–100",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "Stock": {
+      "description": "Stock",
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "x-mapKeyType": "string",
+      "default": {}
+    }
+  }
+}

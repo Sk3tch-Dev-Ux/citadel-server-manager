@@ -1,0 +1,109 @@
+{
+  "name": "Objective_C_1",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Quests/Objectives/Collection/Objective_C_1.json",
+  "linkedModId": "expansion-quests",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "28",
+      "description": "Config version",
+      "defaultValue": "28"
+    },
+    {
+      "name": "ID",
+      "type": "int",
+      "example": "1",
+      "description": "Id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ObjectiveType",
+      "type": "enum",
+      "example": "4",
+      "description": "Objective type selector (0–5)",
+      "defaultValue": "4"
+    },
+    {
+      "name": "ObjectiveText",
+      "type": "string",
+      "example": "\"Collect 5 apples\"",
+      "description": "Objective text",
+      "defaultValue": "\"Collect 5 apples\""
+    },
+    {
+      "name": "TimeLimit",
+      "type": "int",
+      "example": "-1",
+      "description": "Time limit (default: -1)",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Active",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable active",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Collections",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with Amount, ClassName, QuantityPercent, MinQuantityPercent",
+      "description": "Collections",
+      "defaultValue": "[1 items]",
+      "nestedSettings": [
+        {
+          "name": "Amount",
+          "type": "int",
+          "example": "5",
+          "description": "Amount (default: 5)",
+          "defaultValue": "5"
+        },
+        {
+          "name": "ClassName",
+          "type": "classname",
+          "example": "\"Apple\"",
+          "description": "DayZ classname (e.g. \"Apple\")",
+          "defaultValue": "\"Apple\""
+        },
+        {
+          "name": "QuantityPercent",
+          "type": "int",
+          "example": "0",
+          "description": "Quantity percent. Range: 0–100",
+          "defaultValue": "-1"
+        },
+        {
+          "name": "MinQuantityPercent",
+          "type": "int",
+          "example": "0",
+          "description": "Min quantity percent. Range: 0–100",
+          "defaultValue": "-1"
+        }
+      ]
+    },
+    {
+      "name": "ShowDistance",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance",
+      "defaultValue": "1"
+    },
+    {
+      "name": "AddItemsToNearbyMarketZone",
+      "type": "int",
+      "example": "0",
+      "description": "Add items to nearby market zone",
+      "defaultValue": "0"
+    },
+    {
+      "name": "NeedAnyCollection",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable any collection",
+      "defaultValue": "0"
+    }
+  ]
+}

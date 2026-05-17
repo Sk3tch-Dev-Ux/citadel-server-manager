@@ -1,0 +1,6 @@
+{
+  "id": "tpl-partysettings",
+  "name": "PartySettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"EnableParties\": \"number\",\n  \"MaxMembersInParty\": \"number\",\n  \"UseWholeMapForInviteList\": \"number\",\n  \"ShowPartyMember3DMarkers\": \"number\",\n  \"ShowDistanceUnderPartyMembersMarkers\": \"number\",\n  \"ShowNameOnPartyMembersMarkers\": \"number\",\n  \"EnableQuickMarker\": \"number\",\n  \"ShowDistanceUnderQuickMarkers\": \"number\",\n  \"ShowNameOnQuickMarkers\": \"number\",\n  \"CanCreatePartyMarkers\": \"number\",\n  \"ShowPartyMemberHUD\": \"number\",\n  \"ShowHUDMemberBlood\": \"number\",\n  \"ShowHUDMemberStates\": \"number\",\n  \"ShowHUDMemberStance\": \"number\",\n  \"ShowPartyMemberMapMarkers\": \"number\",\n  \"ShowHUDMemberDistance\": \"number\",\n  \"ForcePartyToHaveTags\": \"number\",\n  \"InviteCooldown\": \"number\",\n  \"DisplayPartyTag\": \"number\"\n}",
+  "description": "Auto-generated validation template for PartySettings"
+}

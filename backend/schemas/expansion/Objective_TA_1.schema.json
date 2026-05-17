@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Objective_TA_1",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-quests",
+  "x-filePath": "Profiles/ExpansionMod/Quests/Objectives/Target/Objective_TA_1.json",
+  "properties": {
+    "ConfigVersion": {
+      "description": "Config version",
+      "examples": [
+        "28"
+      ],
+      "type": "integer",
+      "default": 28
+    },
+    "ID": {
+      "description": "Id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ObjectiveType": {
+      "description": "Objective type selector (0–5)",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "ObjectiveText": {
+      "description": "Objective text",
+      "examples": [
+        "\"Kill 10 Infected with a sledgehammer\""
+      ],
+      "type": "string",
+      "default": "Kill 10 Infected with a sledgehammer"
+    },
+    "TimeLimit": {
+      "description": "Time limit (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "Active": {
+      "description": "Enable or disable active",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "Position": {
+      "description": "Position",
+      "examples": [
+        "2596.699951171875, 306.1000061035156, 6378.47021484375"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "2596.699951171875, 306.1000061035156, 6378.47021484375"
+    },
+    "MaxDistance": {
+      "description": "Max distance (default: 150)",
+      "examples": [
+        "150"
+      ],
+      "type": "integer",
+      "default": 150
+    },
+    "MinDistance": {
+      "description": "Min distance (default: -1)",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "Amount": {
+      "description": "Amount (default: 10)",
+      "examples": [
+        "10"
+      ],
+      "type": "integer",
+      "default": 10
+    },
+    "ClassNames": {
+      "description": "Class names",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "CountSelfKill": {
+      "description": "Count self kill",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "AllowedWeapons": {
+      "description": "Allowed weapons",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "ExcludedClassNames": {
+      "description": "Excluded class names",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "CountAIPlayers": {
+      "description": "Count ai players",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "AllowedTargetFactions": {
+      "description": "Allowed target factions",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "AllowedDamageZones": {
+      "description": "Allowed damage zones",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  }
+}

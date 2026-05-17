@@ -1,0 +1,6 @@
+{
+  "id": "tpl-personalstorage-example",
+  "name": "PersonalStorage_Example",
+  "template": "{\n  \"Faction\": \"string\",\n  \"QuestID\": \"number\",\n  \"Position\": [\n    \"number\"\n  ],\n  \"ClassName\": \"string\",\n  \"StorageID\": \"number\",\n  \"Reputation\": \"number\",\n  \"DisplayIcon\": \"string\",\n  \"DisplayName\": \"string\",\n  \"Orientation\": [\n    \"number\"\n  ],\n  \"ConfigVersion\": \"number\",\n  \"IsGlobalStorage\": \"number\"\n}",
+  "description": "Auto-generated validation template for PersonalStorage_Example"
+}

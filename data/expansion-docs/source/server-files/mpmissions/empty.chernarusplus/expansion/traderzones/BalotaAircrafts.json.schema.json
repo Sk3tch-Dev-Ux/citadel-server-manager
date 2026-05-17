@@ -1,0 +1,59 @@
+{
+  "name": "BalotaAircrafts",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/traderzones/BalotaAircrafts.json",
+  "linkedModId": "expansion-market",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "6",
+      "description": "M_version",
+      "defaultValue": "6"
+    },
+    {
+      "name": "m_DisplayName",
+      "type": "string",
+      "example": "\"Balota Aircrafts Trading Zone\"",
+      "description": "M_display name",
+      "defaultValue": "\"Balota Aircrafts Trading Zone\""
+    },
+    {
+      "name": "Position",
+      "type": "vector",
+      "example": "4971, 10.5, 2436.360107421875",
+      "description": "Position",
+      "defaultValue": "4971, 10.5, 2436.360107421875"
+    },
+    {
+      "name": "Radius",
+      "type": "int",
+      "example": "100",
+      "description": "Radius (default: 100)",
+      "defaultValue": "100"
+    },
+    {
+      "name": "BuyPricePercent",
+      "type": "int",
+      "example": "50",
+      "description": "Buy price percent. Range: 0–100",
+      "defaultValue": "100"
+    },
+    {
+      "name": "SellPricePercent",
+      "type": "int",
+      "example": "0",
+      "description": "Sell price percent. Range: 0–100",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Stock",
+      "type": "map",
+      "example": "",
+      "mapKeyType": "string",
+      "description": "Stock",
+      "defaultValue": "{ \"civsedandoors_driver_black\": 75, … (1701 entries) }",
+      "mapValueType": "int"
+    }
+  ]
+}

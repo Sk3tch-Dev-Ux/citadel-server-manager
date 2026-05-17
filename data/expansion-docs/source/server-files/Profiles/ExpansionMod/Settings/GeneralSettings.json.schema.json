@@ -1,0 +1,383 @@
+{
+  "name": "GeneralSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/GeneralSettings.json",
+  "linkedModId": "expansion-main",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "16",
+      "description": "M_version",
+      "defaultValue": "16"
+    },
+    {
+      "name": "DisableShootToUnlock",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable shoot to unlock",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableGravecross",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable gravecross",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableAIGravecross",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable ai gravecross",
+      "defaultValue": "0"
+    },
+    {
+      "name": "GravecrossDeleteBody",
+      "type": "int",
+      "example": "1",
+      "description": "Gravecross delete body",
+      "defaultValue": "1"
+    },
+    {
+      "name": "GravecrossTimeThreshold",
+      "type": "int",
+      "example": "1200",
+      "description": "Gravecross time threshold (default: 1200)",
+      "defaultValue": "1200"
+    },
+    {
+      "name": "GravecrossSpawnTimeDelay",
+      "type": "int",
+      "example": "180",
+      "description": "Gravecross spawn time delay (default: 180)",
+      "defaultValue": "180"
+    },
+    {
+      "name": "Mapping",
+      "type": "object",
+      "example": "",
+      "description": "Mapping",
+      "defaultValue": "{5 keys}",
+      "nestedSettings": [
+        {
+          "name": "UseCustomMappingModule",
+          "type": "bool",
+          "example": "0",
+          "description": "Enable or disable custom mapping module",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Mapping",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Mapping",
+          "defaultValue": "[51 items]"
+        },
+        {
+          "name": "BuildingInteriors",
+          "type": "int",
+          "example": "0",
+          "description": "Building interiors",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Interiors",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Interiors",
+          "defaultValue": "[21 items]"
+        },
+        {
+          "name": "BuildingIvys",
+          "type": "int",
+          "example": "0",
+          "description": "Building ivys",
+          "defaultValue": "0"
+        }
+      ]
+    },
+    {
+      "name": "EnableLamps",
+      "type": "enum",
+      "example": "3",
+      "enumValues": [
+        {
+          "label": "Disabled",
+          "value": "0"
+        },
+        {
+          "label": "RequireGenerator",
+          "value": "1"
+        },
+        {
+          "label": "AlwaysOn",
+          "value": "2"
+        },
+        {
+          "label": "AlwaysOnEverywhere",
+          "value": "3"
+        }
+      ],
+      "description": "0 - Disable Street-Lights | 1 - Will use and spawn Generators for Street-Lights | 2 - Street-Lights always on",
+      "defaultValue": "3"
+    },
+    {
+      "name": "LampAmount_OneInX",
+      "type": "int",
+      "example": "3",
+      "description": "Lamp amount_one in x",
+      "defaultValue": "3"
+    },
+    {
+      "name": "LampSelectionMode",
+      "type": "enum_string",
+      "example": "\"FARTHEST_RANDOM\"",
+      "enumValues": [
+        {
+          "label": "RANDOM (Completely random, may flicker)",
+          "value": "RANDOM"
+        },
+        {
+          "label": "FARTHEST (Optimized farthest point sampling)",
+          "value": "FARTHEST"
+        },
+        {
+          "label": "FARTHEST_RANDOM (OFPS with random distribution)",
+          "value": "FARTHEST_RANDOM"
+        }
+      ],
+      "description": "How lamps with lights are distributed across the map",
+      "defaultValue": "\"FARTHEST_RANDOM\""
+    },
+    {
+      "name": "EnableGenerators",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable generators",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableLighthouses",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable lighthouses",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableHUDNightvisionOverlay",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable hud nightvision overlay",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DisableMagicCrosshair",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable magic crosshair",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableAutoRun",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable auto run",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseDeathScreen",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable death screen",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseDeathScreenStatistics",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable death screen statistics",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseExpansionMainMenuLogo",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable expansion main menu logo",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseExpansionMainMenuIcons",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable expansion main menu icons",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseExpansionMainMenuIntroScene",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable expansion main menu intro scene",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseNewsFeedInGameMenu",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable news feed in game menu",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseHUDColors",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable hud colors",
+      "defaultValue": "0"
+    },
+    {
+      "name": "HUDColors",
+      "type": "object",
+      "example": "",
+      "description": "Hud colors",
+      "defaultValue": "{15 keys}",
+      "nestedSettings": [
+        {
+          "name": "StaminaBarColor",
+          "type": "color",
+          "example": "FFFFFFFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Stamina bar color",
+          "defaultValue": "FFFFFFFF"
+        },
+        {
+          "name": "StaminaBarColorHalf",
+          "type": "color",
+          "example": "FFFFFFFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Stamina bar color half",
+          "defaultValue": "FFFFFFFF"
+        },
+        {
+          "name": "StaminaBarColorLow",
+          "type": "color",
+          "example": "FFFFFFFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Stamina bar color low",
+          "defaultValue": "FFFFFFFF"
+        },
+        {
+          "name": "NotifierDividerColor",
+          "type": "color",
+          "example": "DCDCDCFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Notifier divider color",
+          "defaultValue": "DCDCDCFF"
+        },
+        {
+          "name": "TemperatureBurningColor",
+          "type": "color",
+          "example": "DC0000FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Temperature burning color",
+          "defaultValue": "DC0000FF"
+        },
+        {
+          "name": "TemperatureHotColor",
+          "type": "color",
+          "example": "DCDC00FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Temperature hot color",
+          "defaultValue": "DCDC00FF"
+        },
+        {
+          "name": "TemperatureIdealColor",
+          "type": "color",
+          "example": "DCDCDCFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Temperature ideal color",
+          "defaultValue": "DCDCDCFF"
+        },
+        {
+          "name": "TemperatureColdColor",
+          "type": "color",
+          "example": "00CED1FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Temperature cold color",
+          "defaultValue": "00CED1FF"
+        },
+        {
+          "name": "TemperatureFreezingColor",
+          "type": "color",
+          "example": "1E90DCFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Temperature freezing color",
+          "defaultValue": "1E90DCFF"
+        },
+        {
+          "name": "NotifiersIdealColor",
+          "type": "color",
+          "example": "DCDCDCFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Notifiers ideal color",
+          "defaultValue": "DCDCDCFF"
+        },
+        {
+          "name": "NotifiersHalfColor",
+          "type": "color",
+          "example": "DCDC00FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Notifiers half color",
+          "defaultValue": "DCDC00FF"
+        },
+        {
+          "name": "NotifiersLowColor",
+          "type": "color",
+          "example": "DC0000FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Notifiers low color",
+          "defaultValue": "DC0000FF"
+        },
+        {
+          "name": "ReputationBaseColor",
+          "type": "color",
+          "example": "DCDCDCFF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Reputation base color",
+          "defaultValue": "DCDCDCFF"
+        },
+        {
+          "name": "ReputationMedColor",
+          "type": "color",
+          "example": "DCDC00FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Reputation med color",
+          "defaultValue": "DCDC00FF"
+        },
+        {
+          "name": "ReputationHighColor",
+          "type": "color",
+          "example": "DC0000FF",
+          "toolLink": "/tools/argb-calculator",
+          "description": "Reputation high color",
+          "defaultValue": "DC0000FF"
+        }
+      ]
+    },
+    {
+      "name": "EnableEarPlugs",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable ear plugs",
+      "defaultValue": "1"
+    },
+    {
+      "name": "InGameMenuLogoPath",
+      "type": "icon",
+      "example": "\"set:expansion_iconset image:logo_expansion_white\"",
+      "description": "In game menu logo path",
+      "defaultValue": "\"set:expansion_iconset image:logo_expansion_white\""
+    }
+  ]
+}

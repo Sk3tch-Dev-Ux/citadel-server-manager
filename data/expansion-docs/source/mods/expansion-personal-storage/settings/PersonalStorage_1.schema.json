@@ -1,0 +1,266 @@
+{
+  "id": "config-1778065678575-csxj",
+  "name": "PersonalStorage_1",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/personalstorage/PersonalStorage_1.json",
+  "linkedModId": "expansion-personal-storage",
+  "settingsSchema": [
+    {
+      "name": "ConfigVersion",
+      "type": "int",
+      "example": "2",
+      "description": "Config version",
+      "defaultValue": "2"
+    },
+    {
+      "name": "StorageID",
+      "type": "int",
+      "example": "1",
+      "description": "Storage id",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ClassName",
+      "type": "classname",
+      "example": "\"ExpansionPersonalStorageChest\"",
+      "description": "DayZ classname (e.g. \"ExpansionPersonalStorageChest\")",
+      "defaultValue": "\"ExpansionPersonalStorageChest\""
+    },
+    {
+      "name": "DisplayName",
+      "type": "string",
+      "example": "\"Personal Storage\"",
+      "description": "Display name",
+      "defaultValue": "\"Personal Storage\""
+    },
+    {
+      "name": "DisplayIcon",
+      "type": "icon",
+      "example": "\"Backpack\"",
+      "description": "Display icon",
+      "defaultValue": "\"Backpack\""
+    },
+    {
+      "name": "Position",
+      "type": "vector",
+      "example": "3696.39, 402.012, 5982.22",
+      "description": "Position",
+      "defaultValue": "3696.39, 402.012, 5982.22"
+    },
+    {
+      "name": "Orientation",
+      "type": "vector",
+      "example": "-11.7479, 0, 0",
+      "description": "Orientation",
+      "defaultValue": "-11.7479, 0, 0"
+    },
+    {
+      "name": "QuestID",
+      "type": "int",
+      "example": "-1",
+      "description": "Quest id",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "Reputation",
+      "type": "int",
+      "example": "0",
+      "description": "Reputation",
+      "defaultValue": "0"
+    },
+    {
+      "name": "Faction",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Faction",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "IsGlobalStorage",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable global storage",
+      "defaultValue": "0"
+    },
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "1",
+      "description": "M_version",
+      "defaultValue": "1"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable d",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UsePersonalStorageCase",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable personal storage case",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxItemsPerStorage",
+      "type": "int",
+      "example": "15",
+      "description": "Max items per storage",
+      "defaultValue": "15"
+    },
+    {
+      "name": "ExcludedClassNames",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Excluded class names",
+      "defaultValue": "[2 items]"
+    },
+    {
+      "name": "MenuCategories",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 5 properties",
+      "description": "Menu categories",
+      "defaultValue": "[7 items]",
+      "nestedSettings": [
+        {
+          "name": "DisplayName",
+          "type": "string",
+          "example": "\"Ammo\"",
+          "description": "Display name",
+          "defaultValue": "\"Ammo\""
+        },
+        {
+          "name": "IconPath",
+          "type": "icon",
+          "example": "\"set:dayz_inventory image:bullets\"",
+          "description": "Icon path",
+          "defaultValue": "\"set:dayz_inventory image:bullets\""
+        },
+        {
+          "name": "Included",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Included",
+          "defaultValue": "[2 items]"
+        },
+        {
+          "name": "Excluded",
+          "type": "array",
+          "example": "",
+          "arrayItems": "items",
+          "description": "Excluded",
+          "defaultValue": "[0 items]"
+        },
+        {
+          "name": "SubCategories",
+          "type": "array",
+          "example": "",
+          "arrayItems": "objects with DisplayName, IconPath, Included, Excluded",
+          "description": "Sub categories",
+          "defaultValue": "[2 items]",
+          "nestedSettings": [
+            {
+              "name": "DisplayName",
+              "type": "string",
+              "example": "\"Ammo-Boxes\"",
+              "description": "Display name",
+              "defaultValue": "\"Ammo-Boxes\""
+            },
+            {
+              "name": "IconPath",
+              "type": "icon",
+              "example": "\"set:dayz_inventory image:bullets\"",
+              "description": "Icon path",
+              "defaultValue": "\"set:dayz_inventory image:bullets\""
+            },
+            {
+              "name": "Included",
+              "type": "array",
+              "example": "",
+              "arrayItems": "string values",
+              "description": "Included",
+              "defaultValue": "[1 items]"
+            },
+            {
+              "name": "Excluded",
+              "type": "array",
+              "example": "",
+              "arrayItems": "items",
+              "description": "Excluded",
+              "defaultValue": "[0 items]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UseCategoryMenu",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable category menu",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ExcludedItems",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Excluded items",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "StorageLevels",
+      "type": "map",
+      "example": "",
+      "mapKeyType": "string",
+      "description": "Storage levels",
+      "defaultValue": "{ \"1\": {\"ReputationRequirement\":-1,\"QuestID\":0,\"ExcludedSlots\":[\"Vest\",\"Body\",\"Hips\",\"Legs\",\"Back\"],\"AllowAttachmentCargo\":0}, … (10 entries) }",
+      "mapValueType": "object",
+      "nestedSettings": [
+        {
+          "name": "1",
+          "type": "object",
+          "example": "",
+          "description": "1",
+          "defaultValue": "{4 keys}",
+          "nestedSettings": [
+            {
+              "name": "ReputationRequirement",
+              "type": "int",
+              "example": "-1",
+              "description": "Reputation requirement",
+              "defaultValue": "-1"
+            },
+            {
+              "name": "QuestID",
+              "type": "int",
+              "example": "0",
+              "description": "Quest id",
+              "defaultValue": "0"
+            },
+            {
+              "name": "ExcludedSlots",
+              "type": "array",
+              "example": "",
+              "arrayItems": "string values",
+              "description": "Excluded slots",
+              "defaultValue": "[5 items]"
+            },
+            {
+              "name": "AllowAttachmentCargo",
+              "type": "bool",
+              "example": "0",
+              "description": "Enable or disable attachment cargo",
+              "defaultValue": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "id": "community-online-tools",
+  "name": "Community Online Tools (COT)",
+  "shortName": "COT",
+  "version": "",
+  "modFolderName": "Community-Online-Tools",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=1564026768",
+  "isThirdParty": true,
+  "includedInBundle": false,
+  "description": "Comprehensive server administration mod with in-game tools for managing players, objects, and more.",
+  "overview": "Community Online Tools (COT) is the go-to admin toolkit for DayZ servers. It provides in-game interfaces for managing players, spawning items and objects, teleporting, and adjusting server settings in real-time.\n\nCOT uses CF's permission system for granular access control — you can grant specific admin tools to different staff roles.",
+  "dependencies": [
+    "cf-community-framework"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "cf-community-framework"
+  ],
+  "installation": [
+    "Subscribe to Community Online Tools on the Steam Workshop.",
+    "Place the @CommunityOnlineTools folder in your server's root directory.",
+    "Add @CommunityOnlineTools to your -mod= parameter after @CF.",
+    "Both clients and servers must have this mod loaded.",
+    "Grant yourself admin permissions by adding your Steam64 ID to the permissions file or using the in-game console."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "COT menu not appearing",
+      "solution": "Ensure you have admin permissions. Try pressing INSERT or the configured keybind."
+    },
+    {
+      "problem": "Cannot grant permissions",
+      "solution": "Add your Steam64 ID to the superadmin list in the CF permissions file."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Server Administration",
+      "description": "Use COT for day-to-day server management — spawning items, teleporting players, adjusting weather."
+    },
+    {
+      "title": "Base Inspection",
+      "description": "Admin camera and ESP tools let you inspect player bases without physically traveling."
+    },
+    {
+      "title": "Permission Management",
+      "description": "Grant specific tools to different staff roles using granular permission nodes."
+    }
+  ],
+  "quickSettings": [],
+  "layoutTree": [
+    {
+      "id": "ln-1776082989534-5a-brv9",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082989534-5b-1luf",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082989534-5c-ha9v",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Server Administration",
+                        "description": "Use COT for day-to-day server management - spawning items, teleporting players, adjusting weather."
+                      },
+                      {
+                        "title": "Base Inspection",
+                        "description": "Admin camera and ESP tools let you inspect player bases without physically traveling."
+                      },
+                      {
+                        "title": "Permission Management",
+                        "description": "Grant specific tools to different staff roles using granular permission nodes."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-6uniu",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082989534-5d-jfh4",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082989534-5e-84gz",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Community Online Tools (COT) is the go-to admin toolkit for DayZ servers. It provides in-game interfaces for managing players, spawning items and objects, teleporting, and adjusting server settings in real-time.\n\nCOT uses CF's permission system for granular access control — you can grant specific admin tools to different staff roles.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-v8umm",
+                  "content": "Community Online Tools (COT) is the go-to admin toolkit for DayZ servers. It provides in-game interfaces for managing players, spawning items and objects, teleporting, and adjusting server settings in real-time.\n\nCOT uses CF's permission system for granular access control — you can grant specific admin tools to different staff roles.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082989534-5f-hgnn",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082989534-5g-gla3",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Subscribe to Community Online Tools on the Steam Workshop.",
+                    "Place the @Community-Online-Tools folder in your server's root directory.",
+                    "Add @Community-Online-Tools to your -mod=",
+                    "Both clients and servers must have this mod loaded.",
+                    "The mod is now installed. Please watch the Guide to learn how to set yourself admin"
+                  ],
+                  "blockId": "block-1773333239007-fshdw",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082989534-5h-g6nb",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082989534-5i-kh78",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "COT menu not appearing",
+                        "description": "Ensure you have admin permissions. Try pressing INSERT or the configured keybind."
+                      },
+                      {
+                        "title": "Cannot grant permissions",
+                        "description": "Add your Steam64 ID to the superadmin list in the CF permissions file."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-t9iz6",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [],
+  "linkedGuides": []
+}

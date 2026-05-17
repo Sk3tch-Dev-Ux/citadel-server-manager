@@ -1,72 +1,130 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Expansion Territory Settings",
+  "title": "TerritorySettings",
   "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-basebuilding",
+  "x-filePath": "Profiles/ExpansionMod/Settings/TerritorySettings.json",
   "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "6"
+      ],
+      "type": "integer",
+      "default": 6
+    },
+    "EnableTerritories": {
+      "description": "Enable or disable territories",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UseWholeMapForInviteList": {
+      "description": "Enable or disable whole map for invite list",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
     "TerritorySize": {
-      "type": "number",
-      "minimum": 10,
-      "maximum": 500,
-      "default": 150,
-      "description": "Territory flag radius in meters"
-    },
-    "TerritoryPerPlayer": {
+      "description": "Territory size (default: 150)",
+      "examples": [
+        "150"
+      ],
       "type": "integer",
-      "minimum": 0,
-      "maximum": 50,
-      "default": 1,
-      "description": "Maximum territories per player (0 = unlimited)"
+      "default": 150
     },
-    "TerritoryFollowTerrainNormal": {
+    "TerritoryPerimeterSize": {
+      "description": "Territory perimeter size (default: 150)",
+      "examples": [
+        "150"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Place objects following terrain angle"
+      "default": 150
     },
-    "AutoDeleteAfterDays": {
+    "MaxMembersInTerritory": {
+      "description": "Max members in territory",
+      "examples": [
+        "10"
+      ],
       "type": "integer",
-      "minimum": 0,
-      "maximum": 365,
-      "default": 40,
-      "description": "Auto-delete territory after days of no refresh (0 = disabled)"
+      "default": 10
     },
-    "EnableTerritoryMember": {
+    "MaxTerritoryPerPlayer": {
+      "description": "Max territory per player",
+      "examples": [
+        "1"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Allow adding members to territories"
+      "default": 1
     },
-    "MaxMembersPerTerritory": {
+    "TerritoryInviteAcceptRadius": {
+      "description": "Territory invite accept radius (default: 150)",
+      "examples": [
+        "150"
+      ],
       "type": "integer",
-      "minimum": 0,
-      "maximum": 200,
-      "default": 10,
-      "description": "Maximum members per territory (0 = unlimited)"
+      "default": 150
     },
-    "EnableTerritoryPin": {
+    "AuthenticateCodeLockIfTerritoryMember": {
+      "description": "Authenticate code lock if territory member",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Enable territory PIN codes for access"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
-    "MaxObjectsPerTerritory": {
+    "InviteCooldown": {
+      "description": "Invite cooldown",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "minimum": 0,
-      "maximum": 10000,
-      "default": 500,
-      "description": "Maximum objects that can be placed in a territory (0 = unlimited)"
+      "default": 0
     },
-    "CodelockOnlyOnFences": {
+    "OnlyInviteGroupMember": {
+      "description": "Only invite group member",
+      "examples": [
+        "0"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Restrict code locks to fences only"
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
-    "EnableDeleteTerritory": {
+    "MaxCodeLocksOnBBPerTerritory": {
+      "description": "Max code locks on bb per territory",
+      "examples": [
+        "-1"
+      ],
       "type": "integer",
-      "enum": [0, 1],
-      "default": 1,
-      "description": "Allow territory owners to delete their territory"
+      "default": -1
+    },
+    "MaxCodeLocksOnItemsPerTerritory": {
+      "description": "Max code locks on items per territory",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
     }
   }
 }

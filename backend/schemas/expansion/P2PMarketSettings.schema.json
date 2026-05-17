@@ -1,0 +1,172 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "P2PMarketSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-market",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/settings/P2PMarketSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "3"
+      ],
+      "type": "integer",
+      "default": 3
+    },
+    "Enabled": {
+      "description": "Enable or disable d",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "MaxListingTime": {
+      "description": "Time duration in milliseconds",
+      "examples": [
+        "691200"
+      ],
+      "type": "integer",
+      "default": 691200
+    },
+    "MaxListings": {
+      "description": "Max listings",
+      "examples": [
+        "20"
+      ],
+      "type": "integer",
+      "default": 20
+    },
+    "ListingOwnerDiscountPercent": {
+      "description": "Listing owner discount percent. Range: 0–100",
+      "examples": [
+        "35"
+      ],
+      "type": "integer",
+      "default": 70
+    },
+    "ListingPricePercent": {
+      "description": "Listing price percent. Range: 0–100",
+      "examples": [
+        "15"
+      ],
+      "type": "integer",
+      "default": 30
+    },
+    "ExcludedClassNames": {
+      "description": "Excluded class names",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "MenuCategories": {
+      "description": "Menu categories",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "DisplayName": {
+            "description": "Display name",
+            "examples": [
+              "\"Ammo\""
+            ],
+            "type": "string",
+            "default": "Ammo"
+          },
+          "IconPath": {
+            "description": "Icon path",
+            "examples": [
+              "\"set:dayz_inventory image:bullets\""
+            ],
+            "type": "string",
+            "format": "expansion-icon",
+            "default": "set:dayz_inventory image:bullets"
+          },
+          "Included": {
+            "description": "Included",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "Excluded": {
+            "description": "Excluded",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "SubCategories": {
+            "description": "Sub categories",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "DisplayName": {
+                  "description": "Display name",
+                  "examples": [
+                    "\"Ammo-Boxes\""
+                  ],
+                  "type": "string",
+                  "default": "Ammo-Boxes"
+                },
+                "IconPath": {
+                  "description": "Icon path",
+                  "examples": [
+                    "\"set:dayz_inventory image:bullets\""
+                  ],
+                  "type": "string",
+                  "format": "expansion-icon",
+                  "default": "set:dayz_inventory image:bullets"
+                },
+                "Included": {
+                  "description": "Included",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "Excluded": {
+                  "description": "Excluded",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                }
+              }
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "SalesDepositTime": {
+      "description": "Time duration in milliseconds",
+      "examples": [
+        "691200"
+      ],
+      "type": "integer",
+      "default": 691200
+    },
+    "DisallowUnpersisted": {
+      "description": "Disallow unpersisted",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

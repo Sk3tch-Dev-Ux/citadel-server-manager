@@ -1,0 +1,6 @@
+{
+  "id": "tpl-aisettings",
+  "name": "AISettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"AccuracyMin\": \"number\",\n  \"AccuracyMax\": \"number\",\n  \"ThreatDistanceLimit\": \"number\",\n  \"NoiseInvestigationDistanceLimit\": \"number\",\n  \"MaxFlankingDistance\": \"number\",\n  \"EnableFlankingOutsideCombat\": \"number\",\n  \"DamageMultiplier\": \"number\",\n  \"DamageReceivedMultiplier\": \"number\",\n  \"ShoryukenChance\": \"number\",\n  \"ShoryukenDamageMultiplier\": \"number\",\n  \"Admins\": [],\n  \"Vaulting\": \"number\",\n  \"SniperProneDistanceThreshold\": \"number\",\n  \"AggressionTimeout\": \"number\",\n  \"GuardAggressionTimeout\": \"number\",\n  \"Manners\": \"number\",\n  \"MemeLevel\": \"number\",\n  \"CanRecruitFriendly\": \"number\",\n  \"CanRecruitGuards\": \"number\",\n  \"MaxRecruitableAI\": \"number\",\n  \"PreventClimb\": [],\n  \"FormationScale\": \"number\",\n  \"PlayerFactions\": [],\n  \"LogAIHitBy\": \"number\",\n  \"LogAIKilled\": \"number\",\n  \"EnableZombieVehicleAttackHandler\": \"number\",\n  \"EnableZombieVehicleAttackPhysics\": \"number\",\n  \"OverrideClientWeaponFiring\": \"number\",\n  \"RecreateWeaponNetworkRepresentation\": \"number\",\n  \"LightingConfigMinNightVisibilityMeters\": {\n    \"string\": \"number\"\n  }\n}",
+  "description": "Auto-generated validation template for AISettings"
+}

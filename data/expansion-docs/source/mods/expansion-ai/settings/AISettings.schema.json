@@ -1,0 +1,231 @@
+{
+  "id": "config-1778065678588-r5fc",
+  "name": "AISettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/AISettings.json",
+  "linkedModId": "expansion-ai",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "20",
+      "description": "M_version",
+      "defaultValue": "20"
+    },
+    {
+      "name": "AccuracyMin",
+      "type": "float",
+      "example": "0.3499999940395355",
+      "description": "Accuracy min (default: 0.3499999940395355)",
+      "defaultValue": "0.3499999940395355"
+    },
+    {
+      "name": "AccuracyMax",
+      "type": "float",
+      "example": "0.949999988079071",
+      "description": "Accuracy max (default: 0.949999988079071)",
+      "defaultValue": "0.949999988079071"
+    },
+    {
+      "name": "ThreatDistanceLimit",
+      "type": "int",
+      "example": "1000",
+      "description": "Threat distance limit (default: 1000)",
+      "defaultValue": "1000"
+    },
+    {
+      "name": "NoiseInvestigationDistanceLimit",
+      "type": "int",
+      "example": "500",
+      "description": "Noise investigation distance limit (default: 500)",
+      "defaultValue": "500"
+    },
+    {
+      "name": "MaxFlankingDistance",
+      "type": "int",
+      "example": "200",
+      "description": "Max flanking distance (default: 200)",
+      "defaultValue": "200"
+    },
+    {
+      "name": "EnableFlankingOutsideCombat",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable flanking outside combat",
+      "defaultValue": "0"
+    },
+    {
+      "name": "DamageMultiplier",
+      "type": "int",
+      "example": "1",
+      "description": "Damage multiplier. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DamageReceivedMultiplier",
+      "type": "int",
+      "example": "1",
+      "description": "Damage received multiplier. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShoryukenChance",
+      "type": "float",
+      "example": "0",
+      "description": "Shoryuken chance. Range: 0.0–1.0",
+      "defaultValue": "0.009999999776482582"
+    },
+    {
+      "name": "ShoryukenDamageMultiplier",
+      "type": "int",
+      "example": "2",
+      "description": "Shoryuken damage multiplier. Range: 0–100",
+      "defaultValue": "3"
+    },
+    {
+      "name": "Admins",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Admins",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "Vaulting",
+      "type": "int",
+      "example": "1",
+      "description": "Vaulting",
+      "defaultValue": "1"
+    },
+    {
+      "name": "SniperProneDistanceThreshold",
+      "type": "int",
+      "example": "0",
+      "description": "Sniper prone distance threshold (default: 0)",
+      "defaultValue": "0"
+    },
+    {
+      "name": "AggressionTimeout",
+      "type": "int",
+      "example": "120",
+      "description": "Time duration in seconds",
+      "defaultValue": "120"
+    },
+    {
+      "name": "GuardAggressionTimeout",
+      "type": "int",
+      "example": "150",
+      "description": "Time duration in seconds",
+      "defaultValue": "150"
+    },
+    {
+      "name": "Manners",
+      "type": "int",
+      "example": "0",
+      "description": "Manners",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MemeLevel",
+      "type": "enum",
+      "example": "1",
+      "description": "Meme level selector (0–5)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CanRecruitFriendly",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable recruit friendly",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CanRecruitGuards",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable recruit guards",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxRecruitableAI",
+      "type": "int",
+      "example": "255",
+      "description": "Max recruitable ai",
+      "defaultValue": "255"
+    },
+    {
+      "name": "PreventClimb",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Prevent climb",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "FormationScale",
+      "type": "int",
+      "example": "1",
+      "description": "Formation scale. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PlayerFactions",
+      "type": "array",
+      "example": "",
+      "arrayItems": "items",
+      "description": "Player factions",
+      "defaultValue": "[0 items]"
+    },
+    {
+      "name": "LogAIHitBy",
+      "type": "int",
+      "example": "1",
+      "description": "Log ai hit by",
+      "defaultValue": "1"
+    },
+    {
+      "name": "LogAIKilled",
+      "type": "int",
+      "example": "1",
+      "description": "Log ai killed",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableZombieVehicleAttackHandler",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable zombie vehicle attack handler",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableZombieVehicleAttackPhysics",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable zombie vehicle attack physics",
+      "defaultValue": "0"
+    },
+    {
+      "name": "OverrideClientWeaponFiring",
+      "type": "int",
+      "example": "1",
+      "description": "Override client weapon firing",
+      "defaultValue": "1"
+    },
+    {
+      "name": "RecreateWeaponNetworkRepresentation",
+      "type": "int",
+      "example": "1",
+      "description": "Recreate weapon network representation",
+      "defaultValue": "1"
+    },
+    {
+      "name": "LightingConfigMinNightVisibilityMeters",
+      "type": "map",
+      "example": "",
+      "mapKeyType": "string",
+      "description": "Lighting config min night visibility meters",
+      "defaultValue": "{ \"0\": 100, … (2 entries) }",
+      "mapValueType": "int"
+    }
+  ]
+}

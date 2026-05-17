@@ -1,0 +1,248 @@
+{
+  "id": "expansion-quests",
+  "name": "Expansion Quests",
+  "shortName": "Quests",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Quests",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2828486817",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2819010312",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Dynamic quest system for creating interactive MMO-like quests with objectives, rewards, and NPC quest givers.",
+  "overview": "Expansion Quests is a dynamic quest system that brings MMO-like quest experiences to DayZ. Server owners can create interactive quests with various objective types, configurable rewards, and NPC quest givers placed around the map.\n\n## Key Features\n\n- **Multiple Objective Types** — Kill targets, collect items, deliver items, travel to locations, craft items, and more\n- **Quest Chains** — Link quests together with pre-quest and follow-up quest requirements\n- **Repeatable & Timed Quests** — Configure daily, weekly, or infinitely repeatable quests\n- **NPC Quest Givers** — Place and configure NPC characters that offer and receive quests\n- **Group Quests** — Create quests that can be shared and completed as a group\n- **Configurable Rewards** — Define item rewards, currency rewards, and reputation rewards\n\n> **Note:** This system is under active development. Content and configuration may change in future updates.",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-ai",
+    "expansion-hardline"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @ExpansionQuests from the Steam Workshop.",
+    "Add @ExpansionQuests to your -mod= parameter after Core.",
+    "Start the server to generate quest configuration files.",
+    "Create quest definitions in mpmissions/dayzOffline.<mapname>/expansion/quests/.",
+    "Configure quest NPCs, objectives, and rewards. Restart the server."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Quests not appearing for players",
+      "solution": "Verify EnableQuests is set to 1, quest files are valid JSON, and quest NPC positions are correct."
+    },
+    {
+      "problem": "Quest NPC markers not on map",
+      "solution": "Set CreateQuestNPCMarkers to 1 and ensure the Navigation mod is installed."
+    },
+    {
+      "problem": "Daily quests not resetting",
+      "solution": "Check DailyResetHour and UseUTCTime settings. Server must be running at reset time."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "PvE Progression",
+      "description": "Create quest chains that guide players through progressively harder objectives, from simple item collection to dangerous AI encounters."
+    },
+    {
+      "title": "Daily Challenges",
+      "description": "Set up repeatable daily quests that give players reasons to log in every day."
+    },
+    {
+      "title": "Story-Driven Server",
+      "description": "Build narrative quest lines with multiple NPCs, branching paths, and story-based rewards."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "EnableQuests",
+      "type": "bool",
+      "example": "0",
+      "description": "Master toggle to enable or disable the entire quest system.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableQuestLogTab",
+      "type": "bool",
+      "example": "0",
+      "description": "Show the quest log tab in the player's book menu.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CreateQuestNPCMarkers",
+      "type": "bool",
+      "example": "0",
+      "description": "Automatically create map markers at quest NPC locations.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseUTCTime",
+      "type": "bool",
+      "example": "1",
+      "description": "Use UTC time for daily/weekly quest resets instead of server local time.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "DailyResetHour",
+      "type": "int",
+      "example": "6",
+      "description": "Hour (0-23) when daily quests reset.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "WeeklyResetDay",
+      "type": "int",
+      "example": "1",
+      "description": "Day of the week (1=Monday, 7=Sunday) when weekly quests reset.",
+      "defaultValue": "1"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082998010-8o-u289",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082998010-8p-21r4",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082998010-8q-5kse",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "PvE Progression",
+                        "description": "Create quest chains that guide players through progressively harder objectives, from simple item collection to dangerous AI encounters."
+                      },
+                      {
+                        "title": "Daily Challenges",
+                        "description": "Set up repeatable daily quests that give players reasons to log in every day."
+                      },
+                      {
+                        "title": "Story-Driven Server",
+                        "description": "Build narrative quest lines with multiple NPCs, branching paths, and story-based rewards."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-shszl",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082998010-8r-ao8c",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082998010-8s-ks57",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Quests is a dynamic quest system that brings MMO-like quest experiences to DayZ. Server owners can create interactive quests with various objective types, configurable rewards, and NPC quest givers placed around the map.\n\n## Key Features\n\n- **Multiple Objective Types** — Kill targets, collect items, deliver items, travel to locations, craft items, and more\n- **Quest Chains** — Link quests together with pre-quest and follow-up quest requirements\n- **Repeatable & Timed Quests** — Configure daily, weekly, or infinitely repeatable quests\n- **NPC Quest Givers** — Place and configure NPC characters that offer and receive quests\n- **Group Quests** — Create quests that can be shared and completed as a group\n- **Configurable Rewards** — Define item rewards, currency rewards, and reputation rewards\n\n> **Note:** This system is under active development. Content and configuration may change in future updates.",
+                "_blockData": {
+                  "blockId": "block-1773333239007-7i7h1",
+                  "content": "Expansion Quests is a dynamic quest system that brings MMO-like quest experiences to DayZ. Server owners can create interactive quests with various objective types, configurable rewards, and NPC quest givers placed around the map.\n\n## Key Features\n\n- **Multiple Objective Types** — Kill targets, collect items, deliver items, travel to locations, craft items, and more\n- **Quest Chains** — Link quests together with pre-quest and follow-up quest requirements\n- **Repeatable & Timed Quests** — Configure daily, weekly, or infinitely repeatable quests\n- **NPC Quest Givers** — Place and configure NPC characters that offer and receive quests\n- **Group Quests** — Create quests that can be shared and completed as a group\n- **Configurable Rewards** — Define item rewards, currency rewards, and reputation rewards\n\n> **Note:** This system is under active development. Content and configuration may change in future updates.",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082998010-8t-mn5u",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082998010-8u-bq7p",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @ExpansionQuests from the Steam Workshop.",
+                    "Add @ExpansionQuests to your -mod= parameter after Core.",
+                    "Start the server to generate quest configuration files.",
+                    "Create quest definitions in mpmissions/dayzOffline.<mapname>/expansion/quests/.",
+                    "Configure quest NPCs, objectives, and rewards. Restart the server."
+                  ],
+                  "blockId": "block-1773333239007-fdxkp",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082998010-8v-rdlp",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082998010-8w-lpsm",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Quests not appearing for players",
+                        "description": "Verify EnableQuests is set to 1, quest files are valid JSON, and quest NPC positions are correct."
+                      },
+                      {
+                        "title": "Quest NPC markers not on map",
+                        "description": "Set CreateQuestNPCMarkers to 1 and ensure the Navigation mod is installed."
+                      },
+                      {
+                        "title": "Daily quests not resetting",
+                        "description": "Check DailyResetHour and UseUTCTime settings. Server must be running at reset time."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-1u9ml",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [
+    "json-validator"
+  ],
+  "linkedGuides": [
+    "expansion-quests"
+  ],
+  "changelogKeywords": [
+    "quests",
+    "quest"
+  ]
+}

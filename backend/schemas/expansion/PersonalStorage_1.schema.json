@@ -1,0 +1,267 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PersonalStorage_1",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-personal-storage",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/personalstorage/PersonalStorage_1.json",
+  "properties": {
+    "ConfigVersion": {
+      "description": "Config version",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "StorageID": {
+      "description": "Storage id",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ClassName": {
+      "description": "DayZ classname (e.g. \"ExpansionPersonalStorageChest\")",
+      "examples": [
+        "\"ExpansionPersonalStorageChest\""
+      ],
+      "type": "string",
+      "format": "dayz-classname",
+      "default": "ExpansionPersonalStorageChest"
+    },
+    "DisplayName": {
+      "description": "Display name",
+      "examples": [
+        "\"Personal Storage\""
+      ],
+      "type": "string",
+      "default": "Personal Storage"
+    },
+    "DisplayIcon": {
+      "description": "Display icon",
+      "examples": [
+        "\"Backpack\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "Backpack"
+    },
+    "Position": {
+      "description": "Position",
+      "examples": [
+        "3696.39, 402.012, 5982.22"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "3696.39, 402.012, 5982.22"
+    },
+    "Orientation": {
+      "description": "Orientation",
+      "examples": [
+        "-11.7479, 0, 0"
+      ],
+      "type": "string",
+      "format": "vector3",
+      "default": "-11.7479, 0, 0"
+    },
+    "QuestID": {
+      "description": "Quest id",
+      "examples": [
+        "-1"
+      ],
+      "type": "integer",
+      "default": -1
+    },
+    "Reputation": {
+      "description": "Reputation",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "Faction": {
+      "description": "Faction",
+      "examples": [
+        "\"\""
+      ],
+      "type": "string",
+      "default": ""
+    },
+    "IsGlobalStorage": {
+      "description": "Enable or disable global storage",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Enabled": {
+      "description": "Enable or disable d",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "UsePersonalStorageCase": {
+      "description": "Enable or disable personal storage case",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "MaxItemsPerStorage": {
+      "description": "Max items per storage",
+      "examples": [
+        "15"
+      ],
+      "type": "integer",
+      "default": 15
+    },
+    "ExcludedClassNames": {
+      "description": "Excluded class names",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "MenuCategories": {
+      "description": "Menu categories",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "DisplayName": {
+            "description": "Display name",
+            "examples": [
+              "\"Ammo\""
+            ],
+            "type": "string",
+            "default": "Ammo"
+          },
+          "IconPath": {
+            "description": "Icon path",
+            "examples": [
+              "\"set:dayz_inventory image:bullets\""
+            ],
+            "type": "string",
+            "format": "expansion-icon",
+            "default": "set:dayz_inventory image:bullets"
+          },
+          "Included": {
+            "description": "Included",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "Excluded": {
+            "description": "Excluded",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "SubCategories": {
+            "description": "Sub categories",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "DisplayName": {
+                  "description": "Display name",
+                  "examples": [
+                    "\"Ammo-Boxes\""
+                  ],
+                  "type": "string",
+                  "default": "Ammo-Boxes"
+                },
+                "IconPath": {
+                  "description": "Icon path",
+                  "examples": [
+                    "\"set:dayz_inventory image:bullets\""
+                  ],
+                  "type": "string",
+                  "format": "expansion-icon",
+                  "default": "set:dayz_inventory image:bullets"
+                },
+                "Included": {
+                  "description": "Included",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "Excluded": {
+                  "description": "Excluded",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                }
+              }
+            },
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+    "UseCategoryMenu": {
+      "description": "Enable or disable category menu",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "ExcludedItems": {
+      "description": "Excluded items",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "StorageLevels": {
+      "description": "Storage levels",
+      "type": "object",
+      "additionalProperties": true,
+      "x-mapKeyType": "string",
+      "default": {}
+    }
+  }
+}

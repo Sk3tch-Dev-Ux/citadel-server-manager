@@ -1,0 +1,6 @@
+{
+  "id": "tpl-trader",
+  "name": "Trader",
+  "template": "{\n  \"Items\": {\n    \"string\": \"number\"\n  },\n  \"m_Version\": \"number\",\n  \"Categories\": [\n    \"string\"\n  ],\n  \"Currencies\": [\n    \"string\"\n  ],\n  \"TraderIcon\": \"string\",\n  \"DisplayName\": \"string\",\n  \"UseCategoryOrder\": \"number\",\n  \"DisplayCurrencyName\": \"string\",\n  \"DisplayCurrencyValue\": \"number\",\n  \"RequiredFaction\": \"string\",\n  \"MaxRequiredReputation\": \"number\",\n  \"MinRequiredReputation\": \"number\",\n  \"RequiredCompletedQuestID\": \"number\"\n}",
+  "description": "Auto-generated validation template for Trader"
+}

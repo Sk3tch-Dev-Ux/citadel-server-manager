@@ -1,0 +1,346 @@
+{
+  "id": "market-manager",
+  "name": "Market Editor",
+  "description": "Full-featured editor for Expansion market category and trader JSON files. Import/export ZIP archives, inline editing, validation, and bulk operations.",
+  "iconName": "Store",
+  "keywords": [
+    "market",
+    "trader",
+    "economy",
+    "shop",
+    "price",
+    "stock",
+    "category",
+    "manager",
+    "editor"
+  ],
+  "enabled": true,
+  "outputModes": [],
+  "fullWidthOutput": true,
+  "formFields": [
+    {
+      "id": "me-f1",
+      "key": "defaultMaxPrice",
+      "type": "number",
+      "group": "Item Defaults",
+      "label": "Default Max Price",
+      "colSpan": 2,
+      "description": "Default MaxPriceThreshold for new market items",
+      "defaultValue": "1000"
+    },
+    {
+      "id": "me-f2",
+      "key": "defaultMinPrice",
+      "type": "number",
+      "group": "Item Defaults",
+      "label": "Default Min Price",
+      "colSpan": 2,
+      "description": "Default MinPriceThreshold for new market items",
+      "defaultValue": "500"
+    },
+    {
+      "id": "me-f3",
+      "key": "defaultSellPercent",
+      "type": "number",
+      "group": "Item Defaults",
+      "label": "Default Sell Price %",
+      "colSpan": 2,
+      "description": "Default SellPricePercent (-1 = not sellable)",
+      "defaultValue": "-1"
+    },
+    {
+      "id": "me-f4",
+      "key": "defaultMaxStock",
+      "type": "number",
+      "group": "Item Defaults",
+      "label": "Default Max Stock",
+      "colSpan": 2,
+      "description": "Default MaxStockThreshold for new market items",
+      "defaultValue": "100"
+    },
+    {
+      "id": "me-f5",
+      "key": "defaultMinStock",
+      "type": "number",
+      "group": "Item Defaults",
+      "label": "Default Min Stock",
+      "colSpan": 2,
+      "description": "Default MinStockThreshold for new market items",
+      "defaultValue": "1"
+    },
+    {
+      "id": "me-f6",
+      "key": "defaultQuantityPercent",
+      "type": "number",
+      "group": "Item Defaults",
+      "label": "Default Quantity %",
+      "colSpan": 2,
+      "description": "Default QuantityPercent (-1 = full condition)",
+      "defaultValue": "-1"
+    },
+    {
+      "id": "me-f7",
+      "key": "defaultInitStockPercent",
+      "type": "number",
+      "group": "Item Defaults",
+      "label": "Default Init Stock %",
+      "colSpan": 2,
+      "description": "Default InitStockPercent for new market files",
+      "defaultValue": "75"
+    },
+    {
+      "id": "me-f8",
+      "key": "defaultCurrency",
+      "type": "text",
+      "group": "Item Defaults",
+      "label": "Default Currency",
+      "colSpan": 2,
+      "description": "Default currency classname for new trader files",
+      "defaultValue": "expansionbanknotehryvnia"
+    },
+    {
+      "id": "me-v1",
+      "key": "maxReputationCap",
+      "type": "number",
+      "group": "Validation",
+      "label": "Max Reputation Cap",
+      "colSpan": 2,
+      "description": "Maximum value allowed for MaxRequiredReputation",
+      "defaultValue": "2147483647"
+    },
+    {
+      "id": "me-v2",
+      "key": "warnInvertedPrices",
+      "type": "boolean",
+      "group": "Validation",
+      "label": "Warn Inverted Prices",
+      "colSpan": 2,
+      "description": "Show error when MinPrice > MaxPrice",
+      "defaultValue": "true"
+    },
+    {
+      "id": "me-v3",
+      "key": "warnNegativePrices",
+      "type": "boolean",
+      "group": "Validation",
+      "label": "Warn Negative Prices",
+      "colSpan": 2,
+      "description": "Show error for negative price values",
+      "defaultValue": "true"
+    },
+    {
+      "id": "me-v4",
+      "key": "warnMissingDeps",
+      "type": "boolean",
+      "group": "Validation",
+      "label": "Warn Missing Dependencies",
+      "colSpan": 2,
+      "description": "Suggest category dependencies for traders",
+      "defaultValue": "true"
+    },
+    {
+      "id": "me-v5",
+      "key": "warnAttachmentNotFound",
+      "type": "boolean",
+      "group": "Validation",
+      "label": "Warn Attachment Not Found",
+      "colSpan": 2,
+      "description": "Show error for SpawnAttachments referencing unknown classnames",
+      "defaultValue": "true"
+    },
+    {
+      "id": "me-v6",
+      "key": "warnCurrencyNotFound",
+      "type": "boolean",
+      "group": "Validation",
+      "label": "Warn Currency Not Found",
+      "colSpan": 2,
+      "description": "Warn when trader currencies are not in exchange market files",
+      "defaultValue": "true"
+    },
+    {
+      "id": "me-v7",
+      "key": "sellPercentMin",
+      "type": "number",
+      "group": "Validation",
+      "label": "Sell % Range Min",
+      "colSpan": 2,
+      "description": "Minimum valid SellPricePercent (other than -1)",
+      "defaultValue": "0"
+    },
+    {
+      "id": "me-v8",
+      "key": "sellPercentMax",
+      "type": "number",
+      "group": "Validation",
+      "label": "Sell % Range Max",
+      "colSpan": 2,
+      "description": "Maximum valid SellPricePercent",
+      "defaultValue": "100"
+    },
+    {
+      "id": "me-d1",
+      "key": "categoryDependencies",
+      "type": "textarea",
+      "group": "Category Dependencies",
+      "label": "Category Dependencies JSON",
+      "colSpan": 4,
+      "description": "JSON map of category → required dependencies. Keys are category filenames, values are arrays of dependent category filenames.",
+      "defaultValue": "{\"Assault_Rifles\":[\"Buttstocks\",\"Handguards\",\"Magazines\",\"Optics\"],\"Submachine_Guns\":[\"Buttstocks\",\"Handguards\",\"Magazines\"],\"Shotguns\":[\"Buttstocks\",\"Magazines\"],\"Rifles\":[\"Bayonets\",\"Magazines\"],\"Sniper_Rifles\":[\"Magazines\"],\"Pistols\":[\"Magazines\"],\"Cars\":[\"Batteries\",\"Containers\",\"Liquids\",\"Vehicle_Parts\"],\"Helicopters\":[\"Batteries\",\"Vehicle_Parts\"],\"Boats\":[\"Batteries\",\"Vehicle_Parts\"],\"Electronics\":[\"Batteries\"],\"Navigation\":[\"Batteries\"],\"Optics\":[\"Batteries\"],\"Lights\":[\"Batteries\",\"Supplies\"],\"Masks\":[\"Medical\"],\"Tools\":[\"Supplies\"]}"
+    },
+    {
+      "id": "me-ui1",
+      "key": "showDependencyGraph",
+      "type": "boolean",
+      "group": "Visual",
+      "label": "Show Dependency Graph",
+      "colSpan": 2,
+      "description": "Show the visual dependency graph section in trader files",
+      "defaultValue": "true"
+    },
+    {
+      "id": "me-ui2",
+      "key": "showPriceChart",
+      "type": "boolean",
+      "group": "Visual",
+      "label": "Show Price Chart",
+      "colSpan": 2,
+      "description": "Show the price comparison chart in market files",
+      "defaultValue": "true"
+    },
+    {
+      "id": "me-ui2b",
+      "key": "priceChartType",
+      "type": "select",
+      "group": "Visual",
+      "label": "Price Chart Type",
+      "colSpan": 2,
+      "options": [
+        "line",
+        "bar"
+      ],
+      "description": "Display style for the price overview chart",
+      "defaultValue": "line",
+      "optionLabels": [
+        "Line Chart",
+        "Bar Chart"
+      ]
+    },
+    {
+      "id": "me-ui3",
+      "key": "showIssuesPanel",
+      "type": "boolean",
+      "group": "Visual",
+      "label": "Show Issues Panel",
+      "colSpan": 2,
+      "description": "Show the validation issues panel by default",
+      "defaultValue": "true"
+    },
+    {
+      "id": "me-ui4",
+      "key": "defaultSidebarTab",
+      "type": "select",
+      "group": "Visual",
+      "label": "Default Sidebar Tab",
+      "colSpan": 2,
+      "options": [
+        "market",
+        "traders"
+      ],
+      "description": "Which sidebar tab is selected by default",
+      "defaultValue": "market",
+      "optionLabels": [
+        "Market Files",
+        "Trader Files"
+      ]
+    },
+    {
+      "id": "me-ui5",
+      "key": "maxUndoSteps",
+      "type": "number",
+      "group": "Visual",
+      "label": "Max Undo Steps",
+      "colSpan": 2,
+      "description": "Maximum number of undo/redo history entries",
+      "defaultValue": "50",
+      "validationRules": [
+        {
+          "type": "min",
+          "value": "5",
+          "message": "Min 5 steps"
+        },
+        {
+          "type": "max",
+          "value": "200",
+          "message": "Max 200 steps"
+        }
+      ]
+    },
+    {
+      "id": "me-ui6",
+      "key": "newMarketVersion",
+      "type": "number",
+      "group": "Visual",
+      "label": "New File Market Version",
+      "colSpan": 2,
+      "description": "m_Version for newly created market files",
+      "defaultValue": "12"
+    },
+    {
+      "id": "me-ui7",
+      "key": "newTraderVersion",
+      "type": "number",
+      "group": "Visual",
+      "label": "New File Trader Version",
+      "colSpan": 2,
+      "description": "m_Version for newly created trader files",
+      "defaultValue": "13"
+    }
+  ],
+  "outputWrapperKey": "",
+  "templates": [],
+  "blocks": [],
+  "defaultCollapsedGroups": [
+    "Category Dependencies"
+  ],
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "_seedVersion": 1,
+  "nodeGraph": {
+    "nodes": [
+      {
+        "id": "n-input",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Market Config",
+          "fields": [
+            "defaultMaxPrice",
+            "defaultMinPrice",
+            "defaultSellPercent",
+            "defaultMaxStock",
+            "defaultMinStock",
+            "maxReputationCap",
+            "warnInvertedPrices",
+            "warnMissingDeps"
+          ]
+        }
+      },
+      {
+        "id": "n-comment-1",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "text": "The Market Editor reads these configuration values at runtime to control default item values, validation behavior, and visual features. Edit the form fields above to customize."
+        }
+      }
+    ],
+    "edges": []
+  }
+}

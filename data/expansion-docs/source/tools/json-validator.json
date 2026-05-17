@@ -1,0 +1,244 @@
+{
+  "id": "json-validator",
+  "name": "JSON Validator",
+  "description": "Validate your JSON configuration files against predefined templates.",
+  "iconName": "FileJson",
+  "keywords": [
+    "json",
+    "validate",
+    "template",
+    "config"
+  ],
+  "enabled": true,
+  "isVisual": true,
+  "outputModes": [
+    "validate"
+  ],
+  "formFields": [],
+  "layoutTree": [
+    {
+      "id": "jv-toolbar",
+      "type": "toolbar",
+      "props": {}
+    },
+    {
+      "id": "jv-help",
+      "type": "contextual-help",
+      "props": {}
+    },
+    {
+      "id": "jv-validator",
+      "type": "validator-panel",
+      "props": {}
+    }
+  ],
+  "blocks": [],
+  "validationTemplate": "{\n  \"DisplayName\": \"string\",\n  \"Icon\": \"string\",\n  \"Items\": [\n    {\n      \"ClassName\": \"string\",\n      \"MaxPriceThreshold\": \"number\",\n      \"MinPriceThreshold\": \"number\",\n      \"SellPricePercent\": \"number\",\n      \"MaxStockThreshold\": \"number\",\n      \"MinStockThreshold\": \"number\",\n      \"QuantityPercent\": \"number\",\n      \"SpawnAttachments\": [\n        \"string\"\n      ],\n      \"Variants\": [\n        \"string\"\n      ]\n    }\n  ]\n}",
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "_seedVersion": 3,
+  "nodeGraph": {
+    "nodes": [
+      {
+        "id": "c1",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "blue",
+          "label": "Input Stage — Parse & detect schema"
+        }
+      },
+      {
+        "id": "n1",
+        "type": "input",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "JSON Input",
+          "fieldKey": "jsonInput",
+          "fieldType": "textarea"
+        }
+      },
+      {
+        "id": "n2",
+        "type": "json-parse",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Parse JSON",
+          "outputKey": "parsed",
+          "description": "Syntax check and parse raw JSON text into an object"
+        }
+      },
+      {
+        "id": "c2",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "teal",
+          "label": "Detection — Match schema & template"
+        }
+      },
+      {
+        "id": "n3",
+        "type": "schema-detect",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Auto-Detect Schema",
+          "outputKey": "detectedSchema",
+          "description": "Fingerprint JSON structure to find matching schema"
+        }
+      },
+      {
+        "id": "n4",
+        "type": "template-match",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Template Match",
+          "outputKey": "matchedTemplate",
+          "description": "Match detected schema against registered validation templates"
+        }
+      },
+      {
+        "id": "c3",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "green",
+          "label": "Validation — Check rules & collect issues"
+        }
+      },
+      {
+        "id": "n5",
+        "type": "schema-validate",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Validate Schema",
+          "outputKey": "validationResult",
+          "description": "Check all keys, types, required fields against schema"
+        }
+      },
+      {
+        "id": "n6",
+        "type": "issue-collect",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Collect Issues",
+          "outputKey": "issues",
+          "description": "Aggregate errors and warnings with line numbers"
+        }
+      },
+      {
+        "id": "c4",
+        "type": "comment",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "color": "orange",
+          "label": "Output — Results & auto-fix"
+        }
+      },
+      {
+        "id": "n7",
+        "type": "auto-fix",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Generate Fixes",
+          "outputKey": "fixes",
+          "description": "Produce auto-fix suggestions for each fixable issue"
+        }
+      },
+      {
+        "id": "n8",
+        "type": "output",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "label": "Validation Result",
+          "outputKey": "Result",
+          "outputType": "object",
+          "displayType": "json"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n1",
+        "target": "n2"
+      },
+      {
+        "id": "e2",
+        "source": "n2",
+        "target": "n3"
+      },
+      {
+        "id": "e3",
+        "source": "n2",
+        "target": "n5"
+      },
+      {
+        "id": "e4",
+        "source": "n3",
+        "target": "n4"
+      },
+      {
+        "id": "e5",
+        "source": "n4",
+        "target": "n5"
+      },
+      {
+        "id": "e6",
+        "source": "n5",
+        "target": "n6"
+      },
+      {
+        "id": "e7",
+        "source": "n6",
+        "target": "n7"
+      },
+      {
+        "id": "e8",
+        "source": "n6",
+        "target": "n8"
+      },
+      {
+        "id": "e9",
+        "source": "n7",
+        "target": "n8"
+      }
+    ]
+  }
+}

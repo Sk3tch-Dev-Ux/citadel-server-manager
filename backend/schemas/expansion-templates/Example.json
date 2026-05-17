@@ -1,0 +1,6 @@
+{
+  "id": "tpl-example",
+  "name": "Example",
+  "template": "{\n  \"Stock\": {},\n  \"Radius\": \"number\",\n  \"Position\": [\n    \"number\"\n  ],\n  \"m_Version\": \"number\",\n  \"m_DisplayName\": \"string\",\n  \"BuyPricePercent\": \"number\",\n  \"SellPricePercent\": \"number\"\n}",
+  "description": "Auto-generated validation template for Example"
+}

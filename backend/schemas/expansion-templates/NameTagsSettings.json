@@ -1,0 +1,6 @@
+{
+  "id": "tpl-nametagssettings",
+  "name": "NameTagsSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"EnablePlayerTags\": \"number\",\n  \"PlayerTagViewRange\": \"number\",\n  \"PlayerTagsIcon\": \"string\",\n  \"PlayerTagsColor\": \"number\",\n  \"PlayerNameColor\": \"number\",\n  \"OnlyInSafeZones\": \"number\",\n  \"OnlyInTerritories\": \"number\",\n  \"ShowPlayerItemInHands\": \"number\",\n  \"ShowNPCTags\": \"number\",\n  \"ShowPlayerFaction\": \"number\",\n  \"UseRarityColorForItemInHands\": \"number\"\n}",
+  "description": "Auto-generated validation template for NameTagsSettings"
+}

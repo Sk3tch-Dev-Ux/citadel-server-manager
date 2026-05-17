@@ -1,0 +1,260 @@
+{
+  "name": "BaseBuildingSettings",
+  "description": "",
+  "filePath": "mpmissions/empty.chernarusplus/expansion/settings/BaseBuildingSettings.json",
+  "linkedModId": "expansion-basebuilding",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "5",
+      "description": "M_version",
+      "defaultValue": "5"
+    },
+    {
+      "name": "CanBuildAnywhere",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable build anywhere",
+      "defaultValue": "1"
+    },
+    {
+      "name": "AllowBuildingWithoutATerritory",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable building without a territory",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DeployableOutsideATerritory",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Deployable outside a territory",
+      "defaultValue": "[22 items]"
+    },
+    {
+      "name": "DeployableInsideAEnemyTerritory",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Deployable inside a enemy territory",
+      "defaultValue": "[7 items]"
+    },
+    {
+      "name": "CanCraftVanillaBasebuilding",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable craft vanilla basebuilding",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CanCraftExpansionBasebuilding",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable craft expansion basebuilding",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DestroyFlagOnDismantle",
+      "type": "int",
+      "example": "1",
+      "description": "Destroy flag on dismantle",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DismantleOutsideTerritory",
+      "type": "int",
+      "example": "0",
+      "description": "Dismantle outside territory",
+      "defaultValue": "0"
+    },
+    {
+      "name": "DismantleInsideTerritory",
+      "type": "int",
+      "example": "0",
+      "description": "Dismantle inside territory",
+      "defaultValue": "0"
+    },
+    {
+      "name": "DismantleAnywhere",
+      "type": "int",
+      "example": "0",
+      "description": "Dismantle anywhere",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CodelockActionsAnywhere",
+      "type": "int",
+      "example": "0",
+      "description": "Codelock actions anywhere",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CodeLockLength",
+      "type": "int",
+      "example": "4",
+      "description": "Code lock length",
+      "defaultValue": "4"
+    },
+    {
+      "name": "DoDamageWhenEnterWrongCodeLock",
+      "type": "int",
+      "example": "1",
+      "description": "Do damage when enter wrong code lock",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DamageWhenEnterWrongCodeLock",
+      "type": "int",
+      "example": "10",
+      "description": "Damage when enter wrong code lock",
+      "defaultValue": "10"
+    },
+    {
+      "name": "RememberCode",
+      "type": "int",
+      "example": "1",
+      "description": "Remember code",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CanCraftTerritoryFlagKit",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable craft territory flag kit",
+      "defaultValue": "1"
+    },
+    {
+      "name": "SimpleTerritory",
+      "type": "int",
+      "example": "1",
+      "description": "Simple territory",
+      "defaultValue": "1"
+    },
+    {
+      "name": "AutomaticFlagOnCreation",
+      "type": "int",
+      "example": "1",
+      "description": "Automatic flag on creation",
+      "defaultValue": "1"
+    },
+    {
+      "name": "GetTerritoryFlagKitAfterBuild",
+      "type": "int",
+      "example": "0",
+      "description": "Get territory flag kit after build",
+      "defaultValue": "0"
+    },
+    {
+      "name": "BuildZoneRequiredCustomMessage",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Build zone required custom message",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "Zones",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 6 properties",
+      "description": "Zones",
+      "defaultValue": "[3 items]",
+      "nestedSettings": [
+        {
+          "name": "Name",
+          "type": "string",
+          "example": "\"Krasnostav Trader Camp\"",
+          "description": "Name",
+          "defaultValue": "\"Krasnostav Trader Camp\""
+        },
+        {
+          "name": "Center",
+          "type": "vector",
+          "example": "11882, 143, 12466",
+          "description": "Center",
+          "defaultValue": "11882, 143, 12466"
+        },
+        {
+          "name": "Radius",
+          "type": "int",
+          "example": "1000",
+          "description": "Radius (default: 1000)",
+          "defaultValue": "1000"
+        },
+        {
+          "name": "Items",
+          "type": "array",
+          "example": "",
+          "arrayItems": "string values",
+          "description": "Items",
+          "defaultValue": "[8 items]"
+        },
+        {
+          "name": "IsWhitelist",
+          "type": "bool",
+          "example": "1",
+          "description": "Enable or disable whitelist",
+          "defaultValue": "1"
+        },
+        {
+          "name": "CustomMessage",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Custom message",
+          "defaultValue": "\"\""
+        }
+      ]
+    },
+    {
+      "name": "ZonesAreNoBuildZones",
+      "type": "int",
+      "example": "1",
+      "description": "Zones are no build zones",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CodelockAttachMode",
+      "type": "enum",
+      "example": "1",
+      "description": "Codelock attach mode selector (0–5)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DismantleFlagMode",
+      "type": "enum",
+      "example": "1",
+      "description": "Dismantle flag mode selector (0–5)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "FlagMenuMode",
+      "type": "enum",
+      "example": "1",
+      "description": "Flag menu mode selector (0–5)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PreventItemAccessThroughObstructingItems",
+      "type": "int",
+      "example": "1",
+      "description": "Prevent item access through obstructing items",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableVirtualStorage",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable virtual storage",
+      "defaultValue": "1"
+    },
+    {
+      "name": "VirtualStorageExcludedContainers",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Virtual storage excluded containers",
+      "defaultValue": "[1 items]"
+    }
+  ]
+}

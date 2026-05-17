@@ -1,0 +1,6 @@
+{
+  "id": "tpl-garagesettings",
+  "name": "GarageSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"Enabled\": \"number\",\n  \"AllowStoringDEVehicles\": \"number\",\n  \"GarageMode\": \"number\",\n  \"GarageStoreMode\": \"number\",\n  \"GarageRetrieveMode\": \"number\",\n  \"MaxStorableVehicles\": \"number\",\n  \"VehicleSearchRadius\": \"number\",\n  \"MaxDistanceFromStoredPosition\": \"number\",\n  \"CanStoreWithCargo\": \"number\",\n  \"UseVirtualStorageForCargo\": \"number\",\n  \"NeedKeyToStore\": \"number\",\n  \"EntityWhitelist\": [\n    \"string\"\n  ],\n  \"EnableGroupFeatures\": \"number\",\n  \"GroupStoreMode\": \"number\",\n  \"EnableMarketFeatures\": \"number\",\n  \"StorePricePercent\": \"number\",\n  \"StaticStorePrice\": \"number\",\n  \"MaxStorableTier1\": \"number\",\n  \"MaxStorableTier2\": \"number\",\n  \"MaxStorableTier3\": \"number\",\n  \"MaxRangeTier1\": \"number\",\n  \"MaxRangeTier2\": \"number\",\n  \"MaxRangeTier3\": \"number\",\n  \"ParkingMeterEnableFlavor\": \"number\"\n}",
+  "description": "Auto-generated validation template for GarageSettings"
+}

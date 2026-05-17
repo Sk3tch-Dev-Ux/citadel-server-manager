@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SocialMediaSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-core",
+  "x-filePath": "Profiles/ExpansionMod/Settings/SocialMediaSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "2"
+      ],
+      "type": "integer",
+      "default": 2
+    },
+    "NewsFeedTexts": {
+      "description": "News feed texts",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "m_Title": {
+            "description": "M_title",
+            "examples": [
+              "\"CHANGE ME\""
+            ],
+            "type": "string",
+            "default": "CHANGE ME"
+          },
+          "m_Text": {
+            "description": "M_text",
+            "examples": [
+              "\"THIS IS A PLACEHOLDER TEXT\""
+            ],
+            "type": "string",
+            "default": "THIS IS A PLACEHOLDER TEXT"
+          }
+        }
+      },
+      "default": []
+    },
+    "NewsFeedLinks": {
+      "description": "News feed links",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "m_Label": {
+            "description": "M_label",
+            "examples": [
+              "\"Discord\""
+            ],
+            "type": "string",
+            "default": "Discord"
+          },
+          "m_Icon": {
+            "description": "M_icon",
+            "examples": [
+              "\"set:expansion_iconset image:icon_discord\""
+            ],
+            "type": "string",
+            "format": "expansion-icon",
+            "default": "set:expansion_iconset image:icon_discord"
+          },
+          "m_URL": {
+            "description": "M_url",
+            "examples": [
+              "\"https://www.google.com/\""
+            ],
+            "type": "string",
+            "default": "https://www.google.com/"
+          }
+        }
+      },
+      "default": []
+    }
+  }
+}

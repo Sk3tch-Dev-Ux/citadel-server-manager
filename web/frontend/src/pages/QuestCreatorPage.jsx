@@ -5,6 +5,7 @@ import {
   ArrowLeft, Target, MapPin, Package, Crosshair, Wand2, Star, Skull,
   Shield, Eye, Edit, Copy, RefreshCw
 } from '../components/Icon';
+import { toolWikiUrl, WIKI_TOOLS } from '../utils/wikiLinks';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
 import useServerMap from '../hooks/useServerMap';
@@ -694,6 +695,16 @@ function QuestBuilderPanel({ quest, quests, npcs, objectives, onObjectivesChange
             style={{ fontSize: 18, fontWeight: 600, width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid var(--border)', borderRadius: 0, padding: '4px 0' }} />
         </div>
         <QuestTypeBadge type={q.Type} size="lg" />
+        <a
+          href={toolWikiUrl('quest-editor')}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-secondary"
+          title={`Open in ${WIKI_TOOLS['quest-editor']}`}
+          style={{ padding: '8px 12px', fontSize: 12, textDecoration: 'none' }}
+        >
+          Docs ↗
+        </a>
         <button className="btn btn-primary" onClick={onSave} disabled={saving}
           style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '8px 16px' }}>
           <Save size={14} /> {saving ? 'Saving...' : 'Save'}

@@ -1,0 +1,105 @@
+{
+  "id": "config-1778065678591-ytxj",
+  "name": "Aircraft",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Traders/Aircraft.json",
+  "linkedModId": "expansion-market",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "13",
+      "description": "M_version",
+      "defaultValue": "13"
+    },
+    {
+      "name": "DisplayName",
+      "type": "string",
+      "example": "\"#STR_EXPANSION_MARKET_TRADER_AIRCRAFT\"",
+      "description": "Plain text or #STR_ localization key",
+      "defaultValue": "\"#STR_EXPANSION_MARKET_TRADER_AIRCRAFT\""
+    },
+    {
+      "name": "MinRequiredReputation",
+      "type": "int",
+      "example": "0",
+      "description": "Min required reputation",
+      "defaultValue": "0"
+    },
+    {
+      "name": "MaxRequiredReputation",
+      "type": "color",
+      "example": "2147483647",
+      "toolLink": "/tools/argb-calculator",
+      "description": "Max required reputation",
+      "defaultValue": "2147483647"
+    },
+    {
+      "name": "RequiredFaction",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Required faction",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "RequiredCompletedQuestID",
+      "type": "int",
+      "example": "-1",
+      "description": "Required completed quest id",
+      "defaultValue": "-1"
+    },
+    {
+      "name": "TraderIcon",
+      "type": "icon",
+      "example": "\"Helicopter\"",
+      "description": "Trader icon",
+      "defaultValue": "\"Helicopter\""
+    },
+    {
+      "name": "Currencies",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Currencies",
+      "defaultValue": "[1 items]"
+    },
+    {
+      "name": "DisplayCurrencyValue",
+      "type": "int",
+      "example": "1",
+      "description": "Display currency value",
+      "defaultValue": "1"
+    },
+    {
+      "name": "DisplayCurrencyName",
+      "type": "string",
+      "example": "\"\"",
+      "description": "Display currency name",
+      "defaultValue": "\"\""
+    },
+    {
+      "name": "UseCategoryOrder",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable category order",
+      "defaultValue": "0"
+    },
+    {
+      "name": "Categories",
+      "type": "array",
+      "example": "",
+      "arrayItems": "string values",
+      "description": "Categories",
+      "defaultValue": "[3 items]"
+    },
+    {
+      "name": "Items",
+      "type": "map",
+      "example": "",
+      "mapKeyType": "string",
+      "description": "Items",
+      "defaultValue": "{ \"expansionhelicopterbattery\": 1, … (23 entries) }",
+      "mapValueType": "int"
+    }
+  ]
+}

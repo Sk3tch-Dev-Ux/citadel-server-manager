@@ -1,0 +1,522 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SpawnSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-spawn-selection",
+  "x-filePath": "mpmissions/empty.chernarusplus/expansion/settings/SpawnSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "8"
+      ],
+      "type": "integer",
+      "default": 8
+    },
+    "SpawnLocations": {
+      "description": "Spawn locations",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "description": "Name",
+            "examples": [
+              "\"Green Mountain\""
+            ],
+            "type": "string",
+            "default": "Green Mountain"
+          },
+          "Faction": {
+            "description": "Faction",
+            "examples": [
+              "\"\""
+            ],
+            "type": "string",
+            "default": ""
+          },
+          "Reputation": {
+            "description": "Reputation",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "default": 0
+          },
+          "Positions": {
+            "description": "Positions",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "UseCooldown": {
+            "description": "Enable or disable cooldown",
+            "examples": [
+              "0"
+            ],
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 0
+          }
+        }
+      },
+      "default": []
+    },
+    "StartingClothing": {
+      "description": "Starting clothing",
+      "type": "object",
+      "properties": {
+        "EnableCustomClothing": {
+          "description": "Enable or disable custom clothing",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ],
+          "default": 0
+        },
+        "SetRandomHealth": {
+          "description": "Set random health",
+          "examples": [
+            "1"
+          ],
+          "type": "integer",
+          "default": 1
+        },
+        "Headgear": {
+          "description": "Headgear",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Glasses": {
+          "description": "Glasses",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Masks": {
+          "description": "Masks",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Tops": {
+          "description": "Tops",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Vests": {
+          "description": "Vests",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Gloves": {
+          "description": "Gloves",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Pants": {
+          "description": "Pants",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Belts": {
+          "description": "Belts",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Shoes": {
+          "description": "Shoes",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Armbands": {
+          "description": "Armbands",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "Backpacks": {
+          "description": "Backpacks",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "default": {}
+    },
+    "EnableSpawnSelection": {
+      "description": "Enable or disable spawn selection",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "SpawnOnTerritory": {
+      "description": "Spawn on territory",
+      "examples": [
+        "0"
+      ],
+      "type": "integer",
+      "default": 0
+    },
+    "StartingGear": {
+      "description": "Starting gear",
+      "type": "object",
+      "properties": {
+        "EnableStartingGear": {
+          "description": "Enable or disable starting gear",
+          "examples": [
+            "0"
+          ],
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ],
+          "default": 0
+        },
+        "ApplyEnergySources": {
+          "description": "Apply energy sources",
+          "examples": [
+            "1"
+          ],
+          "type": "integer",
+          "default": 1
+        },
+        "SetRandomHealth": {
+          "description": "Set random health",
+          "examples": [
+            "1"
+          ],
+          "type": "integer",
+          "default": 1
+        },
+        "UpperGear": {
+          "description": "Upper gear",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ClassName": {
+                "description": "DayZ classname (e.g. \"Rag\")",
+                "examples": [
+                  "\"Rag\""
+                ],
+                "type": "string",
+                "format": "dayz-classname",
+                "default": "Rag"
+              },
+              "Quantity": {
+                "description": "Quantity",
+                "examples": [
+                  "4"
+                ],
+                "type": "integer",
+                "default": 4
+              },
+              "Attachments": {
+                "description": "Attachments",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              }
+            }
+          },
+          "default": []
+        },
+        "PantsGear": {
+          "description": "Pants gear",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "BackpackGear": {
+          "description": "Backpack gear",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "VestGear": {
+          "description": "Vest gear",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "PrimaryWeapon": {
+          "description": "Primary weapon",
+          "type": "object",
+          "properties": {
+            "ClassName": {
+              "description": "DayZ classname (e.g. \"\")",
+              "examples": [
+                "\"\""
+              ],
+              "type": "string",
+              "format": "dayz-classname",
+              "default": ""
+            },
+            "Quantity": {
+              "description": "Quantity",
+              "examples": [
+                "0"
+              ],
+              "type": "integer",
+              "default": 0
+            },
+            "Attachments": {
+              "description": "Attachments",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            }
+          },
+          "default": {}
+        },
+        "SecondaryWeapon": {
+          "description": "Secondary weapon",
+          "type": "object",
+          "properties": {
+            "ClassName": {
+              "description": "DayZ classname (e.g. \"\")",
+              "examples": [
+                "\"\""
+              ],
+              "type": "string",
+              "format": "dayz-classname",
+              "default": ""
+            },
+            "Quantity": {
+              "description": "Quantity",
+              "examples": [
+                "0"
+              ],
+              "type": "integer",
+              "default": 0
+            },
+            "Attachments": {
+              "description": "Attachments",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            }
+          },
+          "default": {}
+        }
+      },
+      "default": {}
+    },
+    "UseLoadouts": {
+      "description": "Enable or disable loadouts",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "MaleLoadouts": {
+      "description": "Male loadouts",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Loadout": {
+            "description": "Loadout",
+            "examples": [
+              "\"PlayerSurvivorLoadout\""
+            ],
+            "type": "string",
+            "default": "PlayerSurvivorLoadout"
+          },
+          "Chance": {
+            "description": "Chance. Range: 0–100",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          }
+        }
+      },
+      "default": []
+    },
+    "FemaleLoadouts": {
+      "description": "Female loadouts",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Loadout": {
+            "description": "Loadout",
+            "examples": [
+              "\"PlayerSurvivorLoadout\""
+            ],
+            "type": "string",
+            "default": "PlayerSurvivorLoadout"
+          },
+          "Chance": {
+            "description": "Chance. Range: 0–100",
+            "examples": [
+              "1"
+            ],
+            "type": "integer",
+            "default": 1
+          }
+        }
+      },
+      "default": []
+    },
+    "SpawnHealthValue": {
+      "description": "Spawn health value",
+      "examples": [
+        "100"
+      ],
+      "type": "integer",
+      "default": 100
+    },
+    "SpawnEnergyValue": {
+      "description": "Spawn energy value",
+      "examples": [
+        "1000"
+      ],
+      "type": "integer",
+      "default": 1000
+    },
+    "SpawnWaterValue": {
+      "description": "Spawn water value",
+      "examples": [
+        "1000"
+      ],
+      "type": "integer",
+      "default": 1000
+    },
+    "EnableRespawnCooldowns": {
+      "description": "Enable or disable respawn cooldowns",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "RespawnCooldown": {
+      "description": "Respawn cooldown",
+      "examples": [
+        "120"
+      ],
+      "type": "integer",
+      "default": 120
+    },
+    "TerritoryRespawnCooldown": {
+      "description": "Territory respawn cooldown",
+      "examples": [
+        "240"
+      ],
+      "type": "integer",
+      "default": 240
+    },
+    "PunishMultispawn": {
+      "description": "Punish multispawn",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "PunishCooldown": {
+      "description": "Punish cooldown",
+      "examples": [
+        "120"
+      ],
+      "type": "integer",
+      "default": 120
+    },
+    "PunishTimeframe": {
+      "description": "Time duration in seconds",
+      "examples": [
+        "300"
+      ],
+      "type": "integer",
+      "default": 300
+    },
+    "CreateDeathMarker": {
+      "description": "Create death marker",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "BackgroundImagePath": {
+      "description": "Background image path",
+      "examples": [
+        "\"DayZExpansion/SpawnSelection/GUI/textures/wood_background.edds\""
+      ],
+      "type": "string",
+      "format": "expansion-icon",
+      "default": "DayZExpansion/SpawnSelection/GUI/textures/wood_background.edds"
+    }
+  }
+}

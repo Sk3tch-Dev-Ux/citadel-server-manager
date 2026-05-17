@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-aiescort",
+  "name": "Objective_AIESCORT",
+  "template": "{\n  \"ID\": \"number\",\n  \"Active\": \"number\",\n  \"NPCName\": \"string\",\n  \"Position\": \"string\",\n  \"CanLootAI\": \"number\",\n  \"TimeLimit\": \"number\",\n  \"MarkerName\": \"string\",\n  \"MaxDistance\": \"number\",\n  \"NPCClassName\": \"string\",\n  \"ShowDistance\": \"number\",\n  \"ConfigVersion\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"ObjectiveType\": \"number\",\n  \"NPCLoadoutFile\": \"string\"\n}",
+  "description": "Auto-generated validation template for Objective_AIESCORT"
+}

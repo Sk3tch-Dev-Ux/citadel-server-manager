@@ -114,7 +114,6 @@ function log(...args) {
   appendUpdateLog('INFO', args);
   // eslint-disable-next-line no-console
   console.log('[updater]', ...args);
-  fileLog('INFO', args.join(' '));
 }
 
 function warn(...args) {

@@ -1,0 +1,337 @@
+{
+  "name": "NotificationSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/NotificationSettings.json",
+  "linkedModId": "expansion-core",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "5",
+      "description": "M_version",
+      "defaultValue": "5"
+    },
+    {
+      "name": "EnableNotification",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable notification",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPlayerJoinServer",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable player join server",
+      "defaultValue": "1"
+    },
+    {
+      "name": "JoinMessageType",
+      "type": "enum",
+      "example": "1",
+      "description": "Join message type selector (0–5)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPlayerLeftServer",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable player left server",
+      "defaultValue": "1"
+    },
+    {
+      "name": "LeftMessageType",
+      "type": "enum",
+      "example": "1",
+      "description": "Left message type selector (0–5)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowAirdropStarted",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable airdrop started",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowAirdropClosingOn",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable airdrop closing on",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowAirdropDropped",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable airdrop dropped",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowAirdropEnded",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable airdrop ended",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPlayerAirdropStarted",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable player airdrop started",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPlayerAirdropClosingOn",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable player airdrop closing on",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPlayerAirdropDropped",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable player airdrop dropped",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowTerritoryNotifications",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable territory notifications",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableKillFeed",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable kill feed",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedMessageType",
+      "type": "enum",
+      "example": "1",
+      "description": "Kill feed message type selector (0–5)",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedFall",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed fall",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedCarHitDriver",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed car hit driver",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedCarHitNoDriver",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed car hit no driver",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedCarCrash",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed car crash",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedCarCrashCrew",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed car crash crew",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedHeliHitDriver",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed heli hit driver",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedHeliHitNoDriver",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed heli hit no driver",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedHeliCrash",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed heli crash",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedHeliCrashCrew",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed heli crash crew",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedBoatHitDriver",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed boat hit driver",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedBoatHitNoDriver",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed boat hit no driver",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedBoatCrash",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed boat crash",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedBoatCrashCrew",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed boat crash crew",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedBarbedWire",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed barbed wire",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedFire",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed fire",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedWeaponExplosion",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed weapon explosion",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedDehydration",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed dehydration. Range: 0–100",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedStarvation",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed starvation",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedBleeding",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed bleeding",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedStatusEffects",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed status effects",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedSuicide",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed suicide",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedWeapon",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed weapon",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedMeleeWeapon",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed melee weapon",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedBarehands",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed barehands",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedInfected",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed infected",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedAnimal",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed animal",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedAI",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed ai",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedDrowned",
+      "type": "int",
+      "example": "0",
+      "description": "Kill feed drowned",
+      "defaultValue": "0"
+    },
+    {
+      "name": "KillFeedKilledUnknown",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed killed unknown",
+      "defaultValue": "1"
+    },
+    {
+      "name": "KillFeedDiedUnknown",
+      "type": "int",
+      "example": "1",
+      "description": "Kill feed died unknown",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableKillFeedDiscordMsg",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable kill feed discord msg",
+      "defaultValue": "0"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "id": "tpl-traderzone",
+  "name": "TraderZone",
+  "template": "{\n  \"Stock\": {},\n  \"Radius\": \"number\",\n  \"Position\": \"string\",\n  \"m_Version\": \"number\",\n  \"m_DisplayName\": \"string\",\n  \"BuyPricePercent\": \"number\",\n  \"SellPricePercent\": \"number\"\n}",
+  "description": "Auto-generated validation template for TraderZone"
+}

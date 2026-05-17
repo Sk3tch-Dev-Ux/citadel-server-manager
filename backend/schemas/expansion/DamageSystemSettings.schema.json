@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DamageSystemSettings",
+  "type": "object",
+  "x-source": "dayzexpansion.com",
+  "x-modId": "expansion-basebuilding",
+  "x-filePath": "Profiles/ExpansionMod/Settings/DamageSystemSettings.json",
+  "properties": {
+    "m_Version": {
+      "description": "M_version",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "Enabled": {
+      "description": "Enable or disable d",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "CheckForBlockingObjects": {
+      "description": "Check for blocking objects",
+      "examples": [
+        "1"
+      ],
+      "type": "integer",
+      "default": 1
+    },
+    "ExplosionTargets": {
+      "description": "Explosion targets",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "ExplosiveProjectiles": {
+      "description": "Explosive projectiles",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "x-mapKeyType": "string",
+      "default": {}
+    }
+  }
+}

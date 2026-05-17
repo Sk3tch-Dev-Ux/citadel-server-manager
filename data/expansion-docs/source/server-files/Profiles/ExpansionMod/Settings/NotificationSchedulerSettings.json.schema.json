@@ -1,0 +1,95 @@
+{
+  "name": "NotificationSchedulerSettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/NotificationSchedulerSettings.json",
+  "linkedModId": "expansion-core",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "2",
+      "description": "M_version",
+      "defaultValue": "2"
+    },
+    {
+      "name": "Enabled",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable d",
+      "defaultValue": "0"
+    },
+    {
+      "name": "UTC",
+      "type": "int",
+      "example": "0",
+      "description": "Utc",
+      "defaultValue": "0"
+    },
+    {
+      "name": "UseMissionTime",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable mission time",
+      "defaultValue": "0"
+    },
+    {
+      "name": "Notifications",
+      "type": "array",
+      "example": "",
+      "arrayItems": "objects with 7 properties",
+      "description": "Notifications",
+      "defaultValue": "[2 items]",
+      "nestedSettings": [
+        {
+          "name": "Hour",
+          "type": "int",
+          "example": "22",
+          "description": "Hour",
+          "defaultValue": "22"
+        },
+        {
+          "name": "Minute",
+          "type": "int",
+          "example": "0",
+          "description": "Minute",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Second",
+          "type": "int",
+          "example": "0",
+          "description": "Second",
+          "defaultValue": "0"
+        },
+        {
+          "name": "Title",
+          "type": "string",
+          "example": "\"Notification Schedule Test 1\"",
+          "description": "Title",
+          "defaultValue": "\"Notification Schedule Test 1\""
+        },
+        {
+          "name": "Text",
+          "type": "string",
+          "example": "\"Lorem ipsum dolor sit amet\"",
+          "description": "Text",
+          "defaultValue": "\"Lorem ipsum dolor sit amet\""
+        },
+        {
+          "name": "Icon",
+          "type": "icon",
+          "example": "\"Info\"",
+          "description": "Icon",
+          "defaultValue": "\"Info\""
+        },
+        {
+          "name": "Color",
+          "type": "string",
+          "example": "\"\"",
+          "description": "Color",
+          "defaultValue": "\"\""
+        }
+      ]
+    }
+  ]
+}

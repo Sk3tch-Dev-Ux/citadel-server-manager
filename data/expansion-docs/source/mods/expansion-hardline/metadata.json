@@ -1,0 +1,296 @@
+{
+  "id": "expansion-hardline",
+  "name": "Expansion Hardline",
+  "shortName": "Hardline",
+  "version": "1.9.67",
+  "modFolderName": "DayZ-Expansion-Hardline",
+  "workshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2828487396",
+  "experimentalWorkshopUrl": "https://steamcommunity.com/sharedfiles/filedetails/?id=2819009727",
+  "isThirdParty": false,
+  "includedInBundle": true,
+  "description": "Adds item rarity tiers and a player reputation system.",
+  "overview": "Expansion Hardline adds item rarity and a player reputation system to DayZ. The goal is to provide endgame content and progression by using reputation points to restrict certain Expansion mod systems and features, so players must unlock them over time.\n\nIf combined with Expansion AI, the mod also supports faction persistence — players can gain reputation points for each individual AI faction they interact with.\n\n## Key Features\n\n- **Item Rarity System** — Assign rarity tiers (Poor, Common, Uncommon, Rare, Epic, Legendary, Mythic, Exotic) to items, displayed in tooltips and market UI\n- **Reputation System** — Players earn reputation through actions like killing AI, completing objectives, etc.\n- **Feature Gating** — Require minimum reputation to access certain trader items, categories, or features\n- **Faction Persistence** — Players can join AI factions and maintain membership across restarts\n- **HUD Indicator** — Optional reputation points display in the main HUD",
+  "dependencies": [
+    "expansion-core"
+  ],
+  "conflicts": [],
+  "relatedMods": [
+    "expansion-core",
+    "expansion-ai",
+    "expansion-market"
+  ],
+  "installation": [
+    "Ensure Expansion Core is installed and loaded.",
+    "Download @ExpansionHardline from the Steam Workshop.",
+    "Add @ExpansionHardline to your -mod= parameter after Core.",
+    "Start the server to generate the HardlineSettings.json in your mission settings folder.",
+    "Configure item rarity requirements and reputation settings as desired.",
+    "Restart the server after adjusting settings."
+  ],
+  "troubleshooting": [
+    {
+      "problem": "Reputation HUD not showing",
+      "solution": "Ensure ShowHardlineHUD is set to 1. The player must be in-game for the HUD to appear."
+    },
+    {
+      "problem": "Players can buy all items regardless of rarity",
+      "solution": "Verify UseReputation is set to 1 and item rarity requirements are set to values above 0."
+    },
+    {
+      "problem": "Faction persistence not working",
+      "solution": "Both UseFactionReputation and EnableFactionPersistence must be set to 1, and Expansion AI must be installed."
+    }
+  ],
+  "useCases": [
+    {
+      "title": "Progressive Economy",
+      "description": "Gate high-tier market items behind reputation requirements. Players must earn reputation through gameplay before accessing the best gear."
+    },
+    {
+      "title": "Faction-Based Servers",
+      "description": "Enable faction reputation and persistence to create faction-based gameplay where players build standing with different AI factions over time."
+    },
+    {
+      "title": "Visual Item Tiers",
+      "description": "Use item rarity without reputation gating — just enable EnableItemRarity to add visual rarity indicators to items in the UI."
+    }
+  ],
+  "quickSettings": [
+    {
+      "name": "ShowHardlineHUD",
+      "type": "bool",
+      "example": "0",
+      "description": "Show or hide the reputation points indicator in the main HUD.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseReputation",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable the reputation system. Players gain reputation points for certain actions like eliminating entities.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "UseFactionReputation",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable per-faction reputation tracking. Requires Expansion AI for eAIFaction support.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableFactionPersistence",
+      "type": "bool",
+      "example": "1",
+      "description": "Allow faction membership to persist across server restarts.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "EnableItemRarity",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable the item rarity display system. Shows rarity in tooltips, icons, and menus.",
+      "defaultValue": "1"
+    },
+    {
+      "name": "PoorItemRequirement",
+      "type": "int",
+      "example": "0",
+      "description": "Minimum reputation required to buy/sell items with 'Poor' rarity.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "CommonItemRequirement",
+      "type": "int",
+      "example": "0",
+      "description": "Minimum reputation required to buy/sell items with 'Common' rarity.",
+      "defaultValue": "0"
+    },
+    {
+      "name": "UncommonItemRequirement",
+      "type": "int",
+      "example": "200",
+      "description": "Minimum reputation required to buy/sell items with 'Uncommon' rarity.",
+      "defaultValue": "100"
+    },
+    {
+      "name": "RareItemRequirement",
+      "type": "int",
+      "example": "500",
+      "description": "Minimum reputation required to buy/sell items with 'Rare' rarity.",
+      "defaultValue": "300"
+    },
+    {
+      "name": "EpicItemRequirement",
+      "type": "int",
+      "example": "800",
+      "description": "Minimum reputation required to buy/sell items with 'Epic' rarity.",
+      "defaultValue": "600"
+    },
+    {
+      "name": "LegendaryItemRequirement",
+      "type": "int",
+      "example": "1500",
+      "description": "Minimum reputation required to buy/sell items with 'Legendary' rarity.",
+      "defaultValue": "1000"
+    },
+    {
+      "name": "MythicItemRequirement",
+      "type": "int",
+      "example": "3000",
+      "description": "Minimum reputation required to buy/sell items with 'Mythic' rarity.",
+      "defaultValue": "2000"
+    },
+    {
+      "name": "ExoticItemRequirement",
+      "type": "int",
+      "example": "8000",
+      "description": "Minimum reputation required to buy/sell items with 'Exotic' rarity.",
+      "defaultValue": "5000"
+    }
+  ],
+  "layoutTree": [
+    {
+      "id": "ln-1776082986523-43-7tb8",
+      "type": "tabs-container",
+      "props": {
+        "label": "Content"
+      },
+      "children": [
+        {
+          "id": "ln-1776082986523-44-ed7d",
+          "type": "tab-pane",
+          "props": {
+            "label": "Tools"
+          },
+          "children": [
+            {
+              "id": "ln-1776082986523-45-1ohf",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Common Use Cases",
+                "_blockData": {
+                  "data": {
+                    "theme": "use-case",
+                    "useCases": [
+                      {
+                        "title": "Progressive Economy",
+                        "description": "Gate high-tier market items behind reputation requirements. Players must earn reputation through gameplay before accessing the best gear."
+                      },
+                      {
+                        "title": "Faction-Based Servers",
+                        "description": "Enable faction reputation and persistence to create faction-based gameplay where players build standing with different AI factions over time."
+                      },
+                      {
+                        "title": "Visual Item Tiers",
+                        "description": "Use item rarity without reputation gating — just enable EnableItemRarity to add visual rarity indicators to items in the UI."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-wdu77",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082986524-46-z7gv",
+          "type": "tab-pane",
+          "props": {
+            "label": "Overview"
+          },
+          "children": [
+            {
+              "id": "ln-1776082986524-47-ktg1",
+              "type": "ui-block-richtext",
+              "props": {
+                "label": "Overview",
+                "content": "Expansion Hardline adds item rarity and a player reputation system to DayZ. The goal is to provide endgame content and progression by using reputation points to restrict certain Expansion mod systems and features, so players must unlock them over time.\n\nIf combined with Expansion AI, the mod also supports faction persistence — players can gain reputation points for each individual AI faction they interact with.\n\n## Key Features\n\n- **Item Rarity System** — Assign rarity tiers (Poor, Common, Uncommon, Rare, Epic, Legendary, Mythic, Exotic) to items, displayed in tooltips and market UI\n- **Reputation System** — Players earn reputation through actions like killing AI, completing objectives, etc.\n- **Feature Gating** — Require minimum reputation to access certain trader items, categories, or features\n- **Faction Persistence** — Players can join AI factions and maintain membership across restarts\n- **HUD Indicator** — Optional reputation points display in the main HUD",
+                "_blockData": {
+                  "blockId": "block-1773333239007-gxquw",
+                  "content": "Expansion Hardline adds item rarity and a player reputation system to DayZ. The goal is to provide endgame content and progression by using reputation points to restrict certain Expansion mod systems and features, so players must unlock them over time.\n\nIf combined with Expansion AI, the mod also supports faction persistence — players can gain reputation points for each individual AI faction they interact with.\n\n## Key Features\n\n- **Item Rarity System** — Assign rarity tiers (Poor, Common, Uncommon, Rare, Epic, Legendary, Mythic, Exotic) to items, displayed in tooltips and market UI\n- **Reputation System** — Players earn reputation through actions like killing AI, completing objectives, etc.\n- **Feature Gating** — Require minimum reputation to access certain trader items, categories, or features\n- **Faction Persistence** — Players can join AI factions and maintain membership across restarts\n- **HUD Indicator** — Optional reputation points display in the main HUD",
+                  "blockType": "richtext"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082986524-48-f7ub",
+          "type": "tab-pane",
+          "props": {
+            "label": "Installation"
+          },
+          "children": [
+            {
+              "id": "ln-1776082986524-49-9blg",
+              "type": "ui-block-steps",
+              "props": {
+                "label": "Installation Steps",
+                "_blockData": {
+                  "steps": [
+                    "Ensure Expansion Core is installed and loaded.",
+                    "Download @ExpansionHardline from the Steam Workshop.",
+                    "Add @ExpansionHardline to your -mod= parameter after Core.",
+                    "Start the server to generate the HardlineSettings.json in your mission settings folder.",
+                    "Configure item rarity requirements and reputation settings as desired.",
+                    "Restart the server after adjusting settings."
+                  ],
+                  "blockId": "block-1773333239007-fil6i",
+                  "blockType": "steps"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ln-1776082986524-4a-ull1",
+          "type": "tab-pane",
+          "props": {
+            "label": "Troubleshooting"
+          },
+          "children": [
+            {
+              "id": "ln-1776082986524-4b-2buw",
+              "type": "ui-block-use-cases",
+              "props": {
+                "label": "Troubleshooting",
+                "_blockData": {
+                  "data": {
+                    "theme": "problem",
+                    "useCases": [
+                      {
+                        "title": "Reputation HUD not showing",
+                        "description": "Ensure ShowHardlineHUD is set to 1. The player must be in-game for the HUD to appear."
+                      },
+                      {
+                        "title": "Players can buy all items regardless of rarity",
+                        "description": "Verify UseReputation is set to 1 and item rarity requirements are set to values above 0."
+                      },
+                      {
+                        "title": "Faction persistence not working",
+                        "description": "Both UseFactionReputation and EnableFactionPersistence must be set to 1, and Expansion AI must be installed."
+                      }
+                    ]
+                  },
+                  "blockId": "block-1773333239007-srxet",
+                  "blockType": "use-cases"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configFileRefs": [],
+  "linkedTools": [
+    "json-validator"
+  ],
+  "linkedGuides": [
+    "expansion-hardline"
+  ],
+  "changelogKeywords": [
+    "hardline"
+  ]
+}

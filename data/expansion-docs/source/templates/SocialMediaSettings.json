@@ -1,0 +1,6 @@
+{
+  "id": "tpl-socialmediasettings",
+  "name": "SocialMediaSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"NewsFeedTexts\": [\n    {\n      \"m_Title\": \"string\",\n      \"m_Text\": \"string\"\n    }\n  ],\n  \"NewsFeedLinks\": [\n    {\n      \"m_Label\": \"string\",\n      \"m_Icon\": \"string\",\n      \"m_URL\": \"string\"\n    }\n  ]\n}",
+  "description": "Auto-generated validation template for SocialMediaSettings"
+}

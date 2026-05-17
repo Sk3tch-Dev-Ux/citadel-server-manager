@@ -1,0 +1,149 @@
+{
+  "id": "config-1778065678590-t211",
+  "name": "PartySettings",
+  "description": "",
+  "filePath": "Profiles/ExpansionMod/Settings/PartySettings.json",
+  "linkedModId": "expansion-groups",
+  "settingsSchema": [
+    {
+      "name": "m_Version",
+      "type": "int",
+      "example": "8",
+      "description": "M_version",
+      "defaultValue": "8"
+    },
+    {
+      "name": "EnableParties",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable parties",
+      "defaultValue": "1"
+    },
+    {
+      "name": "MaxMembersInParty",
+      "type": "int",
+      "example": "10",
+      "description": "Max members in party",
+      "defaultValue": "10"
+    },
+    {
+      "name": "UseWholeMapForInviteList",
+      "type": "bool",
+      "example": "0",
+      "description": "Enable or disable whole map for invite list",
+      "defaultValue": "0"
+    },
+    {
+      "name": "ShowPartyMember3DMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable party member3 d markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowDistanceUnderPartyMembersMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance under party members markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowNameOnPartyMembersMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable name on party members markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "EnableQuickMarker",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable quick marker",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowDistanceUnderQuickMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable distance under quick markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowNameOnQuickMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable name on quick markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "CanCreatePartyMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable create party markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPartyMemberHUD",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable party member hud",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowHUDMemberBlood",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable hud member blood",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowHUDMemberStates",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable hud member states",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowHUDMemberStance",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable hud member stance",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowPartyMemberMapMarkers",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable party member map markers",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ShowHUDMemberDistance",
+      "type": "bool",
+      "example": "1",
+      "description": "Enable or disable hud member distance",
+      "defaultValue": "1"
+    },
+    {
+      "name": "ForcePartyToHaveTags",
+      "type": "int",
+      "example": "0",
+      "description": "Force party to have tags",
+      "defaultValue": "0"
+    },
+    {
+      "name": "InviteCooldown",
+      "type": "int",
+      "example": "0",
+      "description": "Invite cooldown",
+      "defaultValue": "0"
+    },
+    {
+      "name": "DisplayPartyTag",
+      "type": "int",
+      "example": "1",
+      "description": "Display party tag",
+      "defaultValue": "1"
+    }
+  ]
+}

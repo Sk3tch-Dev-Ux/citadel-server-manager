@@ -1,0 +1,6 @@
+{
+  "id": "tpl-ailocationsettings",
+  "name": "AILocationSettings",
+  "template": "{\n  \"m_Version\": \"number\",\n  \"RoamingLocations\": [\n    {\n      \"Name\": \"string\",\n      \"Position\": \"string\",\n      \"Radius\": \"number\",\n      \"Type\": \"string\",\n      \"Enabled\": \"number\"\n    }\n  ],\n  \"ExcludedRoamingBuildings\": [\n    \"string\"\n  ],\n  \"NoGoAreas\": []\n}",
+  "description": "Auto-generated validation template for AILocationSettings"
+}

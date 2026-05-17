@@ -1,0 +1,6 @@
+{
+  "id": "tpl-questnpc-example",
+  "name": "QuestNPC_Example",
+  "template": "{\n  \"ID\": \"number\",\n  \"Active\": \"number\",\n  \"NPCName\": \"string\",\n  \"NPCType\": \"number\",\n  \"Position\": [\n    \"number\"\n  ],\n  \"ClassName\": \"string\",\n  \"Waypoints\": [\n    [\n      \"number\"\n    ]\n  ],\n  \"NPCEmoteID\": \"number\",\n  \"NPCFaction\": \"string\",\n  \"Orientation\": [\n    \"number\"\n  ],\n  \"ConfigVersion\": \"number\",\n  \"DefaultNPCText\": \"string\",\n  \"NPCLoadoutFile\": \"string\",\n  \"NPCEmoteIsStatic\": \"number\",\n  \"NPCQuestStartEmoteID\": \"number\",\n  \"NPCInteractionEmoteID\": \"number\",\n  \"NPCQuestCancelEmoteID\": \"number\",\n  \"NPCQuestCompleteEmoteID\": \"number\"\n}",
+  "description": "Auto-generated validation template for QuestNPC_Example"
+}

@@ -1,0 +1,6 @@
+{
+  "id": "tpl-objective-travel",
+  "name": "Objective_Travel",
+  "template": "{\n  \"ID\": \"number\",\n  \"Active\": \"number\",\n  \"Position\": \"string\",\n  \"TimeLimit\": \"number\",\n  \"MarkerName\": \"string\",\n  \"MaxDistance\": \"number\",\n  \"ShowDistance\": \"number\",\n  \"ConfigVersion\": \"number\",\n  \"ObjectiveText\": \"string\",\n  \"ObjectiveType\": \"number\",\n  \"TriggerOnExit\": \"number\",\n  \"TriggerOnEnter\": \"number\"\n}",
+  "description": "Auto-generated validation template for Objective_Travel"
+}
