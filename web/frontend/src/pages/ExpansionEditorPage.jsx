@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { ArrowLeft, Save, ChevronRight, Plus, X, Puzzle } from '../components/Icon';
 import useServerMap from '../hooks/useServerMap';
+import { helpUrlFor, helpLabelFor } from '../utils/wikiLinks';
 
 // Lazy-load InteractiveMap to avoid loading leaflet on initial render
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
@@ -3507,6 +3508,24 @@ export default function ExpansionEditorPage({ serverId }) {
             {totalModified} unsaved config{totalModified !== 1 ? 's' : ''}
           </span>
         )}
+        {/* Deep-link to dayzexpansion.com for the active section. */}
+        {(() => {
+          const fileBase = activeFileName ? activeFileName.split('/').pop() : null;
+          const url = helpUrlFor({ fileName: fileBase });
+          const label = helpLabelFor({ fileName: fileBase });
+          return (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={label}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', fontSize: 12, textDecoration: 'none' }}
+            >
+              Docs ↗
+            </a>
+          );
+        })()}
         <button
           className="btn btn-primary"
           onClick={handleSaveAll}

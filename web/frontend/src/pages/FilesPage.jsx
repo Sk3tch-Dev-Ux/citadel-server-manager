@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import API from '../api';
 import { formatBytes } from '../utils';
-import { Folder, FolderOpen, FileCode, FileCog, FileJson, FileText, Zap, Globe, File, Save, RefreshCw, ChevronDown, ChevronRight, Loader } from '../components/Icon';
+import { Folder, FolderOpen, FileCode, FileCog, FileJson, FileText, Zap, Globe, File, Save, RefreshCw, ChevronDown, ChevronRight, Loader, Plus, X } from '../components/Icon';
 
 // ─── Monaco — bundled locally (no CDN dependency) ────────────────────
 //
@@ -59,6 +59,11 @@ export default function FilesPage({ serverId }) {
   const [activeTab, setActiveTab] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+
+  // Template picker (Expansion docs sync). Opens a modal listing the 117
+  // upstream JSON skeletons; choosing one creates the file at the path the
+  // user specifies (defaults to a sensible Expansion location).
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
   const editorRef = useRef(null);
   const containerRef = useRef(null);
@@ -288,7 +293,17 @@ export default function FilesPage({ serverId }) {
         <div className="file-sidebar">
           <div className="file-sidebar-header">
             <span>Explorer</span>
-            <button className="btn btn-ghost btn-sm" onClick={refreshTree} title="Refresh" style={{ padding: '2px 6px', fontSize: 12 }}><RefreshCw size={14} /></button>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setTemplatePickerOpen(true)}
+                title="New file from Expansion template"
+                style={{ padding: '2px 6px', fontSize: 12 }}
+              >
+                <Plus size={14} />
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={refreshTree} title="Refresh" style={{ padding: '2px 6px', fontSize: 12 }}><RefreshCw size={14} /></button>
+            </div>
           </div>
           <div className="file-search">
             <input type="text" placeholder="Filter files..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
@@ -351,11 +366,200 @@ export default function FilesPage({ serverId }) {
                 <span>Browse files in the explorer sidebar</span>
                 <span>Use the filter to quickly find files</span>
                 <span><kbd>Ctrl+S</kbd> to save changes</span>
+                <span>Click <Plus size={12} /> in the explorer to create a file from a DayZ Expansion template</span>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {templatePickerOpen && (
+        <TemplatePickerModal
+          serverId={serverId}
+          onClose={() => setTemplatePickerOpen(false)}
+          onCreated={(path) => {
+            setTemplatePickerOpen(false);
+            refreshTree();
+            window.addToast(`Created ${path}`, 'success');
+            openFile({ path, name: path.split('/').pop() });
+          }}
+        />
+      )}
     </div>
   );
 }
+
+// ─── Template picker modal ──────────────────────────────────────────
+//
+// Backed by /api/expansion-docs/templates (the 117 JSON skeletons synced from
+// dayzexpansion.com via scripts/sync-expansion-docs/sync.js).
+//
+// Workflow:
+//   1. Fetch the template index on mount.
+//   2. User searches + picks a template (e.g. "HardlineSettings").
+//   3. User confirms the target path (we pre-fill a sensible default).
+//   4. POST the rendered template content to /api/servers/:id/files/write.
+//
+// Path safety is enforced server-side (SAFE_WRITE_EXTENSIONS whitelist,
+// safePath jail). We keep the client-side defaults sensible but don't try to
+// validate paths here — the server is the source of truth.
+
+function defaultTargetPath(templateName) {
+  if (/^(Map|BaseBuilding|Hardline|Market|SafeZone|Spawn|P2PMarket|PersonalStorage|AILocation|AIPatrol)Settings$/.test(templateName)) {
+    return `mpmissions/<your-mission>/expansion/settings/${templateName}.json`;
+  }
+  if (/Settings$/.test(templateName)) {
+    return `Profiles/ExpansionMod/Settings/${templateName}.json`;
+  }
+  if (/^Quest_/.test(templateName)) return `Profiles/ExpansionMod/Quests/Quests/${templateName}.json`;
+  if (/^QuestNPC/.test(templateName)) return `Profiles/ExpansionMod/Quests/NPCs/${templateName}.json`;
+  if (/^Objective_/.test(templateName)) return `Profiles/ExpansionMod/Quests/Objectives/${templateName}.json`;
+  if (/Loadout$/.test(templateName)) return `Profiles/ExpansionMod/Loadouts/${templateName}.json`;
+  return `Profiles/ExpansionMod/Market/${templateName}.json`;
+}
+
+function TemplatePickerModal({ serverId, onClose, onCreated }) {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [targetPath, setTargetPath] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await API.get('/api/expansion-docs/templates');
+        if (cancelled) return;
+        setTemplates(Array.isArray(list) ? list : []);
+        setLoading(false);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err.message || 'Failed to load templates');
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (selected) setTargetPath(defaultTargetPath(selected.name));
+    else setTargetPath('');
+  }, [selected]);
+
+  const filtered = search
+    ? templates.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))
+    : templates;
+
+  const handleCreate = async () => {
+    if (!selected || !targetPath) return;
+    if (targetPath.includes('<')) {
+      window.addToast('Please replace the placeholder in the target path.', 'error');
+      return;
+    }
+    setCreating(true);
+    try {
+      const body = await API.get(`/api/expansion-docs/templates/${encodeURIComponent(selected.name)}`);
+      const content = JSON.stringify(body, null, 2) + '\n';
+      await API.put(`/api/servers/${serverId}/files/write`, { file: targetPath, content });
+      onCreated(targetPath);
+    } catch (err) {
+      window.addToast(err.message || 'Failed to create file', 'error');
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="card"
+        style={{
+          width: 'min(720px, 92vw)', maxHeight: '80vh',
+          display: 'flex', flexDirection: 'column', padding: 0,
+        }}
+      >
+        <div style={{
+          padding: '12px 16px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ fontWeight: 600, flex: 1 }}>New file from DayZ Expansion template</span>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} title="Close"><X size={14} /></button>
+        </div>
+
+        <div style={{ padding: 12, borderBottom: '1px solid var(--border)' }}>
+          <input
+            className="input"
+            placeholder={`Search ${templates.length || ''} templates...`}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', fontSize: 13 }}
+          />
+        </div>
+
+        <div style={{ flex: 1, overflow: 'auto', padding: 8 }}>
+          {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>}
+          {error && <div style={{ padding: 24, textAlign: 'center', color: 'var(--accent-red, #e53e3e)' }}>{error}</div>}
+          {!loading && !error && filtered.length === 0 && (
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
+              No templates match &ldquo;{search}&rdquo;.
+            </div>
+          )}
+          {!loading && !error && filtered.map(t => (
+            <div
+              key={t.name}
+              onClick={() => setSelected(t)}
+              style={{
+                padding: '6px 10px', cursor: 'pointer', borderRadius: 4,
+                background: selected?.name === t.name ? 'var(--bg-surface, var(--bg-deep))' : 'transparent',
+                fontFamily: 'var(--font-mono, monospace)', fontSize: 12,
+                borderLeft: selected?.name === t.name ? '2px solid var(--accent-blue)' : '2px solid transparent',
+              }}
+            >
+              {t.name}
+            </div>
+          ))}
+        </div>
+
+        {selected && (
+          <div style={{ padding: 12, borderTop: '1px solid var(--border)', background: 'var(--bg-surface, var(--bg-deep))' }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Target path (relative to server install)
+            </label>
+            <input
+              className="input"
+              value={targetPath}
+              onChange={e => setTargetPath(e.target.value)}
+              style={{ width: '100%', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}
+            />
+            {targetPath.includes('<') && (
+              <div style={{ fontSize: 11, color: 'var(--accent-orange, #f59e0b)', marginTop: 4 }}>
+                Replace the &lt;placeholder&gt; with your real mission name.
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{
+          padding: '10px 16px', borderTop: '1px solid var(--border)',
+          display: 'flex', justifyContent: 'flex-end', gap: 8,
+        }}>
+          <button className="btn btn-secondary" onClick={onClose} disabled={creating}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleCreate} disabled={!selected || !targetPath || creating}>
+            {creating ? 'Creating...' : 'Create file'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

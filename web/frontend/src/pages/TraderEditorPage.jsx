@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from
 import { useNavigate } from 'react-router-dom';
 import API from '../api';
 import { ArrowLeft, Save, Plus, X, Search, ChevronRight, ChevronDown, ShoppingCart, Trash2, Check, Edit, Copy } from '../components/Icon';
+import { toolWikiUrl, WIKI_TOOLS } from '../utils/wikiLinks';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
 import useServerMap from '../hooks/useServerMap';
@@ -414,6 +415,16 @@ function MarketCategoriesTab({ serverId }) {
                 <span>Category Settings</span>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   {isModified && <span style={{ fontSize: 11, color: 'var(--accent-orange, #f59e0b)', fontWeight: 600 }}>Unsaved changes</span>}
+                  <a
+                    href={toolWikiUrl('market-manager')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary"
+                    title={`Open in ${WIKI_TOOLS['market-manager']}`}
+                    style={{ padding: '4px 10px', fontSize: 11, textDecoration: 'none' }}
+                  >
+                    Docs ↗
+                  </a>
                   <button className="btn btn-primary" onClick={handleSave} disabled={saving || !isModified}
                     style={{ padding: '4px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Save size={12} /> {saving ? 'Saving...' : 'Save'}
