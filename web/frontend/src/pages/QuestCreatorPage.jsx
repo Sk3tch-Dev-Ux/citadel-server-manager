@@ -341,7 +341,14 @@ function QuestListPanel({ quests, selectedId, onSelect, onCreate }) {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                 <span style={{ fontSize: 10, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-muted)', minWidth: 28 }}>#{q.ID}</span>
-                <QuestTypeBadge type={q.Type} />
+                {/* Expansion's quest.Type is the category enum (Normal/Daily/...).
+                    The activity ("Kill", "Travel", "AI Patrol", etc.) lives on
+                    each objective. Show the first objective's type for a
+                    useful at-a-glance badge — falls back to QuestTypeBadge
+                    only if the quest has no objectives. */}
+                {q.PrimaryObjectiveType
+                  ? <ObjTypeBadge type={q.PrimaryObjectiveType} />
+                  : <QuestTypeBadge type={q.Type} />}
                 {q.Repeatable ? (
                   <RefreshCw size={10} style={{ color: 'var(--accent-green)', marginLeft: 'auto' }} />
                 ) : null}

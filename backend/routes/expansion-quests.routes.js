@@ -63,6 +63,12 @@ module.exports = function(app) {
                 IsWeeklyQuest: q.IsWeeklyQuest ?? 0,
                 FollowUpQuest: q.FollowUpQuest ?? -1,
                 ObjectiveCount: Array.isArray(q.Objectives) ? q.Objectives.length : 0,
+                // Expansion's quest.Type is the category enum (Normal/Daily/Weekly/...).
+                // For a meaningful badge in the list view we surface the first
+                // objective's type, which describes the actual activity
+                // ("Target/Kill", "Travel", "AI Patrol", etc.). See OBJECTIVE_TYPES
+                // table in QuestCreatorPage.jsx.
+                PrimaryObjectiveType: (Array.isArray(q.Objectives) && q.Objectives[0] && q.Objectives[0].ObjectiveType) || null,
                 QuestGiverIDs: q.QuestGiverIDs || [],
             }));
             res.json(summary);
