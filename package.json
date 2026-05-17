@@ -1,6 +1,6 @@
 {
   "name": "citadel",
-  "version": "2.18.0",
+  "version": "2.18.1",
   "private": true,
   "license": "UNLICENSED",
   "description": "Citadel \u2014 All-In-One DayZ server management tool with web UI, Discord bot, Live Map, and in-game admin mod",

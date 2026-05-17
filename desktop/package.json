@@ -1,6 +1,6 @@
 {
   "name": "citadel-desktop",
-  "version": "2.18.0",
+  "version": "2.18.1",
   "private": true,
   "description": "Citadel DayZ Server Controller \u2014 Desktop App",
   "main": "src/main.js",

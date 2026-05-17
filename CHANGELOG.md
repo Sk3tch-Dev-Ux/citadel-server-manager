@@ -6,6 +6,42 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.18.1 — 2026-05-17
+
+Critical fix for v2.18.0 launch issues + Loadouts editor + Quest badge
+fix. **Upgrade recommended for all v2.18.0 installs.** See
+[`RELEASE_NOTES_v2.18.1.md`](./RELEASE_NOTES_v2.18.1.md) for the full
+narrative.
+
+### Fixed
+- **Desktop app failed to launch silently** on some systems — undefined
+  `fileLog()` call in `desktop/src/auto-updater.js` raised an unhandled
+  promise rejection during init that prevented the window from opening
+  (Electron processes started but no UI appeared). Removed the bad line;
+  `appendUpdateLog()` on the line above already handles file logging.
+- **Quest Creator list badges all showed "Treasure Hunt"** — the badge
+  was reading `quest.Type` (Expansion's category enum, defaults to 1 for
+  almost every quest) mapped through Citadel's incorrect QUEST_TYPES
+  table. Now surfaces each quest's first objective `ObjectiveType`
+  ("Target/Kill", "AI Patrol", "Travel", etc.), which actually
+  describes what the quest does.
+
+### Added
+- **Loadouts editor** — new sidebar entry under MOD CONFIGS. Manages
+  `Profiles/ExpansionMod/Loadouts/*.json` (player + AI faction
+  loadouts).
+  - File list with kind badges (Player/Hero/Bandit/AI/Custom) and
+    per-file slot/item counts.
+  - Schema-driven editor backed by `BanditLoadout.schema.json`.
+  - "+ New from template" pulls from `/api/expansion-docs/templates`
+    (Loadout, BanditLoadout, ExampleLoadout, etc.).
+  - "Docs ↗" opens the wiki's Loadout Builder.
+  - Save creates a backup; delete also creates a backup before unlink.
+- **New API route** `/api/servers/:id/expansion/loadouts` —
+  list/read/save/delete, audit-logged, path-traversal-safe.
+
+---
+
 ## v2.18.0 — 2026-05-17
 
 Complete rebuild of Citadel's DayZ Expansion support against the new
