@@ -23,11 +23,20 @@ export function ToastProvider({ children }) {
     }, 200);
   }, []);
 
-  const addToast = useCallback((msg, type = 'info', duration = DEFAULT_DURATION) => {
+  const addToast = useCallback((msgOrObj, type = 'info', duration = DEFAULT_DURATION) => {
     const id = ++idRef.current;
     const createdAt = Date.now();
+    // Audit N6: addToast now accepts either a plain string (legacy callers)
+    // or an object { message, suggestion } from API errors. The renderer
+    // picks up `suggestion` and shows it as a secondary muted line.
+    let msg = msgOrObj;
+    let suggestion;
+    if (msgOrObj && typeof msgOrObj === 'object' && !Array.isArray(msgOrObj)) {
+      msg = msgOrObj.message ?? msgOrObj.error ?? '';
+      suggestion = msgOrObj.suggestion;
+    }
     setToasts(t => {
-      const updated = [...t, { id, msg, type, createdAt, duration }];
+      const updated = [...t, { id, msg, suggestion, type, createdAt, duration }];
       // Keep only MAX_VISIBLE visible — remove oldest beyond limit
       if (updated.filter(x => !x.exiting).length > MAX_VISIBLE) {
         const oldest = updated.find(x => !x.exiting);

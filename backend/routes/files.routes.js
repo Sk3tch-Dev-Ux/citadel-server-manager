@@ -1,4 +1,4 @@
-const { safeError } = require('../lib/http-errors');
+const { safeError, clientError } = require('../lib/http-errors');
 /**
  * File browser and editor routes (per server).
  *
@@ -138,16 +138,25 @@ module.exports = function(app) {
     if (!SAFE_WRITE_EXTENSIONS.has(ext)) {
       logger.warn({ userId: req.user.id, file, ext }, 'Attempted write to file with unsafe extension');
       addAudit(req.user.id, req.user.username, 'file.write-blocked', `Blocked write to ${file} (unsafe extension: ${ext})`);
-      return res.status(400).json({ error: `File extension "${ext}" is not allowed. Allowed: ${Array.from(SAFE_WRITE_EXTENSIONS).join(', ')}` });
+      return clientError(res, 400, `File extension "${ext}" is not allowed.`, {
+        code: 'EXTENSION_BLOCKED',
+        suggestion: `Allowed extensions: ${Array.from(SAFE_WRITE_EXTENSIONS).join(', ')}. To edit a binary file, do it on the server filesystem directly.`,
+      });
     }
 
     // Check file size
     if (content.length > MAX_FILE_SIZE) {
-      return res.status(400).json({ error: `File content exceeds maximum size (${MAX_FILE_SIZE / 1024 / 1024}MB)` });
+      return clientError(res, 400, `File is too large (limit ${MAX_FILE_SIZE / 1024 / 1024}MB).`, {
+        code: 'FILE_TOO_LARGE',
+        suggestion: 'Split the file or use a different editing flow (RDP / SSH) for files over this size.',
+      });
     }
 
     const filePath = safePath(srv.installDir, file);
-    if (!filePath) return res.status(403).json({ error: 'Access denied' });
+    if (!filePath) return clientError(res, 403, 'That path is outside the server install directory.', {
+      code: 'PATH_TRAVERSAL_BLOCKED',
+      suggestion: 'Use a relative path under the server\'s install root.',
+    });
 
     // Audit H8 — script gate. Writing an auto-executed script
     // (.bat / .cmd / .ps1 / .sh) is privilege escalation: the file gets
@@ -162,18 +171,18 @@ module.exports = function(app) {
         logger.warn({ userId: req.user.id, file, ext }, 'Script write denied — missing files.edit-scripts');
         addAudit(req.user.id, req.user.username, 'file.write-blocked',
           `Blocked script write to ${file} (extension ${ext}, role lacks files.edit-scripts)`);
-        return res.status(403).json({
-          error: `Writing ${ext} files requires the 'files.edit-scripts' permission. ` +
-                 `Grant it to your role in Settings → Users & Roles.`,
+        return clientError(res, 403, `Writing ${ext} files requires the 'files.edit-scripts' permission.`, {
+          code: 'PERMISSION_DENIED',
+          suggestion: 'Ask an admin to grant your role files.edit-scripts in Settings → Users & Roles.',
         });
       }
       if (!isInsideLifecycleHooks(srv.installDir, filePath)) {
         logger.warn({ userId: req.user.id, file, resolved: filePath }, 'Script write denied — outside lifecycle_hooks/');
         addAudit(req.user.id, req.user.username, 'file.write-blocked',
           `Blocked script write to ${file} (extension ${ext}, outside lifecycle_hooks/)`);
-        return res.status(403).json({
-          error: `${ext} files can only be written inside the server's lifecycle_hooks/ directory. ` +
-                 `Place this file under lifecycle_hooks/ to opt in to auto-execution by the lifecycle hook system.`,
+        return clientError(res, 403, `${ext} files must live inside lifecycle_hooks/.`, {
+          code: 'SCRIPT_OUTSIDE_HOOKS',
+          suggestion: 'Place this file under <serverDir>/lifecycle_hooks/ to opt in to auto-execution by the hook system.',
         });
       }
     }

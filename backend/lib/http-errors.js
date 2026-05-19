@@ -31,7 +31,7 @@ const DEFAULT_MESSAGES = {
 };
 
 function safeError(err, req, res, opts = {}) {
-  const { status = 500, clientMessage } = opts;
+  const { status = 500, clientMessage, code, suggestion } = opts;
 
   logger.error({
     err: {
@@ -44,10 +44,44 @@ function safeError(err, req, res, opts = {}) {
     userId: req?.userId,
     ip: req?.ip,
     status,
+    errorCode: code,
   }, 'Request failed');
 
   const message = clientMessage || DEFAULT_MESSAGES[status] || 'Request failed';
-  return res.status(status).json({ error: message });
+  return res.status(status).json(buildErrorPayload(message, code, suggestion));
 }
 
-module.exports = { safeError };
+/**
+ * Standardized 4xx response for user-correctable problems. Audit N6.
+ *
+ * Use when the error IS the user's fault and the message can safely be
+ * shown verbatim — bad input, missing field, wrong state, etc. For
+ * exceptions caught from internal code, use safeError instead so the
+ * details get logged server-side and a generic message goes to the
+ * client.
+ *
+ * Shape: { error, code?, suggestion? }
+ *   - error:      human-readable message (always present, primary toast line)
+ *   - code:       optional machine-readable category (CONFIG_WRITE_FAILED,
+ *                 INVALID_INPUT, etc.) for support/debugging and future i18n
+ *   - suggestion: optional next-step hint shown as a secondary toast line
+ *
+ * Examples:
+ *   return clientError(res, 400, 'Server name is required',
+ *     { code: 'MISSING_FIELD', suggestion: 'Use 3–32 characters.' });
+ *   return clientError(res, 409, 'Server is currently running',
+ *     { code: 'WRONG_STATE', suggestion: 'Stop it before applying this change.' });
+ */
+function clientError(res, status, message, opts = {}) {
+  const { code, suggestion } = opts;
+  return res.status(status).json(buildErrorPayload(message, code, suggestion));
+}
+
+function buildErrorPayload(message, code, suggestion) {
+  const payload = { error: message };
+  if (code) payload.code = code;
+  if (suggestion) payload.suggestion = suggestion;
+  return payload;
+}
+
+module.exports = { safeError, clientError };

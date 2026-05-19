@@ -31,6 +31,29 @@ export default function SetupWizardPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Audit N6 — backend errors now include an optional `suggestion` next-step
+  // hint. When present, render it as a secondary line under the error banner.
+  const [errorSuggestion, setErrorSuggestion] = useState('');
+
+  // Wrapper that accepts either a string (legacy callsites) or an API
+  // error response object ({ error, suggestion }). Always sets both
+  // pieces of state so the banner stays in sync.
+  const setErrorFromApi = (errOrResult) => {
+    if (errOrResult && typeof errOrResult === 'object') {
+      setError(errOrResult.error || errOrResult.message || 'Request failed');
+      setErrorSuggestion(errOrResult.suggestion || '');
+    } else {
+      setError(errOrResult || '');
+      setErrorSuggestion('');
+    }
+  };
+
+  // Clear stale suggestion whenever the error itself clears (e.g. on
+  // setError('') before the next API call). Without this the previous
+  // suggestion stays rendered after a successful retry.
+  useEffect(() => {
+    if (!error) setErrorSuggestion('');
+  }, [error]);
 
   // Admin step
   const [adminUser, setAdminUser] = useState('admin');
@@ -125,7 +148,7 @@ export default function SetupWizardPage() {
         password: adminPass,
       });
       if (result.error) {
-        setError(result.error);
+        setErrorFromApi(result);
       } else if (result.token) {
         login(result.user, result.token);
         goNext();
@@ -166,7 +189,7 @@ export default function SetupWizardPage() {
         enableFirewall,
       });
       if (result.error) {
-        setError(result.error);
+        setErrorFromApi(result);
       } else {
         goNext();
       }
@@ -194,7 +217,7 @@ export default function SetupWizardPage() {
       }, { timeout: 90000 });
 
       if (result.error) {
-        setError(result.error);
+        setErrorFromApi(result);
         setSteamStatus('not_found');
       } else {
         setSteamCmdPath(result.steamCmdPath);
@@ -234,7 +257,7 @@ export default function SetupWizardPage() {
           setSteamNeedsGuard(true);
           setError('Steam Guard code required — check your email and enter the code above.');
         } else {
-          setError(result.error || result.message || 'Login failed');
+          setErrorFromApi(result);
         }
       }
     } catch (err) {
@@ -293,7 +316,7 @@ export default function SetupWizardPage() {
           ...(serverIp && { ip: serverIp }),
         });
         if (result.error) {
-          setError(result.error);
+          setErrorFromApi(result);
           setDeploying(false);
           setDeployProgress(null);
         }
@@ -308,7 +331,7 @@ export default function SetupWizardPage() {
           ...(serverIp && { ip: serverIp }),
         });
         if (result.error) {
-          setError(result.error);
+          setErrorFromApi(result);
           setDeploying(false);
         } else {
           setDeployProgress({ status: 'complete', message: 'Server added successfully!' });
@@ -437,7 +460,14 @@ export default function SetupWizardPage() {
               <div aria-live="polite">
                 {error && (
                   <div>
-                    <div className="login-error">{error}</div>
+                    <div className="login-error">
+                      <div>{error}</div>
+                      {errorSuggestion && (
+                        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9, fontWeight: 'normal' }}>
+                          {errorSuggestion}
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => API.downloadDiagnostics(`Setup step ${step} (${STEPS[step]?.key})`)}
@@ -559,7 +589,14 @@ export default function SetupWizardPage() {
               <div aria-live="polite">
                 {error && (
                   <div>
-                    <div className="login-error">{error}</div>
+                    <div className="login-error">
+                      <div>{error}</div>
+                      {errorSuggestion && (
+                        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9, fontWeight: 'normal' }}>
+                          {errorSuggestion}
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => API.downloadDiagnostics(`Setup step ${step} (${STEPS[step]?.key})`)}
@@ -688,7 +725,14 @@ export default function SetupWizardPage() {
               <div aria-live="polite">
                 {error && (
                   <div>
-                    <div className="login-error">{error}</div>
+                    <div className="login-error">
+                      <div>{error}</div>
+                      {errorSuggestion && (
+                        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9, fontWeight: 'normal' }}>
+                          {errorSuggestion}
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => API.downloadDiagnostics(`Setup step ${step} (${STEPS[step]?.key})`)}
@@ -898,7 +942,14 @@ export default function SetupWizardPage() {
               <div aria-live="polite">
                 {error && (
                   <div>
-                    <div className="login-error">{error}</div>
+                    <div className="login-error">
+                      <div>{error}</div>
+                      {errorSuggestion && (
+                        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9, fontWeight: 'normal' }}>
+                          {errorSuggestion}
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => API.downloadDiagnostics(`Setup step ${step} (${STEPS[step]?.key})`)}

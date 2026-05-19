@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 // identical (hash, compare, hashSync); existing user records validate
 // without re-hash.
 const bcrypt = require('@node-rs/bcrypt');
+const { clientError } = require('../lib/http-errors');
 const { authenticator } = require('../lib/totp');
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');
@@ -86,7 +87,10 @@ module.exports = function(app) {
     const now = Date.now();
     if (!loginAttempts[key]) loginAttempts[key] = { count: 0, last: 0, lockedUntil: 0 };
     if (loginAttempts[key].lockedUntil > now) {
-      return res.status(429).json({ error: 'Too many failed attempts. Try again later.' });
+      return clientError(res, 429, 'Too many failed login attempts.', {
+        code: 'LOGIN_LOCKED',
+        suggestion: 'Wait a few minutes before trying again. If you\'re locked out and the server is yours, restart the Citadel service to clear the in-memory lockout.',
+      });
     }
 
     const valid = await bcrypt.compare(password || '', hashToCompare);
@@ -100,7 +104,10 @@ module.exports = function(app) {
       saveJSON(ctx.CONFIG.dataDir, 'lockouts.json', loginAttempts);
       // Record IP-level failure for fail2ban
       recordLoginFailure(clientIp);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return clientError(res, 401, 'Invalid username or password.', {
+        code: 'INVALID_CREDENTIALS',
+        suggestion: 'Check caps lock. If you forgot the password and you\'re the only admin, recovery is via editing data/users.json on the server.',
+      });
     }
     loginAttempts[key] = { count: 0, last: now, lockedUntil: 0 };
     saveJSON(ctx.CONFIG.dataDir, 'lockouts.json', loginAttempts);
@@ -109,7 +116,12 @@ module.exports = function(app) {
 
     // MFA validation (TOTP)
     if (user.mfaEnabled && user.mfaSecret) {
-      if (!mfa) return res.status(401).json({ error: 'MFA code required', mfaRequired: true });
+      if (!mfa) return res.status(401).json({
+        error: 'MFA code required.',
+        code: 'MFA_REQUIRED',
+        suggestion: 'Open your authenticator app and enter the 6-digit Citadel code.',
+        mfaRequired: true,
+      });
 
       // Decrypt the stored MFA secret
       let decryptedSecret;
@@ -123,7 +135,10 @@ module.exports = function(app) {
       const isValid = authenticator.check(String(mfa), decryptedSecret);
       if (!isValid) {
         logger.warn({ userId: user.id }, 'Invalid MFA code');
-        return res.status(401).json({ error: 'Invalid MFA code' });
+        return clientError(res, 401, 'Invalid MFA code.', {
+          code: 'MFA_INVALID',
+          suggestion: 'Make sure your authenticator app\'s clock is synced. Codes refresh every 30 seconds.',
+        });
       }
     }
 

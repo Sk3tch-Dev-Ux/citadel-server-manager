@@ -1,4 +1,4 @@
-const { safeError } = require('../lib/http-errors');
+const { safeError, clientError } = require('../lib/http-errors');
 /**
  * First-run setup wizard routes.
  * These endpoints are ONLY accessible when the panel is in "needs setup" state.
@@ -182,10 +182,16 @@ module.exports = function(app) {
   app.post('/api/setup/admin', requireSetupMode, async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+      return clientError(res, 400, 'Username and password are required.', {
+        code: 'MISSING_FIELD',
+        suggestion: 'Fill in both fields and try again.',
+      });
     }
     if (!checkPasswordPolicy(password)) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character' });
+      return clientError(res, 400, 'Password does not meet the policy.', {
+        code: 'WEAK_PASSWORD',
+        suggestion: 'Use 8+ characters with uppercase, lowercase, a number, and a symbol.',
+      });
     }
 
     try {
@@ -254,8 +260,12 @@ module.exports = function(app) {
         user: { id: user.id, username: user.username, role: user.role },
       });
     } catch (err) {
-      logger.error({ err }, 'Setup: Failed to create admin');
-      res.status(500).json({ error: 'Failed to create admin account' });
+      return safeError(err, req, res, {
+        status: 500,
+        clientMessage: 'Failed to create admin account.',
+        code: 'ADMIN_CREATE_FAILED',
+        suggestion: 'Check the backend logs for details. The data/ directory may be read-only or full.',
+      });
     }
   });
 
@@ -286,7 +296,10 @@ module.exports = function(app) {
   app.post('/api/setup/network', requireSetupMode, async (req, res) => {
     const { ip, enableFirewall } = req.body;
     if (!ip || !ip.trim()) {
-      return res.status(400).json({ error: 'IP address is required' });
+      return clientError(res, 400, 'Server IP address is required.', {
+        code: 'MISSING_FIELD',
+        suggestion: 'Use Auto-Detect, or type your VPS\'s public IPv4 manually.',
+      });
     }
 
     const serverIp = ip.trim();
@@ -336,8 +349,12 @@ module.exports = function(app) {
       logger.info({ ip: serverIp, firewall: !!enableFirewall }, 'Setup: Network configured');
       res.json({ success: true, ip: serverIp, firewallResult });
     } catch (err) {
-      logger.error({ err }, 'Setup: Failed to configure network');
-      res.status(500).json({ error: err.message || 'Failed to configure network' });
+      return safeError(err, req, res, {
+        status: 500,
+        clientMessage: 'Failed to configure network settings.',
+        code: 'NETWORK_CONFIG_FAILED',
+        suggestion: 'On Windows, the firewall step needs admin rights — try running the service as Administrator.',
+      });
     }
   });
 
@@ -354,7 +371,10 @@ module.exports = function(app) {
         if (fs.existsSync(steamCmdPath)) {
           ctx.steamCmdPath = steamCmdPath;
         } else {
-          return res.status(400).json({ error: 'SteamCMD not found at the specified path' });
+          return clientError(res, 400, 'SteamCMD not found at the specified path.', {
+            code: 'STEAMCMD_NOT_FOUND',
+            suggestion: 'Leave the field blank to auto-download SteamCMD, or set it to the absolute path of an existing steamcmd.exe.',
+          });
         }
       } else {
         // Try auto-detection / auto-download
@@ -411,7 +431,12 @@ module.exports = function(app) {
       });
     } catch (err) {
       logger.error({ err }, 'Setup: Failed to configure SteamCMD');
-      res.status(500).json({ error: err.message || 'Failed to configure SteamCMD' });
+      return safeError(err, req, res, {
+        status: 500,
+        clientMessage: 'Failed to configure SteamCMD.',
+        code: 'STEAMCMD_CONFIG_FAILED',
+        suggestion: 'If auto-download failed, check that the Citadel data directory is writable and Steam servers are reachable.',
+      });
     }
   });
 
@@ -423,7 +448,10 @@ module.exports = function(app) {
   app.post('/api/setup/steam/validate', requireSetupMode, async (req, res) => {
     const { username, password, guardCode } = req.body;
     if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
+      return clientError(res, 400, 'Steam username and password are required.', {
+        code: 'MISSING_FIELD',
+        suggestion: 'Enter your Steam account credentials. They are stored encrypted and only used to run SteamCMD.',
+      });
     }
 
     try {
@@ -455,9 +483,18 @@ module.exports = function(app) {
         logger.info({ username }, 'Setup: Steam login validated and cached');
         res.json({ success: true });
       } else if (result.needsGuard) {
-        res.status(403).json({ error: 'Steam Guard code required.', needsGuard: true });
+        res.status(403).json({
+          error: 'Steam Guard code required.',
+          code: 'STEAM_GUARD_REQUIRED',
+          suggestion: 'Check the email associated with your Steam account, then enter the 5-character code here.',
+          needsGuard: true,
+        });
       } else {
-        res.status(422).json({ error: result.error || 'Steam login failed' });
+        res.status(422).json({
+          error: result.error || 'Steam login failed.',
+          code: 'STEAM_LOGIN_FAILED',
+          suggestion: 'Double-check your username and password. If 2FA is enabled, the Mobile Authenticator (not the email Guard code) is required and Citadel cannot complete that flow — generate an app password instead.',
+        });
       }
     } catch (err) {
       safeError(err, req, res, { status: 500 });
@@ -472,7 +509,10 @@ module.exports = function(app) {
   app.post('/api/setup/steam/save', requireSetupMode, (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
+      return clientError(res, 400, 'Steam username and password are required.', {
+        code: 'MISSING_FIELD',
+        suggestion: 'Enter your Steam account credentials. They are stored encrypted and only used to run SteamCMD.',
+      });
     }
     ctx.steamCredentials.username = username;
     ctx.steamCredentials.password = password;
@@ -522,7 +562,12 @@ module.exports = function(app) {
       res.json({ success: true });
     } catch (err) {
       logger.error({ err }, 'Setup: Failed to mark complete');
-      res.status(500).json({ error: 'Failed to complete setup' });
+      return safeError(err, req, res, {
+        status: 500,
+        clientMessage: 'Failed to finalize setup.',
+        code: 'SETUP_COMPLETE_FAILED',
+        suggestion: 'Check the backend logs. Use the "Download diagnostics" link below to send your last 50 API events to support.',
+      });
     }
   });
 };

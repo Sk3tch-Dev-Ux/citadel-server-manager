@@ -32,7 +32,14 @@ function ToastItem({ toast, onDismiss }) {
       style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
     >
       <span className="toast-icon"><Icon size={16} /></span>
-      <span style={{ flex: 1 }}>{toast.msg}</span>
+      <span style={{ flex: 1 }}>
+        <span>{toast.msg}</span>
+        {toast.suggestion && (
+          <span style={{ display: 'block', marginTop: 4, fontSize: 12, opacity: 0.85, fontWeight: 'normal' }}>
+            {toast.suggestion}
+          </span>
+        )}
+      </span>
       <button className="toast-dismiss" onClick={(e) => { e.stopPropagation(); onDismiss(toast.id); }}>
         <X size={14} />
       </button>
