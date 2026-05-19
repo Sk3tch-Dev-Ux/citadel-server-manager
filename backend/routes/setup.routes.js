@@ -7,7 +7,8 @@ const { safeError } = require('../lib/http-errors');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const bcrypt = require('bcryptjs');
+// Audit N5: bcryptjs → @node-rs/bcrypt (hash-compatible, prebuilt native).
+const bcrypt = require('@node-rs/bcrypt');
 const { v4: uuid } = require('uuid');
 const jwt = require('jsonwebtoken');
 const logger = require('../lib/logger');

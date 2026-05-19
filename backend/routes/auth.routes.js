@@ -2,7 +2,10 @@
  * Authentication routes (login with brute-force protection + TOTP MFA).
  */
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+// Audit N5: bcryptjs → @node-rs/bcrypt. Hash format and API surface are
+// identical (hash, compare, hashSync); existing user records validate
+// without re-hash.
+const bcrypt = require('@node-rs/bcrypt');
 const { authenticator } = require('../lib/totp');
 const ctx = require('../lib/context');
 const { addAudit } = require('../lib/audit');

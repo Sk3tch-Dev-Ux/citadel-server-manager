@@ -3,7 +3,10 @@
  */
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcryptjs');
+// Audit N5: swapped bcryptjs → @node-rs/bcrypt. Same hash format, same
+// async API (hash, compare); native N-API prebuilds via npm so no
+// node-gyp at install time and `npm ci --ignore-scripts` keeps working.
+const bcrypt = require('@node-rs/bcrypt');
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');

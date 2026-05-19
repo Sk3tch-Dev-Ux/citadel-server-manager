@@ -2,7 +2,8 @@
  * User CRUD routes.
  */
 const { v4: uuid } = require('uuid');
-const bcrypt = require('bcryptjs');
+// Audit N5: bcryptjs → @node-rs/bcrypt (hash-compatible, prebuilt native).
+const bcrypt = require('@node-rs/bcrypt');
 const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { validateFields, checkPasswordPolicy } = require('../lib/helpers');
