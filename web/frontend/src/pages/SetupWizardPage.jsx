@@ -435,7 +435,22 @@ export default function SetupWizardPage() {
               </div>
 
               <div aria-live="polite">
-                {error && <div className="login-error">{error}</div>}
+                {error && (
+                  <div>
+                    <div className="login-error">{error}</div>
+                    <button
+                      type="button"
+                      onClick={() => API.downloadDiagnostics(`Setup step ${step} (${STEPS[step]?.key})`)}
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--text-muted)',
+                        fontSize: 11, textDecoration: 'underline', cursor: 'pointer',
+                        padding: '2px 0', marginTop: 2,
+                      }}
+                    >
+                      Download diagnostics (for support)
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="input-group">
@@ -542,7 +557,22 @@ export default function SetupWizardPage() {
               </div>
 
               <div aria-live="polite">
-                {error && <div className="login-error">{error}</div>}
+                {error && (
+                  <div>
+                    <div className="login-error">{error}</div>
+                    <button
+                      type="button"
+                      onClick={() => API.downloadDiagnostics(`Setup step ${step} (${STEPS[step]?.key})`)}
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--text-muted)',
+                        fontSize: 11, textDecoration: 'underline', cursor: 'pointer',
+                        padding: '2px 0', marginTop: 2,
+                      }}
+                    >
+                      Download diagnostics (for support)
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="input-group">
@@ -656,7 +686,22 @@ export default function SetupWizardPage() {
               </div>
 
               <div aria-live="polite">
-                {error && <div className="login-error">{error}</div>}
+                {error && (
+                  <div>
+                    <div className="login-error">{error}</div>
+                    <button
+                      type="button"
+                      onClick={() => API.downloadDiagnostics(`Setup step ${step} (${STEPS[step]?.key})`)}
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--text-muted)',
+                        fontSize: 11, textDecoration: 'underline', cursor: 'pointer',
+                        padding: '2px 0', marginTop: 2,
+                      }}
+                    >
+                      Download diagnostics (for support)
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Phase 1: SteamCMD location (before steamStatus === 'found') */}
@@ -851,7 +896,22 @@ export default function SetupWizardPage() {
               </div>
 
               <div aria-live="polite">
-                {error && <div className="login-error">{error}</div>}
+                {error && (
+                  <div>
+                    <div className="login-error">{error}</div>
+                    <button
+                      type="button"
+                      onClick={() => API.downloadDiagnostics(`Setup step ${step} (${STEPS[step]?.key})`)}
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--text-muted)',
+                        fontSize: 11, textDecoration: 'underline', cursor: 'pointer',
+                        padding: '2px 0', marginTop: 2,
+                      }}
+                    >
+                      Download diagnostics (for support)
+                    </button>
+                  </div>
+                )}
               </div>
 
               {!serverMode && (

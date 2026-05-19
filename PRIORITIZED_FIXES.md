@@ -287,12 +287,13 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 - Action: define `{ error: 'MACHINE_CODE', message: 'human reason', suggestion: 'next step' }`. Frontend toast renders `message` as primary, `suggestion` as secondary line. Replace every bare `'Failed'`/`'Failed to X'` shape.
 - Verify: grep the frontend for `addToast.*error` — each toast displays both lines when present. Pick three known failure paths (disk-full write, permission-denied write, wrong-path SteamCMD) and verify they produce actionable copy.
 
-## N7 — MEDIUM [UX] — Setup wizard error surface (`s`) — **PARTIAL DONE 2026-05-19**
+## N7 — MEDIUM [UX] — Setup wizard error surface (`s`) — **DONE 2026-05-19**
 
 - Report: §5.1
-- Files: `web/frontend/src/pages/SetupWizardPage.jsx`.
-- Action taken: removed the two silent `catch` blocks that hid `/api/setup/network/detect` and `/api/setup/complete` failures. The complete-setup handler now stays on the current step on error so the user can retry, instead of silently navigating to a "done" screen for a setup that never finished — exactly the v2.18.0–v2.18.3 trap. Auto-detect failure now surfaces a non-fatal error that says "you can still type the IP manually."
-- Open: the bigger N7 ask — a "Download diagnostics" link that dumps the last 20 API responses to a file — was deferred. Other setup handlers already use try/catch + setError correctly.
+- Files: `web/frontend/src/api.js`, `web/frontend/src/pages/SetupWizardPage.jsx`.
+- Action taken (two parts):
+  1. **Silent-catch fix**: removed the two silent `catch` blocks that hid `/api/setup/network/detect` and `/api/setup/complete` failures. The complete-setup handler now stays on the current step on error so the user can retry, instead of silently navigating to a "done" screen for a setup that never finished — exactly the v2.18.0–v2.18.3 trap. Auto-detect failure now surfaces a non-fatal error that says "you can still type the IP manually."
+  2. **Download diagnostics**: `api.js` now keeps a 50-event ring buffer of recent requests (timestamp, method, sanitized URL, status, duration, error). A "Download diagnostics (for support)" link appears under any error message in the setup wizard; clicking it produces a `citadel-diagnostics-<ts>.txt` blob the user can attach to a support thread. URLs are scrubbed of `api_key`, `token`, `password`, etc. before recording; no request/response bodies are captured.
 
 ## N8 — MEDIUM [UX] — Mobile responsiveness for crisis mode (`m`)
 
@@ -388,7 +389,7 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 | N1   | LOW (downgraded from CRITICAL) | Stale `latest.yml` deleted + gitignored | `.gitignore`, `latest.yml` (deleted) |
 | N2   | HIGH | BackupsPage → fetch+blob; dead URL-token shims removed | `web/frontend/src/pages/BackupsPage.jsx`, `backend/routes/backup.routes.js`, `backend/routes/setup.routes.js` |
 | N3   | HIGH | Logger redact + `sanitizeUrl()` helper applied to `req.url` logs (mod-side still open) | `backend/lib/logger.js`, `backend/middleware/csrf.js`, `backend/server.js` |
-| N7   | MED [UX] | Setup wizard silent-catch blocks fixed (network detect, complete-setup) | `web/frontend/src/pages/SetupWizardPage.jsx` |
+| N7   | MED [UX] | Setup wizard silent-catch fix + Download-diagnostics link backed by 50-event ring buffer | `web/frontend/src/pages/SetupWizardPage.jsx`, `web/frontend/src/api.js` |
 | N10  | LOW  | `safePath()` for expansion-docs path build | `backend/routes/expansion-docs.routes.js` |
 | N11  | LOW [UX] | Both halves: LoadoutsPage + FilesPage in-line name/path validation | `web/frontend/src/pages/LoadoutsPage.jsx`, `pages/FilesPage.jsx` |
 | N12  | LOW [UX] | Auto-fill mission folder name in FilesPage template picker | `backend/routes/servers.routes.js`, `web/frontend/src/pages/FilesPage.jsx` |
@@ -401,5 +402,5 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 
 What's left from the audit:
 - **High, deferred for runtime testing / external dep:** N3 mod-side (DayZ test), N4 code signing (cert), N5 bcrypt (native build chain).
-- **Medium-UX, scoped work:** N6 error shape rollout, N7 remainder (diagnostics dump), N8 mobile responsive, N9 config search + glossary.
+- **Medium-UX, scoped work:** N6 error shape rollout, N8 mobile responsive, N9 config search + glossary.
 - **Recommended manual action:** `gh release edit v2.18.0/1/2 --prerelease` (agent permissions blocked from doing this — it's the user's call to mark public releases pre-release).

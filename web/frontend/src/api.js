@@ -19,12 +19,79 @@
  * that explicitly sets a token.
  */
 const REQUEST_TIMEOUT_MS = 30000;
+// Ring buffer of recent API events for support diagnostics. Audit N7.
+// Captures last N requests so a stuck user can hit "Download diagnostics"
+// and send the file. Bounded so we don't grow memory unbounded over a
+// long session.
+const EVENT_RING_SIZE = 50;
 
 class API {
   // Audit M11: no longer reads from localStorage at module load. Empty
   // by default; the cookie is the source of truth. AuthContext.logout()
   // sets this to '' on logout for completeness.
   static token = '';
+
+  // Audit N7: in-memory ring buffer of recent API calls. Format per entry:
+  // { ts, method, url, status, ok, durationMs, error? }. We deliberately
+  // do NOT log request/response bodies — those may contain passwords or
+  // tokens. URL is run through a basic key-stripper for the same reason.
+  static _events = [];
+
+  static _recordEvent(entry) {
+    this._events.push(entry);
+    if (this._events.length > EVENT_RING_SIZE) {
+      this._events.splice(0, this._events.length - EVENT_RING_SIZE);
+    }
+  }
+
+  // Scrub sensitive query params (mirrors backend lib/logger.js sanitizeUrl)
+  // so diagnostics files can be safely emailed / posted to a forum.
+  static _sanitizeUrl(rawUrl) {
+    if (typeof rawUrl !== 'string') return rawUrl;
+    const qIdx = rawUrl.indexOf('?');
+    if (qIdx === -1) return rawUrl;
+    const path = rawUrl.slice(0, qIdx);
+    const REDACT = new Set(['api_key', 'apiKey', 'token', 'jwt', 'password', 'secret']);
+    const parts = rawUrl.slice(qIdx + 1).split('&').map(pair => {
+      const eq = pair.indexOf('=');
+      if (eq === -1) return pair;
+      const k = pair.slice(0, eq);
+      return REDACT.has(k) ? `${k}=[REDACTED]` : pair;
+    });
+    return path + '?' + parts.join('&');
+  }
+
+  static getRecentEvents() {
+    return this._events.slice();
+  }
+
+  static downloadDiagnostics(extraContext) {
+    const lines = [];
+    lines.push(`Citadel API diagnostics`);
+    lines.push(`Generated: ${new Date().toISOString()}`);
+    lines.push(`User-Agent: ${navigator.userAgent}`);
+    if (extraContext && typeof extraContext === 'string') {
+      lines.push(`Context: ${extraContext}`);
+    }
+    lines.push('');
+    lines.push(`Recent API events (oldest → newest, capped at ${EVENT_RING_SIZE}):`);
+    lines.push('');
+    for (const e of this._events) {
+      const head = `${e.ts}  ${e.method.padEnd(5)}  ${String(e.status || '---').padStart(3)}  ${e.durationMs}ms  ${e.url}`;
+      lines.push(head);
+      if (e.error) lines.push(`    error: ${e.error}`);
+    }
+    if (this._events.length === 0) lines.push('  (no API calls recorded yet)');
+    const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `citadel-diagnostics-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
 
   static headers() {
     const h = { 'Content-Type': 'application/json' };
@@ -73,14 +140,28 @@ class API {
     const timeoutMs = options.timeout || REQUEST_TIMEOUT_MS;
     delete options.timeout;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const t0 = Date.now();
+    const method = (options.method || 'GET').toUpperCase();
+    const sanitized = this._sanitizeUrl(url);
     try {
       const r = await fetch(url, {
         credentials: 'include',
         ...options,
         signal: controller.signal,
       });
+      this._recordEvent({
+        ts: new Date().toISOString(),
+        method, url: sanitized, status: r.status, ok: r.ok,
+        durationMs: Math.round(Date.now() - t0),
+      });
       return r;
     } catch (err) {
+      this._recordEvent({
+        ts: new Date().toISOString(),
+        method, url: sanitized, status: 0, ok: false,
+        durationMs: Math.round(Date.now() - t0),
+        error: err.name === 'AbortError' ? 'timeout' : (err.message || String(err)),
+      });
       if (err.name === 'AbortError') throw new Error('Request timed out', { cause: err });
       throw err;
     } finally {
