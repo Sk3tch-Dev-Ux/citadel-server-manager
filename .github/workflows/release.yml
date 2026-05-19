@@ -32,7 +32,41 @@ jobs:
       - name: Install root dependencies
         run: npm ci --ignore-scripts
 
+      # Audit N4 — decode the code-signing PFX from a GitHub Actions secret
+      # if one is configured. The actual signing happens inside
+      # installer/build.js via signtool; this step just materializes the
+      # PFX to disk so build.js can find it. No-op when the secret is
+      # unset (release ships unsigned, same as before this step landed).
+      #
+      # To enable code signing for releases:
+      #   1. Get an OV or EV code-signing cert (.pfx). See installer/SIGNING.md.
+      #   2. base64-encode it: `certutil -encode cert.pfx cert.b64.txt`
+      #      (Windows) or `base64 cert.pfx > cert.b64.txt` (mac/linux).
+      #   3. Repo Settings → Secrets and variables → Actions, create:
+      #        CITADEL_SIGN_PFX_BASE64 = (contents of cert.b64.txt)
+      #        CITADEL_SIGN_PASSWORD  = (the PFX password)
+      - name: Decode code-signing certificate
+        shell: pwsh
+        env:
+          PFX_B64: ${{ secrets.CITADEL_SIGN_PFX_BASE64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PFX_B64)) {
+            Write-Output "No CITADEL_SIGN_PFX_BASE64 secret set — release will be unsigned."
+            exit 0
+          }
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'citadel-signing.pfx'
+          [System.IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_B64))
+          Write-Output "Decoded signing cert to $pfxPath"
+          "CITADEL_SIGN_PFX=$pfxPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Build installer
+        env:
+          # These are read by installer/build.js → signInstallerIfConfigured().
+          # When the GitHub secret is unset, CITADEL_SIGN_PASSWORD ends up
+          # empty and the signing step is skipped (with a heads-up log).
+          # CITADEL_SIGN_PFX is set in the previous step only when the
+          # base64 secret was present.
+          CITADEL_SIGN_PASSWORD: ${{ secrets.CITADEL_SIGN_PASSWORD }}
         run: node installer/build.js
 
       - name: Verify installer output

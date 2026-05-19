@@ -530,14 +530,26 @@ async function main() {
     { cwd: ROOT }
   );
 
-  // ─── Generate latest.yml for electron-updater ──────────────
-  // electron-updater reads this file from the GitHub Release to discover
-  // new versions. Since we use a custom NSIS installer (not electron-builder's
-  // built-in one), we have to produce latest.yml ourselves.
+  // ─── Code-sign the NSIS .exe (audit N4) ────────────────────
+  // Sign before computing the sha512 so the hash in latest.yml matches the
+  // file users actually download. electron-updater verifies the hash; if we
+  // sign AFTER hashing, every update would fail integrity verification.
+  //
+  // Opt-in: only runs when both CITADEL_SIGN_PFX and CITADEL_SIGN_PASSWORD
+  // env vars are set. Skipped silently with a heads-up log otherwise so
+  // dev builds (and the public CI workflow until a cert lands) keep working.
+  //
+  // The release runbook is in installer/SIGNING.md.
   const installerPath = path.join(BUILD_DIR, `CitadelSetup-${VERSION}.exe`);
   if (!fs.existsSync(installerPath)) {
     throw new Error(`Expected installer at ${installerPath} — NSIS build did not produce it.`);
   }
+  signInstallerIfConfigured(installerPath);
+
+  // ─── Generate latest.yml for electron-updater ──────────────
+  // electron-updater reads this file from the GitHub Release to discover
+  // new versions. Since we use a custom NSIS installer (not electron-builder's
+  // built-in one), we have to produce latest.yml ourselves.
   log('Generating latest.yml for auto-updater...');
   const installerBuffer = fs.readFileSync(installerPath);
   const sha512 = crypto.createHash('sha512').update(installerBuffer).digest('base64');
@@ -565,6 +577,60 @@ async function main() {
   log(`Installer: build/CitadelSetup-${VERSION}.exe`);
   log(`Update manifest: build/latest.yml  (upload alongside the .exe to GitHub Releases)`);
   console.log('');
+}
+
+/**
+ * Audit N4 — sign the produced installer with the operator's code-signing
+ * certificate, if one is configured via env vars. Skipped (with a loud log
+ * message) when unconfigured so dev builds and the unsigned CI path keep
+ * working.
+ *
+ * Env vars (all required for the step to run):
+ *   CITADEL_SIGN_PFX           Absolute path to the PFX/PKCS12 cert file.
+ *   CITADEL_SIGN_PASSWORD      Password that unlocks the PFX.
+ *   CITADEL_SIGN_TIMESTAMP_URL Optional. RFC 3161 timestamp URL. Defaults
+ *                              to http://timestamp.digicert.com.
+ *
+ * Requires `signtool.exe` on PATH. On Windows the standard locations are
+ * the Windows 10/11 SDK (`C:\Program Files (x86)\Windows Kits\10\bin\<ver>\x64\signtool.exe`).
+ * GitHub's `windows-latest` runner ships it preinstalled in the SDK.
+ *
+ * On macOS / Linux dev hosts the step is a no-op (we couldn't sign even if
+ * configured — signtool is Windows-only). The CI runner is Windows.
+ */
+function signInstallerIfConfigured(installerPath) {
+  const pfx = process.env.CITADEL_SIGN_PFX;
+  const password = process.env.CITADEL_SIGN_PASSWORD;
+  if (!pfx || !password) {
+    log('⚠️  Code-signing skipped — CITADEL_SIGN_PFX / CITADEL_SIGN_PASSWORD not set.');
+    log('   Users will see a SmartScreen "Unknown publisher" warning. See installer/SIGNING.md.');
+    return;
+  }
+  if (process.platform !== 'win32') {
+    log(`⚠️  Code-signing skipped — signtool.exe is Windows-only (host is ${process.platform}).`);
+    return;
+  }
+  if (!fs.existsSync(pfx)) {
+    throw new Error(`CITADEL_SIGN_PFX points at "${pfx}" but the file does not exist.`);
+  }
+  const timestampUrl = process.env.CITADEL_SIGN_TIMESTAMP_URL || 'http://timestamp.digicert.com';
+  log(`Signing ${path.basename(installerPath)} with ${path.basename(pfx)}...`);
+  // /tr  — RFC 3161 timestamp server (counter-signs the signature so the
+  //        installer stays valid after the cert expires)
+  // /td  — digest algorithm for the timestamp request (sha256)
+  // /fd  — digest algorithm for the file signature (sha256)
+  // /f /p  — pfx + password
+  // signtool will exit non-zero on any failure (bad password, expired cert,
+  // network error contacting the timestamp server, etc.) — `run` throws.
+  run(
+    `signtool sign /tr "${timestampUrl}" /td sha256 /fd sha256 /f "${pfx}" /p "${password}" "${installerPath}"`,
+    { cwd: ROOT, stdio: 'inherit' }
+  );
+  // Re-verify the signature just landed correctly. If signtool reported
+  // success but the file isn't actually signed (rare driver glitch),
+  // this catches it before we publish a "signed" release that isn't.
+  run(`signtool verify /pa "${installerPath}"`, { cwd: ROOT, stdio: 'inherit' });
+  log(`✓ Signed and verified ${path.basename(installerPath)}`);
 }
 
 main().catch(err => {

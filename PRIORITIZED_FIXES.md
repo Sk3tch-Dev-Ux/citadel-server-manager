@@ -264,13 +264,28 @@ Companion: `AUDIT_REPORT_2026-05-19.md`. Items below are NEW since the original 
 - Action taken: rewrote `downloadBackup` to use `fetch(..., { credentials: 'include' })` + `URL.createObjectURL(blob)` + a synthetic `<a download>` click. No localStorage read, no token in URL. Also removed the matching backend `?token=` URL-auth shim in `backend/routes/backup.routes.js:142–148` so the pattern can't silently be reintroduced. Removed a parallel dead shim in `backend/routes/setup.routes.js:128`.
 - Open follow-up: add an ESLint rule that fails on `localStorage\.(get|set|remove)Item.*token` anywhere in `web/frontend/src/`.
 
-## N3 — HIGH — H10 carry-over: mod sends `api_key` in URL (`s`) — **STOP-GAP DONE 2026-05-19**
+## N3 — HIGH — H10 carry-over: mod sends `api_key` in URL (`s`) — **MOD CODE DONE 2026-05-19 (runtime test pending)**
 
 - Report: §2.1
-- Files: `Scripts/CommandRelay.c:1586`, ack call sites at `:668, :742, :813, :1075, :8739`; backend route(s) that accept the key.
-- **Stop-gap completed:** `backend/lib/logger.js` — added `api_key` (snake_case) to the SENSITIVE_FIELDS list, added `req.query.${field}` to REDACT_PATHS expansion, and added a new `sanitizeUrl()` helper that strips the api_key/token/jwt/password/secret query params from a raw URL string. Wired `sanitizeUrl(req.url)` into the three known `req.url` logger callsites (`backend/server.js:398`, `backend/middleware/csrf.js:154,159,166`). Backend logs no longer leak the mod's URL key.
-- **Mod-side remains open** (needs DayZ runtime testing): investigate whether DayZ `RestApi` ctx exposes a generic `SetHeader(name, value)`. If yes, switch to `X-Citadel-Api-Key` header. If no, switch GET polls to POST with `{ server_id, api_key }` in the JSON body. Backend accepts both during a transition window, then drops the query form.
-- Verify (mod-side): tcpdump on a poll cycle shows no `api_key=` in the HTTP request line; reverse-proxy `access.log` shows no api_key in `request_uri`.
+- Files: `Scripts/CommandRelay.c` (config struct, helpers, 6 POST sites, 1 GET-poll site, default config init).
+- **Backend stop-gap (already shipped in v2.18.5):** `backend/lib/logger.js` SENSITIVE_FIELDS now lists `api_key` (snake_case) + `req.query.*` redact paths; `sanitizeUrl()` helper applied at all `req.url` logger callsites.
+- **Mod-side mechanism (this pass):** added an opt-in `auth_in_body` flag (default `false` → no behavior change on upgrade). When the operator flips it to `true`:
+  - Two static helpers (`CommandRelay_BuildAuthPath`, `CommandRelay_AddAuthToBody`) are routed through every REST callsite. URL no longer carries the api_key; payload first-property is `"api_key":"<key>"`.
+  - The GET poll changes to a POST with `{"api_key":"...","server_id":"..."}` as the body (DayZ's RestApi.SetHeader is Content-Type-only across engine versions, so header-auth isn't an option).
+  - All five POST event/ack sites move the key out of the URL too.
+- **DayZ runtime test still required.** The mechanism is code-complete; verifying that DayZ's RestApi handles `ctx.POST(callback, "", payload)` for the poll path (empty path string) needs an in-game test. Operators with custom receivers can flip the flag once their endpoint accepts body-auth; CFTools / external-receiver users keep `auth_in_body: false` until those receivers add support.
+- Verify (post-runtime-test): tcpdump on a poll cycle with `auth_in_body: true` shows no `api_key=` in the HTTP request line; reverse-proxy `access.log` shows no api_key in `request_uri`.
+
+## N4 — HIGH carry-over — NSIS code signing (`m`) — **WIRING DONE 2026-05-19 (cert procurement pending)**
+
+- Files: `installer/build.js` (new `signInstallerIfConfigured()` helper, called between NSIS build and sha512 hash), `.github/workflows/release.yml` (new "Decode code-signing certificate" step + env passthrough), `installer/SIGNING.md` (new runbook).
+- Action taken: opt-in `signtool sign /tr <timestamp> /td sha256 /fd sha256 /f <pfx> /p <password>` invocation gated on `CITADEL_SIGN_PFX` + `CITADEL_SIGN_PASSWORD` env vars. Skipped with a heads-up log when unconfigured so dev builds keep working. Signtool is followed by `signtool verify /pa` as a self-check. Workflow decodes a base64-encoded PFX from `CITADEL_SIGN_PFX_BASE64` GitHub secret; passes password through directly. The sha512 in `latest.yml` is computed AFTER signing so the hash matches what users download.
+- **Cert procurement is on the user.** SIGNING.md walks through OV vs EV tradeoffs (OV = $150–300/yr, gradual reputation; EV = $300–500/yr + USB token, instant), CI integration via GitHub secrets, EV-via-cloud-HSM caveats, and renewal flow. Once the user adds the two GitHub secrets, the next tagged release auto-signs.
+
+## N5 — HIGH carry-over — bcryptjs → bcrypt (`s`) — **DONE 2026-05-19**
+
+- Files: `backend/package.json`, `backend/package-lock.json`, `backend/lib/server-init.js`, `backend/routes/auth.routes.js`, `backend/routes/setup.routes.js`, `backend/routes/users.routes.js`.
+- Action taken: swapped `bcryptjs ^2.4.3` → `@node-rs/bcrypt ^1.10.7`. Chose `@node-rs/bcrypt` over plain `bcrypt` because it ships platform-specific N-API prebuilts (no node-gyp, no postinstall scripts) — keeps the release workflow's `npm ci --ignore-scripts` posture clean. API surface is identical (`hash`, `compare`, `hashSync` — all used in the codebase). Cross-library hash compat verified end-to-end: bcryptjs-produced `$2a$10$...` hashes (existing user records on disk) validate cleanly under `@node-rs/bcrypt`, and the new `$2y$10$...` hashes round-trip in either direction. No user migration required. Existing test suite passes (64 of 66 — same 2 pre-existing unrelated failures as on pristine `main`).
 
 ## N4 — HIGH carry-over — NSIS code signing (`m`)
 
@@ -401,8 +416,8 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 | N18  | LOW [UX] | Loadout/Quest type badges have hover definitions | `pages/LoadoutsPage.jsx`, `pages/QuestCreatorPage.jsx` |
 
 What's left from the audit:
-- **High, deferred for runtime testing / external dep:** N3 mod-side (DayZ test), N4 code signing (cert), N5 bcrypt (native build chain).
 - **Medium-UX, scoped work:** N6 error shape rollout, N8 mobile responsive.
+- **Externally blocked but mechanism in place:** N3 mod-side (DayZ runtime test needed before flipping `auth_in_body`), N4 code signing (cert procurement needed).
 - **Recommended manual action:** `gh release edit v2.18.0/1/2 --prerelease` (agent permissions blocked from doing this — it's the user's call to mark public releases pre-release).
 
 ---
@@ -426,3 +441,6 @@ What's left from the audit:
 | Item | Severity | Outcome | Files |
 |------|----------|---------|-------|
 | N9   | MED [UX] | Cmd/Ctrl+K Config Search + field-index endpoint + URL deep-link with row highlight | `backend/routes/expansion-docs.routes.js`, `web/frontend/src/components/ConfigSearchModal.jsx`, `layouts/AppLayout.jsx`, `pages/ExpansionEditorPage.jsx`, `styles/global.css` |
+| N3   | HIGH | Mod `auth_in_body` flag + 2 helpers + 6 POST sites + GET-poll → POST when flag is true. Runtime test pending. | `Scripts/CommandRelay.c` |
+| N4   | HIGH | Conditional `signtool` wiring in `installer/build.js`, GitHub Actions PFX decode step, full SIGNING.md runbook. Cert procurement pending. | `installer/build.js`, `installer/SIGNING.md`, `.github/workflows/release.yml` |
+| N5   | HIGH | `bcryptjs` → `@node-rs/bcrypt` swap across 4 backend files + lockfile regen. Hash format cross-compat verified end-to-end. | `backend/package.json`, `package-lock.json`, `lib/server-init.js`, `routes/auth.routes.js`, `routes/setup.routes.js`, `routes/users.routes.js` |
