@@ -312,7 +312,8 @@ export default function BansPage() {
         </div>
       ) : (
         <div className="table-wrap">
-          <table>
+          {/* Audit N8 — mobile-card-table converts to stacked cards below 600px. */}
+          <table className="mobile-card-table">
             <thead>
               <tr>
                 <th>Player</th>
@@ -328,8 +329,8 @@ export default function BansPage() {
               {filtered.map(b => (
                 <tr key={b.id}>
                   <td style={{ fontWeight: 600 }}>{b.playerName || 'Unknown'}</td>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{b.steamId}</td>
-                  <td>
+                  <td data-label="Steam ID" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{b.steamId}</td>
+                  <td data-label="Ban ID">
                     <span
                       style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                       onClick={() => copyId(b.id)}
@@ -339,10 +340,10 @@ export default function BansPage() {
                       {copiedId === b.id ? <Check size={12} style={{ color: 'var(--accent)' }} /> : <Copy size={12} />}
                     </span>
                   </td>
-                  <td>{b.reason}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.bannedBy || 'system'}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{timeAgo(b.bannedAt)}</td>
-                  <td>
+                  <td data-label="Reason">{b.reason}</td>
+                  <td data-label="Banned By" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.bannedBy || 'system'}</td>
+                  <td data-label="Date" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{timeAgo(b.bannedAt)}</td>
+                  <td data-label="Actions">
                     <button className="btn btn-sm btn-danger-ghost" onClick={() => unban(b)} title="Remove ban">
                       <Trash2 size={13} /> Unban
                     </button>

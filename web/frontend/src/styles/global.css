@@ -1451,6 +1451,83 @@ tr:hover td { background: rgba(255,255,255,0.04); }
 }
 
 /* ═══════════════════════════════════════════════════════
+   Mobile refinements (audit N8)
+   Layered on top of the 900px sidebar drawer above. Targets the
+   "admin handling a crisis at 2am on their phone" scenario — they
+   need Start/Stop/Restart, player kicks, and the console to be
+   reachable without horizontal-scroll dance.
+   ═══════════════════════════════════════════════════════ */
+
+/* Tablet-ish: compress the main header chrome */
+@media (max-width: 768px) {
+  /* Stack the server-control button group vertically when there's no
+     horizontal room — Start above Stop above Restart, full width. */
+  .main-header .btn-group {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .main-header .btn-group .btn { flex: 1 1 calc(50% - 3px); justify-content: center; }
+
+  /* Server status bar — keep all metrics visible by allowing wrap */
+  .status-bar-metrics { flex-wrap: wrap; gap: 6px; }
+
+  /* Page title shrinks on mobile so it doesn't fight with action buttons */
+  .main-title { font-size: 16px; }
+  .main-subtitle { font-size: 11px; }
+}
+
+/* Phone-narrow: tables → cards for the opt-in `.mobile-card-table` pattern.
+   Apply by adding the class to a <table> AND data-label="Header" to each
+   <td>. The label-attribute is what shows in the card view. Only used for
+   tables where horizontal scroll would be unusable (Players, Bans). */
+@media (max-width: 600px) {
+  table.mobile-card-table { display: block; }
+  table.mobile-card-table thead { display: none; }
+  table.mobile-card-table tbody { display: block; }
+  table.mobile-card-table tr {
+    display: block;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+  }
+  table.mobile-card-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+    border: none;
+    text-align: right;
+  }
+  table.mobile-card-table td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    text-align: left;
+  }
+  /* When a cell has no label (typically the row's primary cell), let
+     it span the row as a header rather than show "undefined". */
+  table.mobile-card-table td:not([data-label]) {
+    justify-content: flex-start;
+    text-align: left;
+    font-weight: 600;
+    padding-top: 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  /* Sidebar drawer on phones gets a smaller width so the overlay scrim
+     is more visible (tap-to-close affordance). */
+  .sidebar { width: 80vw !important; min-width: 0 !important; }
+}
+
+/* ═══════════════════════════════════════════════════════
    Config-search deep-link field highlight (audit N9.4)
    Applied briefly to a settings row after the Cmd+K search navigates
    to it, so the admin can spot the field they searched for.

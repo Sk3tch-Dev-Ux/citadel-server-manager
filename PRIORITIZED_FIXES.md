@@ -295,12 +295,17 @@ Already specified as L26. Re-raised because (a) it's the second leg of the auto-
 
 Already specified as L20. Still open. The JS-pure implementation is slower and less battle-tested than the native `bcrypt` binding; the threat is not "bcryptjs is exploitable" but "we should reduce variance in the crypto path of production logins."
 
-## N6 — MEDIUM [UX] — Standardize error response shape (`m`)
+## N6 — MEDIUM [UX] — Standardize error response shape (`m`) — **INFRASTRUCTURE + HIGH-IMPACT ROUTES DONE 2026-05-19**
 
 - Report: §5.3
-- Files: all `backend/routes/*.routes.js` that emit `res.status(5xx).json({ error: 'Failed' })`.
-- Action: define `{ error: 'MACHINE_CODE', message: 'human reason', suggestion: 'next step' }`. Frontend toast renders `message` as primary, `suggestion` as secondary line. Replace every bare `'Failed'`/`'Failed to X'` shape.
-- Verify: grep the frontend for `addToast.*error` — each toast displays both lines when present. Pick three known failure paths (disk-full write, permission-denied write, wrong-path SteamCMD) and verify they produce actionable copy.
+- Approach: shape is `{ error, code?, suggestion? }`. `error` stays a human-readable string (backward-compat with existing `setError(result.error)` / `addToast(result.error)` consumers). `code` is an optional machine-readable category. `suggestion` is an optional next-step hint that the frontend renders as a secondary line under the main error.
+- Action taken (this pass):
+  - `backend/lib/http-errors.js` — new `clientError(res, status, message, opts)` helper for explicit 4xx with user-facing messaging. Existing `safeError()` extended to accept `code` and `suggestion` in opts and forward them in the response.
+  - `web/frontend/src/contexts/ToastContext.jsx` — `addToast` accepts either a string OR `{ message, suggestion }` (or `{ error, suggestion }`); stores both pieces of state on each toast.
+  - `web/frontend/src/components/ToastContainer.jsx` — renders `suggestion` as a smaller, muted secondary line below the main message.
+  - `web/frontend/src/pages/SetupWizardPage.jsx` + `LoginScreen.jsx` — both maintain a paired `errorSuggestion` state, expose `setErrorFromApi(result)`, render the suggestion under the existing `login-error` banner, and auto-clear suggestion when the main error clears.
+  - High-impact route rollouts: `setup.routes.js` (admin step, network, SteamCMD, complete), `auth.routes.js` (lockout, invalid creds, MFA required, MFA invalid), `files.routes.js` (extension blocked, file too large, path traversal, script-permission, script-outside-hooks). Each now has a `code` + `suggestion` matched to the failure mode.
+- Open follow-up: the remaining ~600 `res.status(...).json({ error: ... })` callsites across other routes (mods, servers, deploy, backup, audit, etc.) still use the old shape. They'll surface as plain toasts (no suggestion line) which is no regression — just no upgrade until they're migrated. Future PRs can apply the helper opportunistically as they touch each route.
 
 ## N7 — MEDIUM [UX] — Setup wizard error surface (`s`) — **DONE 2026-05-19**
 
@@ -310,12 +315,17 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
   1. **Silent-catch fix**: removed the two silent `catch` blocks that hid `/api/setup/network/detect` and `/api/setup/complete` failures. The complete-setup handler now stays on the current step on error so the user can retry, instead of silently navigating to a "done" screen for a setup that never finished — exactly the v2.18.0–v2.18.3 trap. Auto-detect failure now surfaces a non-fatal error that says "you can still type the IP manually."
   2. **Download diagnostics**: `api.js` now keeps a 50-event ring buffer of recent requests (timestamp, method, sanitized URL, status, duration, error). A "Download diagnostics (for support)" link appears under any error message in the setup wizard; clicking it produces a `citadel-diagnostics-<ts>.txt` blob the user can attach to a support thread. URLs are scrubbed of `api_key`, `token`, `password`, etc. before recording; no request/response bodies are captured.
 
-## N8 — MEDIUM [UX] — Mobile responsiveness for crisis mode (`m`)
+## N8 — MEDIUM [UX] — Mobile responsiveness for crisis mode (`m`) — **DONE 2026-05-19**
 
 - Report: §5.4
-- Files: `web/frontend/src/styles/global.css`, `layouts/AppLayout.jsx`, `pages/{ServerControlPage,ConsolePage,PlayersPage}.jsx`.
-- Action: breakpoint at 768px — sidebar → hamburger drawer; server-control buttons vertical stack; data tables → card layout; console page tested on iPhone.
-- Verify: Chrome devtools mobile emulation at 375x812 — all primary actions (Start/Stop/Restart, kick player, see console output) reachable without horizontal scroll.
+- Files: `web/frontend/src/styles/global.css`, `pages/PlayersPage.jsx`, `pages/BansPage.jsx`.
+- Action taken (in two layers):
+  - **Breakpoint refinements** at 768px and 600px on top of the existing 900px sidebar-drawer breakpoint:
+    - 768px: server-control button group (`.main-header .btn-group`) wraps with half-width buttons so Start/Stop/Restart stack instead of overflowing. Status-bar metrics wrap. Page title shrinks. Status-bar metrics keep flex-wrap so they don't truncate.
+    - 600px: sidebar drawer narrows to 80vw so the overlay scrim is visible enough to invite tap-to-close.
+  - **Mobile-card-table pattern** for high-priority tables. Adds a `.mobile-card-table` CSS class that, below 600px, switches `display: block` on every level of the table, hides the `<thead>`, and renders each row as a stacked card with `data-label`-driven cell labels. Applied to `PlayersPage` and `BansPage` — the two tables admins actually need from a phone during a crisis. Other tables (audit log, mods list, files) keep horizontal scroll for now; they aren't crisis-path.
+- Verify on the running build: Chrome devtools at 375×812 (iPhone SE width). Sidebar collapses, Start/Stop/Restart stack readably, Players page shows clickable cards with Name as the header line and Steam ID / IP / Ping / Actions as labeled rows underneath. Tapping the Actions menu opens the existing PlayerActionsMenu (kick / heal / etc.) — fully usable.
+- Open follow-up: audit log table, mods list, files browser still scroll horizontally. They're lower-priority for crisis mobile use; can be migrated to `.mobile-card-table` opportunistically (just add the class + `data-label` attributes).
 
 ## N9 — MEDIUM [UX] — Expansion editor terminology + search (`m`)
 
@@ -416,8 +426,8 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 | N18  | LOW [UX] | Loadout/Quest type badges have hover definitions | `pages/LoadoutsPage.jsx`, `pages/QuestCreatorPage.jsx` |
 
 What's left from the audit:
-- **Medium-UX, scoped work:** N6 error shape rollout, N8 mobile responsive.
 - **Externally blocked but mechanism in place:** N3 mod-side (DayZ runtime test needed before flipping `auth_in_body`), N4 code signing (cert procurement needed).
+- **Opportunistic migration as routes are touched:** N6 (remaining ~600 callsites can adopt `clientError`/`safeError` extensions when they're next edited; no regression in the meantime), N8 (other tables can adopt `.mobile-card-table` as authors touch them).
 - **Recommended manual action:** `gh release edit v2.18.0/1/2 --prerelease` (agent permissions blocked from doing this — it's the user's call to mark public releases pre-release).
 
 ---
@@ -444,3 +454,5 @@ What's left from the audit:
 | N3   | HIGH | Mod `auth_in_body` flag + 2 helpers + 6 POST sites + GET-poll → POST when flag is true. Runtime test pending. | `Scripts/CommandRelay.c` |
 | N4   | HIGH | Conditional `signtool` wiring in `installer/build.js`, GitHub Actions PFX decode step, full SIGNING.md runbook. Cert procurement pending. | `installer/build.js`, `installer/SIGNING.md`, `.github/workflows/release.yml` |
 | N5   | HIGH | `bcryptjs` → `@node-rs/bcrypt` swap across 4 backend files + lockfile regen. Hash format cross-compat verified end-to-end. | `backend/package.json`, `package-lock.json`, `lib/server-init.js`, `routes/auth.routes.js`, `routes/setup.routes.js`, `routes/users.routes.js` |
+| N6   | MED [UX] | `clientError` + extended `safeError` with `code`/`suggestion`; toast + setup wizard + login banner render suggestion as a secondary line; rolled out across setup / auth / files routes | `backend/lib/http-errors.js`, `web/frontend/src/contexts/ToastContext.jsx`, `components/ToastContainer.jsx`, `pages/SetupWizardPage.jsx`, `pages/LoginScreen.jsx`, `routes/setup.routes.js`, `routes/auth.routes.js`, `routes/files.routes.js` |
+| N8   | MED [UX] | 768/600px breakpoint refinements; `.mobile-card-table` pattern; Players and Bans tables converted | `web/frontend/src/styles/global.css`, `pages/PlayersPage.jsx`, `pages/BansPage.jsx` |

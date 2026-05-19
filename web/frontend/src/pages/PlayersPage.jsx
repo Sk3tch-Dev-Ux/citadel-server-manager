@@ -258,7 +258,10 @@ export default function PlayersPage({ serverId }) {
         </div>
       ) : (
         <div className="table-wrap">
-          <table>
+          {/* Audit N8 \u2014 mobile-card-table converts to stacked cards below
+              600px via CSS. data-label on each <td> labels the cell when
+              it stacks. Critical for crisis-at-2am mobile usability. */}
+          <table className="mobile-card-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -281,10 +284,10 @@ export default function PlayersPage({ serverId }) {
                       <User size={12} style={{ color: 'var(--text-muted)', opacity: 0.6 }} />
                     </Link>
                   </td>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{p.id}</td>
-                  <td>{p.ip || '\u2014'}</td>
-                  <td>{p.ping || '\u2014'}</td>
-                  <td>
+                  <td data-label="ID" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{p.id}</td>
+                  <td data-label="IP">{p.ip || '\u2014'}</td>
+                  <td data-label="Ping">{p.ping || '\u2014'}</td>
+                  <td data-label="Actions">
                     <PlayerActionsMenu
                       player={p}
                       onHeal={() => doAction(p.steamId || p.id, 'heal', `Heal ${p.name}`)}
