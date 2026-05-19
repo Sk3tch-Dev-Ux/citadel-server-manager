@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { auth } = require('../middleware/auth');
 const { safeError } = require('../lib/http-errors');
+const { safePath } = require('../lib/helpers');
 
 const SCHEMAS_DIR = path.join(__dirname, '..', 'schemas');
 const MODS_INDEX = path.join(SCHEMAS_DIR, 'expansion', '_mods.json');
@@ -118,8 +119,11 @@ module.exports = function(app) {
     if (!isSafeBasename(name)) {
       return res.status(400).json({ error: 'Invalid template name' });
     }
-    const fpath = path.join(TEMPLATES_DIR, name + '.json');
-    if (!fpath.startsWith(TEMPLATES_DIR + path.sep)) {
+    // Audit N10 (2026-05-19): route the path build through safePath() so we
+    // get the same case-insensitive traversal check used elsewhere, instead
+    // of an ad-hoc startsWith() that could drift on case-insensitive FSes.
+    const fpath = safePath(TEMPLATES_DIR, name + '.json');
+    if (!fpath) {
       return res.status(400).json({ error: 'Invalid path' });
     }
     if (!fs.existsSync(fpath)) {

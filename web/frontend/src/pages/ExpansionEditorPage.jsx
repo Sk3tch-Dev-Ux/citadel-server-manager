@@ -3573,8 +3573,13 @@ export default function ExpansionEditorPage({ serverId }) {
             return (
               <React.Fragment key={cat.id}>
               {showSectionDivider && (
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', padding: '12px 12px 4px', borderTop: '1px solid var(--border)', marginTop: 4 }}>
-                  Mission Folder
+                <div style={{ borderTop: '1px solid var(--border)', marginTop: 4, padding: '12px 12px 4px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                    Mission-folder Settings
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+                    Live in <code style={{ fontSize: 10 }}>mpmissions/&lt;mission&gt;/expansion/</code>
+                  </div>
                 </div>
               )}
               <button

@@ -348,17 +348,17 @@ function NewLoadoutModal({ serverId, onClose, onCreated }) {
     }
   }, [selected]);
 
+  const trimmedName = targetName.trim();
+  const isValidName = /^[A-Za-z0-9_-]{1,80}$/.test(trimmedName);
+  const showNameError = trimmedName.length > 0 && !isValidName;
+
   const handleCreate = async () => {
-    if (!selected || !targetName) return;
-    if (!/^[A-Za-z0-9_-]{1,80}$/.test(targetName)) {
-      window.addToast?.('Name can only contain letters, numbers, underscore, hyphen.', 'error');
-      return;
-    }
+    if (!selected || !isValidName) return;
     setCreating(true);
     try {
       const body = await API.get(`/api/expansion-docs/templates/${encodeURIComponent(selected.name)}`);
-      await API.put(`/api/servers/${serverId}/expansion/loadouts/${encodeURIComponent(targetName)}`, body);
-      onCreated(targetName);
+      await API.put(`/api/servers/${serverId}/expansion/loadouts/${encodeURIComponent(trimmedName)}`, body);
+      onCreated(trimmedName);
     } catch (err) {
       window.addToast?.(err.message || 'Create failed', 'error');
       setCreating(false);
@@ -419,11 +419,22 @@ function NewLoadoutModal({ serverId, onClose, onCreated }) {
               className="input"
               value={targetName}
               onChange={e => setTargetName(e.target.value)}
-              style={{ width: '100%', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}
+              style={{
+                width: '100%',
+                fontSize: 12,
+                fontFamily: 'var(--font-mono, monospace)',
+                borderColor: showNameError ? 'var(--accent-red, #e5484d)' : undefined,
+              }}
             />
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-              Will be written to <code>Profiles/ExpansionMod/Loadouts/{targetName || '...'}.json</code>
-            </div>
+            {showNameError ? (
+              <div style={{ fontSize: 10, color: 'var(--accent-red, #e5484d)', marginTop: 4 }}>
+                Only letters, numbers, underscore, hyphen. 1–80 characters, no spaces.
+              </div>
+            ) : (
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                Will be written to <code>Profiles/ExpansionMod/Loadouts/{trimmedName || '...'}.json</code>
+              </div>
+            )}
           </div>
         )}
 
@@ -432,7 +443,7 @@ function NewLoadoutModal({ serverId, onClose, onCreated }) {
           display: 'flex', justifyContent: 'flex-end', gap: 8,
         }}>
           <button className="btn btn-secondary" onClick={onClose} disabled={creating}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleCreate} disabled={!selected || !targetName || creating}>
+          <button className="btn btn-primary" onClick={handleCreate} disabled={!selected || !isValidName || creating}>
             {creating ? 'Creating…' : 'Create loadout'}
           </button>
         </div>
