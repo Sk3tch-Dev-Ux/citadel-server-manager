@@ -6,6 +6,82 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.18.5 — 2026-05-19
+
+Delta-audit cleanup pass. Fourteen audit items closed across security,
+quality, performance, and UX. No breaking changes; drop-in upgrade. See
+[`RELEASE_NOTES_v2.18.5.md`](./RELEASE_NOTES_v2.18.5.md) for the full
+narrative and [`AUDIT_REPORT_2026-05-19.md`](./AUDIT_REPORT_2026-05-19.md)
+for the audit that drove it.
+
+### Fixed (security)
+- **BackupsPage was leaking the JWT into download URLs as `?token=...`**
+  and was broken anyway since the M11 cookie migration. Rewired to
+  `fetch` + `credentials: 'include'` + blob anchor click. Removed the
+  matching backend URL-token shims in `backup.routes.js` and
+  `setup.routes.js`. (audit N2)
+- **Backend logger now redacts `api_key` (snake-case) and `req.query.*`**
+  and exports a `sanitizeUrl()` helper that's wired into the `req.url`
+  logger callsites. Closes the backend half of the DayZ-mod URL-key
+  leak. (audit N3, backend half)
+- **`expansion-docs.routes.js` template path build goes through
+  `safePath()`** for consistent case-insensitive guard. (audit N10)
+
+### Fixed (setup wizard reliability)
+- **`completeSetup()` no longer swallows errors and silently navigates
+  to "done"** — exactly the v2.18.0–v2.18.3 trap. Auto-detect failures
+  also now surface inline instead of looking like a frozen button.
+  (audit N7, silent-catch half)
+- **"Download diagnostics (for support)" link** under any setup wizard
+  error message. Backed by a 50-event ring buffer in `api.js`; produces
+  a sanitized `.txt` users can attach to support threads. (audit N7,
+  diagnostics half)
+- **Admin password step now shows live per-rule checkmarks** (length,
+  upper, lower, number, symbol) and the placeholder reflects the real
+  policy. (audit N15)
+- **DO-NOT-INSTALL banner on `RELEASE_NOTES_v2.18.0/1/2.md`** pointing
+  to v2.18.4+. (audit N14)
+
+### Added
+- **`/help` Discord slash command** — categorized command reference
+  DMed to the user, falls back to ephemeral if DMs blocked. (audit N13)
+- **`GET /api/servers/:id/mission-folder`** — exposes
+  `detectMissionFolder` so the FilesPage template picker can auto-fill
+  the `<your-mission>` placeholder. (audit N12)
+
+### Changed (UX polish)
+- FilesPage template picker validates target path in real time
+  (traversal + absolute-path checks, red border on invalid). (audit
+  N11, FilesPage half)
+- LoadoutsPage name input validates in real time. (audit N11,
+  LoadoutsPage half)
+- ExpansionEditorPage: "Mission Folder" → "Mission-folder Settings"
+  with `mpmissions/<mission>/expansion/` subtitle. (audit N17)
+- Loadout/Quest/Objective type badges carry hover definitions on every
+  page that imports them. (audit N18)
+
+### Performance
+- Shared-cached `/api/expansion-docs/templates` list across modal
+  opens via new `utils/expansionDocsCache.js`. (audit N16)
+
+### Hygiene
+- Stale `latest.yml` deleted from repo root + added to `.gitignore`
+  (live feed is the GitHub Release asset, hash-verified). (audit N1)
+
+### Internals
+- Independent re-verification of all prior-audit C1–C5, H6–H9, M11–M18
+  items in current code. All hold.
+
+### Open follow-ups (deferred — see PRIORITIZED_FIXES.md)
+- N3 mod-side (needs DayZ runtime test)
+- N4 code signing (needs cert procurement)
+- N5 bcryptjs → bcrypt (needs install-pipeline validation)
+- N6 error-shape rollout (broad mechanical PR)
+- N8 mobile responsive admin panel (multi-day)
+- N9 Ctrl+K config search + glossary (design + indexer)
+
+---
+
 ## v2.18.4 — 2026-05-17
 
 Third hotfix for the v2.18.x setup wizard. v2.18.3 wasn't sufficient —
