@@ -322,17 +322,18 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
   - LoadoutsPage: `trimmedName` + `isValidName` + `showNameError` derived state; red border on invalid; helper text switches to a red explanation when invalid; Create button disabled on invalid; trim before regex and before the PUT URL.
   - FilesPage TemplatePickerModal: same pattern adapted for a path field — checks for `..` traversal segments and absolute-path prefixes (defense-in-depth mirror of backend safePath), red border + red error text for actual invalid paths, keeps the existing orange `<placeholder>` warning for the lighter user-needs-to-fill-in-mission case, disables Create on `!isValidPath`.
 
-## N12 — LOW [UX] — Template-picker `<your-mission>` placeholder (`s`)
+## N12 — LOW [UX] — Template-picker `<your-mission>` placeholder (`s`) — **DONE 2026-05-19**
 
 - Report: §3.3
-- File: `web/frontend/src/pages/FilesPage.jsx:388–417, 540–542`.
-- Action: read mission name from active server's `serverDZ.cfg`; if multiple, present a dropdown.
+- Files: `backend/routes/servers.routes.js` (new `GET /api/servers/:id/mission-folder`), `web/frontend/src/pages/FilesPage.jsx`.
+- Action taken: backend exposes the already-existing `detectMissionFolder` helper via a lightweight per-server endpoint (auth: `server.view`). FilesPage TemplatePickerModal fetches it in parallel with the template list; `defaultTargetPath(templateName, missionFolder)` substitutes the real folder name when available, otherwise keeps the `<your-mission>` placeholder for the orange "fill this in" hint. Admin who doesn't know their mission folder layout gets a working path on first click.
 
-## N13 — LOW [UX] — Discord bot `/help` command (`xs`)
+## N13 — LOW [UX] — Discord bot `/help` command (`xs`) — **DONE 2026-05-19**
 
 - Report: §5.7
-- Files: `discord-bot/commands/`, new `commands/help.js`.
-- Action: `/help` DMs the user a formatted command reference; expand each existing command's `setDescription()` to flag common gotchas.
+- Files: `discord-bot/commands/help.js` (new).
+- Action taken: new `/help` slash command, auto-registered by the existing loader. Returns a categorized embed reference (Server status, Player actions, Communication, Server control, Setup) — 18 commands grouped, with examples for the non-obvious ones (notably `/rcon` which explicitly calls out that it's raw BattlEye and points users to `/broadcast` / `/kill` for the common cases). DMs the user first so the reference persists in their history; falls back to ephemeral reply if DMs are blocked, with a hint about the privacy setting. No external dependencies; uses the existing EmbedBuilder / SlashCommandBuilder.
+- Open follow-up: expand individual commands' `setDescription()` strings as part of a separate pass — the `/help` reference closes the discoverability gap regardless.
 
 ## N14 — LOW [UX] — Pre-release flag on v2.18.0–v2.18.2 + setup-broken banner (`xs`) — **DOCS DONE 2026-05-19; PRE-RELEASE FLAG OPEN**
 
@@ -348,11 +349,11 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 - Files: `web/frontend/src/pages/SetupWizardPage.jsx`.
 - Action taken: mirrored the backend password rules (`backend/lib/helpers.js:128–143`) in the frontend admin-creation step. Live per-rule checkmarks appear under the password field as the user types: 8+ chars, uppercase, lowercase, number, symbol. Each rule shows a filled green CheckCircle when satisfied, a muted CircleDashed otherwise. The placeholder was corrected from "At least 6 characters" (wrong policy) to "8+ chars, mixed case, number, symbol". Confirm-password field shows an inline "Passwords don't match" message with a red border. Create Account button is disabled until everything passes. No backend change needed since the rules are static; if the policy ever becomes configurable, expose it via a GET endpoint and have the frontend fetch on mount.
 
-## N16 — LOW [QUALITY] — Template fetch dedup across modal re-opens (`xs`)
+## N16 — LOW [QUALITY] — Template fetch dedup across modal re-opens (`xs`) — **DONE 2026-05-19**
 
 - Report: §3.4
-- Files: `web/frontend/src/pages/LoadoutsPage.jsx:326`, `pages/FilesPage.jsx:426`.
-- Action: lift template-list state to a parent or new context; cache for the session.
+- Files: `web/frontend/src/utils/expansionDocsCache.js` (new), `pages/LoadoutsPage.jsx`, `pages/FilesPage.jsx`.
+- Action taken: module-level `getTemplates()` cache with 5-minute TTL + in-flight promise sharing + cache invalidation on error. Both pages call the helper instead of `API.get` directly. Re-opening the picker hits memory; navigating away clears it.
 
 ## N17 — LOW [UX] — "Mission" vs "Settings" terminology in Expansion editor (`xs`) — **DONE 2026-05-19**
 
@@ -360,11 +361,11 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 - File: `web/frontend/src/pages/ExpansionEditorPage.jsx:3575–3582`.
 - Action taken: renamed sidebar divider from "Mission Folder" → "Mission-folder Settings", added a one-line subtitle: `Live in mpmissions/<mission>/expansion/`. Disambiguates from DayZ's separate "Mission" concept.
 
-## N18 — LOW [UX] — Loadout / Quest in-product glossary (`s`)
+## N18 — LOW [UX] — Loadout / Quest in-product glossary (`s`) — **DONE 2026-05-19**
 
 - Report: §5.6
-- Files: `web/frontend/src/pages/LoadoutsPage.jsx:31–40`, `QuestCreatorPage.jsx:15–24`.
-- Action: `?` tooltip on each type badge with a one-sentence definition; link to wiki tool from `wikiLinks.js`.
+- Files: `web/frontend/src/pages/LoadoutsPage.jsx`, `QuestCreatorPage.jsx`.
+- Action taken: every type badge (`KindBadge` in LoadoutsPage; `QuestTypeBadge` + `ObjTypeBadge` in QuestCreatorPage) now carries a native `title=` tooltip with a one-sentence definition and a `cursor: help`. Definitions live next to the existing type tables (`KIND_DEFINITIONS`, `description` on `QUEST_TYPES` / `OBJECTIVE_TYPES`) so adding a new type forces the author to write a definition. Using native tooltips instead of a custom popover keeps the change zero-dependency and works on every page that imports these badges.
 
 ---
 
@@ -390,12 +391,15 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 | N7   | MED [UX] | Setup wizard silent-catch blocks fixed (network detect, complete-setup) | `web/frontend/src/pages/SetupWizardPage.jsx` |
 | N10  | LOW  | `safePath()` for expansion-docs path build | `backend/routes/expansion-docs.routes.js` |
 | N11  | LOW [UX] | Both halves: LoadoutsPage + FilesPage in-line name/path validation | `web/frontend/src/pages/LoadoutsPage.jsx`, `pages/FilesPage.jsx` |
+| N12  | LOW [UX] | Auto-fill mission folder name in FilesPage template picker | `backend/routes/servers.routes.js`, `web/frontend/src/pages/FilesPage.jsx` |
+| N13  | LOW [UX] | `/help` Discord slash command (DMs categorized command reference) | `discord-bot/commands/help.js` |
 | N14  | LOW [UX] | DO-NOT-INSTALL banner on broken v2.18.0–v2.18.2 release notes | `RELEASE_NOTES_v2.18.0.md`, `v2.18.1.md`, `v2.18.2.md` |
 | N15  | LOW [UX] | Progressive password-policy feedback in setup wizard | `web/frontend/src/pages/SetupWizardPage.jsx` |
+| N16  | LOW | Shared 5-min TTL cache for `/api/expansion-docs/templates` | `web/frontend/src/utils/expansionDocsCache.js` (new), pages updated |
 | N17  | LOW [UX] | "Mission-folder Settings" rename + path subtitle | `web/frontend/src/pages/ExpansionEditorPage.jsx` |
+| N18  | LOW [UX] | Loadout/Quest type badges have hover definitions | `pages/LoadoutsPage.jsx`, `pages/QuestCreatorPage.jsx` |
 
 What's left from the audit:
 - **High, deferred for runtime testing / external dep:** N3 mod-side (DayZ test), N4 code signing (cert), N5 bcrypt (native build chain).
 - **Medium-UX, scoped work:** N6 error shape rollout, N7 remainder (diagnostics dump), N8 mobile responsive, N9 config search + glossary.
-- **Low polish, opportunistic:** N12, N13, N16, N18.
-- **Recommended manual action:** `gh release edit v2.18.0/1/2 --prerelease` (agent permissions blocked from doing this).
+- **Recommended manual action:** `gh release edit v2.18.0/1/2 --prerelease` (agent permissions blocked from doing this — it's the user's call to mark public releases pre-release).
