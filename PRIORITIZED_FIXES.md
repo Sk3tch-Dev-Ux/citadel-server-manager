@@ -287,12 +287,12 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 - Action: define `{ error: 'MACHINE_CODE', message: 'human reason', suggestion: 'next step' }`. Frontend toast renders `message` as primary, `suggestion` as secondary line. Replace every bare `'Failed'`/`'Failed to X'` shape.
 - Verify: grep the frontend for `addToast.*error` — each toast displays both lines when present. Pick three known failure paths (disk-full write, permission-denied write, wrong-path SteamCMD) and verify they produce actionable copy.
 
-## N7 — MEDIUM [UX] — Setup wizard error surface (`s`)
+## N7 — MEDIUM [UX] — Setup wizard error surface (`s`) — **PARTIAL DONE 2026-05-19**
 
 - Report: §5.1
-- Files: `web/frontend/src/pages/Setup*Page.jsx`, `contexts/AuthContext.jsx`.
-- Action: every setup-step API call gets `.catch(e => addToast(...))` + inline alert above the form. Add a "Download diagnostics" link that dumps the last 20 API responses.
-- Verify: induce a 5xx on `/api/setup/admin` — admin sees an inline red banner with the error code and a Diagnostics link, not a frozen button.
+- Files: `web/frontend/src/pages/SetupWizardPage.jsx`.
+- Action taken: removed the two silent `catch` blocks that hid `/api/setup/network/detect` and `/api/setup/complete` failures. The complete-setup handler now stays on the current step on error so the user can retry, instead of silently navigating to a "done" screen for a setup that never finished — exactly the v2.18.0–v2.18.3 trap. Auto-detect failure now surfaces a non-fatal error that says "you can still type the IP manually."
+- Open: the bigger N7 ask — a "Download diagnostics" link that dumps the last 20 API responses to a file — was deferred. Other setup handlers already use try/catch + setError correctly.
 
 ## N8 — MEDIUM [UX] — Mobile responsiveness for crisis mode (`m`)
 
@@ -314,12 +314,13 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 - File: `backend/routes/expansion-docs.routes.js`.
 - Action taken: route now imports `safePath` from `backend/lib/helpers.js` and uses it instead of an ad-hoc `startsWith()` check. Inherits the case-insensitive handling already battle-tested in the file-browser routes.
 
-## N11 — LOW [UX] — Loadout/file name validation in-line feedback (`xs`) — **PARTIAL DONE 2026-05-19**
+## N11 — LOW [UX] — Loadout/file name validation in-line feedback (`xs`) — **DONE 2026-05-19**
 
 - Report: §3.2
-- Files: `web/frontend/src/pages/LoadoutsPage.jsx:418–426`, similar `FilesPage` template picker.
-- Action taken (LoadoutsPage): added `trimmedName` + `isValidName` + `showNameError` derived state; input gets a red border on invalid input; helper text switches to a red explanation ("Only letters, numbers, underscore, hyphen. 1–80 characters, no spaces.") when invalid; Create button is `disabled` on `!isValidName`; trim is applied before the regex and before the PUT URL.
-- Open: same treatment on `FilesPage.jsx` template picker (similar pattern, deferred — needs a separate review of the FilesPage flow).
+- Files: `web/frontend/src/pages/LoadoutsPage.jsx:418–426`, `web/frontend/src/pages/FilesPage.jsx:455–475, 538–565`.
+- Action taken (both halves):
+  - LoadoutsPage: `trimmedName` + `isValidName` + `showNameError` derived state; red border on invalid; helper text switches to a red explanation when invalid; Create button disabled on invalid; trim before regex and before the PUT URL.
+  - FilesPage TemplatePickerModal: same pattern adapted for a path field — checks for `..` traversal segments and absolute-path prefixes (defense-in-depth mirror of backend safePath), red border + red error text for actual invalid paths, keeps the existing orange `<placeholder>` warning for the lighter user-needs-to-fill-in-mission case, disables Create on `!isValidPath`.
 
 ## N12 — LOW [UX] — Template-picker `<your-mission>` placeholder (`s`)
 
@@ -333,17 +334,19 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 - Files: `discord-bot/commands/`, new `commands/help.js`.
 - Action: `/help` DMs the user a formatted command reference; expand each existing command's `setDescription()` to flag common gotchas.
 
-## N14 — LOW [UX] — Pre-release flag on v2.18.0–v2.18.3 + setup-broken banner (`xs`)
+## N14 — LOW [UX] — Pre-release flag on v2.18.0–v2.18.2 + setup-broken banner (`xs`) — **DOCS DONE 2026-05-19; PRE-RELEASE FLAG OPEN**
 
 - Report: §5.10
-- Files: GitHub Releases UI (mark broken tags as pre-release); `RELEASE_NOTES_v2.18.0.md` through `v2.18.3.md` (add banner).
-- Action: add ⚠️ banner at top of each broken release's notes pointing to v2.18.4+; mark the broken tags as `Pre-release` on GitHub so they don't surface as "Latest".
+- Files: `RELEASE_NOTES_v2.18.0.md`, `v2.18.1.md`, `v2.18.2.md`; GitHub Releases UI (manual).
+- Action taken: added a `> ## ⚠️ DO NOT INSTALL` banner at the top of each broken release's notes pointing to v2.18.4+.
+- Open (needs manual action — agent permissions blocked it as an external-state change to existing public releases): `gh release edit v2.18.0 --prerelease`, same for v2.18.1 and v2.18.2. Once flagged Pre-release, they won't surface as "Latest" candidates.
+- Note: there was no v2.18.3 release (the version bumped 2 → 4).
 
-## N15 — LOW — Password policy progressive feedback (`xs`)
+## N15 — LOW — Password policy progressive feedback (`xs`) — **DONE 2026-05-19**
 
 - Report: §5.11
-- Files: `backend/lib/helpers.js` (`checkPasswordPolicy`), setup wizard password form.
-- Action: backend returns which rules failed; frontend shows four live checkmarks (8+ chars, uppercase, lowercase, special) as the user types.
+- Files: `web/frontend/src/pages/SetupWizardPage.jsx`.
+- Action taken: mirrored the backend password rules (`backend/lib/helpers.js:128–143`) in the frontend admin-creation step. Live per-rule checkmarks appear under the password field as the user types: 8+ chars, uppercase, lowercase, number, symbol. Each rule shows a filled green CheckCircle when satisfied, a muted CircleDashed otherwise. The placeholder was corrected from "At least 6 characters" (wrong policy) to "8+ chars, mixed case, number, symbol". Confirm-password field shows an inline "Passwords don't match" message with a red border. Create Account button is disabled until everything passes. No backend change needed since the rules are static; if the policy ever becomes configurable, expose it via a GET endpoint and have the frontend fetch on mount.
 
 ## N16 — LOW [QUALITY] — Template fetch dedup across modal re-opens (`xs`)
 
@@ -384,11 +387,15 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 | N1   | LOW (downgraded from CRITICAL) | Stale `latest.yml` deleted + gitignored | `.gitignore`, `latest.yml` (deleted) |
 | N2   | HIGH | BackupsPage → fetch+blob; dead URL-token shims removed | `web/frontend/src/pages/BackupsPage.jsx`, `backend/routes/backup.routes.js`, `backend/routes/setup.routes.js` |
 | N3   | HIGH | Logger redact + `sanitizeUrl()` helper applied to `req.url` logs (mod-side still open) | `backend/lib/logger.js`, `backend/middleware/csrf.js`, `backend/server.js` |
+| N7   | MED [UX] | Setup wizard silent-catch blocks fixed (network detect, complete-setup) | `web/frontend/src/pages/SetupWizardPage.jsx` |
 | N10  | LOW  | `safePath()` for expansion-docs path build | `backend/routes/expansion-docs.routes.js` |
-| N11  | LOW [UX] | LoadoutsPage in-line name validation + trim | `web/frontend/src/pages/LoadoutsPage.jsx` |
+| N11  | LOW [UX] | Both halves: LoadoutsPage + FilesPage in-line name/path validation | `web/frontend/src/pages/LoadoutsPage.jsx`, `pages/FilesPage.jsx` |
+| N14  | LOW [UX] | DO-NOT-INSTALL banner on broken v2.18.0–v2.18.2 release notes | `RELEASE_NOTES_v2.18.0.md`, `v2.18.1.md`, `v2.18.2.md` |
+| N15  | LOW [UX] | Progressive password-policy feedback in setup wizard | `web/frontend/src/pages/SetupWizardPage.jsx` |
 | N17  | LOW [UX] | "Mission-folder Settings" rename + path subtitle | `web/frontend/src/pages/ExpansionEditorPage.jsx` |
 
 What's left from the audit:
-- **High, deferred for runtime testing/external dep:** N3 mod-side (DayZ test), N4 code signing (cert), N5 bcrypt (native build chain).
-- **Medium-UX, scoped work:** N6 error shape, N7 setup error surface, N8 mobile responsive, N9 config search.
-- **Low polish:** N11 FilesPage half, N12, N13, N14, N15, N16, N18.
+- **High, deferred for runtime testing / external dep:** N3 mod-side (DayZ test), N4 code signing (cert), N5 bcrypt (native build chain).
+- **Medium-UX, scoped work:** N6 error shape rollout, N7 remainder (diagnostics dump), N8 mobile responsive, N9 config search + glossary.
+- **Low polish, opportunistic:** N12, N13, N16, N18.
+- **Recommended manual action:** `gh release edit v2.18.0/1/2 --prerelease` (agent permissions blocked from doing this).
