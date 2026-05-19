@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -99,10 +99,23 @@ export default function SetupWizardPage() {
 
   // ─── Step handlers ──────────────────────────────────
 
+  // Mirror the backend password policy (backend/lib/helpers.js:128–143) so the
+  // user sees granular per-rule feedback live, instead of submitting and getting
+  // a coarse "Password does not meet policy" 400 back. Audit N15.
+  const passChecks = useMemo(() => ({
+    length: adminPass.length >= 8,
+    upper: /[A-Z]/.test(adminPass),
+    lower: /[a-z]/.test(adminPass),
+    number: /[0-9]/.test(adminPass),
+    special: /[^A-Za-z0-9]/.test(adminPass),
+  }), [adminPass]);
+  const passValid = Object.values(passChecks).every(Boolean);
+  const passConfirmValid = adminPassConfirm.length > 0 && adminPassConfirm === adminPass;
+
   const handleCreateAdmin = async () => {
     if (!adminUser.trim()) return setError('Username is required');
-    if (adminPass.length < 6) return setError('Password must be at least 6 characters');
-    if (adminPass !== adminPassConfirm) return setError('Passwords do not match');
+    if (!passValid) return setError('Password does not meet all the requirements below.');
+    if (!passConfirmValid) return setError('Passwords do not match');
 
     setLoading(true);
     setError('');
@@ -133,7 +146,12 @@ export default function SetupWizardPage() {
           setServerIp(result.recommended);
         }
       }
-    } catch { /* non-critical */ }
+    } catch (err) {
+      // Auto-detect failure is non-fatal — the user can type the IP manually —
+      // but it MUST be visible. Audit N7: silently swallowing this here was
+      // half of the v2.18.x "frozen wizard" trap.
+      setError(`Couldn't auto-detect network interfaces: ${err.message || 'unknown error'}. You can still type the server IP manually below.`);
+    }
     setDetecting(false);
   };
 
@@ -325,11 +343,22 @@ export default function SetupWizardPage() {
 
   const completeSetup = async () => {
     setLoading(true);
+    setError('');
     try {
       await API.post('/api/setup/complete', {});
       setStep(STEPS.length - 1);
     } catch (err) {
-      // Non-critical — still navigate
+      // Audit N7: previously the catch silently navigated forward. That's
+      // exactly the v2.18.x trap — if /api/setup/complete 403s (which it did
+      // before the cookie-auth fix), the user landed on the "done" page with
+      // a setup that wasn't actually marked complete. Surface the error and
+      // stay on the current step so the user can retry / report.
+      setError(
+        `Couldn't finalize setup: ${err.message || 'unknown error'}. ` +
+        'Refresh the page and try again, or check the backend logs.'
+      );
+      setLoading(false);
+      return;
     }
     setLoading(false);
     setStep(STEPS.length - 1);
@@ -429,7 +458,7 @@ export default function SetupWizardPage() {
                     type={showPass ? 'text' : 'password'}
                     value={adminPass}
                     onChange={e => setAdminPass(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder="8+ chars, mixed case, number, symbol"
                   />
                   <button
                     type="button"
@@ -443,6 +472,25 @@ export default function SetupWizardPage() {
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {adminPass.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px', marginTop: 6, fontSize: 11 }}>
+                    {[
+                      ['length',  '8+ characters'],
+                      ['upper',   'Uppercase letter'],
+                      ['lower',   'Lowercase letter'],
+                      ['number',  'Number'],
+                      ['special', 'Symbol (!@#$…)'],
+                    ].map(([key, label]) => (
+                      <div key={key} style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        color: passChecks[key] ? 'var(--accent-green, #30a46c)' : 'var(--text-muted)',
+                      }}>
+                        {passChecks[key] ? <CheckCircle size={11} /> : <CircleDashed size={11} />}
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="input-group">
                 <label className="input-label" htmlFor="setup-admin-pass-confirm">Confirm Password</label>
@@ -454,7 +502,16 @@ export default function SetupWizardPage() {
                   onChange={e => setAdminPassConfirm(e.target.value)}
                   placeholder="Retype password"
                   onKeyDown={e => e.key === 'Enter' && handleCreateAdmin()}
+                  style={{
+                    borderColor: adminPassConfirm.length > 0 && !passConfirmValid
+                      ? 'var(--accent-red, #e5484d)' : undefined,
+                  }}
                 />
+                {adminPassConfirm.length > 0 && !passConfirmValid && (
+                  <div style={{ fontSize: 11, color: 'var(--accent-red, #e5484d)', marginTop: 4 }}>
+                    Passwords don't match.
+                  </div>
+                )}
               </div>
 
               <div className="btn-group" style={{ marginTop: 8 }}>
@@ -465,7 +522,7 @@ export default function SetupWizardPage() {
                   className="btn btn-primary"
                   style={{ flex: 1, justifyContent: 'center' }}
                   onClick={handleCreateAdmin}
-                  disabled={loading}
+                  disabled={loading || !adminUser.trim() || !passValid || !passConfirmValid}
                 >
                   {loading ? <><Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Creating...</> : <>Create Account <ArrowRight size={14} /></>}
                 </button>

@@ -453,18 +453,28 @@ function TemplatePickerModal({ serverId, onClose, onCreated }) {
     ? templates.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))
     : templates;
 
+  const trimmedPath = targetPath.trim();
+  const hasPlaceholder = trimmedPath.includes('<');
+  // Defense-in-depth UX mirror of the backend's safePath check. Server
+  // enforces these too — this just lets the user see the error before
+  // they click Create.
+  const hasTraversal = /(^|[\\/])\.\.([\\/]|$)/.test(trimmedPath);
+  const isAbsolute = /^([A-Za-z]:[\\/]|[\\/])/.test(trimmedPath);
+  const pathError = hasTraversal
+    ? 'Path cannot contain ".." segments.'
+    : isAbsolute
+      ? 'Use a relative path under the server install directory.'
+      : null;
+  const isValidPath = trimmedPath.length > 0 && !hasPlaceholder && !pathError;
+
   const handleCreate = async () => {
-    if (!selected || !targetPath) return;
-    if (targetPath.includes('<')) {
-      window.addToast('Please replace the placeholder in the target path.', 'error');
-      return;
-    }
+    if (!selected || !isValidPath) return;
     setCreating(true);
     try {
       const body = await API.get(`/api/expansion-docs/templates/${encodeURIComponent(selected.name)}`);
       const content = JSON.stringify(body, null, 2) + '\n';
-      await API.put(`/api/servers/${serverId}/files/write`, { file: targetPath, content });
-      onCreated(targetPath);
+      await API.put(`/api/servers/${serverId}/files/write`, { file: trimmedPath, content });
+      onCreated(trimmedPath);
     } catch (err) {
       window.addToast(err.message || 'Failed to create file', 'error');
       setCreating(false);
@@ -539,9 +549,19 @@ function TemplatePickerModal({ serverId, onClose, onCreated }) {
               className="input"
               value={targetPath}
               onChange={e => setTargetPath(e.target.value)}
-              style={{ width: '100%', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }}
+              style={{
+                width: '100%',
+                fontSize: 12,
+                fontFamily: 'var(--font-mono, monospace)',
+                borderColor: pathError ? 'var(--accent-red, #e5484d)' : undefined,
+              }}
             />
-            {targetPath.includes('<') && (
+            {pathError && (
+              <div style={{ fontSize: 11, color: 'var(--accent-red, #e5484d)', marginTop: 4 }}>
+                {pathError}
+              </div>
+            )}
+            {!pathError && hasPlaceholder && (
               <div style={{ fontSize: 11, color: 'var(--accent-orange, #f59e0b)', marginTop: 4 }}>
                 Replace the &lt;placeholder&gt; with your real mission name.
               </div>
@@ -554,7 +574,7 @@ function TemplatePickerModal({ serverId, onClose, onCreated }) {
           display: 'flex', justifyContent: 'flex-end', gap: 8,
         }}>
           <button className="btn btn-secondary" onClick={onClose} disabled={creating}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleCreate} disabled={!selected || !targetPath || creating}>
+          <button className="btn btn-primary" onClick={handleCreate} disabled={!selected || !isValidPath || creating}>
             {creating ? 'Creating...' : 'Create file'}
           </button>
         </div>
