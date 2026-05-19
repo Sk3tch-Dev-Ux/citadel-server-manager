@@ -1,3 +1,13 @@
+> ## ⚠️ DO NOT INSTALL — setup wizard is still broken in this release
+>
+> This release fixed one piece of the setup-wizard regression but another piece
+> (silent 403 on Network / Steam / Complete steps after admin creation) was not
+> caught until v2.18.4.
+>
+> **Upgrade to v2.18.4 or later.** See `RELEASE_NOTES_v2.18.4.md` for the fix.
+
+---
+
 ## Citadel v2.18.2 — Critical setup wizard fix
 
 A one-line-logic fix for a regression in v2.18.1 that locked new and

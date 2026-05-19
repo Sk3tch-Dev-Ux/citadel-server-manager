@@ -1,3 +1,12 @@
+> ## ⚠️ DO NOT INSTALL — setup wizard is broken in this release
+>
+> The first-run setup wizard silently 403s on the Network / Steam / Complete steps
+> in v2.18.0 through v2.18.2. Buttons appear unresponsive with no error in the UI.
+>
+> **Upgrade to v2.18.4 or later.** See `RELEASE_NOTES_v2.18.4.md` for the fix.
+
+---
+
 ## Citadel v2.18.1 — Auto-updater launch fix + Loadouts editor + Quest badge fix
 
 A small follow-up release to v2.18.0 with one **critical** fix and two
