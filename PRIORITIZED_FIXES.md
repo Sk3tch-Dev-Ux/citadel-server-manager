@@ -236,3 +236,159 @@ Effort legend (rough):
 5. **PR 5 — refactor** (later): L23, L29, L30.
 
 PR 1 alone takes the most exposed defects off the board; PR 2 closes the worst privilege boundaries.
+
+---
+
+# Addendum — Delta audit 2026-05-19 (v2.18.4)
+
+Companion: `AUDIT_REPORT_2026-05-19.md`. Items below are NEW since the original audit, or carry-overs whose status changed.
+
+## Close-outs from prior list (verified in current code)
+
+- **FIXED:** C1, C2, C3, C4, C5, H6, H7, H8, H9, M11 (with one exception below), M12, M13, M14, M15, M16, M17, M18, L19, L21, L22, L24, L25, L27, L28, L29, L30, L31, L32.
+- **STILL PARTIAL:** H10 — mod still sends `api_key` in URL on every GET poll (`Scripts/CommandRelay.c:1586`). The .RPT-log leak is closed; the network-URL leak is not. See §2.1 of the new report. Fix: header or POST-body the key + redact `req.query.api_key` in the backend logger as defense-in-depth.
+- **STILL OPEN:** L20 (bcryptjs upgrade), L26 (NSIS code signing).
+
+## N1 — LOW — Stale `latest.yml` tracked in repo root (`xs`) — **DONE 2026-05-19**
+
+- Report: §4.1 (downgraded from CRITICAL after verification)
+- Original concern: the repo-root `latest.yml` had empty `sha512:` fields, suggesting the auto-updater was downloading unverified installers.
+- Verification result: **not the live feed.** electron-updater uses `provider: 'github'` (`desktop/src/auto-updater.js:47–48`) which fetches the Release asset, not the repo root. The live v2.18.4 release `latest.yml` has the sha512 populated correctly (`OqZhSQslf…`, 88-char base64). The build/upload chain (`installer/build.js:543`, `.github/workflows/release.yml:59`) works.
+- Action taken: added `latest.yml` to `.gitignore`, deleted the stale repo-root copy.
+- Defense-in-depth (open, deferred): add a workflow assertion before upload — `grep -E '^\s*sha512: \S+' build/latest.yml || exit 1` — so a future regression in build.js fails CI instead of silently publishing an empty manifest.
+
+## N2 — HIGH — `BackupsPage` still reads `localStorage.getItem('token')` (`s`) — **DONE 2026-05-19**
+
+- Report: §3.1
+- File: `web/frontend/src/pages/BackupsPage.jsx:109–125`.
+- Action taken: rewrote `downloadBackup` to use `fetch(..., { credentials: 'include' })` + `URL.createObjectURL(blob)` + a synthetic `<a download>` click. No localStorage read, no token in URL. Also removed the matching backend `?token=` URL-auth shim in `backend/routes/backup.routes.js:142–148` so the pattern can't silently be reintroduced. Removed a parallel dead shim in `backend/routes/setup.routes.js:128`.
+- Open follow-up: add an ESLint rule that fails on `localStorage\.(get|set|remove)Item.*token` anywhere in `web/frontend/src/`.
+
+## N3 — HIGH — H10 carry-over: mod sends `api_key` in URL (`s`) — **STOP-GAP DONE 2026-05-19**
+
+- Report: §2.1
+- Files: `Scripts/CommandRelay.c:1586`, ack call sites at `:668, :742, :813, :1075, :8739`; backend route(s) that accept the key.
+- **Stop-gap completed:** `backend/lib/logger.js` — added `api_key` (snake_case) to the SENSITIVE_FIELDS list, added `req.query.${field}` to REDACT_PATHS expansion, and added a new `sanitizeUrl()` helper that strips the api_key/token/jwt/password/secret query params from a raw URL string. Wired `sanitizeUrl(req.url)` into the three known `req.url` logger callsites (`backend/server.js:398`, `backend/middleware/csrf.js:154,159,166`). Backend logs no longer leak the mod's URL key.
+- **Mod-side remains open** (needs DayZ runtime testing): investigate whether DayZ `RestApi` ctx exposes a generic `SetHeader(name, value)`. If yes, switch to `X-Citadel-Api-Key` header. If no, switch GET polls to POST with `{ server_id, api_key }` in the JSON body. Backend accepts both during a transition window, then drops the query form.
+- Verify (mod-side): tcpdump on a poll cycle shows no `api_key=` in the HTTP request line; reverse-proxy `access.log` shows no api_key in `request_uri`.
+
+## N4 — HIGH carry-over — NSIS code signing (`m`)
+
+Already specified as L26. Re-raised because (a) it's the second leg of the auto-updater integrity story (N1 is the first leg), and (b) it remains the highest UX friction point on first install. Cost: ~$200/yr OV cert, more for EV.
+
+## N5 — HIGH carry-over — bcryptjs → bcrypt (`s`)
+
+Already specified as L20. Still open. The JS-pure implementation is slower and less battle-tested than the native `bcrypt` binding; the threat is not "bcryptjs is exploitable" but "we should reduce variance in the crypto path of production logins."
+
+## N6 — MEDIUM [UX] — Standardize error response shape (`m`)
+
+- Report: §5.3
+- Files: all `backend/routes/*.routes.js` that emit `res.status(5xx).json({ error: 'Failed' })`.
+- Action: define `{ error: 'MACHINE_CODE', message: 'human reason', suggestion: 'next step' }`. Frontend toast renders `message` as primary, `suggestion` as secondary line. Replace every bare `'Failed'`/`'Failed to X'` shape.
+- Verify: grep the frontend for `addToast.*error` — each toast displays both lines when present. Pick three known failure paths (disk-full write, permission-denied write, wrong-path SteamCMD) and verify they produce actionable copy.
+
+## N7 — MEDIUM [UX] — Setup wizard error surface (`s`)
+
+- Report: §5.1
+- Files: `web/frontend/src/pages/Setup*Page.jsx`, `contexts/AuthContext.jsx`.
+- Action: every setup-step API call gets `.catch(e => addToast(...))` + inline alert above the form. Add a "Download diagnostics" link that dumps the last 20 API responses.
+- Verify: induce a 5xx on `/api/setup/admin` — admin sees an inline red banner with the error code and a Diagnostics link, not a frozen button.
+
+## N8 — MEDIUM [UX] — Mobile responsiveness for crisis mode (`m`)
+
+- Report: §5.4
+- Files: `web/frontend/src/styles/global.css`, `layouts/AppLayout.jsx`, `pages/{ServerControlPage,ConsolePage,PlayersPage}.jsx`.
+- Action: breakpoint at 768px — sidebar → hamburger drawer; server-control buttons vertical stack; data tables → card layout; console page tested on iPhone.
+- Verify: Chrome devtools mobile emulation at 375x812 — all primary actions (Start/Stop/Restart, kick player, see console output) reachable without horizontal scroll.
+
+## N9 — MEDIUM [UX] — Expansion editor terminology + search (`m`)
+
+- Report: §5.2
+- Files: `web/frontend/src/pages/ExpansionEditorPage.jsx`, new `components/ConfigSearch.jsx`.
+- Action: each category gets a one-sentence description + wiki deep-link; Ctrl+K modal searches across **field names** in all settings JSON, jumps to the file + highlights the field.
+- Verify: typing "raid" finds `RaidSettings` and any `Raid*` field across other files.
+
+## N10 — LOW — `expansion-docs.routes.js` path check should lowercase or use `safePath()` (`xs`) — **DONE 2026-05-19**
+
+- Report: §1.1
+- File: `backend/routes/expansion-docs.routes.js`.
+- Action taken: route now imports `safePath` from `backend/lib/helpers.js` and uses it instead of an ad-hoc `startsWith()` check. Inherits the case-insensitive handling already battle-tested in the file-browser routes.
+
+## N11 — LOW [UX] — Loadout/file name validation in-line feedback (`xs`) — **PARTIAL DONE 2026-05-19**
+
+- Report: §3.2
+- Files: `web/frontend/src/pages/LoadoutsPage.jsx:418–426`, similar `FilesPage` template picker.
+- Action taken (LoadoutsPage): added `trimmedName` + `isValidName` + `showNameError` derived state; input gets a red border on invalid input; helper text switches to a red explanation ("Only letters, numbers, underscore, hyphen. 1–80 characters, no spaces.") when invalid; Create button is `disabled` on `!isValidName`; trim is applied before the regex and before the PUT URL.
+- Open: same treatment on `FilesPage.jsx` template picker (similar pattern, deferred — needs a separate review of the FilesPage flow).
+
+## N12 — LOW [UX] — Template-picker `<your-mission>` placeholder (`s`)
+
+- Report: §3.3
+- File: `web/frontend/src/pages/FilesPage.jsx:388–417, 540–542`.
+- Action: read mission name from active server's `serverDZ.cfg`; if multiple, present a dropdown.
+
+## N13 — LOW [UX] — Discord bot `/help` command (`xs`)
+
+- Report: §5.7
+- Files: `discord-bot/commands/`, new `commands/help.js`.
+- Action: `/help` DMs the user a formatted command reference; expand each existing command's `setDescription()` to flag common gotchas.
+
+## N14 — LOW [UX] — Pre-release flag on v2.18.0–v2.18.3 + setup-broken banner (`xs`)
+
+- Report: §5.10
+- Files: GitHub Releases UI (mark broken tags as pre-release); `RELEASE_NOTES_v2.18.0.md` through `v2.18.3.md` (add banner).
+- Action: add ⚠️ banner at top of each broken release's notes pointing to v2.18.4+; mark the broken tags as `Pre-release` on GitHub so they don't surface as "Latest".
+
+## N15 — LOW — Password policy progressive feedback (`xs`)
+
+- Report: §5.11
+- Files: `backend/lib/helpers.js` (`checkPasswordPolicy`), setup wizard password form.
+- Action: backend returns which rules failed; frontend shows four live checkmarks (8+ chars, uppercase, lowercase, special) as the user types.
+
+## N16 — LOW [QUALITY] — Template fetch dedup across modal re-opens (`xs`)
+
+- Report: §3.4
+- Files: `web/frontend/src/pages/LoadoutsPage.jsx:326`, `pages/FilesPage.jsx:426`.
+- Action: lift template-list state to a parent or new context; cache for the session.
+
+## N17 — LOW [UX] — "Mission" vs "Settings" terminology in Expansion editor (`xs`) — **DONE 2026-05-19**
+
+- Report: §5.8
+- File: `web/frontend/src/pages/ExpansionEditorPage.jsx:3575–3582`.
+- Action taken: renamed sidebar divider from "Mission Folder" → "Mission-folder Settings", added a one-line subtitle: `Live in mpmissions/<mission>/expansion/`. Disambiguates from DayZ's separate "Mission" concept.
+
+## N18 — LOW [UX] — Loadout / Quest in-product glossary (`s`)
+
+- Report: §5.6
+- Files: `web/frontend/src/pages/LoadoutsPage.jsx:31–40`, `QuestCreatorPage.jsx:15–24`.
+- Action: `?` tooltip on each type badge with a one-sentence definition; link to wiki tool from `wikiLinks.js`.
+
+---
+
+## Suggested rollout (delta items)
+
+1. **PR A — gitignore stale `latest.yml`** (≤ 10 min) — **DONE 2026-05-19**. N1 downgraded after verification; live updater feed is hash-verified.
+2. **PR B — auth tail** (1 day):
+   - **DONE 2026-05-19:** N2 (BackupsPage rewrite + dead URL-token shims removed in backup + setup routes), N3 stop-gap (logger redact + sanitizeUrl helper applied at all `req.url` callsites).
+   - **OPEN:** N3 mod-side (needs DayZ runtime testing), N5 (bcryptjs → bcrypt — native build chain change).
+3. **PR C — installer trust** (depends on cert procurement): N4 (code signing).
+4. **PR D — UX-medium cluster** (~3–4 days):
+   - **DONE 2026-05-19:** N10 (safePath in expansion-docs), N11 partial (LoadoutsPage in-line validation), N17 (Mission-folder Settings rename + subtitle).
+   - **OPEN:** N6 (error shape rollout), N7 (setup error surface), N8 (mobile responsive), N9 (config search + glossary), N11 FilesPage half.
+5. **PR E — UX-low polish** (rolling): N12–N16, N18, opportunistic alongside other work.
+
+## What was committed in this audit pass (2026-05-19)
+
+| Item | Severity | Outcome | Files |
+|------|----------|---------|-------|
+| N1   | LOW (downgraded from CRITICAL) | Stale `latest.yml` deleted + gitignored | `.gitignore`, `latest.yml` (deleted) |
+| N2   | HIGH | BackupsPage → fetch+blob; dead URL-token shims removed | `web/frontend/src/pages/BackupsPage.jsx`, `backend/routes/backup.routes.js`, `backend/routes/setup.routes.js` |
+| N3   | HIGH | Logger redact + `sanitizeUrl()` helper applied to `req.url` logs (mod-side still open) | `backend/lib/logger.js`, `backend/middleware/csrf.js`, `backend/server.js` |
+| N10  | LOW  | `safePath()` for expansion-docs path build | `backend/routes/expansion-docs.routes.js` |
+| N11  | LOW [UX] | LoadoutsPage in-line name validation + trim | `web/frontend/src/pages/LoadoutsPage.jsx` |
+| N17  | LOW [UX] | "Mission-folder Settings" rename + path subtitle | `web/frontend/src/pages/ExpansionEditorPage.jsx` |
+
+What's left from the audit:
+- **High, deferred for runtime testing/external dep:** N3 mod-side (DayZ test), N4 code signing (cert), N5 bcrypt (native build chain).
+- **Medium-UX, scoped work:** N6 error shape, N7 setup error surface, N8 mobile responsive, N9 config search.
+- **Low polish:** N11 FilesPage half, N12, N13, N14, N15, N16, N18.
