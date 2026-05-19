@@ -1449,3 +1449,16 @@ tr:hover td { background: rgba(255,255,255,0.04); }
   .main-content { padding: 16px !important; }
   .page-content { padding: 16px !important; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Config-search deep-link field highlight (audit N9.4)
+   Applied briefly to a settings row after the Cmd+K search navigates
+   to it, so the admin can spot the field they searched for.
+   ═══════════════════════════════════════════════════════ */
+@keyframes fieldFlash {
+  0%   { background: var(--accent-blue); }
+  100% { background: transparent; }
+}
+.field-flash > td {
+  animation: fieldFlash 1.8s ease-out forwards;
+}

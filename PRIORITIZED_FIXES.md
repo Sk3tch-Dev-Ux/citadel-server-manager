@@ -402,5 +402,27 @@ Already specified as L20. Still open. The JS-pure implementation is slower and l
 
 What's left from the audit:
 - **High, deferred for runtime testing / external dep:** N3 mod-side (DayZ test), N4 code signing (cert), N5 bcrypt (native build chain).
-- **Medium-UX, scoped work:** N6 error shape rollout, N8 mobile responsive, N9 config search + glossary.
+- **Medium-UX, scoped work:** N6 error shape rollout, N8 mobile responsive.
 - **Recommended manual action:** `gh release edit v2.18.0/1/2 --prerelease` (agent permissions blocked from doing this — it's the user's call to mark public releases pre-release).
+
+---
+
+## v2.18.6 prep — N9 closeout (2026-05-19, post-v2.18.5)
+
+### N9 — MEDIUM [UX] — Config search + glossary (`m`) — **DONE 2026-05-19**
+
+- Report: §5.2
+- Files:
+  - `backend/routes/expansion-docs.routes.js` — new `GET /api/expansion-docs/field-index` walks `backend/schemas/expansion-templates/`, returns a flat `[{ field, file, parent }]` array (~2420 entries on the current schema set), cached in-process.
+  - `web/frontend/src/components/ConfigSearchModal.jsx` — new modal. Lazy-fetches the index on first open (shared module-level promise), debounced fuzzy ranking with exact-match > prefix > contains scoring, keyboard nav (↑↓ ↵ Esc), navigates on selection.
+  - `web/frontend/src/layouts/AppLayout.jsx` — mounts the modal; registers `ctrl+k` and `meta+k` hotkeys via the existing `useKeyboardShortcuts` hook; falls back to first server when no server is selected.
+  - `web/frontend/src/pages/ExpansionEditorPage.jsx` — `data-field={f.key}` on every SettingsTable row; reads `?file=&field=` from the URL, resolves file → category, switches `activeCategory`, then after the config loads scrolls the matching row into view and applies a `.field-flash` highlight class.
+  - `web/frontend/src/styles/global.css` — `@keyframes fieldFlash` 1.8s background-fade animation.
+- **The N9.2 piece** (sidebar quick-filter on ExpansionEditorPage) was already implemented in an earlier commit (`ExpansionEditorPage.jsx:3406–3415`) — verified in place, no work needed.
+- Verify: open the app, hit Ctrl+K (or Cmd+K on mac), type `raid` → "BaseBuildingRaidMode" surfaces with breadcrumb "RaidSettings". Click → navigates to `/servers/<id>/expansion?file=RaidSettings&field=BaseBuildingRaidMode`, switches the editor to the Raiding category, scrolls the field into view with a blue flash. Type `spawn rate` → spawn-related fields across VehicleSettings, AISettings, AirdropSettings rank correctly.
+
+### What was committed (post-v2.18.5)
+
+| Item | Severity | Outcome | Files |
+|------|----------|---------|-------|
+| N9   | MED [UX] | Cmd/Ctrl+K Config Search + field-index endpoint + URL deep-link with row highlight | `backend/routes/expansion-docs.routes.js`, `web/frontend/src/components/ConfigSearchModal.jsx`, `layouts/AppLayout.jsx`, `pages/ExpansionEditorPage.jsx`, `styles/global.css` |

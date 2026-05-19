@@ -10,6 +10,7 @@ import NotificationCenter from '../components/NotificationCenter';
 import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
 import AppUpdateBanner from '../components/AppUpdateBanner';
 import CitadelUpdateBanner from '../components/CitadelUpdateBanner';
+import ConfigSearchModal from '../components/ConfigSearchModal';
 // Note: ShieldBan is imported alongside the ServerNav icons further down
 // in this file — the second import statement covers both the top-level
 // sidebar nav and the per-server sub-navigation. Keeping it in one place
@@ -23,6 +24,8 @@ export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Audit N9: global Cmd/Ctrl+K opens the Config Search modal.
+  const [configSearchOpen, setConfigSearchOpen] = useState(false);
 
   // Close sidebar on navigation (mobile)
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
@@ -69,12 +72,21 @@ export default function AppLayout() {
   // Global keyboard shortcuts
   useKeyboardShortcuts({
     'ctrl+shift+r': () => { if (selectedServerId) handleRestart(); },
+    // Config search — works with both Ctrl+K (Windows/Linux) and Cmd+K (mac).
+    // Both are registered because useKeyboardShortcuts matches modifier flags
+    // strictly (event.metaKey vs event.ctrlKey are separate).
+    'ctrl+k': () => setConfigSearchOpen(true),
+    'meta+k': () => setConfigSearchOpen(true),
     'escape': () => {
       // Close any open Radix modals by dispatching Escape
       // (Radix handles this natively, but this ensures it propagates)
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     },
   });
+
+  // If the user opens config search without a selected server, fall back to
+  // the first server in the list — better than blocking the action entirely.
+  const configSearchServerId = selectedServerId || (servers[0] && servers[0].id) || null;
 
   return (
     <div className="app">
@@ -208,6 +220,11 @@ export default function AppLayout() {
           </ErrorBoundary>
         </div>
       </div>
+      <ConfigSearchModal
+        open={configSearchOpen}
+        onClose={() => setConfigSearchOpen(false)}
+        serverId={configSearchServerId}
+      />
       <ToastContainer />
     </div>
   );

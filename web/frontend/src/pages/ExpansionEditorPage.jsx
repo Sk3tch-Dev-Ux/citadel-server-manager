@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import API from '../api';
 import { ArrowLeft, Save, ChevronRight, Plus, X, Puzzle } from '../components/Icon';
 import useServerMap from '../hooks/useServerMap';
@@ -72,7 +72,7 @@ function SettingsTable({ title, color, fields, data, onChange }) {
               val = JSON.stringify(val);
             }
             return (
-              <tr key={f.key}>
+              <tr key={f.key} data-field={f.key}>
                 <td style={{ padding: '10px 16px', fontFamily: 'var(--font-mono, monospace)', fontSize: 13, fontWeight: 500 }}>
                   {f.key}
                 </td>
@@ -3319,6 +3319,35 @@ export default function ExpansionEditorPage({ serverId }) {
   const [saving, setSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState('');
 
+  // Audit N9.4 — deep-link handling for the Cmd+K Config Search modal.
+  // When the user clicks a search result the modal navigates here with
+  // `?file=<File>&field=<FieldName>`. We resolve the file name to a
+  // category id, activate that category, then once the file finishes
+  // loading we scroll the matching row into view and flash a highlight.
+  const location = useLocation();
+  const pendingFieldRef = useRef(null);
+  useEffect(() => {
+    // Manual query-string parse — no URLSearchParams global needed.
+    const search = (location.search || '').replace(/^\?/, '');
+    const parsed = {};
+    for (const pair of search.split('&')) {
+      if (!pair) continue;
+      const eq = pair.indexOf('=');
+      const k = eq === -1 ? pair : pair.slice(0, eq);
+      const v = eq === -1 ? '' : decodeURIComponent(pair.slice(eq + 1));
+      parsed[decodeURIComponent(k)] = v;
+    }
+    const fileParam = parsed.file;
+    const fieldParam = parsed.field;
+    if (!fileParam) return;
+    const target = CATEGORIES.find(c => c.fileKey === `${fileParam}.json`);
+    if (!target) return;
+    if (target.id !== activeCategory) setActiveCategory(target.id);
+    pendingFieldRef.current = fieldParam || null;
+    // Don't depend on activeCategory — that would loop. Only react to URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+
   // File metadata from the cheap /meta endpoint — available keys, found flags,
   // display names, schemas. Populated on mount, ~5 KB response vs. the old
   // "all 32 file contents" fetch which was 100-500 KB and slow.
@@ -3387,6 +3416,39 @@ export default function ExpansionEditorPage({ serverId }) {
     const fileName = fileMap[activeCategory];
     if (fileName) loadFile(fileName);
   }, [activeCategory, fileMap, loadFile]);
+
+  // Audit N9.4 — once the active file's config is in state (it just loaded
+  // or was already cached), scroll the pending search-result field into
+  // view and flash a highlight on it. We use the configs map as the
+  // "rendered yet?" signal — when the file's content appears, the
+  // SettingsTables for it have rendered (or are about to in this tick).
+  const activeFileForFlash = fileMap[activeCategory];
+  useEffect(() => {
+    const field = pendingFieldRef.current;
+    if (!field) return;
+    if (!activeFileForFlash || !configs[activeFileForFlash]) return;
+    // Defer one tick so the DOM has the new tables rendered. We retry a
+    // couple of times because some sections render in a lazy <Suspense>.
+    let attempts = 0;
+    const tryScroll = () => {
+      const row = document.querySelector(`tr[data-field="${field}"]`);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.remove('field-flash');
+        // Force reflow so the animation re-runs if the same target is
+        // navigated to twice in a row.
+        // eslint-disable-next-line no-unused-expressions
+        void row.offsetWidth;
+        row.classList.add('field-flash');
+        pendingFieldRef.current = null;
+        return;
+      }
+      attempts += 1;
+      if (attempts < 10) setTimeout(tryScroll, 100);
+      else pendingFieldRef.current = null;
+    };
+    setTimeout(tryScroll, 50);
+  }, [activeFileForFlash, configs]);
 
   // Track which configs are modified (only compare files that are loaded —
   // unloaded files can't be modified)

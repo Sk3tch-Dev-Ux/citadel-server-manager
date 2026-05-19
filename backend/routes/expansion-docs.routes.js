@@ -30,6 +30,7 @@ let _modsCache = null;
 let _templatesIndexCache = null;
 let _formsCache = null;
 let _versionCache = null;
+let _fieldIndexCache = null;
 
 function readJSON(p) {
   return JSON.parse(fs.readFileSync(p, 'utf8'));
@@ -84,6 +85,75 @@ function getVersion() {
 /** Reject obviously unsafe basenames before any disk access. */
 function isSafeBasename(name) {
   return typeof name === 'string' && /^[A-Za-z0-9_-]+$/.test(name);
+}
+
+/**
+ * Build a flat field index across every template file. Powers the Cmd+K
+ * Config Search modal — "what file holds the BaseBuildingRaidMode field?"
+ * Audit N9.
+ *
+ * Each entry: { field, file, parent }
+ *   - field:  the JSON property name as it appears in the template
+ *   - file:   the template's basename (e.g. "RaidSettings")
+ *   - parent: when the field lives inside a nested object, the parent
+ *             property name (e.g. "Schedule"); otherwise null
+ *
+ * We index:
+ *   - all top-level keys of the parsed template
+ *   - one level deep into object values and array-of-object element shapes
+ *
+ * Skipped:
+ *   - boilerplate keys (`m_Version`, `Version`)
+ *   - arrays of primitives (nothing useful to index inside them)
+ *
+ * The index is built once and cached. Memory footprint at ~100 templates ×
+ * ~30 fields each = ~3000 entries × ~80 bytes ≈ 250 KB. Acceptable.
+ */
+const FIELD_BLACKLIST = new Set(['m_Version', 'Version']);
+
+function indexFieldsFromValue(file, parent, value, out) {
+  if (value === null || value === undefined) return;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    for (const k of Object.keys(value)) {
+      if (FIELD_BLACKLIST.has(k)) continue;
+      out.push({ field: k, file, parent });
+    }
+  } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && !Array.isArray(value[0])) {
+    // Array of objects — index the element-shape keys under the parent name.
+    for (const k of Object.keys(value[0])) {
+      if (FIELD_BLACKLIST.has(k)) continue;
+      out.push({ field: k, file, parent });
+    }
+  }
+}
+
+function getFieldIndex() {
+  if (_fieldIndexCache) return _fieldIndexCache;
+  if (!fs.existsSync(TEMPLATES_DIR)) {
+    _fieldIndexCache = [];
+    return _fieldIndexCache;
+  }
+  const out = [];
+  for (const f of fs.readdirSync(TEMPLATES_DIR)) {
+    if (!f.endsWith('.json') || f === '_index.json') continue;
+    let tpl;
+    try { tpl = readJSON(path.join(TEMPLATES_DIR, f)); } catch { continue; }
+    if (!tpl || typeof tpl.template !== 'string') continue;
+    let parsed;
+    try { parsed = JSON.parse(tpl.template); } catch { continue; }
+    const file = f.replace(/\.json$/, '');
+    // Top-level keys
+    indexFieldsFromValue(file, null, parsed, out);
+    // One level deep
+    if (parsed && typeof parsed === 'object') {
+      for (const topKey of Object.keys(parsed)) {
+        if (FIELD_BLACKLIST.has(topKey)) continue;
+        indexFieldsFromValue(file, topKey, parsed[topKey], out);
+      }
+    }
+  }
+  _fieldIndexCache = out;
+  return _fieldIndexCache;
 }
 
 module.exports = function(app) {
@@ -141,6 +211,16 @@ module.exports = function(app) {
       res.json(getForms());
     } catch (err) {
       safeError(res, err, 'Failed to read forms');
+    }
+  });
+
+  // Audit N9 — flat field index for the Cmd+K Config Search modal.
+  // Built lazily on first request and cached for the process lifetime.
+  app.get('/api/expansion-docs/field-index', auth(), (req, res) => {
+    try {
+      res.json(getFieldIndex());
+    } catch (err) {
+      safeError(res, err, 'Failed to build field index');
     }
   });
 };
