@@ -6,6 +6,71 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.18.6 — 2026-05-19
+
+Six-commit follow-up to v2.18.5 closing the remaining items from the
+2026-05-19 delta audit. Drop-in upgrade. See
+[`RELEASE_NOTES_v2.18.6.md`](./RELEASE_NOTES_v2.18.6.md) for the full
+narrative.
+
+### Added
+- **Cmd/Ctrl+K Config Search** — global modal that fuzzy-searches across
+  every Expansion settings field (~2,420 entries) and deep-links to the
+  right category with a row highlight. New
+  `GET /api/expansion-docs/field-index` endpoint, modal in
+  `AppLayout`, ExpansionEditorPage URL-param handler. (audit N9)
+- **`/help` Discord slash command** — categorized command reference
+  DMed to the user, falls back to ephemeral if DMs blocked. (audit N13)
+- **`GET /api/servers/:id/mission-folder`** — auto-fills mission name in
+  the FilesPage template picker so `<your-mission>` placeholders work
+  on first click. (audit N12)
+- **Mod `auth_in_body` config flag** (default false). When enabled, the
+  DayZ mod stops sending api_key in URL queries on every poll + event/
+  ack call; the key moves to the JSON body. Runtime test pending.
+  (audit N3 mod-side)
+- **Code-signing pipeline** — `installer/build.js` runs `signtool sign`
+  when `CITADEL_SIGN_PFX` + `CITADEL_SIGN_PASSWORD` are set, with a
+  workflow step that decodes a base64 GitHub secret. Skipped silently
+  when unconfigured. `installer/SIGNING.md` runbook ships in the repo.
+  (audit N4)
+
+### Changed
+- **Error responses now ship optional `code` + `suggestion`** alongside
+  the existing `error` string. New `clientError()` helper, extended
+  `safeError()`, toast + setup wizard + login screen render the
+  suggestion as a secondary line. Rolled out across `setup.routes.js`,
+  `auth.routes.js`, `files.routes.js` — the routes admins hit during
+  their first hour. Long-tail callsites unchanged, no regression.
+  (audit N6)
+- **Mobile UI for crisis ops** — new 768px and 600px breakpoints on
+  top of the existing 900px sidebar drawer. Server-control buttons
+  stack on tablet width; PlayersPage and BansPage tables convert to
+  stacked cards on phone width via a new `.mobile-card-table` opt-in
+  class with `data-label`-driven cell labels. (audit N8)
+- **Hover definitions on Loadout / Quest / Objective type badges** via
+  native `title=` tooltips. Hover any badge to learn what "Hero",
+  "Bandit", "AI VIP", "Treasure Hunt" mean without leaving the page.
+  (audit N18)
+- **Expansion-docs template index shared-cached** across modal re-opens
+  via `utils/expansionDocsCache.js` (5-min TTL, in-flight dedup).
+  (audit N16)
+- **`expansion-docs.routes.js` template path build routes through
+  `safePath()`** instead of an ad-hoc `startsWith()`. (audit N10)
+
+### Security
+- **bcryptjs → @node-rs/bcrypt** (Rust-native, prebuilt N-API binaries,
+  no node-gyp). Hash format cross-compat verified — existing user
+  records validate without re-hash. (audit N5)
+
+### Open follow-ups (not blocking the release)
+- Mod runtime test before flipping `auth_in_body: true`
+- Code-signing cert procurement
+- `gh release edit v2.18.0/1/2 --prerelease`
+- Long-tail error-shape and table-card migrations to remaining routes /
+  pages, opportunistically as touched
+
+---
+
 ## v2.18.5 — 2026-05-19
 
 Delta-audit cleanup pass. Fourteen audit items closed across security,
