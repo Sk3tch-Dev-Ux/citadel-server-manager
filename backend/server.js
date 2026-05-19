@@ -395,7 +395,7 @@ app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Invalid JSON in request body' });
   }
-  logger.error({ err, method: req.method, url: req.url }, 'Unhandled server error');
+  logger.error({ err, method: req.method, url: logger.sanitizeUrl(req.url) }, 'Unhandled server error');
   res.status(500).json({ error: 'Internal server error' });
 });
 

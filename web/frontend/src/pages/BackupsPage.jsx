@@ -106,10 +106,23 @@ export default function BackupsPage({ serverId }) {
     }
   };
 
-  const downloadBackup = (b) => {
-    const token = localStorage.getItem('token');
-    const url = `/api/servers/${serverId}/backups/${encodeURIComponent(b.filename)}/download?type=${b.type || 'manual'}&token=${encodeURIComponent(token)}`;
-    window.open(url, '_blank');
+  const downloadBackup = async (b) => {
+    const url = `/api/servers/${serverId}/backups/${encodeURIComponent(b.filename)}/download?type=${b.type || 'manual'}`;
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = b.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      window.addToast?.(`Download failed: ${err.message}`, 'error');
+    }
   };
 
   const previewBackup = async (b) => {

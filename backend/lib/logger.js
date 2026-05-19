@@ -38,6 +38,7 @@ const SENSITIVE_FIELDS = [
   'currentPassword',
   'passwordHash',
   'apiKey',
+  'api_key',           // snake_case — the DayZ mod's CommandRelay sends this in URL query
   'token',
   'jwt',
   'jwtSecret',
@@ -53,6 +54,7 @@ for (const f of SENSITIVE_FIELDS) {
   REDACT_PATHS.push(`*.${f}`);
   REDACT_PATHS.push(`req.body.${f}`);
   REDACT_PATHS.push(`req.headers.${f}`);
+  REDACT_PATHS.push(`req.query.${f}`);
 }
 // Authorization headers are commonly capitalized on the wire; pino paths
 // are case-sensitive.
@@ -66,4 +68,34 @@ const logger = pino({
   transport,
 });
 
+// Sanitize a URL string before logging. pino's redact works on object paths,
+// not string contents — so a logger call like `logger.warn({ url: req.url })`
+// with a URL like `/api/foo?api_key=SECRET&server_id=1` would still leak the
+// secret. Callers that log raw URLs (request handlers, error middleware) must
+// pass them through this helper.
+//
+// Audit N3 stop-gap (2026-05-19): the DayZ mod's CommandRelay still sends
+// `?api_key=...&server_id=...` on every GET poll (Scripts/CommandRelay.c:1586)
+// pending the header-based auth migration. This helper closes the backend-log
+// half of that leak.
+const URL_REDACT_KEYS = new Set([
+  'api_key', 'apiKey', 'token', 'jwt', 'password', 'secret',
+]);
+function sanitizeUrl(rawUrl) {
+  if (typeof rawUrl !== 'string' || rawUrl === '') return rawUrl;
+  const qIdx = rawUrl.indexOf('?');
+  if (qIdx === -1) return rawUrl;
+  const path = rawUrl.slice(0, qIdx);
+  const query = rawUrl.slice(qIdx + 1);
+  const parts = query.split('&').map(pair => {
+    const eq = pair.indexOf('=');
+    if (eq === -1) return pair;
+    const key = pair.slice(0, eq);
+    if (URL_REDACT_KEYS.has(key)) return `${key}=[REDACTED]`;
+    return pair;
+  });
+  return path + '?' + parts.join('&');
+}
+
 module.exports = logger;
+module.exports.sanitizeUrl = sanitizeUrl;

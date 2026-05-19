@@ -139,13 +139,17 @@ module.exports = function (app) {
   });
 
   // ─── Download a backup ─────────────────────────────────
-  app.get('/api/servers/:id/backups/:filename/download', (req, res, next) => {
-    // Allow token in query param for browser window.open() downloads
-    if (req.query.token && !req.headers.authorization) {
-      req.headers.authorization = `Bearer ${req.query.token}`;
-    }
-    next();
-  }, authForServer('server.restart'), (req, res) => {
+  // Audit N2 (2026-05-19): previously this route accepted a `?token=...` query
+  // param as an Authorization-header shim, because the old BackupsPage used
+  // `window.open(url, '_blank')` and couldn't attach a Bearer header. That
+  // token came from localStorage and contradicted the M11 HttpOnly-cookie
+  // migration — every backup download leaked the JWT into proxy access logs
+  // and browser history.
+  //
+  // The frontend now uses `fetch(..., { credentials: 'include' })` + a blob
+  // anchor click, which sends the HttpOnly auth-token cookie automatically.
+  // The shim is removed; do not add it back.
+  app.get('/api/servers/:id/backups/:filename/download', authForServer('server.restart'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 

@@ -125,7 +125,9 @@ function extractSetupToken(req) {
   }
   const header = req.headers && req.headers.authorization;
   if (header && header.startsWith('Bearer ')) return header.slice(7);
-  if (req.query && req.query.token) return String(req.query.token);
+  // Audit N2 (2026-05-19): a `req.query.token` fallback used to live here.
+  // Removed — no caller passes it, and an admin-creation surface should never
+  // accept tokens in URLs (proxy logs, browser history). Cookie + header only.
   return null;
 }
 

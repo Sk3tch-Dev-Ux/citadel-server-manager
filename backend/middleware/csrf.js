@@ -151,19 +151,19 @@ function verifyCsrfToken(req, res, next) {
   const nonceFromHeader = req.headers['x-csrf-token'];
 
   if (!signedFromCookie) {
-    logger.warn({ method: req.method, url: req.url }, 'Missing CSRF signed cookie');
+    logger.warn({ method: req.method, url: logger.sanitizeUrl(req.url) }, 'Missing CSRF signed cookie');
     return res.status(403).json({ error: 'CSRF token missing' });
   }
 
   if (!nonceFromHeader) {
-    logger.warn({ method: req.method, url: req.url }, 'Missing CSRF token header');
+    logger.warn({ method: req.method, url: logger.sanitizeUrl(req.url) }, 'Missing CSRF token header');
     return res.status(403).json({ error: 'CSRF token missing' });
   }
 
   // Re-sign the nonce from the header and compare with the HttpOnly cookie
   const expectedSignature = signNonce(nonceFromHeader);
   if (!constantTimeEqual(signedFromCookie, expectedSignature)) {
-    logger.warn({ method: req.method, url: req.url, ip: req.ip }, 'CSRF token mismatch');
+    logger.warn({ method: req.method, url: logger.sanitizeUrl(req.url), ip: req.ip }, 'CSRF token mismatch');
     return res.status(403).json({ error: 'CSRF token invalid' });
   }
 
