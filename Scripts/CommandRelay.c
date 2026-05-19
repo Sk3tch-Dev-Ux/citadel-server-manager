@@ -251,6 +251,49 @@ class CommandRelayConfig
     bool command_logging_enabled;
     bool player_events_enabled;
     bool debug_logging_enabled;
+    // Audit N3 (2026-05-19). When true, api_key travels in the JSON body
+    // of every request instead of in the URL query string, and the poll
+    // request switches from GET to POST (since GET cannot carry a body
+    // through DayZ's RestApi reliably). This eliminates the credential
+    // leak into proxy access logs, browser history, and any HTTP
+    // intermediary that records request URIs.
+    //
+    // Requires the receiver to accept the body-auth form. For Citadel-
+    // paired and custom self-hosted receivers, flip this to true once the
+    // receiver supports it. For CFTools or other external receivers that
+    // expect URL-key auth, leave it false — they cannot read the body.
+    //
+    // Default is false to preserve backward compatibility on upgrade.
+    bool auth_in_body;
+}
+
+// Audit N3 helpers. Given the operator's `auth_in_body` preference, these
+// produce either the legacy URL query form ("?api_key=X&server_id=Y&...")
+// or the body-auth form (api_key injected as the first property of the
+// JSON payload, URL path carries only routing/extra params). Used by every
+// REST callsite below.
+//
+// Why first-property injection: it keeps the resulting JSON valid as long
+// as the input payload begins with `{` (object form), which is the case
+// for every CommandRelay payload we send. We don't try to handle array
+// payloads — they aren't generated anywhere in this file.
+static string CommandRelay_BuildAuthPath(bool inBody, string apiKey, string extraParams)
+{
+    if (inBody)
+    {
+        if (extraParams == "") return "";
+        return "?" + extraParams;
+    }
+    if (extraParams == "") return "?api_key=" + apiKey;
+    return "?api_key=" + apiKey + "&" + extraParams;
+}
+
+static string CommandRelay_AddAuthToBody(string payload, bool inBody, string apiKey)
+{
+    if (!inBody) return payload;
+    if (payload.Length() < 2) return payload;
+    if (payload.Get(0) != "{") return payload;
+    return "{\"api_key\":\"" + apiKey + "\"," + payload.Substring(1, payload.Length() - 1);
 }
 
 class CommandRelayBanEntry
@@ -393,7 +436,11 @@ class CommandRelay
         m_Config.command_logging_enabled = true;
         m_Config.player_events_enabled = true;
         m_Config.debug_logging_enabled = true;
-        
+        // Audit N3 — keep URL-form auth on by default so existing operators
+        // upgrading from v2.18.5 don't break their receivers. Flip to true
+        // once your receiver supports api_key in the JSON body.
+        m_Config.auth_in_body = false;
+
         m_Processed = new CommandRelayProcessed();
         m_ProcessedLookup = new map<string, bool>();
         m_Bans = new CommandRelayBans();
@@ -665,10 +712,10 @@ class CommandRelay
         payload = payload + ",\"timestamp\":\"" + timestamp + "\"}}";
         
         ctx.SetHeader("application/json");
-        string path = "?api_key=" + m_Config.api_key;
-        path = path + "&server_id=" + m_Config.server_id;
-        path = path + "&event=player_login";
-        
+        string extras = "server_id=" + m_Config.server_id + "&event=player_login";
+        string path = CommandRelay_BuildAuthPath(m_Config.auth_in_body, m_Config.api_key, extras);
+        payload = CommandRelay_AddAuthToBody(payload, m_Config.auth_in_body, m_Config.api_key);
+
         ctx.POST(new CommandRelayEventCallback("player_login", playerId), path, payload);
         Log("Player login event: " + playerName + " (" + playerId + ")");
     }
@@ -739,10 +786,10 @@ class CommandRelay
         payload = payload + ",\"timestamp\":\"" + timestamp + "\"}}";
         
         ctx.SetHeader("application/json");
-        string path = "?api_key=" + m_Config.api_key;
-        path = path + "&server_id=" + m_Config.server_id;
-        path = path + "&event=player_logout";
-        
+        string extras = "server_id=" + m_Config.server_id + "&event=player_logout";
+        string path = CommandRelay_BuildAuthPath(m_Config.auth_in_body, m_Config.api_key, extras);
+        payload = CommandRelay_AddAuthToBody(payload, m_Config.auth_in_body, m_Config.api_key);
+
         ctx.POST(new CommandRelayEventCallback("player_logout", playerId), path, payload);
         Log("Player logout event: " + playerName + " (" + playerId + ") session=" + sessionMinutes.ToString() + "min");
     }
@@ -810,10 +857,10 @@ class CommandRelay
         payload = payload + ",\"timestamp\":\"" + timestamp + "\"}}";
         
         ctx.SetHeader("application/json");
-        string path = "?api_key=" + m_Config.api_key;
-        path = path + "&server_id=" + m_Config.server_id;
-        path = path + "&event=player_logout";
-        
+        string extras = "server_id=" + m_Config.server_id + "&event=player_logout";
+        string path = CommandRelay_BuildAuthPath(m_Config.auth_in_body, m_Config.api_key, extras);
+        payload = CommandRelay_AddAuthToBody(payload, m_Config.auth_in_body, m_Config.api_key);
+
         ctx.POST(new CommandRelayEventCallback("player_logout", playerId), path, payload);
         Log("Player logout event (cached): " + playerName + " (" + playerId + ") session=" + sessionMinutes.ToString() + "min");
     }
@@ -1072,10 +1119,10 @@ class CommandRelay
         payload = payload + ",\"timestamp\":\"" + timestamp + "\"}}";
         
         ctx.SetHeader("application/json");
-        string path = "?api_key=" + m_Config.api_key;
-        path = path + "&server_id=" + m_Config.server_id;
-        path = path + "&event=player_death";
-        
+        string extras = "server_id=" + m_Config.server_id + "&event=player_death";
+        string path = CommandRelay_BuildAuthPath(m_Config.auth_in_body, m_Config.api_key, extras);
+        payload = CommandRelay_AddAuthToBody(payload, m_Config.auth_in_body, m_Config.api_key);
+
         ctx.POST(new CommandRelayEventCallback("player_death", victimId), path, payload);
         Log("Player death event: " + victimName + " (" + victimId + ") cause=" + causeOfDeath + " killer=" + killerName);
     }
@@ -1572,22 +1619,26 @@ class CommandRelay
             return;
         }
 
-        // Audit H10. The api_key still rides in the URL query string for
-        // GET polls because DayZ's RestApi.SetHeader only accepts a single
-        // Content-Type argument across engine versions we support — there
-        // is no portable custom-header API for arbitrary
-        // 'Authorization: Bearer ...'. The mitigation here is twofold:
-        //   1. We never log the params (only the URL itself) so the .RPT
-        //      no longer contains the api_key on every tick.
-        //   2. Receivers should be on HTTPS (the default in shipped
-        //      configs) so the URL+key never traverses cleartext.
-        // POST endpoints (ack flows below) move api_key into the JSON
-        // body and drop the URL-query form.
-        string params = "?server_id=" + m_Config.server_id + "&api_key=" + m_Config.api_key;
-
+        // Audit N3 (2026-05-19). When `auth_in_body` is true, send the poll
+        // as a POST with a JSON body that carries server_id + api_key.
+        // Otherwise fall back to the legacy GET with query-string auth
+        // (DayZ's RestApi.SetHeader has only a Content-Type signature, so
+        // header-auth isn't an option). Backend log redaction (sanitizeUrl
+        // in backend/lib/logger.js, audit N3 backend half) already strips
+        // api_key= from any logged URL — this change closes the upstream
+        // leak too, for operators who flip the flag.
         ctx.SetHeader("application/json");
         Log("Polling: " + url);
-        ctx.GET(m_Callback, params);
+        if (m_Config.auth_in_body)
+        {
+            string pollPayload = "{\"api_key\":\"" + m_Config.api_key + "\",\"server_id\":\"" + m_Config.server_id + "\"}";
+            ctx.POST(m_Callback, "", pollPayload);
+        }
+        else
+        {
+            string params = "?server_id=" + m_Config.server_id + "&api_key=" + m_Config.api_key;
+            ctx.GET(m_Callback, params);
+        }
     }
     
     // Audit M18. Bound the size of inbound poll JSON and the number of
@@ -8720,12 +8771,12 @@ class CommandRelay
         }
         
         ctx.SetHeader("application/json");
-        string path = "?api_key=" + m_Config.api_key;
-        path = path + "&server_id=" + m_Config.server_id;
-        path = path + "&id=" + commandId + "&query=1";
+        string extras = "server_id=" + m_Config.server_id + "&id=" + commandId + "&query=1";
+        string path = CommandRelay_BuildAuthPath(m_Config.auth_in_body, m_Config.api_key, extras);
         string payload = "{\"server_id\":\"" + m_Config.server_id;
         payload = payload + "\",\"command_id\":\"" + commandId;
         payload = payload + "\",\"data\":" + data + "}";
+        payload = CommandRelay_AddAuthToBody(payload, m_Config.auth_in_body, m_Config.api_key);
         ctx.POST(new CommandRelayAckCallback(commandId), path, payload);
     }
     
@@ -8736,11 +8787,11 @@ class CommandRelay
         if (!ctx) return;
         
         ctx.SetHeader("application/json");
-        string path = "?api_key=" + m_Config.api_key;
-        path = path + "&server_id=" + m_Config.server_id;
-        path = path + "&id=" + commandId;
+        string extras = "server_id=" + m_Config.server_id + "&id=" + commandId;
+        string path = CommandRelay_BuildAuthPath(m_Config.auth_in_body, m_Config.api_key, extras);
         string payload = "{\"server_id\":\"" + m_Config.server_id;
         payload = payload + "\",\"command_id\":\"" + commandId + "\"}";
+        payload = CommandRelay_AddAuthToBody(payload, m_Config.auth_in_body, m_Config.api_key);
         ctx.POST(new CommandRelayAckCallback(commandId), path, payload);
         Log("ACK: " + commandId);
     }
