@@ -18,6 +18,7 @@ import API from '../api';
 import SchemaEditor from '../components/SchemaEditor';
 import { ArrowLeft, Save, Plus, X, Trash2, RefreshCw } from '../components/Icon';
 import { toolWikiUrl, WIKI_TOOLS } from '../utils/wikiLinks';
+import { getTemplates } from '../utils/expansionDocsCache';
 
 const KIND_COLORS = {
   Player: 'var(--accent-blue)',
@@ -28,14 +29,30 @@ const KIND_COLORS = {
   Custom: 'var(--text-muted)',
 };
 
+// Audit N18 — one-sentence definition per kind, surfaced as a title= tooltip
+// on the badge so admins unfamiliar with Expansion taxonomy can hover to learn
+// what the type actually means without leaving the page.
+const KIND_DEFINITIONS = {
+  Player: 'Player loadout — the default gear new players spawn with on this server.',
+  Hero:   'Hero loadout — what players gain after enough positive humanity (Hardline mod).',
+  Bandit: 'Bandit loadout — what players gain after enough negative humanity (Hardline mod).',
+  AI:     'AI faction loadout — gear carried by AI patrols, camp defenders, and quest NPCs (Expansion-AI).',
+  Loadout:'Generic loadout file — reusable inventory definition referenced by other loadouts.',
+  Custom: 'Custom loadout — kind not recognized; check the file contents.',
+};
+
 function KindBadge({ kind }) {
   const color = KIND_COLORS[kind] || KIND_COLORS.Custom;
+  const definition = KIND_DEFINITIONS[kind] || KIND_DEFINITIONS.Custom;
   return (
-    <span style={{
-      padding: '1px 6px', fontSize: 10, fontWeight: 600, borderRadius: 3,
-      background: `${color}22`, border: `1px solid ${color}55`, color,
-      whiteSpace: 'nowrap',
-    }}>{kind}</span>
+    <span
+      title={definition}
+      style={{
+        padding: '1px 6px', fontSize: 10, fontWeight: 600, borderRadius: 3,
+        background: `${color}22`, border: `1px solid ${color}55`, color,
+        whiteSpace: 'nowrap', cursor: 'help',
+      }}
+    >{kind}</span>
   );
 }
 
@@ -327,7 +344,7 @@ function NewLoadoutModal({ serverId, onClose, onCreated }) {
     let cancelled = false;
     (async () => {
       try {
-        const list = await API.get('/api/expansion-docs/templates');
+        const list = await getTemplates();
         if (cancelled) return;
         const filtered = (Array.isArray(list) ? list : []).filter(t => LOADOUT_TEMPLATE_PATTERN.test(t.name));
         setTemplates(filtered);

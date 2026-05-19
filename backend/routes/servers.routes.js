@@ -10,6 +10,7 @@ const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
 const { initServerState } = require('../lib/server-init');
 const { readServerConfig } = require('../lib/dayz-config');
+const { detectMissionFolder } = require('../lib/mission-folder');
 const { detectRunningProcess, killProcess, spawnDayZServer } = require('../lib/process-manager');
 const { startSidecar, stopSidecar } = require('../lib/sidecar-manager');
 const { restartServer } = require('../lib/server-lifecycle');
@@ -101,6 +102,21 @@ module.exports = function(app) {
     }
 
     res.json(result);
+  });
+
+  // Lightweight endpoint that returns just the detected mission folder name for
+  // a server. Used by the FilesPage template picker (audit N12) to substitute
+  // the `<your-mission>` placeholder with a real folder name from serverDZ.cfg
+  // so admins don't have to know their own folder layout.
+  app.get('/api/servers/:id/mission-folder', auth.authForServer('server.view'), (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    try {
+      const missionFolder = detectMissionFolder(srv.installDir);
+      res.json({ missionFolder: missionFolder || null });
+    } catch (err) {
+      safeError(res, err, 'Failed to detect mission folder');
+    }
   });
 
   app.get('/api/servers', auth(), (req, res) => {

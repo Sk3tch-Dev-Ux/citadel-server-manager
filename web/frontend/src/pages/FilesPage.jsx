@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import API from '../api';
 import { formatBytes } from '../utils';
 import { Folder, FolderOpen, FileCode, FileCog, FileJson, FileText, Zap, Globe, File, Save, RefreshCw, ChevronDown, ChevronRight, Loader, Plus, X } from '../components/Icon';
+import { getTemplates } from '../utils/expansionDocsCache';
 
 // ─── Monaco — bundled locally (no CDN dependency) ────────────────────
 //
@@ -404,9 +405,10 @@ export default function FilesPage({ serverId }) {
 // safePath jail). We keep the client-side defaults sensible but don't try to
 // validate paths here — the server is the source of truth.
 
-function defaultTargetPath(templateName) {
+function defaultTargetPath(templateName, missionFolder) {
+  const mission = missionFolder || '<your-mission>';
   if (/^(Map|BaseBuilding|Hardline|Market|SafeZone|Spawn|P2PMarket|PersonalStorage|AILocation|AIPatrol)Settings$/.test(templateName)) {
-    return `mpmissions/<your-mission>/expansion/settings/${templateName}.json`;
+    return `mpmissions/${mission}/expansion/settings/${templateName}.json`;
   }
   if (/Settings$/.test(templateName)) {
     return `Profiles/ExpansionMod/Settings/${templateName}.json`;
@@ -426,14 +428,22 @@ function TemplatePickerModal({ serverId, onClose, onCreated }) {
   const [selected, setSelected] = useState(null);
   const [targetPath, setTargetPath] = useState('');
   const [creating, setCreating] = useState(false);
+  // Audit N12: pulled from /api/servers/:id/mission-folder so the
+  // mpmissions/<your-mission>/... placeholder gets pre-filled with the actual
+  // folder name from serverDZ.cfg.
+  const [missionFolder, setMissionFolder] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const list = await API.get('/api/expansion-docs/templates');
+        const [list, mf] = await Promise.all([
+          getTemplates(),
+          API.get(`/api/servers/${serverId}/mission-folder`).catch(() => ({ missionFolder: null })),
+        ]);
         if (cancelled) return;
         setTemplates(Array.isArray(list) ? list : []);
+        setMissionFolder(mf?.missionFolder || null);
         setLoading(false);
       } catch (err) {
         if (cancelled) return;
@@ -442,12 +452,12 @@ function TemplatePickerModal({ serverId, onClose, onCreated }) {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [serverId]);
 
   useEffect(() => {
-    if (selected) setTargetPath(defaultTargetPath(selected.name));
+    if (selected) setTargetPath(defaultTargetPath(selected.name, missionFolder));
     else setTargetPath('');
-  }, [selected]);
+  }, [selected, missionFolder]);
 
   const filtered = search
     ? templates.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))

@@ -12,36 +12,39 @@ import useServerMap from '../hooks/useServerMap';
 
 // ─── Constants ────────────────────────────────────────────────────────
 
+// Audit N18 — `description` strings surface as hover tooltips on each badge so
+// admins unfamiliar with Expansion Quest taxonomy can learn the difference
+// without leaving the page.
 const QUEST_TYPES = [
-  { value: 1, label: 'Treasure Hunt', color: '#eab308' },
-  { value: 2, label: 'Target/Kill',   color: '#ef4444' },
-  { value: 3, label: 'Travel',        color: '#3b82f6' },
-  { value: 4, label: 'Delivery',      color: '#f97316' },
-  { value: 5, label: 'Collection',    color: '#22c55e' },
-  { value: 6, label: 'Crafting',      color: '#a855f7' },
-  { value: 7, label: 'AI Camp',       color: '#facc15' },
-  { value: 8, label: 'AI VIP',        color: '#fbbf24' },
+  { value: 1, label: 'Treasure Hunt', color: '#eab308', description: 'Treasure Hunt — find a buried/hidden cache at a specified location.' },
+  { value: 2, label: 'Target/Kill',   color: '#ef4444', description: 'Target/Kill — eliminate specific players, AI, or animals.' },
+  { value: 3, label: 'Travel',        color: '#3b82f6', description: 'Travel — reach a location to complete (no combat or item required).' },
+  { value: 4, label: 'Delivery',      color: '#f97316', description: 'Delivery — carry items from an NPC/location to another NPC/location.' },
+  { value: 5, label: 'Collection',    color: '#22c55e', description: 'Collection — gather a set of items and return them.' },
+  { value: 6, label: 'Crafting',      color: '#a855f7', description: 'Crafting — craft a specified item using in-game recipes.' },
+  { value: 7, label: 'AI Camp',       color: '#facc15', description: 'AI Camp — clear an AI-occupied location (defenders + bosses).' },
+  { value: 8, label: 'AI VIP',        color: '#fbbf24', description: 'AI VIP — escort or capture/kill a high-value AI target.' },
 ];
 
 const OBJECTIVE_TYPES = [
-  { value: 2,  label: 'Target/Kill',   icon: Target,    color: '#ef4444' },
-  { value: 3,  label: 'Travel',        icon: MapPin,    color: '#3b82f6' },
-  { value: 4,  label: 'Collection',    icon: Package,   color: '#22c55e' },
-  { value: 5,  label: 'Delivery',      icon: Package,   color: '#f97316' },
-  { value: 6,  label: 'Treasure Hunt', icon: Star,      color: '#eab308' },
-  { value: 7,  label: 'AI Patrol',     icon: Shield,    color: '#facc15' },
-  { value: 8,  label: 'AI Camp',       icon: Skull,     color: '#facc15' },
-  { value: 9,  label: 'AI VIP',        icon: Skull,     color: '#fbbf24' },
-  { value: 10, label: 'Action',        icon: Crosshair, color: '#64748b' },
-  { value: 11, label: 'Crafting',      icon: Wand2,     color: '#a855f7' },
+  { value: 2,  label: 'Target/Kill',   icon: Target,    color: '#ef4444', description: 'Target/Kill objective — eliminate specific targets to advance.' },
+  { value: 3,  label: 'Travel',        icon: MapPin,    color: '#3b82f6', description: 'Travel objective — reach a location to advance.' },
+  { value: 4,  label: 'Collection',    icon: Package,   color: '#22c55e', description: 'Collection objective — gather items to advance.' },
+  { value: 5,  label: 'Delivery',      icon: Package,   color: '#f97316', description: 'Delivery objective — carry items between waypoints.' },
+  { value: 6,  label: 'Treasure Hunt', icon: Star,      color: '#eab308', description: 'Treasure Hunt objective — locate a hidden cache.' },
+  { value: 7,  label: 'AI Patrol',     icon: Shield,    color: '#facc15', description: 'AI Patrol objective — defeat a roaming AI group.' },
+  { value: 8,  label: 'AI Camp',       icon: Skull,     color: '#facc15', description: 'AI Camp objective — clear an AI-held position.' },
+  { value: 9,  label: 'AI VIP',        icon: Skull,     color: '#fbbf24', description: 'AI VIP objective — handle a high-value AI target.' },
+  { value: 10, label: 'Action',        icon: Crosshair, color: '#64748b', description: 'Action objective — perform a specific in-game action (interact, use, etc.).' },
+  { value: 11, label: 'Crafting',      icon: Wand2,     color: '#a855f7', description: 'Crafting objective — craft a specific item.' },
 ];
 
 function getQuestTypeInfo(type) {
-  return QUEST_TYPES.find(t => t.value === type) || { label: 'Unknown', color: '#6b7280' };
+  return QUEST_TYPES.find(t => t.value === type) || { label: 'Unknown', color: '#6b7280', description: 'Unrecognized quest type.' };
 }
 
 function getObjTypeInfo(type) {
-  return OBJECTIVE_TYPES.find(t => t.value === type) || { label: 'Unknown', icon: Crosshair, color: '#6b7280' };
+  return OBJECTIVE_TYPES.find(t => t.value === type) || { label: 'Unknown', icon: Crosshair, color: '#6b7280', description: 'Unrecognized objective type.' };
 }
 
 // ─── Shared small components ──────────────────────────────────────────
@@ -51,10 +54,14 @@ function QuestTypeBadge({ type, size = 'sm' }) {
   const fontSize = size === 'lg' ? 13 : 11;
   const padding = size === 'lg' ? '4px 12px' : '2px 8px';
   return (
-    <span style={{
-      padding, fontSize, fontWeight: 600, borderRadius: 4,
-      background: info.color, color: '#fff', whiteSpace: 'nowrap',
-    }}>
+    <span
+      title={info.description}
+      style={{
+        padding, fontSize, fontWeight: 600, borderRadius: 4,
+        background: info.color, color: '#fff', whiteSpace: 'nowrap',
+        cursor: 'help',
+      }}
+    >
       {info.label}
     </span>
   );
@@ -64,11 +71,15 @@ function ObjTypeBadge({ type }) {
   const info = getObjTypeInfo(type);
   const IconComp = info.icon;
   return (
-    <span style={{
-      padding: '2px 8px', fontSize: 11, fontWeight: 600, borderRadius: 4,
-      background: `${info.color}22`, border: `1px solid ${info.color}44`,
-      color: info.color, display: 'inline-flex', alignItems: 'center', gap: 4,
-    }}>
+    <span
+      title={info.description}
+      style={{
+        padding: '2px 8px', fontSize: 11, fontWeight: 600, borderRadius: 4,
+        background: `${info.color}22`, border: `1px solid ${info.color}44`,
+        color: info.color, display: 'inline-flex', alignItems: 'center', gap: 4,
+        cursor: 'help',
+      }}
+    >
       <IconComp size={12} />
       {info.label}
     </span>
