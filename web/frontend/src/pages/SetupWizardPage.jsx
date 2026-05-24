@@ -413,10 +413,10 @@ export default function SetupWizardPage() {
               <div style={{ marginBottom: 16 }}>
                 <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 56, height: 56, margin: '0 auto' }} />
               </div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Welcome to Citadel</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Welcome to Citadel Agent</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
-                Let&apos;s get you set up in just a few steps. You&apos;ll create your admin account,
-                configure SteamCMD, and optionally deploy your first DayZ server.
+                Local DayZ server management for Windows. Let&apos;s get you set up in just a
+                few steps — admin account, network, SteamCMD, and your first server.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 280, margin: '0 auto' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
@@ -679,7 +679,7 @@ export default function SetupWizardPage() {
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>Automatically configure Windows Firewall</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                    Opens ports for the Citadel panel and your DayZ servers so they&apos;re reachable from the internet.
+                    Opens ports for the Citadel Agent dashboard and your DayZ servers so they&apos;re reachable from the internet.
                   </div>
                 </div>
               </div>
@@ -1143,7 +1143,7 @@ export default function SetupWizardPage() {
               </div>
               <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>You&apos;re All Set!</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
-                Your Citadel panel is ready. Here&apos;s a summary of your setup:
+                Your Citadel Agent is ready. Here&apos;s a summary of your setup:
               </p>
 
               {/* Setup summary */}
@@ -1178,6 +1178,21 @@ export default function SetupWizardPage() {
                   <CircleDashed size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                   <span style={{ color: 'var(--text-muted)' }}>
                     Next: activate your subscription at Subscription in the sidebar
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
+                  <CircleDashed size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    Optional: pair with{' '}
+                    <a
+                      href="https://citadels.cc/cloud"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--accent)' }}
+                    >
+                      Citadel Cloud
+                    </a>
+                    {' '}for remote control, automations, and the Trust Network
                   </span>
                 </div>
               </div>

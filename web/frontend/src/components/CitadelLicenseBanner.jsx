@@ -276,44 +276,54 @@ const variants = {
   // Marketing banner — fires when this machine is unactivated (no cached
   // license). Could mean: customer has no Citadel sub at all, or has one
   // but hasn't signed in yet on this box. Dismissable per session.
+  //
+  // CTA structure: primary = activate the base Citadel subscription (what
+  // unlocks the Agent). Secondary = learn about the optional Citadel Cloud
+  // add-on (remote control, automations, Trust Network).
   unactivated: {
     icon: Sparkles,
     tone: 'accent',
-    text: 'Unlock global ban DB, off-site backups, and more with Citadel Cloud.',
-    primary: { to: '/citadel-license', label: 'Sign in to Citadel Cloud', external: false },
-    secondary: { to: LEARN_MORE_URL, label: 'Learn more →' },
+    text: 'Activate your Citadel subscription to unlock the full Agent — and optionally pair with Citadel Cloud for remote control and the Trust Network.',
+    primary: { to: '/citadel-license', label: 'Activate Citadel', external: false },
+    secondary: { to: LEARN_MORE_URL, label: 'About Citadel Cloud →' },
   },
 
   // Customer is paying but offline / verify failed. Surface "Reconnect" instead
   // of an upgrade CTA — they don't need to learn more.
+  // This is the Citadel base subscription verify, not the Cloud add-on.
   grace: {
     icon: AlertTriangle,
     tone: 'warning',
-    text: 'Citadel Cloud is working offline.',
+    text: 'Citadel subscription is working offline — license verification failed.',
     primary: { to: '/citadel-license', label: 'Manage', external: false },
   },
 
+  // Citadel base subscription billing past due. Cloud add-on may also be
+  // affected since it rides on the same billing account.
   past_due: {
     icon: AlertTriangle,
     tone: 'warning',
-    text: 'Your Citadel Cloud payment is past due. Update your payment method to avoid interruption.',
+    text: 'Your Citadel subscription payment is past due. Update your payment method to avoid interruption.',
     primary: { to: 'https://citadels.cc/account', label: 'Open account', external: true },
   },
 
-  // Sticky — non-dismissable. The customer's Citadel subscription has lapsed,
-  // which means the app will enter grace then read-only. Updating billing is
-  // the only action that recovers it.
+  // Sticky — non-dismissable. The customer's Citadel base subscription has
+  // lapsed, which means the app will enter grace then read-only. Updating
+  // billing is the only action that recovers it. Cloud add-on is also lost
+  // until the base sub is restored (it can't exist without one).
   lapsed: {
     icon: Lock,
     tone: 'danger',
-    text: 'Citadel subscription is no longer active. Renew billing to restore access.',
+    text: 'Citadel subscription is no longer active. Renew billing to restore the Agent.',
     primary: { to: 'https://citadels.cc/account', label: 'Manage subscription', external: true },
   },
 
+  // Base-sub grace period exceeded. Same recovery path as `grace` but the
+  // app is now read-only until reconnect succeeds.
   expired: {
     icon: Lock,
     tone: 'danger',
-    text: 'Citadel Cloud grace period has ended. Reconnect to refresh your license.',
+    text: 'Citadel subscription grace period has ended. Reconnect to refresh your license.',
     primary: { to: '/citadel-license', label: 'Reconnect', external: false },
   },
 };
