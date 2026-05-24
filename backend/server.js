@@ -204,7 +204,10 @@ require('./routes/files.routes')(app);
 require('./routes/users.routes')(app);
 require('./routes/roles.routes')(app);
 require('./routes/audit.routes')(app);
-require('./routes/webhooks.routes')(app);
+// Webhook config UI + CRUD moved to Citadel Cloud (citadels.cc/cloud).
+// fireWebhooks() in lib/notifications.js is now an internal-only event
+// emitter — the outbound HTTP delivery layer was removed when the
+// management surface went away. See lib/notifications.js for the stub.
 require('./routes/notifications.routes')(app);
 require('./routes/deploy.routes')(app);
 require('./routes/steam.routes')(app);
@@ -235,7 +238,9 @@ require('./routes/expansion-trader.routes')(app);
 require('./routes/expansion-loadouts.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);
-require('./routes/restart-scheduler.routes')(app);
+// Restart scheduling moved to Citadel Cloud (citadels.cc/cloud). The Agent
+// still exposes /api/server-control/restart for Cloud to call when a
+// schedule fires; nothing in the Agent owns the schedule any more.
 require('./routes/system.routes')(app);
 require('./routes/updates.routes')(app);
 
@@ -403,6 +408,16 @@ app.use((err, req, res, next) => {
 const { startup } = require('./lib/server-init');
 const { startAllPolling, gracefulShutdown } = require('./lib/polling');
 const { fireWebhooks } = require('./lib/notifications');
+// The Citadel Discord bot was extracted into its own repository (citadel-bot)
+// in May 2026 as part of the Agent / Cloud product split. The Agent no longer
+// spawns the bot as a child process — customers who want the bot run it
+// separately (self-hosted, or via Citadel Cloud once that hosts it).
+//
+// The Agent still exposes /api/discord/* so a relocated bot can call into
+// the local server, so bot-manager remains importable for graceful-shutdown
+// callers (lib/polling.js) — its functions are no-ops without a running
+// child process. To re-enable the legacy auto-spawn path, set
+// CITADEL_AGENT_SPAWN_BOT=1 in your .env.
 const botManager = require('./lib/bot-manager');
 
 // Only start the server if not in test mode
@@ -418,10 +433,11 @@ if (process.env.NODE_ENV !== 'test') {
       try { require('./lib/priority-engine').cleanExpired(); } catch {}
     }, 60_000);
 
-    // Initialize restart scheduler (loads saved schedules, activates timers)
-    try { require('./lib/restart-scheduler').initialize(); } catch (err) {
-      logger.error({ err }, 'Failed to initialize restart scheduler');
-    }
+    // Restart scheduling moved to Citadel Cloud — no in-Agent cron loop.
+    // The lib's initialize() is now a no-op log; polling.js's shutdown()
+    // call still works (no timers to clear). Existing data/restart-schedules.json
+    // is left on disk so users can inspect what was configured before the
+    // move; nothing reads it any more.
 
     // Start background license refresh (loads cached license, re-verifies on interval)
     try { require('./lib/license').startBackgroundRefresh(); } catch (err) {
@@ -448,21 +464,34 @@ if (process.env.NODE_ENV !== 'test') {
     }
 
     // Listen
-    server.listen(CONFIG.port, () => {
-      // Start Discord bot (non-blocking, after Express is ready to accept API calls)
-      botManager.startBot();
+    server.listen(CONFIG.port, CONFIG.bindHost, () => {
+      // Discord bot was extracted to the citadel-bot repo. The Agent no
+      // longer launches it by default — customers run citadel-bot
+      // separately, or wait for Citadel Cloud to host it.
+      //
+      // Legacy escape hatch: setting CITADEL_AGENT_SPAWN_BOT=1 still spawns
+      // a bundled bot. Will be removed in a future release once Cloud takes
+      // over the hosting story.
+      const legacySpawnBot = process.env.CITADEL_AGENT_SPAWN_BOT === '1';
+      if (legacySpawnBot) botManager.startBot();
 
       const proto = useHttps ? 'https' : 'http';
-      const botConfigured = !!process.env.DISCORD_BOT_TOKEN;
+      const isLoopback = CONFIG.bindHost === '127.0.0.1' || CONFIG.bindHost === '::1' || CONFIG.bindHost === 'localhost';
+      const displayHost = isLoopback ? 'localhost' : CONFIG.bindHost;
+      const accessScope = isLoopback ? 'loopback only' : `bound to ${CONFIG.bindHost}`;
+      const botLine = legacySpawnBot
+        ? (process.env.DISCORD_BOT_TOKEN ? '⚠ Legacy in-Agent' : '⚠ Legacy (no token)')
+        : 'Moved → citadel-bot repo';
 
       // Startup banner
       /* eslint-disable no-console */
       console.log('');
       console.log('┌─────────────────────────────────────────────┐');
-      console.log('│           Citadel Server Manager             │');
+      console.log('│              Citadel Agent                   │');
       console.log('├───────────────┬─────────────────────────────┤');
-      console.log(`│ Dashboard     │ ${(proto + '://localhost:' + CONFIG.port).padEnd(28)}│`);
-      console.log(`│ Discord Bot   │ ${(botConfigured ? '✅ Starting' : '❌ Not configured').padEnd(28)}│`);
+      console.log(`│ Dashboard     │ ${(proto + '://' + displayHost + ':' + CONFIG.port).padEnd(28)}│`);
+      console.log(`│ Access        │ ${accessScope.padEnd(28)}│`);
+      console.log(`│ Discord Bot   │ ${botLine.padEnd(28)}│`);
       console.log(`│ Sidecar       │ ${'Managed per-server'.padEnd(28)}│`);
       console.log(`│ Servers       │ ${(ctx.servers.length + ' configured').padEnd(28)}│`);
       console.log('└───────────────┴─────────────────────────────┘');
@@ -473,7 +502,7 @@ if (process.env.NODE_ENV !== 'test') {
       fireWebhooks('agent.ready', {
         serverName: 'Citadel Agent',
         serverId: 'agent',
-        reason: `Agent started on port ${CONFIG.port}`,
+        reason: `Agent started on ${CONFIG.bindHost}:${CONFIG.port}`,
       }).catch(err => logger.error({ err }, 'Failed to fire agent.ready webhook'));
     });
   })().catch(err => {
@@ -491,9 +520,9 @@ if (process.env.NODE_ENV !== 'test') {
       const errMsg = `Citadel startup failed: ${err.message || err}. Check data/service.log for details.`;
       errApp.get('*', (_req, res) => res.status(503).json({ error: errMsg }));
       const errServer = http.createServer(errApp);
-      errServer.listen(CONFIG.port, () => {
+      errServer.listen(CONFIG.port, CONFIG.bindHost, () => {
         // eslint-disable-next-line no-console
-        console.error(`Service is alive on port ${CONFIG.port} but in error state. Fix the issue and restart the service.`);
+        console.error(`Service is alive on ${CONFIG.bindHost}:${CONFIG.port} but in error state. Fix the issue and restart the service.`);
       });
     } else {
       process.exit(1);

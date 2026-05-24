@@ -1,6 +1,10 @@
-# Citadel
+# Citadel Agent
 
-An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managing multiple DayZ servers. Built for teams that need reliable, secure server administration at scale.
+The local DayZ server management app for Windows. Install, configure, mod, and operate dedicated servers from one desktop dashboard running on the box that hosts them.
+
+**Citadel Agent** (this repo) handles everything that touches the server's actual files and process: SteamCMD installs, mod management, `serverDZ.cfg`, mission and profile folders, launch parameters, backups, RPT/crash logs, and start/stop/restart controls.
+
+**Citadel Cloud** (separate, optional, at [citadels.cc](https://citadels.cc/cloud)) is the remote layer that pairs with the Agent: scheduled restarts, automated messages, multi-server fleet view, the Trust Network ban database, alerts, and Discord bot — anything that needs centralized infrastructure or has to keep running when the owner's PC is asleep.
 
 ![Status](https://img.shields.io/badge/status-production-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
@@ -36,10 +40,10 @@ An enterprise-grade web dashboard, Discord bot, and in-game admin mod for managi
 - **Killfeed & leaderboard** — Parsed from RPT logs with player statistics
 - **Automated backups** — Scheduled server file backups with retention policies
 - **Firewall management** — Automatic Windows Firewall rule creation for server ports (elevated)
-- **Windows Service** — Install Citadel as a Windows Service for auto-start on boot
+- **Windows Service** — Install Citadel Agent as a Windows Service for auto-start on boot
 - **First-run setup wizard** — Guided 7-step setup (admin account, network, SteamCMD, server profile, license activation)
-- **Citadel Cloud integration** — Connect to Citadel Cloud for remote management, webhooks, and premium features
-- **License activation** — Activate your plan directly in the setup wizard or from the License page
+- **License activation** — Activate your subscription from the setup wizard or License page (verifies against [citadels.cc](https://citadels.cc/account))
+- **Citadel Cloud pairing (optional)** — Connect to [Citadel Cloud](https://citadels.cc/cloud) to add remote control, automations (scheduled restarts/messages), the Trust Network shared-ban database, alerts, and the Citadel Discord bot. Everything in the feature list above runs locally without it.
 
 ### In-Game Admin Mod (@CitadelAdmin)
 - **Player actions** — Heal, kill, teleport, spawn items, strip gear, explode, unstuck, freeze, message, teleport to player

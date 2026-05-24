@@ -16,7 +16,7 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }
       submenu: [
         { label: 'Reload Dashboard', accelerator: 'CmdOrCtrl+R', click: reload },
         { type: 'separator' },
-        { label: 'Quit Citadel', accelerator: 'CmdOrCtrl+Q', click: quit },
+        { label: 'Quit Citadel Agent', accelerator: 'CmdOrCtrl+Q', click: quit },
       ],
     },
     {
@@ -34,7 +34,8 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }
       label: '&Help',
       submenu: [
         { label: 'Documentation', click: () => openExternal('https://citadels.cc/docs') },
-        { label: 'Citadel Cloud Account', click: () => openExternal('https://citadels.cc/account') },
+        { label: 'Manage Subscription (citadels.cc)', click: () => openExternal('https://citadels.cc/account') },
+        { label: 'Citadel Cloud (remote control + automations)', click: () => openExternal('https://citadels.cc/cloud') },
         { label: 'Discord', click: () => openExternal('https://citadels.cc/discord') },
         { type: 'separator' },
         // P1.5 — surfaces %APPDATA%/Citadel/update.log in the user's default
@@ -44,14 +45,14 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }
         { type: 'separator' },
         { label: 'Report an Issue', click: () => openExternal('https://github.com/Sk3tch-Dev-Ux/DayzServerController/issues') },
         {
-          label: 'About Citadel',
+          label: 'About Citadel Agent',
           click: () => {
             const win = getMainWindow && getMainWindow();
             dialog.showMessageBox(win, {
               type: 'info',
-              title: 'About Citadel',
-              message: `Citadel DayZ Manager v${app.getVersion()}`,
-              detail: `Electron: ${process.versions.electron}\nNode: ${process.versions.node}\nChromium: ${process.versions.chrome}\n\nhttps://citadels.cc`,
+              title: 'About Citadel Agent',
+              message: `Citadel Agent v${app.getVersion()}`,
+              detail: `Local DayZ server management for Windows.\nPairs with Citadel Cloud for remote control and automations.\n\nElectron: ${process.versions.electron}\nNode: ${process.versions.node}\nChromium: ${process.versions.chrome}\n\nhttps://citadels.cc`,
               buttons: ['OK'],
             });
           },

@@ -129,15 +129,26 @@ export default function BansPage() {
   const [importPreview, setImportPreview] = useState(null); // { filename, format, entries, newCount, dupeCount }
   const [showCFToolsImport, setShowCFToolsImport] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [trustNetwork, setTrustNetwork] = useState(null); // { total: number } | null
   const fileRef = useRef(null);
   const { confirm, DialogComponent } = useConfirmDialog();
 
-  // ─── Load global bans ──────────────────────────────────
+  // ─── Load local bans ───────────────────────────────────
   useEffect(() => {
     API.get('/api/bans')
       .then(d => setBans(Array.isArray(d) ? d : []))
       .catch(() => setBans([]))
       .finally(() => setLoading(false));
+  }, []);
+
+  // ─── Trust Network status (Citadel Cloud) ──────────────
+  // Read-only display: how many community-banned cheaters are currently
+  // enforced on this box. Management (submitting bans, browsing the global
+  // pool) lives in Citadel Cloud at citadels.cc/cloud.
+  useEffect(() => {
+    API.get('/api/cloud-bans/status')
+      .then(res => setTrustNetwork(res?.cache?.total > 0 ? { total: res.cache.total } : null))
+      .catch(() => setTrustNetwork(null));
   }, []);
 
   // ─── Search filter ─────────────────────────────────────
@@ -282,6 +293,36 @@ export default function BansPage() {
           </button>
         </div>
       </div>
+
+      {/* ─── Trust Network status (Citadel Cloud) ─────────── */}
+      {trustNetwork && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          padding: '10px 14px',
+          marginBottom: 16,
+          background: 'color-mix(in srgb, var(--accent) 6%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+          borderRadius: 8,
+          fontSize: 13,
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ color: 'var(--text-secondary)' }}>
+            <Sparkles size={14} style={{ verticalAlign: 'middle', marginRight: 6, color: 'var(--accent)' }} />
+            Trust Network: <strong>{trustNetwork.total.toLocaleString()}</strong> community-banned cheaters synced to this server.
+          </div>
+          <a
+            href="https://citadels.cc/cloud"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            Manage in Citadel Cloud <ExternalLink size={12} />
+          </a>
+        </div>
+      )}
 
       {/* ─── Search ────────────────────────────────────────── */}
       {bans.length > 0 && (

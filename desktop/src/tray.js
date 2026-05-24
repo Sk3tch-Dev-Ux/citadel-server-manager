@@ -23,12 +23,12 @@ function createTray({ onOpen, onQuit }) {
   }
 
   const tray = new Tray(icon);
-  tray.setToolTip(`Citadel — DayZ Server Controller (v${app.getVersion()})`);
+  tray.setToolTip(`Citadel Agent — Local DayZ Server Manager (v${app.getVersion()})`);
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Open Citadel', click: onOpen },
+    { label: 'Open Citadel Agent', click: onOpen },
     { type: 'separator' },
-    { label: 'Citadel', enabled: false },
+    { label: 'Citadel Agent', enabled: false },
     { label: `Version ${app.getVersion()}`, enabled: false },
     { type: 'separator' },
     { label: 'Quit', click: onQuit },

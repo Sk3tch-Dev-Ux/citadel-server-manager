@@ -23,7 +23,6 @@ import API from './api';
 // ── Lazy-loaded pages (heavy dependencies, not needed on initial load) ──
 const DeployPage = lazy(() => import('./pages/DeployPage'));
 const UsersPage = lazy(() => import('./pages/UsersPage'));
-const WebhooksPage = lazy(() => import('./pages/WebhooksPage'));
 const ServerMetricsPage = lazy(() => import('./pages/ServerMetricsPage'));
 const ModsPage = lazy(() => import('./pages/ModsPage/ModsPage'));
 const FilesPage = lazy(() => import('./pages/FilesPage'));
@@ -42,13 +41,11 @@ const TraderEditorPage = lazy(() => import('./pages/TraderEditorPage'));
 const LootVisualizerPage = lazy(() => import('./pages/LootVisualizerPage'));
 const QuestCreatorPage = lazy(() => import('./pages/QuestCreatorPage'));
 const LoadoutsPage = lazy(() => import('./pages/LoadoutsPage'));
-const RestartSchedulerPage = lazy(() => import('./pages/RestartSchedulerPage'));
 const LiveDashboardPage = lazy(() => import('./pages/LiveDashboardPage'));
 const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
 const CitadelLicensePage = lazy(() => import('./pages/CitadelLicensePage'));
-const GlobalBansPage = lazy(() => import('./pages/GlobalBansPage'));
 const KillFeedPage = lazy(() => import('./pages/KillFeedPage'));
 const ChatLogPage = lazy(() => import('./pages/ChatLogPage'));
 const BackupsPage = lazy(() => import('./pages/BackupsPage'));
@@ -144,14 +141,12 @@ export default function AppRouter() {
           <Route path="dashboard" element={<ErrorBoundary><SystemDashboardPage /></ErrorBoundary>} />
           <Route path="deploy" element={<PermGuard permission="server.deploy"><ErrorBoundary><Lazy><DeployPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="users" element={<PermGuard permission="users.manage"><ErrorBoundary><Lazy><UsersPage /></Lazy></ErrorBoundary></PermGuard>} />
-          <Route path="webhooks" element={<PermGuard permission="webhooks.manage"><ErrorBoundary><Lazy><WebhooksPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="watchlist" element={<ErrorBoundary><Lazy><WatchlistPage /></Lazy></ErrorBoundary>} />
           <Route path="audit" element={<PermGuard permission="users.manage"><ErrorBoundary><Lazy><AuditLogPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="notifications" element={<ErrorBoundary><Lazy><NotificationsPage /></Lazy></ErrorBoundary>} />
           <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><SettingsPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="priority-queue" element={<PermGuard permission="priority.manage"><ErrorBoundary><Lazy><PriorityQueuePage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="citadel-license" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><CitadelLicensePage /></Lazy></ErrorBoundary></PermGuard>} />
-          <Route path="global-bans" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><GlobalBansPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="servers/:serverId" element={<ServerLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ErrorBoundary><ServerPage Component={ServerOverviewPage} /></ErrorBoundary>} />
@@ -176,7 +171,6 @@ export default function AppRouter() {
             <Route path="loot-visualizer" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={LootVisualizerPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="quest-creator" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={QuestCreatorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="loadouts" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={LoadoutsPage} /></Lazy></ErrorBoundary></PermGuard>} />
-            <Route path="scheduler" element={<PermGuard permission="scheduler.manage"><ErrorBoundary><Lazy><ServerPage Component={RestartSchedulerPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="live" element={<ErrorBoundary><Lazy><ServerPage Component={LiveDashboardPage} /></Lazy></ErrorBoundary>} />
             <Route path="kill-feed" element={<ErrorBoundary><Lazy><ServerPage Component={KillFeedPage} /></Lazy></ErrorBoundary>} />
             <Route path="chat-log" element={<ErrorBoundary><Lazy><ServerPage Component={ChatLogPage} /></Lazy></ErrorBoundary>} />

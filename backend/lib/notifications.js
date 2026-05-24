@@ -144,23 +144,14 @@ function addNotification(serverId, type, title, message, severity) {
 
 /**
  * Send a message to the configured Discord webhook.
+ *
+ * Outbound delivery moved to Citadel Cloud in May 2026 (same change that
+ * stubbed fireWebhooks). The call sites stay so the event seam is intact;
+ * nothing is delivered until Cloud's event channel ships and these get
+ * rewired to emit upward.
  */
-async function sendDiscordWebhook(content, embeds) {
-  if (!ctx.CONFIG.webhookUrl) return;
-  try {
-    // SSRF protection: block webhooks targeting private/internal IPs
-    if (await isPrivateUrl(ctx.CONFIG.webhookUrl)) {
-      logger.warn({ url: ctx.CONFIG.webhookUrl }, 'Discord webhook URL resolves to private IP — blocked');
-      return;
-    }
-    await fetch(ctx.CONFIG.webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, embeds }),
-    });
-  } catch (err) {
-    logger.error({ err }, 'Discord webhook failed');
-  }
+async function sendDiscordWebhook(content, _embeds) {
+  logger.debug({ contentPreview: String(content || '').slice(0, 80) }, 'Discord webhook suppressed (outbound delivery handled by Cloud)');
 }
 
 /**
@@ -321,19 +312,19 @@ async function deliverWebhook(wh, eventType, data, attemptNum, maxRetries) {
 }
 
 /**
- * Fire all matching custom webhooks for a given event type.
- * Supports Discord webhook format (embeds + variable substitution) and generic JSON POST.
- * Retries up to `retryCount` times (default 3) on failure if retryEnabled is set.
- * Includes standard HTTP headers, idempotence tokens, event filtering, and delivery TTL cleanup.
+ * Internal event emitter.
  *
+ * Outbound webhook delivery (loading user-configured webhooks, matching event
+ * types, POSTing to Discord/HTTP endpoints with retries) moved to Citadel
+ * Cloud in May 2026. The 20+ call sites in this codebase still call
+ * fireWebhooks(eventType, data) — they're the event seam that will be
+ * rewired to emit upward to Cloud once that channel ships.
+ *
+ * For now this is a no-op (apart from a debug log) so the call sites stay
+ * intact and events still happen; nothing just leaves the box.
  */
 async function fireWebhooks(eventType, data) {
-  const matching = ctx.webhooks.filter(w => w.enabled && webhookMatchesEvent(w, eventType) && webhookMatchesServer(w, data));
-  for (const wh of matching) {
-    const maxRetries = Math.min(Math.max(parseInt(wh.retryCount, 10) || 3, 1), 10);
-    await deliverWebhook(wh, eventType, data, 1, maxRetries);
-  }
-
+  logger.debug({ eventType, data }, 'event emitted (outbound delivery handled by Cloud)');
 }
 
 module.exports = { addNotification, loadNotifications, sendDiscordWebhook, fireWebhooks, NOTIFICATION_ICONS, WEBHOOK_EVENTS, isPrivateIP };

@@ -2,7 +2,7 @@
   "name": "citadel-desktop",
   "version": "2.18.6",
   "private": true,
-  "description": "Citadel DayZ Server Controller \u2014 Desktop App",
+  "description": "Citadel Agent \u2014 local DayZ server management for Windows. Install, configure, mod, and operate dedicated servers from one desktop app. Pairs with Citadel Cloud for remote control, automations, and the Trust Network ban database.",
   "main": "src/main.js",
   "author": "Sk3tch Dev",
   "license": "UNLICENSED",
@@ -49,7 +49,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Citadel"
+      "shortcutName": "Citadel Agent"
     },
     "publish": {
       "provider": "github",

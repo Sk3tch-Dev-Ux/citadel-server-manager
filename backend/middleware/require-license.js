@@ -5,8 +5,9 @@
  *
  *   const requireLicense = require('../middleware/require-license');
  *
- *   // Citadel Cloud add-on features (Global Ban DB, off-site backups, …):
- *   app.get('/api/global-bans', auth(['admin']), requireLicense({ feature: 'cloud' }), handler);
+ *   // Routes that pair with the Citadel Cloud add-on (rare in the Agent —
+ *   // most Cloud-add-on features live at citadels.cc/cloud, not here):
+ *   app.get('/api/some-cloud-paired-route', auth(['admin']), requireLicense({ feature: 'cloud' }), handler);
  *
  *   // Citadel-only features (the local app license itself — rare since
  *   // most routes don't gate on subscription, but useful where they do):

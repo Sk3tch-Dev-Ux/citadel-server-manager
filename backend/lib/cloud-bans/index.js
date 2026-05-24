@@ -193,15 +193,10 @@ function onLicenseDeactivated() {
   logger.info('cloud-bans: cleared all community ban enforcement on license deactivation');
 }
 
-// ─── Manual ops ────────────────────────────────────────────────
-
-/**
- * Trigger an immediate sync, e.g. when the customer clicks "Sync now"
- * on the /global-bans dashboard page.
- */
-async function manualSync() {
-  return pullSync();
-}
+// Manual-sync trigger was removed when the management UI moved to Citadel
+// Cloud (citadels.cc/cloud). The background sync loop above is the only
+// caller of pullSync(); customers who want to force a refresh do it from
+// the Cloud dashboard now.
 
 module.exports = {
   // Lifecycle
@@ -215,10 +210,7 @@ module.exports = {
   isCommunityBanned,
   listCachedBans,
 
-  // Write API (called from bans.routes.js)
+  // Write API (called from bans.routes.js when a local ban is added/removed)
   submitFromLocalBan,
   unenrollFromLocalBan,
-
-  // Manual
-  manualSync,
 };

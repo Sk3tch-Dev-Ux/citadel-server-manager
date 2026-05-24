@@ -12,7 +12,7 @@
  *
  *   import useLicenseStatus from '../hooks/useLicenseStatus';
  *
- *   function GlobalBansPage() {
+ *   function SomePaidFeature() {
  *     const { isUsable, status, refresh } = useLicenseStatus();
  *     if (!isUsable) return <UpgradePrompt />;
  *     ...

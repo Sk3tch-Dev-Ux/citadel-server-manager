@@ -41,7 +41,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     backgroundColor: '#0f172a',
-    title: 'Citadel',
+    title: 'Citadel Agent',
     icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
     show: false,
     autoHideMenuBar: false,

@@ -15,7 +15,7 @@ import ConfigSearchModal from '../components/ConfigSearchModal';
 // in this file — the second import statement covers both the top-level
 // sidebar nav and the per-server sub-navigation. Keeping it in one place
 // avoids the "symbol already declared" error.
-import { Home, Rocket, Users, Webhook, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
+import { Home, Rocket, Users, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
 // `Eye` is imported at the bottom of the file for the server nav — reuse that import in the JSX below via hoisting.
 
 export default function AppLayout() {
@@ -42,7 +42,6 @@ export default function AppLayout() {
     ? currentServer?.name || 'Server'
     : location.pathname === '/deploy' ? 'Deploy Server'
     : location.pathname === '/users' ? 'Users & Roles'
-    : location.pathname === '/webhooks' ? 'Webhooks'
     : location.pathname === '/priority-queue' ? 'Priority Queue'
     : location.pathname === '/settings' ? 'Settings'
     : location.pathname === '/dashboard' ? 'Dashboard'
@@ -108,9 +107,6 @@ export default function AppLayout() {
           <Link to="/users" className={`nav-item ${location.pathname === '/users' ? 'active' : ''}`}>
             <span className="nav-icon"><Users size={16} /></span>Users
           </Link>
-          <Link to="/webhooks" className={`nav-item ${location.pathname === '/webhooks' ? 'active' : ''}`}>
-            <span className="nav-icon"><Webhook size={16} /></span>Webhooks
-          </Link>
           <Link to="/priority-queue" className={`nav-item ${location.pathname === '/priority-queue' ? 'active' : ''}`}>
             <span className="nav-icon"><Crown size={16} /></span>Priority Queue
           </Link>
@@ -125,10 +121,7 @@ export default function AppLayout() {
           {user.role === 'admin' && (
             <>
               <Link to="/citadel-license" className={`nav-item ${location.pathname === '/citadel-license' ? 'active' : ''}`}>
-                <span className="nav-icon"><Shield size={16} /></span>Citadel Cloud
-              </Link>
-              <Link to="/global-bans" className={`nav-item ${location.pathname === '/global-bans' ? 'active' : ''}`}>
-                <span className="nav-icon"><ShieldBan size={16} /></span>Global Ban DB
+                <span className="nav-icon"><Shield size={16} /></span>Subscription
               </Link>
               <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
                 <span className="nav-icon"><Settings size={16} /></span>Settings
@@ -231,7 +224,7 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart, Eye, Clock, Star, Activity, Crosshair, MessageSquare, HardDrive } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart, Eye, Star, Activity, Crosshair, MessageSquare, HardDrive } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const serverItems = [
@@ -241,7 +234,6 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'players', icon: <Users size={16} />, label: 'Players' },
     { id: 'logs', icon: <FileText size={16} />, label: 'Logs' },
     { id: 'bans', icon: <ShieldBan size={16} />, label: 'Bans' },
-    { id: 'scheduler', icon: <Clock size={16} />, label: 'Restart Scheduler' },
     { id: 'live', icon: <Activity size={16} />, label: 'Live Dashboard' },
     { id: 'kill-feed', icon: <Crosshair size={16} />, label: 'Kill Feed' },
     { id: 'chat-log', icon: <MessageSquare size={16} />, label: 'Chat Log' },

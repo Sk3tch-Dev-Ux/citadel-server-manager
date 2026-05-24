@@ -10,6 +10,7 @@
 const CONFIG_SCHEMA = {
   server: {
     port: { type: 'number', default: 3001, min: 1, max: 65535, envKey: 'PORT', description: 'API server port' },
+    bindHost: { type: 'string', default: '127.0.0.1', envKey: 'BIND_HOST', description: 'Interface to bind to. Defaults to 127.0.0.1 (loopback) so the dashboard is only reachable from this machine. Set to 0.0.0.0 to allow LAN access, or to a specific NIC IP. Anything other than 127.0.0.1 logs a security warning at startup — remote access is intended to go through Citadel Cloud, not a directly exposed Agent.' },
     allowedOrigins: { type: 'array', default: ['http://localhost:3001', 'http://127.0.0.1:3001'], envKey: 'CORS_ORIGINS', description: 'Allowed CORS origins (comma-separated in env)' },
     trustedProxies: { type: 'string', default: '', envKey: 'TRUSTED_PROXIES', description: 'Trusted reverse-proxy IPs (comma-separated)' },
   },

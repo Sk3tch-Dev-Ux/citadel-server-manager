@@ -59,7 +59,7 @@ function registerIpcHandlers({ getMainWindow }) {
   ipcMain.handle('notify', async (_evt, { title, body, silent }) => {
     if (!Notification.isSupported()) return false;
     const n = new Notification({
-      title: String(title || 'Citadel').slice(0, 100),
+      title: String(title || 'Citadel Agent').slice(0, 100),
       body: String(body || '').slice(0, 500),
       silent: Boolean(silent),
     });

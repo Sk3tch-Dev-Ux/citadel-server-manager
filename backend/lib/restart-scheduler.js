@@ -555,40 +555,32 @@ function getStatus(serverId) {
 }
 
 /**
- * Initialize the scheduler — load saved schedules and activate them.
- * Called once during backend startup.
+ * Initialize the scheduler.
+ *
+ * Restart scheduling moved to Citadel Cloud in May 2026 — Cloud owns the
+ * schedule and calls /api/server-control/restart on the Agent when a
+ * window fires. The in-Agent cron loop is no longer started, so any
+ * schedules sitting in data/restart-schedules.json are inert until you
+ * migrate them to citadels.cc/cloud.
+ *
+ * This function is kept callable so we don't have to surgically remove
+ * the call site, and so future versions can either delete this lib or
+ * repurpose it for Cloud-side scheduling.
  */
 function initialize() {
-  load();
-
-  let activated = 0;
-  for (const serverId of Object.keys(schedules)) {
-    const schedule = schedules[serverId];
-    if (schedule.enabled) {
-      // Verify the server still exists
-      const srv = ctx.servers.find(s => s.id === serverId);
-      if (srv) {
-        scheduleRestart(serverId);
-        activated++;
-      } else {
-        logger.warn({ serverId }, 'Restart schedule references non-existent server — skipping');
-      }
-    }
-  }
-
-  if (activated > 0) {
-    logger.info({ activated }, 'Restart scheduler initialized — activated schedules');
-  }
+  // Intentionally no-op. Don't call load() — we don't want to silently
+  // re-activate stale schedules if someone re-enables the routes.
+  logger.info('Restart scheduler is disabled — Cloud now owns this. See citadels.cc/cloud.');
 }
 
 /**
- * Shutdown — clear all timers.
+ * Shutdown — clear any timers. Safe to call even when initialize() didn't
+ * start anything (activeTimers is empty in that case).
  */
 function shutdown() {
   for (const serverId of Object.keys(activeTimers)) {
     clearTimers(serverId);
   }
-  logger.info('Restart scheduler shut down');
 }
 
 module.exports = {

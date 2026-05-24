@@ -121,6 +121,7 @@ for (const w of warnings) {
 // IMPORTANT: property names must NOT change — existing code depends on them.
 const CONFIG = {
   port: structured.server.port,
+  bindHost: structured.server.bindHost,
   jwtSecret: structured.auth.jwtSecret,
   dataDir: path.resolve(ROOT, structured.directories.data),
   dayz: {
@@ -155,6 +156,28 @@ CONFIG.bans = {
 
 // Allowed CORS origins — structured config, with env override already applied
 CONFIG.allowedOrigins = structured.server.allowedOrigins;
+
+// ─── Bind-host safety check ────────────────────────────────
+// The Local Citadel Agent is meant to listen on loopback only. Remote access
+// is supposed to go through Citadel Cloud (citadels.cc), not a directly
+// exposed Agent. Warn loudly when the operator overrides this — '0.0.0.0' or
+// '::' exposes the dashboard to anyone who can reach the host's IP.
+{
+  const host = CONFIG.bindHost;
+  const isLoopback = host === '127.0.0.1' || host === '::1' || host === 'localhost';
+  const isAllInterfaces = host === '0.0.0.0' || host === '::';
+  if (isAllInterfaces) {
+    logger.warn(
+      `SECURITY: server.bindHost is "${host}" — the Agent dashboard is reachable from every network this machine is on. ` +
+      'The Local Agent is designed for loopback-only access; use Citadel Cloud for remote control. ' +
+      'Set BIND_HOST=127.0.0.1 to restore the safe default.'
+    );
+  } else if (!isLoopback) {
+    logger.warn(
+      `server.bindHost is "${host}" (non-loopback). Make sure this interface is firewalled — the Agent has no built-in remote-access protection beyond JWT auth.`
+    );
+  }
+}
 
 // ─── CORS safety check ─────────────────────────────────────
 // Flag wildcard or empty origins loudly — these are common misconfigurations

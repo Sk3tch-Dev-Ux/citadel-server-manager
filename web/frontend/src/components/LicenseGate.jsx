@@ -1,6 +1,6 @@
 /**
  * LicenseGate — wraps content that requires a specific entitlement on
- * the user's Citadel + Citadel Cloud subscription stack.
+ * the user's Citadel subscription.
  *
  * Two ways to use it:
  *
@@ -9,14 +9,16 @@
  *   </LicenseGate>
  *
  *   - Requires only the base Citadel subscription (active local-app license).
- *   - Useful for features behind the Citadel paywall but NOT the Cloud add-on.
+ *   - Useful for features behind the Citadel paywall.
  *
- *   <LicenseGate feature="cloud" featureName="Global Ban Database">
- *     <GlobalBansPage />
+ *   <LicenseGate feature="cloud" featureName="Some Cloud-paired feature">
+ *     <PairedFeature />
  *   </LicenseGate>
  *
- *   - Requires both Citadel sub AND the Cloud entitlement.
- *   - Used for everything in the $10/mo Citadel Cloud add-on.
+ *   - Requires both Citadel sub AND the Citadel Cloud add-on entitlement.
+ *   - Used for the few local features that pair with Citadel Cloud
+ *     (e.g. the Trust Network sync banner on the Bans page). Most
+ *     Cloud-add-on features live remotely at citadels.cc/cloud, not here.
  *
  * The backend's require-license middleware (backend/middleware/require-license.js)
  * is the *server-side* equivalent. Apply both for defense in depth.
@@ -110,7 +112,7 @@ function UpgradeCard({ feature, featureName, description, status, reason }) {
           lapsed
             ? 'Your Citadel subscription is no longer active. Renew on citadels.cc to restore this feature.'
             : isFeatureUpsell
-              ? 'Citadel Cloud is a $10/month add-on on top of your Citadel subscription. It unlocks features like the Global Ban Database, with more cloud-only tools coming.'
+              ? 'Citadel Cloud is a $10/month add-on on top of your Citadel subscription. It unlocks remote management, automated restarts and messages, the Trust Network ban database, multi-server fleet view, and the Citadel Discord bot.'
               : 'You need an active Citadel subscription to use this. Sign up on citadels.cc.'
         )}
       </p>

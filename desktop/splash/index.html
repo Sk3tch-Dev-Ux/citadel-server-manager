@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
-<title>Citadel — Starting</title>
+<title>Citadel Agent — Starting</title>
 <style>
   :root {
     --bg: #0b1120;
@@ -139,8 +139,8 @@
         <path d="M256 36L64 124v160c0 112 80 196 192 220 112-24 192-108 192-220V124Z" fill="url(#g)" mask="url(#m)"/>
         <path d="M256 64L92 140v144c0 100 68 172 164 196 96-24 164-96 164-196V140Z" fill="none" stroke="#fff" stroke-width="3" opacity="0.18"/>
       </svg>
-      <div class="title">Citadel</div>
-      <div class="tagline">Starting your DayZ Server Controller</div>
+      <div class="title">Citadel Agent</div>
+      <div class="tagline">Local DayZ Server Manager</div>
       <div class="spinner"></div>
       <div class="status">Connecting to backend service...</div>
     </div>
@@ -151,12 +151,12 @@
         <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
         <path d="M12 9v4"/><path d="M12 17h.01"/>
       </svg>
-      <h3>Citadel service isn't responding</h3>
-      <p>Citadel runs as a Windows service in the background. It looks like the service isn't up right now.</p>
+      <h3>Citadel Agent service isn't responding</h3>
+      <p>Citadel Agent runs as a Windows service in the background. It looks like the service isn't up right now.</p>
       <p style="color: var(--fg-dim); margin-top: 18px;"><strong style="color: var(--fg)">Try this, in order:</strong></p>
       <ol>
         <li>Wait a few more seconds and click <strong>Retry</strong> below — services sometimes take 10&ndash;20 seconds to start.</li>
-        <li>Restart your PC. Citadel will auto-start at boot.</li>
+        <li>Restart your PC. Citadel Agent will auto-start at boot.</li>
         <li>Still stuck? Email <a href="mailto:support@citadels.cc" style="color: var(--brand-b);">support@citadels.cc</a> with the log file from <code>C:\Citadel\data\service.log</code>.</li>
       </ol>
       <button class="retry" onclick="location.reload()">Retry Connection</button>
