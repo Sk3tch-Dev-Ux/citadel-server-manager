@@ -153,8 +153,10 @@ Citadel sends a small set of diagnostic events to citadels.cc so we can
 catch bugs in update flows and license activation across the install base.
 
 **Default: enabled.** Disclosure and toggle are at `/citadel-license` →
-"Diagnostic telemetry". Decision rationale captured in `ROADMAP.md` under
-the D-telemetry decision.
+"Diagnostic telemetry". The decision to default to opt-out (rather than
+opt-in) was made because the value of the data — catching regressions in
+update + license flows across the live install base — is only realized
+when most installs participate.
 
 Event names that are accepted server-side (everything else is rejected):
 

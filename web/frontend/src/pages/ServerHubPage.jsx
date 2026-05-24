@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useServers } from '../contexts/ServersContext';
 import { formatUptime } from '../utils';
-import { Server, Cpu, Users, Clock, Play, Square, RotateCcw, CheckCircle, XCircle, X, Rocket } from '../components/Icon';
+import { Server, Cpu, Users, Clock, Play, Square, RotateCcw, CheckCircle, XCircle, X, Rocket, ExternalLink } from '../components/Icon';
 import { Button } from '../components/ui';
 import API from '../api';
 
@@ -66,6 +66,34 @@ export default function ServerHubPage() {
 
   return (
     <div>
+      {/* Positioning hint — this page is the local Agent's server list, not
+          a cross-machine fleet view. True multi-Agent fleet visibility lives
+          in Citadel Cloud. */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        padding: '8px 12px',
+        marginBottom: 12,
+        fontSize: 12,
+        color: 'var(--text-muted)',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 6,
+        flexWrap: 'wrap',
+      }}>
+        <span>Servers managed by this Citadel Agent.</span>
+        <a
+          href="https://citadels.cc/cloud"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--accent)', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+        >
+          Multi-machine fleet view in Citadel Cloud <ExternalLink size={11} />
+        </a>
+      </div>
+
       {/* Summary Stats */}
       <div className="stat-row">
         <div className="stat-box accent-blue">

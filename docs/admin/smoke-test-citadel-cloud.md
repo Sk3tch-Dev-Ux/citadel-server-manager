@@ -7,8 +7,8 @@ loop works end-to-end against live infrastructure.
 
 **Time required:** ~30 minutes.
 **Prerequisites:**
-- Phase 1 of `ROADMAP.md` shipped (so users have the auto-update fix).
-- Phase 2 P2.0–P2.5 merged on the DayZ side.
+- A Citadel Agent build with the auto-update fix shipped.
+- The license-activation + telemetry endpoints merged on the Agent side.
 - citadel-cloud deployed with:
   - The new `telemetry_events` table (run `npx drizzle-kit generate` in
     `packages/api/`, commit, then `drizzle-kit migrate` in production).
@@ -221,7 +221,7 @@ banner returns (sessionStorage cleared).
       DELETE FROM telemetry_events WHERE machine_id_hash = '<your test hash>';
       ```
 - [ ] Reset any temporary `.env` overrides on the test box.
-- [ ] Note any bugs found in `ROADMAP.md` Phase 2 risk section.
+- [ ] File any bugs found as issues on the Agent repo so they're tracked.
 
 ---
 

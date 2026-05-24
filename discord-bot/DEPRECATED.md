@@ -29,4 +29,4 @@ in `.env` to restore the legacy in-Agent spawn behavior.
 ## When will this folder be removed?
 
 After the next Citadel Agent release ships and customers have had a chance
-to migrate. Track it via the project board / `ROADMAP.md`.
+to migrate.

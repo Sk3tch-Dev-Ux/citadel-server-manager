@@ -51,7 +51,9 @@ double-frustrate customers.
       appears, click Restart. **Watch:** does the new version come up
       automatically? Check `%APPDATA%/Citadel/update.log` for the full
       sequence.
-- [ ] Run all six manual scenarios in `ROADMAP.md` Phase 1 → Testing.
+- [ ] Run the standard release smoke test (clean install, upgrade in
+      place, silent update, rollback). Capture any regressions before
+      tagging.
 - [ ] If anything fails, fix it before continuing. Don't ship a broken
       patch on top of a broken patch.
 
@@ -190,14 +192,18 @@ is wrong and needs fixing before going further.
 
 ## 4. End-to-end smoke test on staging
 
-Run both smoke test docs against staging now. **Don't proceed to
-production until both pass.**
+Run the smoke test doc against staging now. **Don't proceed to production
+until it passes.**
 
-- [ ] `docs/admin/smoke-test-citadel-cloud.md` (Phase 2 — license/account/telemetry)
-- [ ] `docs/admin/smoke-test-global-bans.md` (Phase 3 — Cloud Bans loop)
+- [ ] `docs/admin/smoke-test-citadel-cloud.md` — license/account/telemetry
+  loop end-to-end.
 
 Note bugs in the doc's "Code-level gaps caught" section, fix, redeploy
 to staging, re-test the affected scenario, repeat.
+
+(The standalone Global Bans smoke test was removed when the Cloud Bans
+management UI moved to Citadel Cloud. Trust Network sync is now exercised
+implicitly by the citadel-cloud smoke test.)
 
 ---
 

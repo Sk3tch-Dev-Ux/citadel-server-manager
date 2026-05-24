@@ -45,7 +45,7 @@ export default function AppLayout() {
     : location.pathname === '/priority-queue' ? 'Priority Queue'
     : location.pathname === '/settings' ? 'Settings'
     : location.pathname === '/dashboard' ? 'Dashboard'
-    : 'Server Hub';
+    : 'Your Servers';
 
   // Determine which server sub-tab is active
   const serverTab = isServerPage
