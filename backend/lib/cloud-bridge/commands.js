@@ -33,6 +33,7 @@
  *   - Mod responds with {ok:false, error}  → pass error through
  */
 const { getBridge } = require('../citadel-bridge');
+const { restartServer } = require('../server-lifecycle');
 const logger = require('../logger');
 
 const ACTION_MAP = Object.freeze({
@@ -74,6 +75,19 @@ async function handle({ localServerId, client, message }) {
   const reply = (success, msg) => {
     client.send({ type: 'command_result', id, success, message: String(msg || '') });
   };
+
+  // Server lifecycle — `restart` is not a mod IPC action; it drives the
+  // agent's own process control. The cloud owns scheduling (its schedule
+  // worker dispatches this); the agent just executes. Reply fast because a
+  // full restart (graceful stop + respawn + backoff) can outlast the cloud's
+  // command-dispatch timeout — run it in the background.
+  if (action === 'restart') {
+    reply(true, 'restart initiated');
+    Promise.resolve(restartServer(localServerId, 'cloud-requested')).catch((err) => {
+      logger.error({ err: err.message, localServerId }, 'cloud-bridge: cloud-requested restart failed');
+    });
+    return;
+  }
 
   const spec = ACTION_MAP[action];
   if (!spec) {
