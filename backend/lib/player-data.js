@@ -196,4 +196,4 @@ async function fetchModWorldEvents(serverId) {
   }
 }
 
-module.exports = { fetchPlayers, fetchModMetrics, fetchModVehicles, fetchModWorldEvents };
+module.exports = { fetchPlayers, fetchModMetrics, fetchModVehicles, fetchModWorldEvents, fetchRCONPlayerData };

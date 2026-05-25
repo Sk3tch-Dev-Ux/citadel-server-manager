@@ -20,6 +20,7 @@
  * just calls .attach(client) / .detach() at the right lifecycle moments.
  */
 const { getBridge } = require('../citadel-bridge');
+const { fetchRCONPlayerData } = require('../player-data');
 const logger = require('../logger');
 
 class Forwarder {
@@ -31,6 +32,7 @@ class Forwarder {
     this._client = null;
     this._bridge = null;
     this._handlers = null;  // { metrics, players, events } — kept so we can off() on detach
+    this._rconTimer = null; // periodic RCon player (IP/ping) forward for cloud enforcement
     // sessionStarts is a per-Forwarder cache of when each steamId joined,
     // keyed by steamId. Lets us emit player_disconnect with `duration` even
     // if the mod's events.jsonl rotates or we missed the original `playtime`
@@ -70,11 +72,32 @@ class Forwarder {
     // never get any events even though the WS is connected.
     bridge.addSubscriber();
 
+    // Forward the BattlEye RCon player snapshot (IP + ping) every 30s so the
+    // cloud enforcement worker can run VPN/geo/Steam/ping checks — data the
+    // mod can't see at the script layer. No-op when RCon isn't logged in.
+    this._rconTimer = setInterval(() => { void this._forwardRconPlayers(); }, 30_000);
+    this._rconTimer.unref?.();
+
     logger.debug({ localServerId: this.localServerId }, 'forwarder: attached');
+  }
+
+  async _forwardRconPlayers() {
+    try {
+      const map = await fetchRCONPlayerData(this.localServerId);
+      if (!map || map.size === 0) return;
+      const players = [];
+      for (const [name, info] of map) {
+        players.push({ name, ip: info.ip, ping: Number(info.ping) || 0, guid: info.guid });
+      }
+      this._client?.send({ type: 'rcon_players', ts: Date.now(), data: { players } });
+    } catch (err) {
+      logger.debug({ err: err.message, localServerId: this.localServerId }, 'forwarder: rcon_players forward failed');
+    }
   }
 
   /** Tear down. Idempotent. */
   detach() {
+    if (this._rconTimer) { clearInterval(this._rconTimer); this._rconTimer = null; }
     if (!this._client || !this._bridge || !this._handlers) {
       this._client = null;
       this._bridge = null;
