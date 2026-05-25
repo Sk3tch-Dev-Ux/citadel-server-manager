@@ -21,6 +21,8 @@ const ctx = require('../context');
 const storage = require('./storage');
 const { CloudWsClient } = require('./ws-client');
 const { Forwarder } = require('./forwarders');
+const commands = require('./commands');
+const configSync = require('./config-sync');
 const logger = require('../logger');
 
 // Reconcile cadence. 5s keeps changes snappy without being chatty —
@@ -137,10 +139,22 @@ function _startClient(localServerId, srv) {
     storage.updateStatus(localServerId, 'disconnected', reason ? `closed ${code}: ${reason}` : `closed ${code}`);
   });
   client.on('message', (msg) => {
-    // Inbound cloud→agent messages — commands + config-sync. Not wired to
-    // local action executors yet; this is the Phase 5 / Phase 6 work in
-    // the sync plan. Log so we know payloads are coming through.
-    logger.debug({ localServerId, type: msg?.type }, 'cloud-bridge: inbound message');
+    // Inbound cloud→agent messages. Two flavors we handle today:
+    //   command     → translate to mod IPC, reply with command_result
+    //   config_sync → persist payload to $profile:Citadel/config_<type>.json
+    // Anything else is logged at debug and dropped — future protocol
+    // additions land here cleanly without touching the WS layer.
+    if (msg?.type === 'command') {
+      // Fire-and-forget; commands.handle never throws and always replies.
+      commands.handle({ localServerId, client, message: msg })
+        .catch((err) => logger.warn({ err: err.message, localServerId }, 'cloud-bridge: commands.handle threw unexpectedly'));
+      return;
+    }
+    if (msg?.type === 'config_sync') {
+      configSync.handle({ localServerId, message: msg });
+      return;
+    }
+    logger.debug({ localServerId, type: msg?.type }, 'cloud-bridge: unhandled inbound message');
   });
 
   _clients.set(localServerId, client);

@@ -181,11 +181,90 @@ class Forwarder {
           this._emitDisconnect(ev, duration);
           break;
         }
+        case 'kill':
+          this._emitKill(ev);
+          break;
+        case 'chat':
+          this._emitChat(ev);
+          break;
+        case 'death':
+          this._emitDeath(ev);
+          break;
+        case 'suicide':
+          this._emitDeath({ ...ev, deathType: 'suicide', cause: ev.cause || 'suicide' });
+          break;
         default:
-          // Other event types (kill, chat, etc.) are out of scope for
-          // Phase 3 — they land in Phase 4. Ignore quietly.
+          // Other event types (hit, baseBuilt, dynamicEvent, etc.) are out
+          // of scope for Phase 4 — left for a later pass.
       }
     }
+  }
+
+  // ─── kill ────────────────────────────────────────────────────────────
+  //
+  // Cloud's `kill` carries killer + victim ids/names/pos, weapon, distance,
+  // is_headshot, optional hit_zone. Mod writes the killer's steamId as the
+  // generic 'steamId' field (per the events.jsonl convention), so we map
+  // that to killer_steam_id and the explicitly-named victim fields verbatim.
+  _emitKill(ev) {
+    if (!ev.steamId || !ev.victimSteamId) return;
+    const hitZone = _normalizeHitZone(ev.zone);
+    this._client?.send({
+      type: 'kill',
+      ts: _eventTs(ev),
+      data: {
+        killer_steam_id: String(ev.steamId),
+        killer_name: String(ev.name || ''),
+        victim_steam_id: String(ev.victimSteamId),
+        victim_name: String(ev.victimName || ''),
+        weapon: String(ev.weapon || ''),
+        distance: _safeNum(ev.distance, 0),
+        killer_pos: _posOrZero(ev.killerPos),
+        victim_pos: _posOrZero(ev.victimPos),
+        is_headshot: hitZone === 'head' || hitZone === 'brain',
+        hit_zone: hitZone,
+      },
+    });
+  }
+
+  // ─── chat ────────────────────────────────────────────────────────────
+  _emitChat(ev) {
+    if (!ev.steamId || ev.message == null) return;
+    this._client?.send({
+      type: 'chat',
+      ts: _eventTs(ev),
+      data: {
+        steam_id: String(ev.steamId),
+        name: String(ev.name || ''),
+        message: String(ev.message),
+        channel: String(ev.channel || ''),
+      },
+    });
+  }
+
+  // ─── death (PvP/environmental/suicide) ───────────────────────────────
+  //
+  // Cloud's enum: pvp / suicide / fall / environment / infected / explosion
+  // / animal / unknown. Mod writes free-form strings — normalize by
+  // matching common substrings. When 'killer' style fields are absent
+  // (non-PvP), omit killer_steam_id rather than sending an empty string.
+  _emitDeath(ev) {
+    if (!ev.steamId) return;
+    const deathType = _normalizeDeathType(ev.deathType, ev.cause);
+    const data = {
+      steam_id: String(ev.steamId),
+      name: String(ev.name || ''),
+      death_type: deathType,
+      cause: String(ev.cause || ev.deathType || 'unknown'),
+      position: _posOrZero(ev.position),
+    };
+    if (ev.weapon) data.weapon = String(ev.weapon);
+    if (ev.killerSteamId) data.killer_steam_id = String(ev.killerSteamId);
+    this._client?.send({
+      type: 'death',
+      ts: _eventTs(ev),
+      data,
+    });
   }
 
   _emitConnect(ev) {
@@ -239,6 +318,59 @@ function _eventTs(ev) {
     if (Number.isFinite(ms)) return ms;
   }
   return Date.now();
+}
+
+/**
+ * Normalize the mod's DamageZone string (e.g. "Head", "RightUpperArm",
+ * "LeftThigh", "Torso") into the cloud's HitZone enum. Lowercase +
+ * substring-match — DayZ's zone names vary by item/animation, but the
+ * coarse body-part bucket the cloud cares about is stable.
+ */
+function _normalizeHitZone(zone) {
+  if (typeof zone !== 'string') return 'unknown';
+  const z = zone.toLowerCase();
+  if (z.includes('brain')) return 'brain';
+  if (z.includes('head')) return 'head';
+  // Match left-arm variants (forearm, upperarm, hand) before plain 'arm'.
+  if (z.includes('left') && (z.includes('arm') || z.includes('hand'))) return 'leftarm';
+  if (z.includes('right') && (z.includes('arm') || z.includes('hand'))) return 'rightarm';
+  if (z.includes('left') && (z.includes('leg') || z.includes('thigh') || z.includes('shin') || z.includes('foot'))) return 'leftleg';
+  if (z.includes('right') && (z.includes('leg') || z.includes('thigh') || z.includes('shin') || z.includes('foot'))) return 'rightleg';
+  if (z.includes('torso') || z.includes('chest') || z.includes('belly') || z.includes('back')) return 'torso';
+  return 'unknown';
+}
+
+/**
+ * Coerce a free-form death-type string into the cloud's DeathCause enum.
+ * Looks at both the explicit deathType (mod usually writes this) and the
+ * cause text (more specific phrasing); the first match wins.
+ */
+function _normalizeDeathType(deathType, cause) {
+  const t = String(deathType || '').toLowerCase();
+  const c = String(cause || '').toLowerCase();
+  const blob = t + ' ' + c;
+  if (blob.includes('suicide')) return 'suicide';
+  if (blob.includes('pvp') || blob.includes('player')) return 'pvp';
+  if (blob.includes('fall')) return 'fall';
+  if (blob.includes('infect') || blob.includes('zombie')) return 'infected';
+  if (blob.includes('explos') || blob.includes('grenade') || blob.includes('landmine')) return 'explosion';
+  if (blob.includes('animal') || blob.includes('wolf') || blob.includes('bear')) return 'animal';
+  if (blob.includes('environment') || blob.includes('starvation') || blob.includes('dehydr') || blob.includes('hypotherm') || blob.includes('hyperthermia') || blob.includes('disease') || blob.includes('blood')) return 'environment';
+  return 'unknown';
+}
+
+/**
+ * Defensively coerce a {x,y,z} object into one with finite numbers, falling
+ * back to 0 for any missing axis. The cloud's wire type expects numbers
+ * (not undefined), so this avoids dropping the whole message over a bad
+ * field on one axis.
+ */
+function _posOrZero(p) {
+  return {
+    x: _safeNum(p?.x, 0),
+    y: _safeNum(p?.y, 0),
+    z: _safeNum(p?.z, 0),
+  };
 }
 
 module.exports = { Forwarder };
