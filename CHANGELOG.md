@@ -6,6 +6,82 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.20.0 — 2026-05-25
+
+**The Cloud is plugged in.** v2.19 split the product into Agent + Cloud
+and renamed the surfaces. v2.20 is the release where they actually talk
+over the wire — per-DayZ-server WebSocket pairing to
+`wss://api.citadels.cc/ws/plugin` in the CFTools/GameLabs Server-ID +
+API-key pattern, with live bidirectional traffic once paired.
+
+Full narrative in [`RELEASE_NOTES_v2.20.0.md`](./RELEASE_NOTES_v2.20.0.md).
+
+### Added
+- **Cloud pairing card** on each server's Settings page. Paste a Server ID
+  + API key from `citadels.cc/account → Plugin servers`, the Agent opens an
+  authenticated WS to Cloud for that server. Status flips live as the
+  supervisor reconciles. One WS per DayZ server (Cloud enforces single-
+  socket with `CLOSE_SUPERSEDED`). API key encrypted at rest via the
+  existing AES-256-GCM credential helper.
+- **Auto-connect supervisor.** A 5s reconcile tick + inline `reconcileOne()`
+  hooks open the WS when a linked server transitions to `running` and
+  close it when stopped. No WS spinning for offline servers.
+- **Telemetry forwarding** (consumed by the `@CitadelAdmin` mod's file
+  IPC at `$profile:Citadel/`):
+  - `metrics` every 15s — FPS×100, players, AI/animal/vehicle/entity
+    counts, uptime
+  - `player_position` — batched live positions
+  - `player_connect` / `player_disconnect` (with `duration` seconds)
+  - `kill` (with `is_headshot` + normalized `hit_zone`)
+  - `death` + `suicide` (with normalized `DeathCause` enum)
+  - `chat`
+- **Inbound commands** (Cloud → Agent → Mod). Cloud's `CommandAction`
+  vocabulary (kick, ban, heal, kill, teleport, spawn_item, message,
+  broadcast, set_time, set_weather, wipe_ai, wipe_vehicles) maps to mod
+  IPC actions; result echoed back as `command_result` carrying the
+  original id.
+- **`config_sync` persistence.** Cloud Bans push lands as
+  `$profile:Citadel/config_bans.json` (atomic write). Mod-side
+  enforcement is a separate task.
+
+### Changed
+- **Per-server WS lifecycle.** Forwarders attach on `authenticated` and
+  detach on `disconnected`; the Forwarder instance stays warm across a
+  reconnect flap so the session-start cache (used to compute disconnect
+  durations) doesn't lose state on a 30s blip.
+- **Bundle size.** Removing five page lazy-imports cut the frontend
+  `index` chunk by ~32KB.
+
+### Removed
+- **Chat Log / Kill Feed / Live Dashboard / Bans / Watchlist** moved to
+  Cloud. Page files + backend routes deleted, sidebar entries pruned,
+  permission `bans.manage` stripped from the Moderator role. Per-player
+  ban actions on the Players page still function. `data/bans.json` and
+  `data/watchlist.json` stay on disk for the future migration.
+- **18 historical `RELEASE_NOTES_v*.md` files** at repo root. Past release
+  narratives live in this changelog and in the git tags. Recoverable from
+  git history.
+
+### Fixed
+- **New server didn't appear after Deploy.** Stale `if (!API.token)` guard
+  in `ServersContext.loadServers` was a permanent no-op under M11 cookie
+  auth, so the server list never refreshed. Removed. Added a 750ms
+  follow-up refresh after `deployProgress: complete` to absorb backend
+  write timing.
+- **Cloud sign-in failure logged you out of the Agent.** The backend
+  forwarded `citadels.cc` 401s verbatim, and the dashboard's global 401
+  handler treated those as Agent session expiry. Backend now rewrites
+  upstream 401/403 to 422 so credential failures stay body-level errors.
+- **Activation banner stayed stale up to 5 minutes after activation.**
+  License page now dispatches `citadel:license-changed` on
+  activate/refresh/deactivate; banner subscribes and reloads
+  immediately. Also clears the per-session dismissal flag on activate.
+
+### Dependencies
+- Backend: `ws@^8.18.0` (WebSocket client for the Cloud bridge).
+
+---
+
 ## v2.19.0 — 2026-05-24
 
 **Product-direction release.** Splits the project into two pieces so each can
