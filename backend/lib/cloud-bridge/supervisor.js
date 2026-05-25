@@ -20,6 +20,7 @@
 const ctx = require('../context');
 const storage = require('./storage');
 const { CloudWsClient } = require('./ws-client');
+const { Forwarder } = require('./forwarders');
 const logger = require('../logger');
 
 // Reconcile cadence. 5s keeps changes snappy without being chatty —
@@ -28,6 +29,11 @@ const TICK_MS = 5_000;
 
 // One client per local server id. Map<localServerId, CloudWsClient>.
 const _clients = new Map();
+
+// One forwarder per local server id, attached only while the client is
+// authenticated. We keep the instance across reconnects so the session-start
+// cache (used to compute disconnect durations) survives a flap.
+const _forwarders = new Map();
 
 // Process-wide tick timer.
 let _tickTimer = null;
@@ -110,12 +116,20 @@ function _startClient(localServerId, srv) {
   client.on('authenticated', (cloudServerId) => {
     storage.updateStatus(localServerId, 'connected', null);
     logger.info({ localServerId, cloudServerId }, 'cloud-bridge: link is live');
+    // Attach the telemetry forwarders now that the cloud has accepted us.
+    // Phase 3 ships metrics / player_position / player_connect+disconnect.
+    // The forwarder is idempotent so reconnect→reauth is safe to repeat.
+    _attachForwarder(localServerId, client);
   });
   client.on('auth-failed', (reason) => {
     storage.updateStatus(localServerId, 'auth-failed', String(reason || 'auth refused'));
     logger.warn({ localServerId, reason }, 'cloud-bridge: auth refused — operator must update the link');
   });
   client.on('disconnected', ({ code, reason }) => {
+    // Detach forwarders so we don't queue sends into a dead socket. The
+    // forwarder instance stays alive in _forwarders to preserve the
+    // session-start cache across the reconnect.
+    _detachForwarder(localServerId);
     // The auth-failed path also fires disconnected — preserve the more
     // useful auth-failed status by not overwriting it here.
     const cur = storage.getPublic(localServerId);
@@ -136,10 +150,34 @@ function _startClient(localServerId, srv) {
 function _stopClient(localServerId) {
   const client = _clients.get(localServerId);
   if (!client) return;
+  // Detach forwarders FIRST so any in-flight bridge events don't try to
+  // send into a closing socket. Then drop the forwarder instance entirely
+  // (unlike the disconnect path, which keeps it warm for reconnect).
+  _detachForwarder(localServerId);
+  _forwarders.delete(localServerId);
   try { client.stop(); } catch (err) {
     logger.debug({ err: err.message, localServerId }, 'cloud-bridge: stop threw, ignoring');
   }
   _clients.delete(localServerId);
+}
+
+function _attachForwarder(localServerId, client) {
+  let fwd = _forwarders.get(localServerId);
+  if (!fwd) {
+    fwd = new Forwarder(localServerId);
+    _forwarders.set(localServerId, fwd);
+  }
+  try { fwd.attach(client); } catch (err) {
+    logger.warn({ err: err.message, localServerId }, 'cloud-bridge: forwarder.attach threw');
+  }
+}
+
+function _detachForwarder(localServerId) {
+  const fwd = _forwarders.get(localServerId);
+  if (!fwd) return;
+  try { fwd.detach(); } catch (err) {
+    logger.debug({ err: err.message, localServerId }, 'cloud-bridge: forwarder.detach threw');
+  }
 }
 
 /** Walk every server and reconcile. Used by the boot path and the tick. */
