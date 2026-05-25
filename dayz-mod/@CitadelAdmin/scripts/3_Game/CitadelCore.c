@@ -21,6 +21,7 @@ class CitadelCore
 
     private ref CitadelLogger m_Logger;
     private ref CitadelConfiguration m_Configuration;
+    private ref CitadelServerConfig m_ServerConfig;
 
     private bool m_IsServer;
     private bool m_BlockProcessing;
@@ -93,6 +94,11 @@ class CitadelCore
             m_Configuration.SaveDefaults();
         }
 
+        // Load per-server module config pushed by the cloud (filters,
+        // whitelist). Absent until the agent writes it on first sync.
+        m_ServerConfig = new CitadelServerConfig();
+        m_ServerConfig.LoadFromDisk();
+
         // Initialize logger
         m_Logger = new CitadelLogger("Citadel", m_Configuration.GetDebugEnabled());
         m_Logger.Info(string.Format("CitadelAdmin v%1 initializing (server=%2)", VERSION, m_IsServer.ToString()));
@@ -152,6 +158,7 @@ class CitadelCore
 
     CitadelLogger GetLogger() { return m_Logger; }
     CitadelConfiguration GetConfiguration() { return m_Configuration; }
+    CitadelServerConfig GetServerConfig() { return m_ServerConfig; }
 
     // ─── Player Statistics ────────────────────────────
 

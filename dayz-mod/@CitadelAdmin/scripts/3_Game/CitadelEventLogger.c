@@ -198,6 +198,21 @@ class CitadelEventLogger
         AppendLine(l);
     }
 
+    // filterType: "chat" | "name"; action: "block" | "warn" | "kick".
+    // The agent's event-watcher forwards this as a `filter_action` message.
+    static void LogFilterAction(string filterType, string steamId, string name, string pattern, string original, string action)
+    {
+        string l = "{" + JStr("type", "filterAction");
+        l += "," + JStr("filterType", filterType);
+        l += "," + JStr("steamId", steamId);
+        l += "," + JStr("name", EscapeJson(name));
+        l += "," + JStr("pattern", EscapeJson(pattern));
+        l += "," + JStr("original", EscapeJson(original));
+        l += "," + JStr("action", action);
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
+    }
+
     // ─── Combat Events ──────────────────────────────────
 
     static void LogHit(string victimSteamId, string victimName, string attackerSteamId, string attackerName, string weapon, string ammo, string zone, float damage)

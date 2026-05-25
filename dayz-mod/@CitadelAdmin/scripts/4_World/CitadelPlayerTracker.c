@@ -87,6 +87,7 @@ class CitadelPlayerTracker
             json += "\"y\":" + pos[1].ToString() + ",";
             json += "\"z\":" + pos[2].ToString();
             json += "},";
+            json += "\"heading\":" + CitGetPlayerDirection(player).ToString() + ",";
             json += "\"health\":" + health.ToString() + ",";
             json += "\"blood\":" + blood.ToString() + ",";
             json += "\"shock\":" + shock.ToString() + ",";
