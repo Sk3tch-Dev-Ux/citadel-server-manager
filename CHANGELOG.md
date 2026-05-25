@@ -6,6 +6,93 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.19.0 — 2026-05-24
+
+**Product-direction release.** Splits the project into two pieces so each can
+do its job well:
+
+- **Citadel Agent** (this repo) — the local Windows app for installing,
+  configuring, modding, and operating DayZ servers on the owner's box.
+- **Citadel Cloud** (at citadels.cc/cloud) — the connected layer for remote
+  control, automated restarts and messages, the Trust Network ban database,
+  multi-machine fleet view, and the Citadel Discord bot.
+
+Several features moved out of the Agent into Cloud. The desktop app is now
+called **Citadel Agent** everywhere user-visible. Machine identifiers
+(install path, registry key, Windows service name, exe filename, `%APPDATA%`
+folder) intentionally stay "Citadel" so existing installs upgrade in place.
+
+Full narrative in [`RELEASE_NOTES_v2.19.0.md`](./RELEASE_NOTES_v2.19.0.md).
+
+### Added
+- **`server.bindHost`** config (env: `BIND_HOST`, default `127.0.0.1`).
+  Backend now binds to loopback by default; the dashboard is reachable
+  only from this machine. Remote access is intended to go through Citadel
+  Cloud, not a directly exposed Agent. Set `BIND_HOST=0.0.0.0` to opt back
+  into LAN access (logs a security warning).
+- **Trust Network status banner** on the Bans page — read-only line
+  showing how many community-banned cheaters are synced to this server,
+  with a deep-link to manage in Citadel Cloud.
+- **Setup-wizard Cloud pairing pitch** — the "All Set" step now has an
+  explicit optional next step pointing to citadels.cc/cloud.
+- **`CITADEL_AGENT_SPAWN_BOT`** legacy env-var escape hatch for the
+  Discord bot (see Removed below).
+
+### Changed
+- **Rename: "Citadel" → "Citadel Agent"** across all user-visible labels:
+  window title, tray tooltip + menu, app menu (File/Help/About),
+  notification default title, splash page, installer Name/ProductName/
+  Section/Welcome/Finish/firewall description/shortcut tooltips/Add-Remove
+  Programs DisplayName, README headline, package.json description,
+  shortcutName.
+- **Sidebar nav**: "Citadel Cloud" link (which actually pointed to the
+  local License page) renamed to "Subscription". "Server Hub" breadcrumb
+  → "Your Servers".
+- **Server list positioning**: small inline hint clarifies this is the
+  Agent's local server list, not a multi-machine fleet view; links to
+  Cloud for that.
+- **License banner copy** distinguishes the base Citadel subscription
+  (what activates the Agent) from the optional Citadel Cloud add-on
+  across all states (unactivated/grace/past_due/lapsed/expired).
+- **Setup wizard welcome heading** — "Welcome to Citadel" → "Welcome to
+  Citadel Agent"; intro reframed as "Local DayZ server management for
+  Windows."
+
+### Removed
+- **Cloud Bans management UI** — `/global-bans` page, sidebar link,
+  `POST /api/cloud-bans/sync`, `GET /api/cloud-bans/list`. Trust Network
+  *enforcement* (downloading the synced ban list and writing it to
+  `ban.txt`) stays local. Management moves to citadels.cc/cloud.
+- **Restart Scheduler UI + cron loop** — `/scheduler` per-server page,
+  routes, and the in-Agent timer engine. Existing
+  `data/restart-schedules.json` is left on disk for inspection but no
+  longer loaded; schedules become inert. Cloud will own this going
+  forward and call `/api/server-control/restart` on the Agent when a
+  window fires.
+- **Webhook config UI + CRUD** — `/webhooks` page, sidebar link, routes.
+  The 20+ internal `fireWebhooks()` call sites stay intact as the event
+  seam; outbound HTTP delivery is stubbed until Cloud's event channel
+  ships. Same treatment for `sendDiscordWebhook()`.
+- **Discord bot bundled in this repo** — extracted to its own
+  [citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot) repo. The
+  Agent no longer launches the bot by default. Set
+  `CITADEL_AGENT_SPAWN_BOT=1` to restore the legacy in-Agent spawn for
+  one release. `/api/discord/*` API surface kept intact so the standalone
+  bot still authenticates and calls in.
+- **Pre-split planning docs** — `AUDIT_REPORT.md`,
+  `AUDIT_REPORT_2026-05-19.md`, `ROADMAP.md`, `PRIORITIZED_FIXES.md`,
+  `docs/admin/smoke-test-global-bans.md`. All reference a product surface
+  that no longer exists post-split. Recoverable from git history.
+
+### Security
+- Default bind changes from `0.0.0.0` to `127.0.0.1`. The Agent dashboard
+  is no longer reachable from the local network unless explicitly opted
+  in via `BIND_HOST`. **This is a breaking change for anyone who relied
+  on browsing to `http://<server-ip>:3001` from another machine** — see
+  the release notes for the migration path.
+
+---
+
 ## v2.18.6 — 2026-05-19
 
 Six-commit follow-up to v2.18.5 closing the remaining items from the
