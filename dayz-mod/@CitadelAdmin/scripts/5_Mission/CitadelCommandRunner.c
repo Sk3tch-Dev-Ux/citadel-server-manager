@@ -455,6 +455,8 @@ class CitadelCommandRunner
         else if (action == "config.reload")
         {
             GetCitadel().GetConfiguration().LoadFromDisk();
+            if (GetCitadel().GetServerConfig())
+                GetCitadel().GetServerConfig().LoadFromDisk();
             success = true;
             GetCitadel().GetLogger().Info("Configuration reloaded from disk");
         }

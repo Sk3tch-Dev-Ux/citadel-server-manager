@@ -194,6 +194,33 @@ modded class MissionServer
                 return;
             }
 
+            // Cloud module enforcement — whitelist + name filters. Mirrors the
+            // ban-check pattern above (reject before register/super). Config is
+            // reloaded per-connect so operator edits apply without a reconnect.
+            CitadelServerConfig scfg = GetCitadel().GetServerConfig();
+            if (scfg)
+            {
+                scfg.LoadFromDisk();
+                if (scfg.IsLoaded())
+                {
+                    if (scfg.IsBlockedByWhitelist(steamId))
+                    {
+                        CitadelEventLogger.LogFilterAction("name", steamId, name, "whitelist", name, "kick");
+                        GetCitadel().GetLogger().Info("Whitelist kick: " + name + " (" + steamId + ")");
+                        GetGame().DisconnectPlayer(identity, steamId);
+                        return;
+                    }
+                    CitadelNameFilterRule nrule = scfg.MatchName(name);
+                    if (nrule)
+                    {
+                        CitadelEventLogger.LogFilterAction("name", steamId, name, nrule.pattern, name, nrule.action);
+                        GetCitadel().GetLogger().Info("Name filter kick: " + name + " (matched '" + nrule.pattern + "')");
+                        GetGame().DisconnectPlayer(identity, steamId);
+                        return;
+                    }
+                }
+            }
+
             // Set identity on the player hooks
             player.CitSetIdentity(steamId, name);
 
@@ -314,6 +341,7 @@ modded class MissionServer
 
                     // Find the player who sent the message using our own registry
                     string senderSteamId = "";
+                    PlayerBase senderPlayer = null;
                     map<string, Man> chatPlayers = GetCitadel().GetActivePlayers();
                     for (int ci = 0; ci < chatPlayers.Count(); ci++)
                     {
@@ -323,6 +351,7 @@ modded class MissionServer
                             if (chatPlayer.GetIdentity().GetName() == senderName)
                             {
                                 senderSteamId = chatPlayer.GetIdentity().GetPlainId();
+                                senderPlayer = chatPlayer;
                                 break;
                             }
                         }
@@ -339,6 +368,25 @@ modded class MissionServer
                         channelName = "admin";
 
                     CitadelEventLogger.LogChat(senderSteamId, senderName, messageText, channelName);
+
+                    // Chat-filter enforcement. This event fires after the line
+                    // is broadcast, so block/warn are audit-only here; kick
+                    // removes the sender. True suppression needs chat-input RPC
+                    // hooking. Config is loaded on connect; matches use it.
+                    CitadelServerConfig chatCfg = GetCitadel().GetServerConfig();
+                    if (chatCfg && chatCfg.IsLoaded())
+                    {
+                        CitadelChatFilterRule crule = chatCfg.MatchChat(messageText);
+                        if (crule)
+                        {
+                            CitadelEventLogger.LogFilterAction("chat", senderSteamId, senderName, crule.pattern, messageText, crule.action);
+                            if (crule.action == "kick" && senderPlayer && senderPlayer.GetIdentity())
+                            {
+                                GetCitadel().GetLogger().Info("Chat filter kick: " + senderName + " (matched '" + crule.pattern + "')");
+                                GetGame().DisconnectPlayer(senderPlayer.GetIdentity(), senderPlayer.GetIdentity().GetPlainId());
+                            }
+                        }
+                    }
                 }
                 break;
             }

@@ -26,6 +26,7 @@ const logger = require('../logger');
 
 const ALLOWED_TYPES = new Set([
   'bans',
+  'server_config',
   'chat_filters',
   'name_filters',
   'whitelist',
@@ -72,8 +73,16 @@ function handle({ localServerId, message }) {
     return false;
   }
 
-  const file = path.join(dir, `config_${cfgType}.json`);
-  const payload = message.data ?? null;
+  // `server_config` carries the full per-server module config as
+  // { full, config }. Unwrap to a bare PluginServerConfig at a stable
+  // filename the mod's CitadelServerConfig loader reads, rather than the
+  // generic config_<type>.json envelope used for the other types.
+  const isServerConfig = cfgType === 'server_config';
+  const file = path.join(dir, isServerConfig ? 'server_config.json' : `config_${cfgType}.json`);
+  const rawData = message.data ?? null;
+  const payload = isServerConfig && rawData && typeof rawData === 'object' && 'config' in rawData
+    ? rawData.config
+    : rawData;
   try {
     // Atomic-ish write: stage to a sibling .tmp then rename. Avoids the
     // mod reading a half-written file if it polls in the same instant.
