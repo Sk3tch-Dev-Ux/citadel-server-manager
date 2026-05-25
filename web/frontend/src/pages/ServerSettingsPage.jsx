@@ -7,6 +7,7 @@ import DirectoryBrowserModal from '../components/DirectoryBrowserModal';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { X, Info, Download, Trash2, HardDrive, RotateCcw } from '../components/Icon';
+import CloudLinkCard from '../components/CloudLinkCard';
 
 export default function ServerSettingsPage({ serverId }) {
   const { confirm, DialogComponent } = useConfirmDialog();
@@ -198,6 +199,9 @@ export default function ServerSettingsPage({ serverId }) {
           {saving ? 'Saving...' : 'Save'}
         </button>
       </div>
+
+      {/* Citadel Cloud pairing — pasted Server ID + API key from citadels.cc */}
+      <CloudLinkCard serverId={serverId} />
 
       <Accordion title="Process" icon="" defaultOpen={true}>
         <div style={{ marginBottom: 14 }}>

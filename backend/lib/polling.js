@@ -505,6 +505,9 @@ function gracefulShutdown(httpServer, signal) {
   try { require('./restart-scheduler').shutdown(); } catch { /* not loaded */ }
   // Stop Citadel bridge file polling
   try { require('./citadel-bridge').shutdownAll(); } catch { /* not loaded */ }
+  // Close any open cloud-bridge WebSockets so we exit clean instead of
+  // letting the cloud's idle timer reap us 60s later.
+  try { require('./cloud-bridge/supervisor').shutdownAll(); } catch { /* not loaded */ }
   // Close WebSocket server
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
   // Flush pending data writes

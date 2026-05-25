@@ -191,6 +191,7 @@ app.use(express.static(WEB_DIST));
 // ─── Routes ──────────────────────────────────────────────
 require('./routes/setup.routes')(app);
 require('./routes/citadel-license.routes')(app);
+require('./routes/cloud-bridge.routes')(app);
 require('./routes/cloud-bans.routes')(app);
 require('./routes/cftools-import.routes')(app);
 require('./routes/auth.routes')(app);
@@ -458,6 +459,14 @@ if (process.env.NODE_ENV !== 'test') {
     // Start Citadel self-update checker (polls citadels.cc for new versions)
     try { require('./lib/update-checker').startUpdateChecker(); } catch (err) {
       logger.error({ err }, 'Failed to start update checker');
+    }
+
+    // Start the cloud-bridge supervisor — opens a WS per linked DayZ server
+    // (one CloudWsClient instance per ctx.servers row with a saved key) and
+    // keeps them connected. Reconciles on a 5s tick; per-server routes also
+    // call reconcileOne() directly for instant updates.
+    try { require('./lib/cloud-bridge/supervisor').start(); } catch (err) {
+      logger.error({ err }, 'Failed to start cloud-bridge supervisor');
     }
 
     // Listen
