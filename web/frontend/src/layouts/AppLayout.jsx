@@ -11,12 +11,7 @@ import CitadelLicenseBanner from '../components/CitadelLicenseBanner';
 import AppUpdateBanner from '../components/AppUpdateBanner';
 import CitadelUpdateBanner from '../components/CitadelUpdateBanner';
 import ConfigSearchModal from '../components/ConfigSearchModal';
-// Note: ShieldBan is imported alongside the ServerNav icons further down
-// in this file — the second import statement covers both the top-level
-// sidebar nav and the per-server sub-navigation. Keeping it in one place
-// avoids the "symbol already declared" error.
 import { Home, Rocket, Users, Play, Square, RotateCcw, RefreshCw, LogOut, Monitor, Gauge, Settings, Menu, X, Crown, Shield } from '../components/Icon';
-// `Eye` is imported at the bottom of the file for the server nav — reuse that import in the JSX below via hoisting.
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -109,9 +104,6 @@ export default function AppLayout() {
           </Link>
           <Link to="/priority-queue" className={`nav-item ${location.pathname === '/priority-queue' ? 'active' : ''}`}>
             <span className="nav-icon"><Crown size={16} /></span>Priority Queue
-          </Link>
-          <Link to="/watchlist" className={`nav-item ${location.pathname === '/watchlist' ? 'active' : ''}`}>
-            <span className="nav-icon"><Eye size={16} /></span>Watchlist
           </Link>
           {(user.role === 'admin' || user.role === 'owner') && (
             <Link to="/audit" className={`nav-item ${location.pathname === '/audit' ? 'active' : ''}`}>
@@ -224,7 +216,7 @@ export default function AppLayout() {
 }
 
 // Server sub-navigation extracted as a sub-component
-import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, ShieldBan, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart, Eye, Star, Activity, Crosshair, MessageSquare, HardDrive } from '../components/Icon';
+import { LayoutDashboard, BarChart3, Terminal, Package, FolderOpen, FileText, FileCode, Wrench, AlertTriangle, Zap, Globe, Layers, MapPin, Filter, Puzzle, ShoppingCart, Eye, Star, HardDrive } from '../components/Icon';
 
 function ServerNav({ serverId, serverName, activeTab }) {
   const serverItems = [
@@ -233,10 +225,6 @@ function ServerNav({ serverId, serverName, activeTab }) {
     { id: 'console', icon: <Terminal size={16} />, label: 'Console' },
     { id: 'players', icon: <Users size={16} />, label: 'Players' },
     { id: 'logs', icon: <FileText size={16} />, label: 'Logs' },
-    { id: 'bans', icon: <ShieldBan size={16} />, label: 'Bans' },
-    { id: 'live', icon: <Activity size={16} />, label: 'Live Dashboard' },
-    { id: 'kill-feed', icon: <Crosshair size={16} />, label: 'Kill Feed' },
-    { id: 'chat-log', icon: <MessageSquare size={16} />, label: 'Chat Log' },
     { id: 'backups', icon: <HardDrive size={16} />, label: 'Backups' },
   ];
 

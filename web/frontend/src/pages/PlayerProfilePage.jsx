@@ -252,7 +252,6 @@ export default function PlayerProfilePage() {
           { id: 'overview', label: 'Timeline', icon: <Clock size={14} /> },
           { id: 'snapshot', label: 'Live State', icon: <Activity size={14} /> },
           { id: 'sessions', label: `Sessions (${profile.sessions?.length || 0})`, icon: <Calendar size={14} /> },
-          { id: 'chat', label: `Chat (${profile.recentChat?.length || 0})`, icon: <MessageSquare size={14} /> },
           { id: 'notes', label: `Notes (${profile.notes?.length || 0})`, icon: <StickyNote size={14} /> },
         ].map((t) => (
           <button
@@ -276,7 +275,6 @@ export default function PlayerProfilePage() {
         />
       )}
       {tab === 'sessions' && <SessionsTab sessions={profile.sessions} currentSessionStart={profile.currentSessionStart} />}
-      {tab === 'chat' && <ChatTab chat={profile.recentChat} />}
       {tab === 'notes' && (
         <NotesTab
           notes={profile.notes}
@@ -409,31 +407,6 @@ function SessionsTab({ sessions, currentSessionStart }) {
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-function ChatTab({ chat }) {
-  if (!chat || chat.length === 0) {
-    return <EmptyState icon={<MessageSquare size={36} />} title="No chat messages recorded" description="Chat messages from this player will accumulate here. The last 100 are kept." />;
-  }
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {chat.map((m, i) => (
-        <div key={`${m.timestamp}-${i}`} style={{
-          display: 'flex', gap: 10, padding: '6px 10px',
-          background: 'var(--bg-surface, var(--bg-card))', border: '1px solid var(--border)', borderRadius: 6,
-          alignItems: 'baseline',
-        }}>
-          <span style={{ fontSize: 10, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-muted)', minWidth: 66 }}>
-            {fmtTime(m.timestamp)}
-          </span>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--accent)', minWidth: 54 }}>
-            {m.channel}
-          </span>
-          <span style={{ fontSize: 13, flex: 1, wordBreak: 'break-word' }}>{m.message}</span>
-        </div>
-      ))}
     </div>
   );
 }

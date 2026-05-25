@@ -13,7 +13,6 @@ import ServerOverviewPage from './pages/ServerOverviewPage';
 import PlayersPage from './pages/PlayersPage';
 import ConsolePage from './pages/ConsolePage';
 import LogsPage from './pages/LogsPage';
-import BansPage from './pages/BansPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AccessDeniedPage from './pages/AccessDeniedPage';
@@ -41,16 +40,12 @@ const TraderEditorPage = lazy(() => import('./pages/TraderEditorPage'));
 const LootVisualizerPage = lazy(() => import('./pages/LootVisualizerPage'));
 const QuestCreatorPage = lazy(() => import('./pages/QuestCreatorPage'));
 const LoadoutsPage = lazy(() => import('./pages/LoadoutsPage'));
-const LiveDashboardPage = lazy(() => import('./pages/LiveDashboardPage'));
 const DangerzonePage = lazy(() => import('./pages/DangerzonePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PriorityQueuePage = lazy(() => import('./pages/PriorityQueuePage'));
 const CitadelLicensePage = lazy(() => import('./pages/CitadelLicensePage'));
-const KillFeedPage = lazy(() => import('./pages/KillFeedPage'));
-const ChatLogPage = lazy(() => import('./pages/ChatLogPage'));
 const BackupsPage = lazy(() => import('./pages/BackupsPage'));
 const PlayerProfilePage = lazy(() => import('./pages/PlayerProfilePage'));
-const WatchlistPage = lazy(() => import('./pages/WatchlistPage'));
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
@@ -71,7 +66,7 @@ function PermGuard({ permission, children }) {
   if (user.role === 'admin') return children;
   // Map roles to allowed permissions (matches backend role definitions)
   const rolePerms = {
-    moderator: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','mods.view','logs.view','metrics.view','chat.send','bans.manage','scheduler.manage','priority.manage'],
+    moderator: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','mods.view','logs.view','metrics.view','chat.send','scheduler.manage','priority.manage'],
     viewer: ['server.view','players.view','mods.view','logs.view','metrics.view'],
   };
   const perms = rolePerms[user.role] || [];
@@ -141,7 +136,6 @@ export default function AppRouter() {
           <Route path="dashboard" element={<ErrorBoundary><SystemDashboardPage /></ErrorBoundary>} />
           <Route path="deploy" element={<PermGuard permission="server.deploy"><ErrorBoundary><Lazy><DeployPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="users" element={<PermGuard permission="users.manage"><ErrorBoundary><Lazy><UsersPage /></Lazy></ErrorBoundary></PermGuard>} />
-          <Route path="watchlist" element={<ErrorBoundary><Lazy><WatchlistPage /></Lazy></ErrorBoundary>} />
           <Route path="audit" element={<PermGuard permission="users.manage"><ErrorBoundary><Lazy><AuditLogPage /></Lazy></ErrorBoundary></PermGuard>} />
           <Route path="notifications" element={<ErrorBoundary><Lazy><NotificationsPage /></Lazy></ErrorBoundary>} />
           <Route path="settings" element={<PermGuard permission="license.manage"><ErrorBoundary><Lazy><SettingsPage /></Lazy></ErrorBoundary></PermGuard>} />
@@ -171,12 +165,8 @@ export default function AppRouter() {
             <Route path="loot-visualizer" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={LootVisualizerPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="quest-creator" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={QuestCreatorPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="loadouts" element={<PermGuard permission="files.manage"><ErrorBoundary><Lazy><ServerPage Component={LoadoutsPage} /></Lazy></ErrorBoundary></PermGuard>} />
-            <Route path="live" element={<ErrorBoundary><Lazy><ServerPage Component={LiveDashboardPage} /></Lazy></ErrorBoundary>} />
-            <Route path="kill-feed" element={<ErrorBoundary><Lazy><ServerPage Component={KillFeedPage} /></Lazy></ErrorBoundary>} />
-            <Route path="chat-log" element={<ErrorBoundary><Lazy><ServerPage Component={ChatLogPage} /></Lazy></ErrorBoundary>} />
             <Route path="backups" element={<PermGuard permission="server.restart"><ErrorBoundary><Lazy><ServerPage Component={BackupsPage} /></Lazy></ErrorBoundary></PermGuard>} />
             <Route path="logs" element={<ErrorBoundary><ServerPage Component={LogsPage} /></ErrorBoundary>} />
-            <Route path="bans" element={<PermGuard permission="bans.manage"><ErrorBoundary><ServerPage Component={BansPage} /></ErrorBoundary></PermGuard>} />
             <Route path="settings" element={<PermGuard permission="server.settings"><ErrorBoundary><ServerPage Component={ServerSettingsPage} /></ErrorBoundary></PermGuard>} />
             <Route path="dangerzone" element={<PermGuard permission="server.dangerzone"><ErrorBoundary><Lazy><ServerPage Component={DangerzonePage} /></Lazy></ErrorBoundary></PermGuard>} />
           </Route>

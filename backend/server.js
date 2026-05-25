@@ -44,7 +44,7 @@ ctx.servers = loadJSON(CONFIG.dataDir, 'servers.json', []);
 ctx.users = loadJSON(CONFIG.dataDir, 'users.json', []);
 ctx.roles = loadJSON(CONFIG.dataDir, 'roles.json', [
   { id: 'admin', name: 'Admin', permissions: ['*'], color: '#ff3b3b', builtIn: true },
-  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','bans.manage','priority.manage','mods.view','logs.view','metrics.view','chat.send','messenger.manage'], color: '#3b82f6', builtIn: true },
+  { id: 'moderator', name: 'Moderator', permissions: ['server.view','server.start','server.stop','server.restart','players.view','players.kick','priority.manage','mods.view','logs.view','metrics.view','chat.send','messenger.manage'], color: '#3b82f6', builtIn: true },
   { id: 'viewer', name: 'Viewer', permissions: ['server.view','players.view','mods.view','logs.view','metrics.view'], color: '#00ff6a', builtIn: true },
   // Audit H6 Layer 1. The Discord bot's API key used to grant unrestricted
   // access to every action in /api/discord/action — anyone with the key
@@ -217,11 +217,8 @@ require('./routes/discord-user-roles.routes')(app);
 require('./routes/backup.routes')(app);
 require('./routes/dangerzone.routes')(app);
 require('./routes/pvp.routes')(app);
-require('./routes/chat.routes')(app);
 require('./routes/player-profiles.routes')(app);
-require('./routes/watchlist.routes')(app);
 require('./routes/priority-queue.routes')(app);
-require('./routes/bans.routes')(app);
 require('./routes/actions.routes')(app);
 require('./routes/items.routes')(app);
 require('./routes/types-editor.routes')(app);
