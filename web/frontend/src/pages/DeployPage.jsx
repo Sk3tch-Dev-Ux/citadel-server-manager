@@ -36,8 +36,18 @@ export default function DeployPage() {
   useEffect(() => {
     const handler = (data) => {
       setProgress(data);
-      if (data.status === 'complete') { window.addToast('Server deployed successfully!', 'success'); loadServers(); }
-      else if (data.status === 'error') { window.addToast(data.message, 'error'); setDeploying(false); }
+      if (data.status === 'complete') {
+        window.addToast('Server deployed successfully!', 'success');
+        // Refresh twice: once immediately, once after the backend has
+        // had a tick to finish persisting servers.json. Without the
+        // follow-up the new server can race the GET and not appear
+        // until the 10s poll interval catches up.
+        loadServers();
+        setTimeout(() => { loadServers(); }, 750);
+      } else if (data.status === 'error') {
+        window.addToast(data.message, 'error');
+        setDeploying(false);
+      }
     };
     socket.on('deployProgress', handler);
     return () => socket.off('deployProgress', handler);

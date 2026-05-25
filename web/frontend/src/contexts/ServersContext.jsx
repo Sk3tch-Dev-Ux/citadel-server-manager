@@ -11,9 +11,18 @@ export function ServersProvider({ children }) {
   const [servers, setServers] = useState([]);
 
   const loadServers = useCallback(async () => {
-    if (!API.token) return;
-    const data = await API.get('/api/servers');
-    if (Array.isArray(data)) setServers(data);
+    // Audit M11 — auth is cookie-based; we no longer gate on API.token
+    // (which is always '' under cookie auth). Callers that fire this
+    // while logged out are already protected by the `if (user)` guard
+    // in the effect below; a stray call returns a 401 and the global
+    // session-expired handler does the right thing.
+    try {
+      const data = await API.get('/api/servers');
+      if (Array.isArray(data)) setServers(data);
+    } catch {
+      // Network blip or session expiry — leave existing list intact;
+      // the next poll or socket event will reconcile.
+    }
   }, []);
 
   useEffect(() => {

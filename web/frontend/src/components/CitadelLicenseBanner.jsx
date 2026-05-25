@@ -1,3 +1,4 @@
+/* global sessionStorage */
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../api';
@@ -72,7 +73,16 @@ export default function CitadelLicenseBanner() {
     let cancelled = false;
     (async () => { if (!cancelled) await loadStatus(); })();
     const timer = setInterval(loadStatus, POLL_INTERVAL_MS);
-    return () => { cancelled = true; clearInterval(timer); };
+    // Activation / refresh / deactivate on CitadelLicensePage dispatch
+    // this event so the banner reloads immediately instead of waiting
+    // out the 5-minute poll interval.
+    const onLicenseChanged = () => { loadStatus(); };
+    window.addEventListener('citadel:license-changed', onLicenseChanged);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      window.removeEventListener('citadel:license-changed', onLicenseChanged);
+    };
   }, [loadStatus]);
 
   // Pull cloud-bans stats only for the states where we'd show them.

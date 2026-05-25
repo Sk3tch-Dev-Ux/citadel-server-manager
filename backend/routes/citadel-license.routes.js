@@ -57,9 +57,17 @@ function registerCitadelLicenseRoutes(app) {
         subscription: result.state.subscription,
       });
     } catch (err) {
-      res.status(err.status || 500).json({
+      // Don't forward upstream 401s verbatim — the dashboard's global 401
+      // handler interprets that as "your Agent session expired" and logs
+      // the admin out. A 401 here means "the citadels.cc credentials you
+      // typed are wrong", which is a body-level error, not a session one.
+      // Same logic for 403 (e.g. account locked / device cap hit upstream).
+      const upstream = err.status || 500;
+      const status = (upstream === 401 || upstream === 403) ? 422 : upstream;
+      res.status(status).json({
         error: err.code || 'ACTIVATION_FAILED',
         message: err.message,
+        upstreamStatus: upstream,
       });
     }
   });

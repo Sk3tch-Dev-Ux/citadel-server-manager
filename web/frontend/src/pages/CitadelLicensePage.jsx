@@ -1,3 +1,4 @@
+/* global sessionStorage, CustomEvent */
 import { useState, useEffect, useCallback } from 'react';
 import API from '../api';
 import {
@@ -78,6 +79,11 @@ export default function CitadelLicensePage() {
         setPassword('');
         setName('');
         await loadStatus();
+        // Banner has its own status state polled on a 5-minute timer.
+        // Clear its per-session dismissal and nudge it to reload so the
+        // "Activate Citadel" strip disappears immediately, not 5 min later.
+        try { sessionStorage.removeItem('citadel:license-banner-dismissed'); } catch { /* sessionStorage unavailable */ }
+        window.dispatchEvent(new CustomEvent('citadel:license-changed'));
         window.addToast?.('Citadel Cloud activated on this machine.', 'success');
       }
     } catch (err) {
@@ -92,6 +98,7 @@ export default function CitadelLicensePage() {
     try {
       await API.post('/api/citadel-license/refresh', {});
       await loadStatus();
+      window.dispatchEvent(new CustomEvent('citadel:license-changed'));
       window.addToast?.('License refreshed.', 'success');
     } catch (err) {
       window.addToast?.(`Refresh failed: ${err.message}`, 'error');
@@ -106,6 +113,7 @@ export default function CitadelLicensePage() {
     try {
       await API.del('/api/citadel-license/deactivate');
       await loadStatus();
+      window.dispatchEvent(new CustomEvent('citadel:license-changed'));
       window.addToast?.('Citadel Cloud deactivated on this machine.', 'info');
     } catch (err) {
       window.addToast?.(`Deactivate failed: ${err.message}`, 'error');
