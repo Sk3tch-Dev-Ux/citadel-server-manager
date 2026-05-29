@@ -16,6 +16,9 @@ module.exports = {
       lines: 16,
     },
   },
+  // Redirect the data dir to a temp location before any module loads, so tests
+  // never read or pollute the real ./data (e.g. fail2ban ip-bans.json).
+  setupFiles: ['<rootDir>/tests/setup-env.js'],
   testMatch: ['**/*.test.js'],
   forceExit: true,
   detectOpenHandles: true,

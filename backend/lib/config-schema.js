@@ -27,7 +27,7 @@ const CONFIG_SCHEMA = {
     password: { type: 'string', default: '', sensitive: true, envKey: 'STEAM_PASSWORD', description: 'Steam account password' },
   },
   directories: {
-    data: { type: 'string', default: './data', description: 'Data directory for JSON persistence' },
+    data: { type: 'string', default: './data', envKey: 'CITADEL_DATA_DIR', description: 'Data directory for JSON persistence' },
     cache: { type: 'string', default: 'C:\\Citadel\\cache', description: 'Cache directory for SteamCMD downloads' },
     deployments: { type: 'string', default: 'C:\\Citadel\\deployments', description: 'Default server deployment root' },
     backups: { type: 'string', default: './.backups', description: 'Default backup storage directory' },
