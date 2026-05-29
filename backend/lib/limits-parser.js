@@ -5,6 +5,8 @@
  * valid categories, usage flags, value flags, and tags for the DayZ economy.
  */
 
+const { escapeXml } = require('./xml-escape');
+
 /**
  * Parse cfglimitsdefinition.xml content into structured data.
  *
@@ -47,28 +49,28 @@ function buildLimitsXml(data) {
   // Categories
   lines.push('    <categories>');
   for (const name of data.categories) {
-    lines.push(`        <category name="${name}"/>`);
+    lines.push(`        <category name="${escapeXml(name)}"/>`);
   }
   lines.push('    </categories>');
 
   // Usage flags
   lines.push('    <usageflags>');
   for (const name of data.usages) {
-    lines.push(`        <usage name="${name}"/>`);
+    lines.push(`        <usage name="${escapeXml(name)}"/>`);
   }
   lines.push('    </usageflags>');
 
   // Value flags
   lines.push('    <valueflags>');
   for (const name of data.values) {
-    lines.push(`        <value name="${name}"/>`);
+    lines.push(`        <value name="${escapeXml(name)}"/>`);
   }
   lines.push('    </valueflags>');
 
   // Tags
   lines.push('    <tags>');
   for (const name of data.tags) {
-    lines.push(`        <tag name="${name}"/>`);
+    lines.push(`        <tag name="${escapeXml(name)}"/>`);
   }
   lines.push('    </tags>');
 

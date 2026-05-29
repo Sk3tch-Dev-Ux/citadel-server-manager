@@ -15,7 +15,12 @@
     "semi": ["error", "always"],
     "no-undef": "error",
     "no-constant-condition": "warn",
-    "no-empty": ["warn", { "allowEmptyCatch": true }]
+    "no-empty": ["warn", { "allowEmptyCatch": true }],
+    "no-async-promise-executor": "error",
+    "no-promise-executor-return": "warn",
+    "require-atomic-updates": "warn",
+    "no-return-await": "warn",
+    "no-unused-expressions": ["warn", { "allowShortCircuit": true, "allowTernary": true }]
   },
   "ignorePatterns": ["node_modules/", "*.bak"]
 }

@@ -3,6 +3,8 @@
  * Parses and rebuilds globals.xml for the Globals Editor.
  */
 
+const { escapeXml } = require('./xml-escape');
+
 // ─── Metadata for known globals variables ────────────────────
 
 const GLOBALS_METADATA = {
@@ -71,7 +73,7 @@ function buildGlobalsXml(globals) {
     '<variables>',
   ];
   for (const g of globals) {
-    lines.push(`    <var name="${g.name}" type="${g.type}" value="${g.value}"/>`);
+    lines.push(`    <var name="${escapeXml(g.name)}" type="${escapeXml(g.type)}" value="${escapeXml(g.value)}"/>`);
   }
   lines.push('</variables>');
   return lines.join('\n') + '\n';

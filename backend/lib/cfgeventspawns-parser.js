@@ -14,6 +14,8 @@
  * A <zone> element always follows its corresponding <pos> and belongs to that position.
  */
 
+const { escapeXml } = require('./xml-escape');
+
 // ─── cfgeventspawns.xml Parser ─────────────────────────────────
 
 /**
@@ -131,7 +133,7 @@ function positionToXml(pos) {
   if (pos.z != null) posAttrs += ` z="${pos.z}"`;
   if (pos.a != null) posAttrs += ` a="${pos.a}"`;
   if (pos.y != null) posAttrs += ` y="${pos.y}"`;
-  if (pos.group) posAttrs += ` group="${pos.group}"`;
+  if (pos.group) posAttrs += ` group="${escapeXml(pos.group)}"`;
 
   parts.push(`        <pos${posAttrs} />`);
 
@@ -152,10 +154,10 @@ function positionToXml(pos) {
  */
 function eventSpawnToXml(event) {
   if (!event.positions || event.positions.length === 0) {
-    return `    <event name="${event.name}">\n    </event>`;
+    return `    <event name="${escapeXml(event.name)}">\n    </event>`;
   }
 
-  const lines = [`    <event name="${event.name}">`];
+  const lines = [`    <event name="${escapeXml(event.name)}">`];
   for (const pos of event.positions) {
     lines.push(positionToXml(pos));
   }

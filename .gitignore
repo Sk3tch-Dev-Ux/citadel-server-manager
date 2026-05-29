@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Test coverage artifacts
+coverage/
+
 # Environment variables (contains secrets!)
 .env
 .env.*

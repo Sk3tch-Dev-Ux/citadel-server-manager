@@ -15,6 +15,7 @@ const { readServerConfig } = require('./dayz-config');
 const { autoDetectMods } = require('./mod-manager');
 const { getSidecarPort } = require('./sidecar-manager');
 const RCONClient = require('./rcon-client');
+const { validateKeyConfig } = require('./credential-encryption');
 
 /**
  * Initialize runtime state for a single server.
@@ -155,6 +156,16 @@ async function startup() {
     const msg = 'JWT_SECRET is not configured. Run the Setup Wizard or check your .env file.';
     logger.fatal(msg);
     throw new Error(msg);
+  }
+
+  // Validate the credential-encryption key loudly at boot. Throws in production
+  // if missing/dangerously short; warns (non-fatally) on a non-recommended format.
+  try {
+    const keyCheck = validateKeyConfig();
+    if (keyCheck.warning) logger.warn(keyCheck.warning);
+  } catch (err) {
+    logger.fatal(err.message);
+    throw err;
   }
 
   cleanupStaleTempFiles(ctx.CONFIG.dataDir);

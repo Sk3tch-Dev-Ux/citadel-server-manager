@@ -28,6 +28,57 @@ const IV_LENGTH = 12;         // 96 bits — recommended for GCM
 const AUTH_TAG_LENGTH = 16;   // 128 bits
 const ALGORITHM = 'aes-256-gcm';
 
+// A properly generated key (`openssl rand -hex 32`) is 64 hex chars. Anything
+// shorter than this in production almost certainly means a typo or a truncated
+// value, which silently weakens the derived AES key.
+const MIN_KEY_LENGTH = 32;
+const RECOMMENDED_KEY_RE = /^[0-9a-fA-F]{64}$/;
+
+/**
+ * Validate the configured CREDENTIAL_ENCRYPTION_KEY at startup.
+ *
+ * Throws in production if the key is missing or dangerously short, and warns
+ * (non-fatally) if it does not match the recommended 64-hex-char format. Call
+ * this once during boot so misconfiguration fails loudly and immediately rather
+ * than lazily on the first credential operation.
+ *
+ * @returns {{ ok: boolean, warning?: string }}
+ */
+function validateKeyConfig() {
+  const isProd = process.env.NODE_ENV === 'production';
+  const key = process.env.CREDENTIAL_ENCRYPTION_KEY;
+
+  if (!key) {
+    if (isProd) {
+      throw new Error(
+        'CREDENTIAL_ENCRYPTION_KEY is required in production. ' +
+        'Generate one with: openssl rand -hex 32 — then add to .env.'
+      );
+    }
+    return { ok: true, warning: 'CREDENTIAL_ENCRYPTION_KEY not set (dev fallback to JWT_SECRET)' };
+  }
+
+  if (key.length < MIN_KEY_LENGTH) {
+    const msg =
+      `CREDENTIAL_ENCRYPTION_KEY is only ${key.length} characters — too short to be ` +
+      `secure. Generate a proper key with: openssl rand -hex 32 (yields 64 chars).`;
+    if (isProd) throw new Error(msg);
+    return { ok: false, warning: msg };
+  }
+
+  if (!RECOMMENDED_KEY_RE.test(key)) {
+    return {
+      ok: true,
+      warning:
+        'CREDENTIAL_ENCRYPTION_KEY does not match the recommended 64-hex-char format ' +
+        '(openssl rand -hex 32). It will still be used as a passphrase, but a full ' +
+        '256-bit hex key is strongly preferred.',
+    };
+  }
+
+  return { ok: true };
+}
+
 /**
  * Cached derived key (lazy-initialized on first call).
  * @type {Buffer|null}
@@ -180,4 +231,5 @@ module.exports = {
   resolveCredential,
   encryptForEnv,
   clearKeyCache,
+  validateKeyConfig,
 };

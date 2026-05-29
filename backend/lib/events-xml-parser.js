@@ -3,6 +3,8 @@
  * Parses and serializes events.xml for event spawn configuration.
  */
 
+const { escapeXml, escapeXmlText } = require('./xml-escape');
+
 // ─── Events XML Parser ──────────────────────────────────────
 
 /**
@@ -106,7 +108,7 @@ function parseEventsXml(xmlContent) {
  * @returns {string} XML fragment
  */
 function eventToXml(event) {
-  const lines = [`    <event name="${event.name}">`];
+  const lines = [`    <event name="${escapeXml(event.name)}">`];
   lines.push(`        <nominal>${event.nominal}</nominal>`);
   lines.push(`        <min>${event.min}</min>`);
   lines.push(`        <max>${event.max}</max>`);
@@ -129,7 +131,7 @@ function eventToXml(event) {
   }
 
   if (event.secondary) {
-    lines.push(`        <secondary>${event.secondary}</secondary>`);
+    lines.push(`        <secondary>${escapeXmlText(event.secondary)}</secondary>`);
   }
 
   const flags = event.flags || {};
@@ -139,14 +141,14 @@ function eventToXml(event) {
     `remove_damaged="${flags.remove_damaged || 0}"/>`
   );
 
-  lines.push(`        <position>${event.position || 'fixed'}</position>`);
+  lines.push(`        <position>${escapeXmlText(event.position || 'fixed')}</position>`);
 
   if (event.children && event.children.length > 0) {
     lines.push('        <children>');
     for (const child of event.children) {
       lines.push(
         `            <child lootmax="${child.lootmax}" lootmin="${child.lootmin}" ` +
-        `max="${child.max}" min="${child.min}" type="${child.type}"/>`
+        `max="${child.max}" min="${child.min}" type="${escapeXml(child.type)}"/>`
       );
     }
     lines.push('        </children>');

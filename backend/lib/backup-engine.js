@@ -17,6 +17,25 @@ const { safePath } = require('./helpers');
 
 const TICK_MS = 60_000; // 60 seconds
 
+/**
+ * Validate a client-supplied backup filename before it ever touches the
+ * filesystem. Strips any directory component (defence-in-depth on top of
+ * safePath) and requires a plain `.zip` name with no traversal segments.
+ *
+ * @param {string} filename
+ * @returns {string|null} the safe basename, or null if it is not a valid backup name
+ */
+function sanitizeBackupFilename(filename) {
+  if (typeof filename !== 'string' || !filename) return null;
+  // Reject anything with path separators or parent-dir segments outright.
+  if (/[\\/]/.test(filename) || filename.includes('..')) return null;
+  const base = path.basename(filename);
+  // Backups are always `backup-<ts>.zip` or `pre-restore-<ts>.zip`; accept any
+  // plain alphanumeric/dash/dot/underscore name ending in .zip.
+  if (!/^[A-Za-z0-9._-]+\.zip$/.test(base)) return null;
+  return base;
+}
+
 const DEFAULT_CONFIG = {
   enabled: false,
   backupAtStartup: false,
@@ -351,14 +370,17 @@ function deleteBackup(serverId, filename, type) {
   const srv = ctx.servers.find(s => s.id === serverId);
   if (!srv || !srv.installDir) return false;
 
+  const safeName = sanitizeBackupFilename(filename);
+  if (!safeName) return false;
+
   const backupsRoot = path.join(srv.installDir, '.backups', type || 'manual');
-  const fullPath = safePath(backupsRoot, filename);
+  const fullPath = safePath(backupsRoot, safeName);
   if (!fullPath) return false;
   if (!fs.existsSync(fullPath)) return false;
 
   try {
     fs.unlinkSync(fullPath);
-    addLog(serverId, 'info', 'backup', `Deleted ${type || 'manual'} backup: ${filename}`);
+    addLog(serverId, 'info', 'backup', `Deleted ${type || 'manual'} backup: ${safeName}`);
     return true;
   } catch (err) {
     logger.error({ err, serverId, filename }, 'Backup: delete failed');
@@ -380,10 +402,13 @@ function findBackupFile(serverId, filename, type) {
   const srv = ctx.servers.find(s => s.id === serverId);
   if (!srv || !srv.installDir) return null;
 
+  const safeName = sanitizeBackupFilename(filename);
+  if (!safeName) return null;
+
   const typesToCheck = type ? [type] : ['manual', 'automated'];
   for (const t of typesToCheck) {
     const backupsRoot = path.join(srv.installDir, '.backups', t);
-    const fullPath = safePath(backupsRoot, filename);
+    const fullPath = safePath(backupsRoot, safeName);
     if (fullPath && fs.existsSync(fullPath)) {
       return { zipPath: fullPath, type: t };
     }
@@ -687,5 +712,6 @@ module.exports = {
   runStartupBackups,
   getBackupConfig,
   saveBackupConfig,
+  sanitizeBackupFilename,
   DEFAULT_CONFIG,
 };

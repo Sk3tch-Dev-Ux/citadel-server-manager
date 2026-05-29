@@ -28,6 +28,7 @@
  * control over formatting (4-space indent matching DayZ conventions).
  */
 const { XMLParser } = require('fast-xml-parser');
+const { escapeXml } = require('./xml-escape');
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -187,13 +188,10 @@ function fmtChance(val) {
   return n.toFixed(2);
 }
 
-function escXml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+// Alias kept for the existing call sites; delegates to the shared escaper
+// (which additionally escapes `'` and collapses CR/LF/TAB — harmless for the
+// item/preset class names used here, none of which contain those characters).
+const escXml = escapeXml;
 
 module.exports = {
   parseSpawnableTypes,

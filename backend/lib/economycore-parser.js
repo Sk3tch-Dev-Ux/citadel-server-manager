@@ -10,6 +10,8 @@
  * verbatim. Only the <ce> blocks are editable through the UI.
  */
 
+const { escapeXml } = require('./xml-escape');
+
 const VALID_FILE_TYPES = ['types', 'spawnabletypes', 'globals', 'economy', 'events', 'messages'];
 
 /**
@@ -17,7 +19,7 @@ const VALID_FILE_TYPES = ['types', 'spawnabletypes', 'globals', 'economy', 'even
  * Allows alphanumeric, hyphens, underscores, and single-level subdirectories.
  * Blocks path traversal (../), absolute paths, and special characters.
  */
-const VALID_FOLDER_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_\-]*(\/[a-zA-Z0-9][a-zA-Z0-9_\-]*)*$/;
+const VALID_FOLDER_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_-]*(\/[a-zA-Z0-9][a-zA-Z0-9_-]*)*$/;
 
 /**
  * Strict regex for valid XML file names.
@@ -196,20 +198,6 @@ function buildEconomyCoreXml(folders, rawClasses, rawDefaults) {
  */
 function normalizeIndent(block) {
   return block.replace(/\r\n/g, '\n').split('\n').join('\n    ').trim();
-}
-
-/**
- * Escape special XML characters in attribute values.
- * Covers all five predefined XML entities.
- */
-function escapeXml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/[\r\n\t]/g, ' '); // Collapse whitespace in attribute values
 }
 
 module.exports = {

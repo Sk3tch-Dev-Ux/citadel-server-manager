@@ -5,6 +5,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { escapeXml } = require('./xml-escape');
 
 // ─── Limits Parser ──────────────────────────────────────────
 
@@ -151,7 +152,7 @@ function parseTypesXml(xmlContent, sourceFile, userDefs) {
  * Serialize a single item back to XML string.
  */
 function itemToXml(item, userDefs) {
-  const lines = [`    <type name="${item.name}">`];
+  const lines = [`    <type name="${escapeXml(item.name)}">`];
   lines.push(`        <nominal>${item.nominal}</nominal>`);
   lines.push(`        <lifetime>${item.lifetime}</lifetime>`);
   lines.push(`        <restock>${item.restock}</restock>`);
@@ -169,7 +170,7 @@ function itemToXml(item, userDefs) {
   );
 
   if (item.category) {
-    lines.push(`        <category name="${item.category}"/>`);
+    lines.push(`        <category name="${escapeXml(item.category)}"/>`);
   }
 
   // Smart user tag preservation
@@ -192,12 +193,12 @@ function itemToXml(item, userDefs) {
         for (const t of def.tag) { const i = remainingTag.indexOf(t); if (i >= 0) remainingTag.splice(i, 1); }
       }
     }
-    for (const u of preserved) lines.push(`        <user name="${u}"/>`);
+    for (const u of preserved) lines.push(`        <user name="${escapeXml(u)}"/>`);
   }
 
-  for (const u of remainingUsage) lines.push(`        <usage name="${u}"/>`);
-  for (const v of remainingValue) lines.push(`        <value name="${v}"/>`);
-  for (const t of remainingTag) lines.push(`        <tag name="${t}"/>`);
+  for (const u of remainingUsage) lines.push(`        <usage name="${escapeXml(u)}"/>`);
+  for (const v of remainingValue) lines.push(`        <value name="${escapeXml(v)}"/>`);
+  for (const t of remainingTag) lines.push(`        <tag name="${escapeXml(t)}"/>`);
 
   lines.push('    </type>');
   return lines.join('\n');
