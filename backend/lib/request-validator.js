@@ -151,7 +151,10 @@ function validate(schema, source = 'body') {
   return function (req, res, next) {
     const result = validateObject(schema, req[source]);
     if (!result.ok) {
-      return res.status(400).json({ error: 'Validation failed', details: result.errors });
+      // `error` carries a complete human-readable message (matching the
+      // codebase's { error: <message> } convention); `details` keeps the
+      // structured per-field list for clients that want it.
+      return res.status(400).json({ error: result.errors.join('; '), details: result.errors });
     }
     req.validated = req.validated || {};
     req.validated[source] = result.cleaned;

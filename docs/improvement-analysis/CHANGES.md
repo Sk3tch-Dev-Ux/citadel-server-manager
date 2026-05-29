@@ -152,9 +152,20 @@ Coverage ratchet raised to 14 / 6 / 9 / 16 (overall now 14.9% / 16.6% lines).
 
 ---
 
+## 12. Request-validator rollout (batch 1)  *(P1)*
+
+- **Error envelope refined** — `validate()` now returns `{ error: <joined human message>, details: [...] }` instead of a generic `'Validation failed'`, so `error` matches the codebase's existing `{ error: <message> }` convention (frontend-compatible) while `details` keeps the structured per-field list.
+- **Applied to three more endpoints across three route files**, each a genuine defensive improvement, each verified to load and pass:
+  - `POST /api/servers/:id/update` — `updateType` constrained to `['game','mod']`; `modId`/`modName` length-bounded (previously accepted any `updateType`).
+  - `POST /api/priority-queue` — `steamId` required + length-bounded (replaces the inline `if (!steamId)` check).
+  - (`POST /api/servers/:id/message` from §10.)
+- The remaining ~37 body-taking endpoints can adopt the same one-line `validate({...})` middleware incrementally; each should be reviewed individually because a few accept polymorphic fields (e.g. timestamp-or-string) that need a loose schema. Rollout is deliberately staged rather than a risky big-bang.
+
+---
+
 ## Test summary
 
-New suites under `backend/tests/` (139 tests, all passing):
+New suites under `backend/tests/` (140 tests, all passing):
 
 | File | Covers |
 |---|---|

@@ -10,6 +10,7 @@ const {
 } = require('../lib/priority-engine');
 const auth = require('../middleware/auth');
 const { addAudit } = require('../lib/audit');
+const { validate } = require('../lib/request-validator');
 const logger = require('../lib/logger');
 
 module.exports = function (app) {
@@ -60,10 +61,12 @@ module.exports = function (app) {
   });
 
   // ─── Add entry ────────────────────────────────────────────
-  app.post('/api/priority-queue', auth('priority.manage'), (req, res) => {
+  app.post('/api/priority-queue',
+    auth('priority.manage'),
+    validate({ steamId: { type: 'string', required: true, minLength: 1, maxLength: 32 } }),
+    (req, res) => {
     try {
       const { steamId, name, role, expiresAt } = req.body;
-      if (!steamId) return res.status(400).json({ error: 'steamId is required' });
 
       const entry = addEntry({
         steamId,

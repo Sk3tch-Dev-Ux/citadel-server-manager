@@ -112,8 +112,14 @@ describe('validate middleware', () => {
     const { nextCalled, status, payload } = run({ name: { type: 'string', required: true } }, {});
     expect(nextCalled).toBe(false);
     expect(status).toBe(400);
-    expect(payload.error).toBe('Validation failed');
-    expect(payload.details).toContain('name is required');
+    expect(payload.error).toBe('name is required');           // human-readable message
+    expect(payload.details).toContain('name is required');    // structured list
+  });
+
+  test('joins multiple errors into the error message', () => {
+    const { payload } = run({ a: { required: true }, b: { required: true } }, {});
+    expect(payload.error).toBe('a is required; b is required');
+    expect(payload.details).toHaveLength(2);
   });
 
   test('does not mutate the original req.body', () => {

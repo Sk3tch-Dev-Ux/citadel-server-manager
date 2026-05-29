@@ -6,6 +6,7 @@ const { addAudit } = require('../lib/audit');
 const { startServer, stopServer, restartServer } = require('../lib/server-lifecycle');
 const { triggerManualUpdate, getUpdateState, cancelUpdate } = require('../lib/auto-updater');
 const { authForServer } = require('../middleware/auth');
+const { validate } = require('../lib/request-validator');
 
 module.exports = function(app) {
   app.get('/api/servers/:id/status', authForServer(), (req, res) => {
@@ -84,7 +85,14 @@ module.exports = function(app) {
 
   // ─── Auto-Update Endpoints ────────────────────────────────
 
-  app.post('/api/servers/:id/update', authForServer('server.restart'), async (req, res) => {
+  app.post('/api/servers/:id/update',
+    authForServer('server.restart'),
+    validate({
+      updateType: { type: 'string', enum: ['game', 'mod'] },
+      modId: { type: 'string', maxLength: 64 },
+      modName: { type: 'string', maxLength: 200 },
+    }),
+    async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
