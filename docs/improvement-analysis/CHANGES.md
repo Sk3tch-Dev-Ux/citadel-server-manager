@@ -163,9 +163,23 @@ Coverage ratchet raised to 14 / 6 / 9 / 16 (overall now 14.9% / 16.6% lines).
 
 ---
 
+## 13. OpenAPI spec (auto-generated from the route table)  *(P1)*
+
+The analysis flagged "zero API documentation across 200+ endpoints." Rather than hand-maintain a spec that drifts immediately, this **derives the spec from the live Express route table** so it always reflects what's actually mounted — and adds **no new runtime dependency**.
+
+- **`lib/openapi.js`** — pure, tested generator: `extractRoutes(app)` reads `app._router.stack`; `expressPathToOpenApi` templates `:params` → `{params}`; `tagFor` groups by the first `/api/<segment>`; `generateOpenApi` emits a valid OpenAPI 3.0.3 document with per-path operations, path parameters, JWT bearer + cookie security schemes, and a sorted tag list. Wildcard/catch-all routes are skipped.
+- **Endpoints** (registered after all routes so the table is complete, both auth-gated to any authenticated user):
+  - `GET /api/openapi.json` — the generated spec.
+  - `GET /api/docs` — a minimal Swagger UI page (loaded from CDN, so nothing is bundled).
+- Per-endpoint request-body schemas are stubs for now; they can be enriched later by feeding the `request-validator` definitions into the generator. Descriptions/responses are conservative defaults (200/400/401).
+
+Coverage ratchet raised to 15 / 7 / 10 / 16 (`openapi.js` 100%).
+
+---
+
 ## Test summary
 
-New suites under `backend/tests/` (140 tests, all passing):
+New suites under `backend/tests/` (151 tests, all passing):
 
 | File | Covers |
 |---|---|
@@ -183,6 +197,7 @@ New suites under `backend/tests/` (140 tests, all passing):
 | `tests/request-validator.test.js` | declarative request validation (types, coercion, bounds, enum, pattern, custom, middleware) |
 | `tests/rcon-validator.test.js` | RCON command whitelist/blacklist/arg-rules/sanitization (security) |
 | `tests/port-checker.test.js` | pre-start port-conflict detection (managed + system layers) |
+| `tests/openapi.test.js` | route-table → OpenAPI 3.0 generation (path templating, tags, security, wildcard skip) |
 
 **Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
 

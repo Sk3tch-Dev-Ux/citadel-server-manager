@@ -252,6 +252,35 @@ try {
 }
 require('./routes/citadel-bridge.routes')(app);
 
+// ─── OpenAPI spec (auto-generated from the live route table) ───
+// Registered AFTER all routes so the introspected table is complete.
+// Auth-gated (any authenticated user) — exposes the API surface, so not public.
+try {
+  const auth = require('./middleware/auth');
+  const { extractRoutes, generateOpenApi } = require('./lib/openapi');
+  const pkg = require('./package.json');
+
+  app.get('/api/openapi.json', auth(), (_req, res) => {
+    res.json(generateOpenApi(extractRoutes(app), {
+      title: 'Citadel Agent API',
+      version: pkg.version,
+    }));
+  });
+
+  // Minimal Swagger UI page (loaded from CDN — no bundled dependency).
+  app.get('/api/docs', auth(), (_req, res) => {
+    res.type('html').send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Citadel Agent API</title>
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css"></head>
+<body><div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script>window.onload=()=>SwaggerUIBundle({url:'/api/openapi.json',dom_id:'#swagger-ui'});</script>
+</body></html>`);
+  });
+} catch (err) {
+  require('./lib/logger').warn({ err: err.message }, 'Failed to register OpenAPI routes');
+}
+
 // ─── WebSocket (authenticated) ───────────────────────────
 //
 // Audit M11 — token comes from either:
