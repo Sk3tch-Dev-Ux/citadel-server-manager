@@ -230,6 +230,16 @@ This unblocks long-window dashboards, trend analysis, and CSV/JSON export. `bett
 
 ---
 
+## 17. Kink-working pass — green suite, hermetic tests, start race  *(Windows hardening)*
+
+A focused round of working out latent issues (no Linux scope):
+
+- **Suite fully green (235/235).** Three long-red tests were stale/non-robust *assertions*, not product bugs (all pass on Windows): the login test matched an outdated `/Invalid credentials/` regex (API returns "Invalid username or password."), and two tests compared `mkdtempSync` paths against `safePath()`'s `realpathSync` output, which differs on macOS's symlinked tmpdir. Fixed the assertions; `npm test` now exits 0.
+- **Hermetic tests (data-dir isolation).** Root cause of an intermittent auth `429`: tests shared the real `./data` dir, so fail2ban's `ip-bans.json` accumulated failed-login records across runs until `127.0.0.1` was banned. Added a `CITADEL_DATA_DIR` env override (`config-schema`) and a Jest `setupFiles` hook that points it at a throwaway temp dir before any module loads. Tests no longer read or pollute `./data`. (The env override is also useful for deployments wanting a configurable data dir.)
+- **Fixed a server-start double-spawn race** (`server-lifecycle.js`, flagged by `require-atomic-updates`): `startServer()` checked `state.status` then `await`ed process-detection + port-check *before* claiming `'starting'`, so two concurrent starts (rapid double-click, or UI + auto-restart) could both pass the guard and spawn two DayZ processes. Now claims `'starting'` synchronously right after the guard (no `await` between read and write), with a `'stopped'` reset on the port-conflict path.
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):
