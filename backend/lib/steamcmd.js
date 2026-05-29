@@ -13,6 +13,7 @@ const {
   STEAMCMD_UPDATE_TIMEOUT_MS,
 } = require('./constants');
 const { ROOT } = require('./paths');
+const { withSteamLock } = require('./steamcmd-lock');
 
 /**
  * Extract a zip into a directory. Audit M15 — replaces a PowerShell
@@ -113,7 +114,7 @@ function findWorkshopContent(workshopId, serverInstallDir) {
   return null;
 }
 
-async function downloadWorkshopMod(workshopId, modName, serverId) {
+async function _downloadWorkshopModImpl(workshopId, modName, serverId) {
   const cmdPath = await ensureSteamCMD();
   const appId = ctx.CONFIG.steam.appId;
   if (!ctx.steamCredentials.username) throw new Error('Steam credentials required.');
@@ -202,7 +203,7 @@ async function downloadWorkshopMod(workshopId, modName, serverId) {
  * To ensure the token is properly cached, we let SteamCMD fully complete
  * its login + quit cycle instead of killing it early.
  */
-async function validateSteamLogin(username, password, guardCode) {
+async function _validateSteamLoginImpl(username, password, guardCode) {
   const cmdPath = await ensureSteamCMD();
   const args = [];
   if (guardCode) args.push('+set_steam_guard_code', guardCode);
@@ -294,7 +295,7 @@ async function validateSteamLogin(username, password, guardCode) {
  * @param {string} installDir - Server installation directory
  * @returns {Promise<void>} Resolves on success, rejects on failure
  */
-async function updateServerApp(serverId, installDir) {
+async function _updateServerAppImpl(serverId, installDir) {
   const cmdPath = await ensureSteamCMD();
 
   const srv = ctx.servers.find(s => s.id === serverId);
@@ -372,7 +373,7 @@ async function updateServerApp(serverId, installDir) {
  * @param {string} modId - Steam Workshop item ID
  * @returns {Promise<void>} Resolves on success, rejects on failure
  */
-async function updateWorkshopMod(serverId, installDir, modId) {
+async function _updateWorkshopModImpl(serverId, installDir, modId) {
   const cmdPath = await ensureSteamCMD();
   const appId = ctx.CONFIG.steam.appId;
   if (!ctx.steamCredentials.username) throw new Error('Steam credentials required.');
@@ -478,6 +479,24 @@ async function downloadWorkshopModWithRetry(workshopId, modName, serverId, maxRe
     }
   }
   throw lastError;
+}
+
+// ─── SteamCMD concurrency lock ──────────────────────────────
+// Every SteamCMD invocation is serialized through a single global mutex so two
+// processes never share the staging dir / auth-token cache at once. The retry
+// wrapper calls the locked downloadWorkshopMod per attempt, so the lock is
+// released during the inter-retry backoff (not held while sleeping).
+function downloadWorkshopMod(workshopId, modName, serverId) {
+  return withSteamLock('downloadWorkshopMod', () => _downloadWorkshopModImpl(workshopId, modName, serverId));
+}
+function validateSteamLogin(username, password, guardCode) {
+  return withSteamLock('validateSteamLogin', () => _validateSteamLoginImpl(username, password, guardCode));
+}
+function updateServerApp(serverId, installDir) {
+  return withSteamLock('updateServerApp', () => _updateServerAppImpl(serverId, installDir));
+}
+function updateWorkshopMod(serverId, installDir, modId) {
+  return withSteamLock('updateWorkshopMod', () => _updateWorkshopModImpl(serverId, installDir, modId));
 }
 
 module.exports = { ensureSteamCMD, findWorkshopContent, downloadWorkshopMod: downloadWorkshopModWithRetry, validateSteamLogin, updateServerApp, updateWorkshopMod };

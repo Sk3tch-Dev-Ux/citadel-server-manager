@@ -31,6 +31,11 @@ module.exports = {
   /** Timeout for tasklist/taskkill child processes (ms) */
   PROCESS_CMD_TIMEOUT_MS: 5_000,
 
+  /** TTL for cached process-detection results (ms). Metrics polling and the
+   *  crash detector both query the same PIDs/executables within a single tick;
+   *  a short cache collapses those into one tasklist/Get-Process call. */
+  PROCESS_DETECT_TTL_MS: 1_000,
+
   /** Delay between restart attempts (ms) - DEPRECATED: use exponential backoff in restartServer */
   RESTART_DELAY_MS: 3_000,
 

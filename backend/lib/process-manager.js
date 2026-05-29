@@ -6,13 +6,29 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('./logger');
-const { PROCESS_CMD_TIMEOUT_MS, LAUNCH_GRACE_PERIOD_MS } = require('./constants');
+const { PROCESS_CMD_TIMEOUT_MS, LAUNCH_GRACE_PERIOD_MS, PROCESS_DETECT_TTL_MS } = require('./constants');
 
 // Guards to prevent overlapping spawns (one per executable/pid)
 const _pendingDetect = new Set();
 const _pendingMetrics = new Set();
 
+// Short-lived cache of detection results, keyed by `exe:<name>` / `pid:<n>`.
+// Metrics polling + the crash detector hit the same targets within one tick;
+// caching for PROCESS_DETECT_TTL_MS collapses those into a single OS call.
+const _detectCache = new Map();
+function _detectCacheGet(key) {
+  const entry = _detectCache.get(key);
+  if (entry && (Date.now() - entry.at) < PROCESS_DETECT_TTL_MS) return entry;
+  return null;
+}
+function _detectCacheSet(key, value) {
+  _detectCache.set(key, { value, at: Date.now() });
+}
+
 function detectRunningProcess(executable) {
+  const cacheKey = `exe:${executable}`;
+  const cached = _detectCacheGet(cacheKey);
+  if (cached) return Promise.resolve(cached.value);
   if (_pendingDetect.has(executable)) return Promise.resolve(null);
   _pendingDetect.add(executable);
   return new Promise((resolve) => {
@@ -23,17 +39,22 @@ function detectRunningProcess(executable) {
     let stdout = '';
     const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, PROCESS_CMD_TIMEOUT_MS);
     proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    // Note: transient failures (error/timeout) are NOT cached, so the next tick
+    // retries immediately rather than waiting out the TTL.
     proc.on('error', () => { clearTimeout(killTimer); _pendingDetect.delete(executable); resolve(null); });
     proc.on('close', () => {
       clearTimeout(killTimer);
       _pendingDetect.delete(executable);
-      if (!stdout) return resolve(null);
-      const lines = stdout.trim().split('\n').filter(l => l.includes(executable));
-      if (lines.length > 0) {
-        const match = lines[0].match(/"[^"]+","(\d+)"/);
-        return resolve(match ? parseInt(match[1]) : null);
+      let result = null;
+      if (stdout) {
+        const lines = stdout.trim().split('\n').filter(l => l.includes(executable));
+        if (lines.length > 0) {
+          const match = lines[0].match(/"[^"]+","(\d+)"/);
+          result = match ? parseInt(match[1]) : null;
+        }
       }
-      resolve(null);
+      _detectCacheSet(cacheKey, result);
+      resolve(result);
     });
   });
 }
@@ -67,6 +88,8 @@ setInterval(() => {
       delete _lastCpuSamples[pidStr];
     }
   }
+  // Bound the detect cache (1s-TTL entries for departed pids would otherwise linger).
+  _detectCache.clear();
 }, 5 * 60 * 1000).unref(); // Every 5 minutes, unref so it doesn't prevent shutdown
 
 function getProcessMetrics(pid) {
@@ -213,6 +236,9 @@ function detectProcessByPid(pid) {
   return new Promise((resolve) => {
     const safePid = parseInt(pid, 10);
     if (isNaN(safePid) || safePid <= 0) return resolve(false);
+    const cacheKey = `pid:${safePid}`;
+    const cached = _detectCacheGet(cacheKey);
+    if (cached) return resolve(cached.value);
     const proc = spawn('tasklist', ['/FI', `PID eq ${safePid}`, '/FO', 'CSV', '/NH'], {
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'ignore'],
@@ -220,11 +246,14 @@ function detectProcessByPid(pid) {
     let stdout = '';
     const killTimer = setTimeout(() => { try { proc.kill(); } catch {} }, PROCESS_CMD_TIMEOUT_MS);
     proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    // Transient failures are not cached so the next tick retries immediately.
     proc.on('error', () => { clearTimeout(killTimer); resolve(false); });
     proc.on('close', () => {
       clearTimeout(killTimer);
       // tasklist returns "INFO: No tasks are running..." when PID not found
-      resolve(stdout.includes(String(safePid)));
+      const result = stdout.includes(String(safePid));
+      _detectCacheSet(cacheKey, result);
+      resolve(result);
     });
   });
 }

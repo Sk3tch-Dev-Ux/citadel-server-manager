@@ -122,9 +122,19 @@ Coverage ratchet raised to statements 12 / branches 4 / functions 6 / lines 13 (
 
 ---
 
+## 9. Quick-win batch: process-detection cache + SteamCMD lock + more tests  *(P1)*
+
+- **Process-detection TTL cache** (`process-manager.js`) — `detectRunningProcess`/`detectProcessByPid` now cache results for `PROCESS_DETECT_TTL_MS` (1 s, new constant). Metrics polling and the crash detector hit the same PIDs/executables within one tick; the cache collapses those into a single `tasklist` call (~50% fewer spawns with several servers). Transient failures are deliberately **not** cached, and the cache is bounded by the existing 5-minute cleanup interval.
+- **SteamCMD concurrency lock** (new `steamcmd-lock.js`, wired into `steamcmd.js`) — a global, non-reentrant mutex serializes every SteamCMD operation (`downloadWorkshopMod`, `validateSteamLogin`, `updateServerApp`, `updateWorkshopMod`) so two processes never share the staging dir / auth-token cache at once (previously a download + auto-update race could corrupt files). The retry wrapper re-acquires per attempt, so the lock is released during inter-retry backoff. `ensureSteamCMD` is intentionally left unlocked (called inside locked ops) to avoid reentrant deadlock.
+- **Auto-updater journal tests** — exported the write-ahead-log helpers and covered the journal round-trip (write/overwrite/read/clear), corrupt-file tolerance, no-temp-residue, plus `formatCountdownMessage` pluralization and `getNotificationConfig` defaults/overrides/legacy-fallback.
+
+Coverage ratchet raised to 13 / 5 / 7 / 14 (overall now 14.2% / 15.9% lines; `steamcmd-lock.js` 100%).
+
+---
+
 ## Test summary
 
-New suites under `backend/tests/` (60 tests, all passing):
+New suites under `backend/tests/` (83 tests, all passing):
 
 | File | Covers |
 |---|---|
@@ -136,6 +146,9 @@ New suites under `backend/tests/` (60 tests, all passing):
 | `tests/backoff.test.js` | exponential-backoff schedule, clamp, cooldown reset, per-key state |
 | `tests/crash-circuit-breaker.test.js` | auto-restart circuit breaker (rolling-hour window) |
 | `tests/data-store.test.js` | atomic JSON persistence, coalescing, temp cleanup, symlink refusal |
+| `tests/process-detect-cache.test.js` | process-detection TTL cache (spawn mocked) |
+| `tests/steamcmd-lock.test.js` | SteamCMD serialization mutex |
+| `tests/auto-updater-journal.test.js` | update write-ahead journal + countdown/notification config helpers |
 
 **Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
 

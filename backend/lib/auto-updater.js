@@ -872,4 +872,10 @@ module.exports = {
   recoverInterruptedUpdates,
   getNotificationConfig,
   DEFAULT_NOTIFICATIONS,
+  // Exported for testing the write-ahead journal in isolation.
+  journalStateTransition,
+  readStateJournal,
+  clearStateJournal,
+  getStateJournalPath,
+  formatCountdownMessage,
 };
