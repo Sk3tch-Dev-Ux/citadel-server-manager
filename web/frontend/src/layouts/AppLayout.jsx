@@ -118,6 +118,10 @@ export default function AppLayout() {
               <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
                 <span className="nav-icon"><Settings size={16} /></span>Settings
               </Link>
+              {/* Backend-served Swagger UI (auth-gated); opens in a new tab. */}
+              <a href="/api/docs" target="_blank" rel="noopener noreferrer" className="nav-item">
+                <span className="nav-icon"><FileCode size={16} /></span>API Docs
+              </a>
             </>
           )}
 

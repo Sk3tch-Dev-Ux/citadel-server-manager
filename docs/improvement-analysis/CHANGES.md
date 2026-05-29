@@ -309,6 +309,21 @@ Builds clean (`vite build`). Note: the two ESLint "unused `Download`/`StatCard`"
 
 ---
 
+## 24. Config hot-reload  *(feature)*
+
+`citadel.config.json` edits now apply at runtime without a restart (the dead `hotReloadable` array showed the intent existed but was never wired). New `lib/config-watcher.js`:
+
+- **Dependency-free** — `fs.watchFile` (stat polling) instead of chokidar/`fs.watch`, so it survives the write-temp-then-rename pattern editors use (which detaches inode-based watchers).
+- **Pure diff core** — `computeConfigChanges(parsed, structured, envOverrides)` decides what to apply: hot sections (`logging`, `backups`, `polling`) are applied live; `server`/`auth`/`directories` are reported as needing a restart; **env-overridden and sensitive fields are never touched** (env wins; secrets stay in `.env`).
+- **Live side-effect** — a `logging.level` change updates the running pino logger immediately (debug a live server without restarting it).
+- Started from the server boot sequence; `onReload(fn)` lets other modules react. 9 tests covering the diff matrix + reload-from-file (valid/invalid/missing).
+
+## 25. Wire OpenAPI docs into the UI  *(feature)*
+
+Added an **API Docs** link to the System nav section (admin-only) that opens the backend-served Swagger UI (`/api/docs`, §13) in a new tab. Same-origin so the auth cookie carries; uses the existing `FileCode` icon. Builds clean.
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):
