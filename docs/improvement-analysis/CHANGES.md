@@ -141,9 +141,20 @@ Coverage ratchet raised to 13 / 5 / 7 / 14 (overall now 14.2% / 15.9% lines; `st
 
 ---
 
+## 11. Tests for security-critical validators  *(P1)*
+
+Coverage for two previously-untested, security/reliability-critical modules (purely additive — no source changes):
+
+- **`rcon-validator.js`** (the RCON command whitelist/blacklist that prevents command injection) — now ~72%: accepts every whitelisted command, blocks dangerous ones (`shutdown`, `#exec`, `quit`, …), rejects unknown commands, enforces per-command argument rules (`kick` slot must be numeric, `maxplayers` 1–100, `say` needs a body), and hardens input (empty/non-string/over-length/control-character/case-insensitive). Also covers `sanitizeCommand` and `getAllowedCommands`.
+- **`port-checker.js`** (pre-start port-conflict detection) — now ~86%: managed-server conflict detection across game/query/rcon ports, current-server exclusion, ignoring stopped/crashed servers, and merging/deduping the system-level (PowerShell, mocked) layer.
+
+Coverage ratchet raised to 14 / 6 / 9 / 16 (overall now 14.9% / 16.6% lines).
+
+---
+
 ## Test summary
 
-New suites under `backend/tests/` (100 tests, all passing):
+New suites under `backend/tests/` (139 tests, all passing):
 
 | File | Covers |
 |---|---|
@@ -159,6 +170,8 @@ New suites under `backend/tests/` (100 tests, all passing):
 | `tests/steamcmd-lock.test.js` | SteamCMD serialization mutex |
 | `tests/auto-updater-journal.test.js` | update write-ahead journal + countdown/notification config helpers |
 | `tests/request-validator.test.js` | declarative request validation (types, coercion, bounds, enum, pattern, custom, middleware) |
+| `tests/rcon-validator.test.js` | RCON command whitelist/blacklist/arg-rules/sanitization (security) |
+| `tests/port-checker.test.js` | pre-start port-conflict detection (managed + system layers) |
 
 **Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
 
