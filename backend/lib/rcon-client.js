@@ -5,7 +5,7 @@ const dgram = require('dgram');
 const { Buffer } = require('buffer');
 const logger = require('./logger');
 const ctx = require('./context');
-const { RCON_LOGIN_TIMEOUT_MS, RCON_COMMAND_TIMEOUT_MS, RCON_KEEPALIVE_INTERVAL_MS } = require('./constants');
+const { RCON_LOGIN_TIMEOUT_MS, RCON_COMMAND_TIMEOUT_MS, RCON_KEEPALIVE_INTERVAL_MS, RCON_STALE_TIMEOUT_MS } = require('./constants');
 
 // CRC32 lookup table (BattlEye protocol requirement)
 const crc32Table = (() => {
@@ -32,6 +32,25 @@ class RCONClient {
     this.multipartBuffers = new Map();
     this.keepAliveInterval = null;
     this.lastFPS = 0; this.monitorEnabled = false;
+    // Timestamp of the last valid packet received (any type). Used to detect a
+    // silently-dead connection independent of the keepalive send/ack path.
+    this.lastResponseAt = 0;
+  }
+
+  /**
+   * Verify a received packet's BattlEye CRC32. The 4-byte little-endian
+   * checksum at bytes 2..5 covers everything from byte 6 to the end (the same
+   * range this client checksums when building outbound packets, and the same
+   * range the server checksums when building responses).
+   *
+   * @param {Buffer} msg
+   * @returns {boolean} true if the checksum matches
+   */
+  _verifyChecksum(msg) {
+    if (msg.length < 7) return false;
+    const expected = msg.readUInt32LE(2);
+    const actual = computeCRC32(msg.slice(6));
+    return expected === actual;
   }
 
   _buildPacket(payload) {
@@ -62,6 +81,12 @@ class RCONClient {
       }, RCON_LOGIN_TIMEOUT_MS);
       this.socket.on('message', (msg) => {
         if (msg.length < 7 || msg[0] !== 0x42 || msg[1] !== 0x45) return;
+        // Drop packets whose CRC32 does not match — corrupted/spoofed UDP.
+        if (!this._verifyChecksum(msg)) {
+          logger.debug({ serverId: this.serverId }, 'RCON: dropping packet with bad CRC32');
+          return;
+        }
+        this.lastResponseAt = Date.now();
         const type = msg[6]; const payload = msg.slice(7);
         switch (type) {
           case 0x00:
@@ -186,8 +211,23 @@ class RCONClient {
 
   _startKeepAlive() {
     this._stopKeepAlive();
+    // Mark the connection fresh so the staleness check has a baseline.
+    this.lastResponseAt = Date.now();
     this.keepAliveInterval = setInterval(async () => {
       if (this.loggedIn && this.socket) {
+        // Stale-connection guard: if we have not received ANY valid packet in
+        // RCON_STALE_TIMEOUT_MS, treat the link as dead and reconnect, even if
+        // socket.send() keeps appearing to succeed (UDP has no delivery proof).
+        if (this.lastResponseAt && (Date.now() - this.lastResponseAt) > RCON_STALE_TIMEOUT_MS) {
+          logger.warn({ serverId: this.serverId, silentMs: Date.now() - this.lastResponseAt }, 'RCON connection stale — reconnecting');
+          this.disconnect();
+          setTimeout(() => {
+            this.connect().catch(err => {
+              logger.debug({ err: err.message, serverId: this.serverId }, 'RCON auto-reconnect failed');
+            });
+          }, 3000);
+          return;
+        }
         try {
           const result = await this.send('');
           if (result === '[No response]' || (typeof result === 'string' && result.startsWith('[Error]'))) {

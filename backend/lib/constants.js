@@ -94,6 +94,9 @@ module.exports = {
   RCON_COMMAND_TIMEOUT_MS: 5_000,
   /** RCON keep-alive ping interval (ms) — 15s for faster disconnect detection (was 30s) */
   RCON_KEEPALIVE_INTERVAL_MS: 15_000,
+  /** Reconnect if no valid packet of any kind has been received in this long (ms).
+   *  BattlEye itself drops a connection after ~45s of silence. */
+  RCON_STALE_TIMEOUT_MS: 45_000,
 
   // ─── Crash Detector ───────────────────────────────────
   /** Crash backoff schedule (ms): 5s → 10s → 20s → 40s → 80s → 5 min */

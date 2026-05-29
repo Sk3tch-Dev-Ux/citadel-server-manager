@@ -37,6 +37,35 @@ afterEach(() => {
   jest.clearAllTimers();
 });
 
+describe('RCON CRC32 checksum verification', () => {
+  test('accepts a packet built by the client itself (round-trip)', () => {
+    const c = makeClient();
+    const pkt = c._buildPacket(Buffer.from([0x01, 7, 0x41, 0x42])); // type, seq, "AB"
+    expect(c._verifyChecksum(pkt)).toBe(true);
+  });
+
+  test('rejects a packet whose body was tampered with', () => {
+    const c = makeClient();
+    const pkt = c._buildPacket(Buffer.from([0x01, 7, 0x41, 0x42]));
+    const tampered = Buffer.from(pkt);
+    tampered[tampered.length - 1] ^= 0xFF; // flip a body byte; CRC no longer matches
+    expect(c._verifyChecksum(tampered)).toBe(false);
+  });
+
+  test('rejects a packet with a corrupted checksum field', () => {
+    const c = makeClient();
+    const pkt = c._buildPacket(Buffer.from([0x01, 7, 0x41]));
+    const tampered = Buffer.from(pkt);
+    tampered[2] ^= 0xFF; // corrupt the stored CRC
+    expect(c._verifyChecksum(tampered)).toBe(false);
+  });
+
+  test('rejects a runt packet', () => {
+    const c = makeClient();
+    expect(c._verifyChecksum(Buffer.from([0x42, 0x45, 0x00]))).toBe(false);
+  });
+});
+
 describe('RCON command response handling', () => {
   test('single-part response resolves with the full body', () => {
     const c = makeClient();

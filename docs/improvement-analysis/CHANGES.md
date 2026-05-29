@@ -97,13 +97,22 @@
 
 **Verification:** `tests/rcon-multipart.test.js` (8 tests) covers single-part, in-order/out-of-order/duplicate fragments, a >512-byte reassembly, malformed headers, and sequence reuse.
 
-> Deliberately **not** bundled here: inbound CRC32 validation and a `lastResponse`-based stale-connection timeout (the analysis paired these with multipart). They are smaller, independent follow-ups and were kept out to keep this change focused on the data-loss bug.
+---
+
+## 7. RCON robustness follow-ups: CRC32 validation + stale-connection timeout  *(P1)*
+
+Companions to the multipart fix, on the same `lib/rcon-client.js`:
+
+- **Inbound CRC32 validation** — every received packet's 4-byte little-endian checksum (bytes 2..5, covering bytes 6..end) is now recomputed via `_verifyChecksum(msg)` and the packet is dropped (debug-logged) on mismatch. This matches the reference manager's behaviour and rejects corrupted/spoofed UDP. Verified self-consistent against the client's own `_buildPacket` framing (round-trip test).
+- **Stale-connection timeout** — the client records `lastResponseAt` on every valid packet. A new guard at the top of the keepalive loop reconnects if nothing has been received for `RCON_STALE_TIMEOUT_MS` (45 s — BattlEye itself drops idle links at ~45 s), independent of whether `socket.send()` appears to succeed (UDP gives no delivery proof). New constant added to `lib/constants.js`.
+
+**Verification:** 4 new CRC tests in `tests/rcon-multipart.test.js` (round-trip accept, tampered body, corrupted checksum field, runt packet).
 
 ---
 
 ## Test summary
 
-New suites under `backend/tests/` (36 tests, all passing):
+New suites under `backend/tests/` (40 tests, all passing):
 
 | File | Covers |
 |---|---|
@@ -111,7 +120,7 @@ New suites under `backend/tests/` (36 tests, all passing):
 | `tests/parser-xml-escaping.test.js` | regression — every mission-file serializer escapes correctly (round-trips through a real parser) |
 | `tests/credential-encryption.test.js` | key validation branches + encrypt/decrypt round-trip |
 | `tests/backup-filename.test.js` | path-traversal guard |
-| `tests/rcon-multipart.test.js` | multi-part RCON response re-assembly |
+| `tests/rcon-multipart.test.js` | multi-part RCON response re-assembly + CRC32 validation |
 
 **Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
 
