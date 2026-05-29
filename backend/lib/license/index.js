@@ -10,6 +10,12 @@ const client = require('./client');
 const storage = require('./storage');
 const { verifyToken, decodeToken } = require('./verifier');
 const { getMachineId } = require('./machine-id');
+const { createMutex } = require('../async-mutex');
+
+// Serializes the state-mutating license ops (activate/refresh/deactivate) so a
+// background refresh can't clobber a concurrent user deactivate (and vice
+// versa) — they all write the shared in-memory _state across network awaits.
+const _licenseLock = createMutex();
 
 // Lazy-loaded to avoid circular requires (telemetry/index.js requires
 // machine-id from this directory).
@@ -90,7 +96,7 @@ function evaluateStatus(claims, lastVerifiedAt) {
  * POST /license/activate on citadels.cc with the user's creds + this box's MachineGuid.
  * Persists the returned token to disk on success.
  */
-async function activate({ email, password, name }) {
+async function _activateImpl({ email, password, name }) {
   try {
     const res = await client.activate({
       email,
@@ -129,7 +135,7 @@ async function activate({ email, password, name }) {
  * Call /license/verify to refresh the token and pick up subscription changes.
  * Safe to call frequently — server handles rate limiting.
  */
-async function refresh() {
+async function _refreshImpl() {
   if (!_state.token) return { ok: false, reason: 'not-activated' };
   try {
     const res = await client.verify(_state.token);
@@ -168,7 +174,7 @@ async function refresh() {
   }
 }
 
-async function deactivate() {
+async function _deactivateImpl() {
   if (!_state.token) {
     storage.clear();
     _state.status = 'unactivated';
@@ -250,6 +256,14 @@ function hasFeature(feature) {
 function hasCloud() {
   return hasFeature('cloud');
 }
+
+// ─── Serialized public entry points ──────────────────────
+// All three mutate _state across network awaits; the mutex guarantees they
+// run one-at-a-time, so e.g. a deactivate cannot be undone by an in-flight
+// refresh that resolves afterward.
+function activate(args) { return _licenseLock(() => _activateImpl(args)); }
+function refresh() { return _licenseLock(() => _refreshImpl()); }
+function deactivate() { return _licenseLock(() => _deactivateImpl()); }
 
 module.exports = {
   getState,
