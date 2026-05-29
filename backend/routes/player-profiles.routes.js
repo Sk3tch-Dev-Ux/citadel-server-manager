@@ -12,6 +12,7 @@
 const ctx = require('../lib/context');
 const profiles = require('../lib/player-profiles');
 const { authForServer } = require('../middleware/auth');
+const { validate } = require('../lib/request-validator');
 const { addAudit } = require('../lib/audit');
 const { safeError } = require('../lib/http-errors');
 
@@ -40,7 +41,10 @@ module.exports = function (app) {
     }
   });
 
-  app.post('/api/servers/:id/players/:steamId/notes', authForServer('players.kick'), (req, res) => {
+  app.post('/api/servers/:id/players/:steamId/notes',
+    authForServer('players.kick'),
+    validate({ text: { type: 'string', required: true, minLength: 1, maxLength: 2000 } }),
+    (req, res) => {
     const srv = ctx.servers.find((s) => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const text = typeof req.body?.text === 'string' ? req.body.text : '';

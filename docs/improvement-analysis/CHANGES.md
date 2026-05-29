@@ -208,6 +208,13 @@ Running total after batch 2: **7 endpoints** on the shared validator.
 
 Plus `GET /api/servers/:id/metrics/history` from §16 uses **query** validation. Running total: **10 endpoints** now validated (and auto-documented); ~30 remain for future batches.
 
+### Batch 4 — users + player notes + metrics CSV
+- **`POST /api/users`** — migrated off the route file's own local `validateFields()` helper onto the shared `validate()` middleware (same constraints: username 3–32 + pattern, password ≥8, etc.). This is the first *consolidation* of a duplicate ad-hoc validator, and the endpoint now auto-documents in `/api/docs`. The password-policy and uniqueness checks remain in the handler.
+- **`POST /api/servers/:id/players/:steamId/notes`** — `text` required string, now length-bounded to 2000 chars (previously unbounded).
+- **`GET /api/servers/:id/metrics/history.csv`** — new CSV export of persisted metrics (auth-gated, query-validated), companion to the JSON history endpoint; streams `timestamp,cpu,ram,players,fps`.
+
+Running total: **13 endpoints** validated/auto-documented; ~28 remain.
+
 ---
 
 ## 16. Metrics persistence (SQLite)  *(P1 — adds `better-sqlite3`)*

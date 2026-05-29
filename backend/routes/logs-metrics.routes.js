@@ -128,4 +128,29 @@ module.exports = function(app) {
       });
       res.json({ persistence: metricsStore.isEnabled(), count: rows.length, metrics: rows });
     });
+
+  // CSV export of persisted metrics history.
+  app.get('/api/servers/:id/metrics/history.csv',
+    authForServer('metrics.view'),
+    validate({
+      since: { type: 'integer', min: 0 },
+      until: { type: 'integer', min: 0 },
+      downsample: { type: 'integer', min: 0, max: 86400 },
+      limit: { type: 'integer', min: 1, max: 50000 },
+    }, 'query'),
+    (req, res) => {
+      const q = req.validated.query;
+      const rows = metricsStore.query(req.params.id, {
+        since: q.since, until: q.until, downsampleSeconds: q.downsample, limit: q.limit,
+      });
+      const srvName = ctx.servers.find((s) => s.id === req.params.id)?.name || req.params.id;
+      const safeName = srvName.replace(/[^a-zA-Z0-9-]+/g, '_');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}-metrics-${new Date().toISOString().slice(0, 10)}.csv"`);
+      res.write('timestamp,cpu,ram,players,fps\n');
+      for (const r of rows) {
+        res.write(`${new Date(r.ts).toISOString()},${r.cpu},${r.ram},${r.players},${r.fps}\n`);
+      }
+      res.end();
+    });
 };

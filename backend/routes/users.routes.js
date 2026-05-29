@@ -6,7 +6,8 @@ const { v4: uuid } = require('uuid');
 const bcrypt = require('@node-rs/bcrypt');
 const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
-const { validateFields, checkPasswordPolicy } = require('../lib/helpers');
+const { checkPasswordPolicy } = require('../lib/helpers');
+const { validate } = require('../lib/request-validator');
 const { addAudit } = require('../lib/audit');
 const { revokeUserTokens } = require('../lib/token-revocation');
 const auth = require('../middleware/auth');
@@ -35,16 +36,17 @@ module.exports = function(app) {
     res.json(ctx.users.map(u => ({ id: u.id, username: u.username, role: u.role, isRoot: u.isRoot || false, description: u.description || '', createdAt: u.createdAt })));
   });
 
-  app.post('/api/users', auth('users.manage'), async (req, res) => {
+  app.post('/api/users',
+    auth('users.manage'),
+    validate({
+      username: { type: 'string', required: true, minLength: 3, maxLength: 32, pattern: /^[a-zA-Z0-9_]+$/ },
+      password: { type: 'string', required: true, minLength: 8 },
+      role: { type: 'string' },
+      description: { type: 'string', maxLength: 128 },
+      mfaEnabled: { type: 'boolean' },
+    }),
+    async (req, res) => {
     const { username, password, role, description, mfaEnabled } = req.body;
-    const error = validateFields(req.body, {
-      username: { required: true, type: 'string', minLength: 3, maxLength: 32, pattern: /^[a-zA-Z0-9_]+$/ },
-      password: { required: true, type: 'string', minLength: 8 },
-      role: { required: false, type: 'string' },
-      description: { required: false, type: 'string', maxLength: 128 },
-      mfaEnabled: { required: false, type: 'boolean' },
-    });
-    if (error) return res.status(400).json({ error });
     if (ctx.users.find(u => u.username === username)) return res.status(400).json({ error: 'Username already exists' });
     if (!checkPasswordPolicy(password)) {
       return res.status(400).json({ error: 'Password does not meet policy requirements.' });
