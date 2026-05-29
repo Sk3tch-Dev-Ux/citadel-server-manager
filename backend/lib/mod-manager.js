@@ -398,4 +398,4 @@ function setModType(serverId, modName, type) {
   return mod;
 }
 
-module.exports = { autoDetectMods, installModToServer, updateLaunchParamsMods, reorderMods, setModType, validateModInstallation };
+module.exports = { autoDetectMods, installModToServer, updateLaunchParamsMods, reorderMods, setModType, validateModInstallation, extractParamValue };

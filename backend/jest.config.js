@@ -10,10 +10,10 @@ module.exports = {
   // Raise these numbers as the test suite grows (see docs/improvement-analysis).
   coverageThreshold: {
     global: {
-      statements: 15,
-      branches: 7,
-      functions: 10,
-      lines: 16,
+      statements: 16,
+      branches: 8,
+      functions: 11,
+      lines: 17,
     },
   },
   // Redirect the data dir to a temp location before any module loads, so tests

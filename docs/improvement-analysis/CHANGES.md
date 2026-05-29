@@ -253,6 +253,19 @@ This is the engineering-judgment half of "work out the kinks": fix the two real 
 
 ---
 
+## 19. Test coverage — mod-manager (core Windows path)  *(hardening)*
+
+Locked in regression coverage for the launch-parameter string surgery that drives mod loading — previously untested and a classic source of corrupted `-mod=` lines. No bug found (the code is solid), but the behavior is now pinned:
+
+- Exported `extractParamValue` for testing. Covered: single/at-end extraction, quote-stripping, **`-mod` vs `-serverMod` disambiguation**, and mod folder names containing spaces (no false cut).
+- `updateLaunchParamsMods`: client/server split, disabled-mod exclusion, **strip-and-replace with no duplication** (handles corrupted/dupe entries), full `-mod=` removal when nothing is enabled, missing-type-defaults-to-client.
+- `reorderMods`: reorder + renumber, append-unlisted, ignore-unknown, and order reflected in launch params.
+- `setModType`: type change moves a mod between `-mod`/`-serverMod`; null for unknown mod.
+
+16 tests.
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):
