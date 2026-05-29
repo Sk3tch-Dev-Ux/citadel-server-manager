@@ -53,6 +53,13 @@ async function startServer(serverId, reason) {
     return { success: true, message: `Server is already ${state.status}` };
   }
 
+  // Claim 'starting' synchronously — there is no await between the guard check
+  // above and this assignment, so a second concurrent startServer() for the
+  // same server now sees 'starting' and bails instead of both passing the
+  // check and spawning two processes. (Race flagged by require-atomic-updates.)
+  state.status = 'starting';
+  ctx.io.emit('serverStatus', { serverId, status: 'starting' });
+
   // Check if process is already running externally
   const existingPid = await detectRunningProcess(srv.executable);
   if (existingPid) {
@@ -74,6 +81,9 @@ async function startServer(serverId, reason) {
     if (!portCheck.available) {
       const details = portCheck.conflicts.map(c => `Port ${c.port} used by ${c.usedBy}`).join('; ');
       addLog(serverId, 'error', 'server', `Port conflict detected: ${details}`);
+      // Release the 'starting' claim — we never spawned.
+      state.status = 'stopped';
+      ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
       return { success: false, error: `Port conflict: ${details}` };
     }
   } catch (err) {
@@ -84,9 +94,7 @@ async function startServer(serverId, reason) {
   ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort })
     .catch(err => addLog(serverId, 'warn', 'server', `Firewall rule setup failed: ${err.message}`));
 
-  state.status = 'starting';
-  ctx.io.emit('serverStatus', { serverId, status: 'starting' });
-
+  // (status was already set to 'starting' synchronously at the top)
   try {
     // Execute pre-start hooks — abort if any fails
     const preStartResult = await executeHooks(serverId, 'pre-start');
