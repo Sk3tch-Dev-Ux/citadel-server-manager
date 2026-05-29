@@ -26,6 +26,10 @@ class RCONClient {
     this.serverId = serverId || null;
     this.socket = null; this.connected = false; this.loggedIn = false;
     this.sequenceNum = 0; this.pendingCommands = new Map();
+    // Buffers for re-assembling multi-part command responses, keyed by sequence.
+    // BattlEye fragments responses larger than ~512 bytes (big player/ban lists)
+    // across several UDP packets; each carries [seq, 0x00, total, index, ...part].
+    this.multipartBuffers = new Map();
     this.keepAliveInterval = null;
     this.lastFPS = 0; this.monitorEnabled = false;
   }
@@ -70,11 +74,7 @@ class RCONClient {
             }
             break;
           case 0x01:
-            if (payload.length >= 1) {
-              const seq = payload[0]; const body = payload.slice(1).toString('utf8');
-              const pending = this.pendingCommands.get(seq);
-              if (pending) { clearTimeout(pending.timeout); pending.resolve(body); this.pendingCommands.delete(seq); }
-            }
+            this._handleCommandResponse(payload);
             break;
           case 0x02:
             if (payload.length >= 1) {
@@ -108,10 +108,75 @@ class RCONClient {
     });
   }
 
+  /**
+   * Handle a command-response packet (BattlEye type 0x01). The payload (bytes
+   * after the type byte) is either:
+   *   single-part:  [seq, ...utf8 body]
+   *   multi-part:   [seq, 0x00, total, index, ...part]
+   * Multi-part responses are buffered by sequence and only resolve the pending
+   * command once every fragment has arrived.
+   *
+   * @param {Buffer} payload
+   */
+  _handleCommandResponse(payload) {
+    if (!payload || payload.length < 1) return;
+    const seq = payload[0];
+
+    let body;
+    if (payload.length >= 4 && payload[1] === 0x00) {
+      // Multi-part fragment: [seq, 0x00, total, index, ...part]
+      const total = payload[2];
+      const index = payload[3];
+      const part = payload.slice(4);
+      body = this._collectMultipart(seq, total, index, part);
+      if (body === null) return; // still waiting for more fragments
+    } else {
+      // Single-part response: everything after the sequence byte is the body.
+      body = payload.slice(1).toString('utf8');
+    }
+
+    const pending = this.pendingCommands.get(seq);
+    if (pending) {
+      clearTimeout(pending.timeout);
+      pending.resolve(body);
+      this.pendingCommands.delete(seq);
+    }
+    this.multipartBuffers.delete(seq);
+  }
+
+  /**
+   * Accumulate one multi-part fragment. Returns the fully re-assembled body
+   * string once all fragments for the sequence have arrived, otherwise null.
+   *
+   * @param {number} seq
+   * @param {number} total - total fragment count for this response
+   * @param {number} index - this fragment's index (0-based)
+   * @param {Buffer} part  - this fragment's payload bytes
+   * @returns {string|null}
+   */
+  _collectMultipart(seq, total, index, part) {
+    if (!total || index >= total) return null; // malformed header — ignore
+    let buf = this.multipartBuffers.get(seq);
+    // Reset if this is a new response (different total) for a reused sequence.
+    if (!buf || buf.total !== total) {
+      buf = { total, parts: new Array(total), received: 0 };
+      this.multipartBuffers.set(seq, buf);
+    }
+    if (!buf.parts[index]) {
+      buf.parts[index] = part;
+      buf.received++;
+    }
+    if (buf.received === total) {
+      return Buffer.concat(buf.parts).toString('utf8');
+    }
+    return null;
+  }
+
   disconnect() {
     this._stopKeepAlive(); this.loggedIn = false; this.connected = false;
     for (const [, p] of this.pendingCommands) { clearTimeout(p.timeout); p.resolve('[Disconnected]'); }
     this.pendingCommands.clear();
+    this.multipartBuffers.clear();
     if (this.socket) {
       try { this.socket.removeAllListeners(); } catch { /* ignore */ }
       try { this.socket.close(); } catch (err) { logger.debug({ err }, 'RCON socket close error'); }
@@ -155,7 +220,13 @@ class RCONClient {
     if (!this.socket || !this.connected) return '[Error] RCON not connected';
     return new Promise((resolve) => {
       const { packet, seq } = this._buildCommandPacket(command);
-      const timeout = setTimeout(() => { this.pendingCommands.delete(seq); resolve('[No response]'); }, RCON_COMMAND_TIMEOUT_MS);
+      // Drop any leftover fragments from a previous command that reused this seq.
+      this.multipartBuffers.delete(seq);
+      const timeout = setTimeout(() => {
+        this.pendingCommands.delete(seq);
+        this.multipartBuffers.delete(seq);
+        resolve('[No response]');
+      }, RCON_COMMAND_TIMEOUT_MS);
       this.pendingCommands.set(seq, { resolve, reject: () => {}, timeout });
       try {
         this.socket.send(packet, 0, packet.length, this.port, this.ip);

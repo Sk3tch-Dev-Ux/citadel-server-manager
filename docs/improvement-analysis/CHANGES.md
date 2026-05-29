@@ -82,9 +82,28 @@
 
 ---
 
+---
+
+## 6. Multi-part RCON response assembly  *(P1 — VERIFIED data-loss bug)*
+
+**Problem:** `lib/rcon-client.js` treated **every** BattlEye command response as a single packet (`payload.slice(1).toString('utf8')`, resolve immediately). BattlEye fragments any response larger than ~512 bytes — large `players` and `bans` lists — across multiple UDP packets, each framed as `[seq, 0x00, total, index, ...part]`. The old code (a) prepended the `0x00/total/index` control bytes as garbage onto the body and (b) resolved on the first fragment and deleted the pending command, silently discarding every subsequent fragment. Net effect: truncated/corrupted player and ban lists with no error.
+
+**Fix (`backend/lib/rcon-client.js`):**
+- Added `multipartBuffers` (a `Map` keyed by sequence) to the client.
+- Extracted command-response handling into `_handleCommandResponse(payload)`, which detects the multi-part marker (`payload.length >= 4 && payload[1] === 0x00`) and otherwise treats the response as single-part.
+- Added `_collectMultipart(seq, total, index, part)` — buffers fragments by index, tolerates out-of-order delivery and duplicate UDP retransmits, ignores malformed headers (`index >= total`), resets cleanly when a sequence is reused for a new response, and only returns the concatenated body once all fragments arrive.
+- `send()` clears any stale buffer for a reused sequence and drops the buffer on command timeout; `disconnect()` clears all buffers.
+- This is purely additive: single-part responses (the overwhelming majority) behave exactly as before.
+
+**Verification:** `tests/rcon-multipart.test.js` (8 tests) covers single-part, in-order/out-of-order/duplicate fragments, a >512-byte reassembly, malformed headers, and sequence reuse.
+
+> Deliberately **not** bundled here: inbound CRC32 validation and a `lastResponse`-based stale-connection timeout (the analysis paired these with multipart). They are smaller, independent follow-ups and were kept out to keep this change focused on the data-loss bug.
+
+---
+
 ## Test summary
 
-New suites under `backend/tests/` (28 tests, all passing):
+New suites under `backend/tests/` (36 tests, all passing):
 
 | File | Covers |
 |---|---|
@@ -92,6 +111,7 @@ New suites under `backend/tests/` (28 tests, all passing):
 | `tests/parser-xml-escaping.test.js` | regression — every mission-file serializer escapes correctly (round-trips through a real parser) |
 | `tests/credential-encryption.test.js` | key validation branches + encrypt/decrypt round-trip |
 | `tests/backup-filename.test.js` | path-traversal guard |
+| `tests/rcon-multipart.test.js` | multi-part RCON response re-assembly |
 
 **Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
 
