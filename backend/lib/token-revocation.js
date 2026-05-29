@@ -16,6 +16,19 @@ const path = require('path');
 const logger = require('./logger');
 
 /**
+ * Canonical revocation reason codes. Use these (rather than ad-hoc strings)
+ * when revoking tokens so audit/forensics queries can group by a stable set.
+ */
+const REVOCATION_REASONS = Object.freeze({
+  USER_DELETED: 'user.deleted',
+  USER_DISABLED: 'user.disabled',
+  PASSWORD_CHANGED: 'password.changed',
+  LOGOUT: 'logout',
+  SECURITY_INCIDENT: 'security.incident',
+  MANUAL: 'manual',
+});
+
+/**
  * In-memory revocation registry: Set of revoked JWT jti values
  * Expires entries after 8+ hours (token lifetime + buffer)
  *
@@ -174,5 +187,6 @@ module.exports = {
   isTokenRevoked,
   cleanupExpired,
   getStats,
-  clearAll
+  clearAll,
+  REVOCATION_REASONS
 };

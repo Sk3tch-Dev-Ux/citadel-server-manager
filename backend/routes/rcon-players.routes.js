@@ -11,6 +11,7 @@ const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
 const { banPlayer, listBans, removeBan } = require('../lib/ban-engine');
 const { validateCommand, sanitizeCommand, getAllowedCommands } = require('../lib/rcon-validator');
+const { validate } = require('../lib/request-validator');
 const auth = require('../middleware/auth');
 const { authForServer } = require('../middleware/auth');
 const logger = require('../lib/logger');
@@ -48,14 +49,17 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/message', authForServer('chat.send'), async (req, res) => {
-    const state = ctx.serverStates[req.params.id];
-    if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
-    try {
-      await state.rcon.say(req.body.message);
-      res.json({ message: 'Sent' });
-    } catch (err) { safeError(err, req, res, { status: 500 }); }
-  });
+  app.post('/api/servers/:id/message',
+    authForServer('chat.send'),
+    validate({ message: { type: 'string', required: true, minLength: 1, maxLength: 1024 } }),
+    async (req, res) => {
+      const state = ctx.serverStates[req.params.id];
+      if (!state?.rcon) return res.status(400).json({ error: 'RCON not configured' });
+      try {
+        await state.rcon.say(req.body.message);
+        res.json({ message: 'Sent' });
+      } catch (err) { safeError(err, req, res, { status: 500 }); }
+    });
 
   app.get('/api/servers/:id/players', authForServer('players.view'), (req, res) => {
     res.json(ctx.serverStates[req.params.id]?.players || []);

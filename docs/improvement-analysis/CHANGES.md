@@ -132,9 +132,18 @@ Coverage ratchet raised to 13 / 5 / 7 / 14 (overall now 14.2% / 15.9% lines; `st
 
 ---
 
+## 10. Request-validation layer + RCON/revocation polish  *(P1)*
+
+- **Centralized request validator** (new `lib/request-validator.js`) — a dependency-free declarative validator + Express middleware. Schemas describe `type` (string/number/integer/boolean/array/object), `required`, `default` (value or fn), `min`/`max`, `minLength`/`maxLength`, `enum`, `pattern`, and `custom`. It coerces query-style strings to numbers/booleans, accumulates all errors, and returns a consistent envelope `{ error: 'Validation failed', details: [...] }`. Validated/coerced values are attached to `req.validated[source]` **without** mutating the original `req.body`, so existing handlers keep working. This replaces the ad-hoc per-route `if (!req.body.x) return 400` checks and is the foundation for a future OpenAPI spec.
+- **Proof-of-concept rollout** — applied to `POST /api/servers/:id/message`, which previously had no validation (an absent `message` would broadcast the string "undefined" to all players). It now requires a 1–1024-char string. The rest of the 40+ route files can adopt the same one-line middleware incrementally.
+- **RCON allowed-commands API** — *ground-truthed as already implemented*: `GET /api/servers/:id/rcon/commands` (auth-gated via `authForServer('server.rcon')`) already returns the whitelist with descriptions. No change needed.
+- **Token-revocation reason codes** — added a frozen `REVOCATION_REASONS` enum (`user.deleted`, `user.disabled`, `password.changed`, `logout`, `security.incident`, `manual`) to `token-revocation.js` so audit/forensics can group revocations by a stable set instead of ad-hoc strings.
+
+---
+
 ## Test summary
 
-New suites under `backend/tests/` (83 tests, all passing):
+New suites under `backend/tests/` (100 tests, all passing):
 
 | File | Covers |
 |---|---|
@@ -149,6 +158,7 @@ New suites under `backend/tests/` (83 tests, all passing):
 | `tests/process-detect-cache.test.js` | process-detection TTL cache (spawn mocked) |
 | `tests/steamcmd-lock.test.js` | SteamCMD serialization mutex |
 | `tests/auto-updater-journal.test.js` | update write-ahead journal + countdown/notification config helpers |
+| `tests/request-validator.test.js` | declarative request validation (types, coercion, bounds, enum, pattern, custom, middleware) |
 
 **Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
 
