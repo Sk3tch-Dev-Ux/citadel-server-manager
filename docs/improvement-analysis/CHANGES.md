@@ -297,6 +297,18 @@ Cleared most of the unused-variable warnings so the genuinely useful async-safet
 
 ---
 
+## 23. Frontend — wire metrics charts to persisted history  *(feature)*
+
+Turned the §16 metrics-persistence backend into something users see. `web/frontend/src/pages/ServerMetricsPage.jsx`:
+
+- **Time-range selector** — `Live · 6h · 24h · 7d · 30d`. *Live* keeps the original in-memory window + realtime socket updates; the other ranges fetch the persisted `/metrics/history` endpoint with sensible **downsampling** (6h→60s, 24h→300s, 7d→1800s, 30d→3600s) and reshape the rows into the existing StatCards + `MiniChart`s — no new charting dependency.
+- **CSV export** — a button that downloads `/metrics/history.csv` for the selected window via a new authenticated `API.download(url, filename)` helper (fetch→blob→save, carries cookie *and* Bearer auth so it also works in the desktop app; a plain `<a href>` would drop the Bearer header).
+- **Graceful states** — shows "persistence disabled" if better-sqlite3 is unavailable, and "no persisted metrics in this window yet" while history accumulates.
+
+Builds clean (`vite build`). Note: the two ESLint "unused `Download`/`StatCard`" warnings are pre-existing false positives — both are used in JSX, but the frontend ESLint config lacks `react/jsx-uses-vars`. Full visual verification needs a live server with accumulated metrics; the backend endpoint is unit-tested (§16) and the page reuses already-working components.
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):

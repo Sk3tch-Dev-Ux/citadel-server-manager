@@ -199,6 +199,31 @@ class API {
     const r = await this._fetch(url, { method: 'DELETE', headers: this.headers() });
     return this._parseResponse(r);
   }
+
+  /**
+   * Authenticated file download. Fetches the URL with the usual auth (cookie +
+   * optional Bearer), reads the response as a blob, and triggers a browser
+   * "Save As" with the given filename (or the server's Content-Disposition).
+   * Used for CSV/diagnostic exports where a plain <a href> wouldn't carry the
+   * Bearer header used by the desktop app.
+   *
+   * @param {string} url
+   * @param {string} [filename] - fallback download name
+   */
+  static async download(url, filename = 'download') {
+    const r = await this._fetch(url, { headers: this.headers() });
+    this._handle401(r);
+    if (!r.ok) throw new Error(`Download failed (${r.status})`);
+    const blob = await r.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objUrl);
+  }
 }
 
 export default API;
