@@ -127,7 +127,9 @@ describe('Utility: safePath', () => {
   let tempDir;
 
   beforeAll(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'safepath-test-'));
+    // realpathSync canonicalizes the symlinked macOS tmpdir (/var → /private/var)
+    // so comparisons against safePath()'s realpath output hold on every platform.
+    tempDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'safepath-test-')));
     fs.mkdirSync(path.join(tempDir, 'subdir'), { recursive: true });
     fs.writeFileSync(path.join(tempDir, 'subdir', 'file.txt'), 'test');
   });
@@ -232,7 +234,7 @@ describe('API: Authentication', () => {
       .set('X-CSRF-Token', csrfToken)
       .send({ username: 'nonexistent', password: 'wrong' });
     expect(res.status).toBe(401);
-    expect(res.body.error).toMatch(/Invalid credentials/);
+    expect(res.body.error).toMatch(/invalid username or password/i);
   });
 
   it('should reject requests without a token', async () => {
@@ -612,7 +614,9 @@ describe('API: files.edit-scripts gate', () => {
 
     // Build a temp server we can write scripts into so we don't accidentally
     // touch a real server's installDir during the test run.
-    installDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h8-server-'));
+    // realpathSync: see the safePath note above — the file-write gate resolves
+    // the server's installDir through realpath, so the test's copy must match.
+    installDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'h8-server-')));
     fs.mkdirSync(path.join(installDir, 'lifecycle_hooks'), { recursive: true });
     serverId = 'h8-test-server';
     ctx.servers.push({ id: serverId, name: 'H8 Test', installDir });
