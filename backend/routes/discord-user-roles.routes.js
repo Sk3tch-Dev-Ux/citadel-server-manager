@@ -22,6 +22,7 @@ const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
 const auth = require('../middleware/auth');
+const { validate } = require('../lib/request-validator');
 const logger = require('../lib/logger');
 
 // Discord snowflakes are 17–20 digit numbers. Validate to a forgiving
@@ -63,7 +64,10 @@ module.exports = function (app) {
 
   // ── PUT /api/discord/user-roles/:discordUserId ───────────
   // Body: { roleId: string }. Creates or replaces the mapping.
-  app.put('/api/discord/user-roles/:discordUserId', auth('users.manage'), (req, res) => {
+  app.put('/api/discord/user-roles/:discordUserId',
+    auth('users.manage'),
+    validate({ roleId: { type: 'string', required: true, minLength: 1, maxLength: 64 } }),
+    (req, res) => {
     const { discordUserId } = req.params;
     const { roleId } = req.body || {};
 

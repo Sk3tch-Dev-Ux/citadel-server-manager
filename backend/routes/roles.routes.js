@@ -6,11 +6,20 @@ const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
 const { addAudit } = require('../lib/audit');
 const auth = require('../middleware/auth');
+const { validate } = require('../lib/request-validator');
 
 module.exports = function(app) {
   app.get('/api/roles', auth(), (req, res) => { res.json(ctx.roles); });
 
-  app.post('/api/roles', auth('users.manage'), (req, res) => {
+  app.post('/api/roles',
+    auth('users.manage'),
+    validate({
+      name: { type: 'string', required: true, minLength: 1, maxLength: 64 },
+      permissions: { type: 'array' },
+      color: { type: 'string', maxLength: 32 },
+      serverScope: { type: 'array' },
+    }),
+    (req, res) => {
     const { name, permissions, color, serverScope } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
 

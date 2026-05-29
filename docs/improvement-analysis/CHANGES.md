@@ -200,7 +200,13 @@ Four more endpoints migrated to `validate()` (each reviewed against its handler;
 
 Deliberately **skipped** `PUT /api/servers/:id/backup-config`: its handler already coerces and clamps every field robustly (`parseInt`+clamp, per-path sanitization), so adding strict middleware would only change its intentionally-lenient behavior.
 
-Running total: **7 endpoints** now use the shared validator (`/message`, `/update`, `/priority-queue` + these 4); ~33 body-taking endpoints remain for future batches.
+Running total after batch 2: **7 endpoints** on the shared validator.
+
+### Batch 3 — roles + discord-user-roles
+- `POST /api/roles` — `name` required (1–64 chars), `permissions`/`serverScope` arrays, `color` string (the handler's deeper serverScope-vs-servers check is preserved).
+- `PUT /api/discord/user-roles/:discordUserId` — `roleId` required string (the snowflake + role-existence checks remain in the handler).
+
+Plus `GET /api/servers/:id/metrics/history` from §16 uses **query** validation. Running total: **10 endpoints** now validated (and auto-documented); ~30 remain for future batches.
 
 ---
 
