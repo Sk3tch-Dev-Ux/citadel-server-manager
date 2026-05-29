@@ -10,10 +10,10 @@ module.exports = {
   // Raise these numbers as the test suite grows (see docs/improvement-analysis).
   coverageThreshold: {
     global: {
-      statements: 10,
-      branches: 3,
-      functions: 5,
-      lines: 10,
+      statements: 12,
+      branches: 4,
+      functions: 6,
+      lines: 13,
     },
   },
   testMatch: ['**/*.test.js'],

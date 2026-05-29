@@ -129,4 +129,4 @@ async function handleCrash(srv, state) {
   }
 }
 
-module.exports = { handleCrash };
+module.exports = { handleCrash, canAttemptCrashRestart, recordCrashRestart };

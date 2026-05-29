@@ -110,9 +110,21 @@ Companions to the multipart fix, on the same `lib/rcon-client.js`:
 
 ---
 
+## 8. Test suite for high-risk state machines & persistence  *(P1 — highest leverage)*
+
+The analysis flagged that Citadel's most sophisticated, highest-risk code was almost entirely untested. This adds focused coverage for three of those modules (no behaviour change — two private helpers were exported purely for testability):
+
+- **`backoff.js`** (exponential-backoff math shared by restart + crash recovery) — now **100% covered**: schedule escalation, clamp at the final delay, cooldown-window reset vs. no-reset-while-active, and per-key independence. Driven with fake timers to control `Date.now()`.
+- **`data-store.js`** (atomic JSON persistence) — now **~96% covered**: `loadJSON` parse/missing/computed-default/corrupt-fallback, `forceFlush`/`flushAll` latest-wins coalescing, debounced atomic write leaving no `.tmp` residue, stale-temp-file cleanup, and the **M16 symlink-refusal guard** (verifies a symlinked destination's target is never clobbered).
+- **`crash-detector.js`** circuit breaker — exported `canAttemptCrashRestart`/`recordCrashRestart`; tests the 10-restarts/hour rolling window: allow-up-to-limit-then-block, full recovery after the hour, partial aging frees exactly the expired attempts, and per-server isolation.
+
+Coverage ratchet raised to statements 12 / branches 4 / functions 6 / lines 13 (overall now 13.3% / 15% lines, up from 11.6% at the start of this work — and the *targeted* high-risk modules are at 95–100%).
+
+---
+
 ## Test summary
 
-New suites under `backend/tests/` (40 tests, all passing):
+New suites under `backend/tests/` (60 tests, all passing):
 
 | File | Covers |
 |---|---|
@@ -121,6 +133,9 @@ New suites under `backend/tests/` (40 tests, all passing):
 | `tests/credential-encryption.test.js` | key validation branches + encrypt/decrypt round-trip |
 | `tests/backup-filename.test.js` | path-traversal guard |
 | `tests/rcon-multipart.test.js` | multi-part RCON response re-assembly + CRC32 validation |
+| `tests/backoff.test.js` | exponential-backoff schedule, clamp, cooldown reset, per-key state |
+| `tests/crash-circuit-breaker.test.js` | auto-restart circuit breaker (rolling-hour window) |
+| `tests/data-store.test.js` | atomic JSON persistence, coalescing, temp cleanup, symlink refusal |
 
 **Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
 
