@@ -204,6 +204,19 @@ Running total: **7 endpoints** now use the shared validator (`/message`, `/updat
 
 ---
 
+## 16. Metrics persistence (SQLite)  *(P1 — adds `better-sqlite3`)*
+
+The in-memory metrics window held only ~90 minutes and was lost on restart. This adds durable, queryable history **without removing** the in-memory path.
+
+- **`lib/metrics-store.js`** — `better-sqlite3`-backed store (`metrics.db` in the data dir, WAL mode). API: `init(dataDir)`, `record(serverId, sample)`, `query(serverId, {since, until, limit, downsampleSeconds})`, `prune(retentionMs)`, `close()`, `isEnabled()`. Downsampling averages into time buckets (integer-division-aligned). 30-day default retention.
+- **Resilience by design** — `better-sqlite3` is native; if it's unavailable on the host (or init fails), the entire module degrades to a **silent no-op** and the Agent keeps running on the in-memory window. No call ever throws into the app.
+- **Wiring** — `audit.pushMetrics()` now also `record()`s each sample; `server-init.startup()` calls `init()` and schedules a daily `prune()`; both are best-effort.
+- **New endpoint** — `GET /api/servers/:id/metrics/history?since&until&downsample&limit` (auth-gated, **query-validated** via the request-validator → so it self-documents in `/api/docs`). Returns `{ persistence, count, metrics }`.
+
+This unblocks long-window dashboards, trend analysis, and CSV/JSON export. `better-sqlite3@^11` added to `backend/package.json` (prebuilt binaries; no compiler needed on common platforms).
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):
@@ -225,6 +238,7 @@ New suites under `backend/tests/` (160 tests, all passing):
 | `tests/rcon-validator.test.js` | RCON command whitelist/blacklist/arg-rules/sanitization (security) |
 | `tests/port-checker.test.js` | pre-start port-conflict detection (managed + system layers) |
 | `tests/openapi.test.js` | route-table → OpenAPI 3.0 generation (path templating, tags, security, wildcard skip) |
+| `tests/metrics-store.test.js` | SQLite metrics persistence — record/query/window/downsample/prune/coercion/no-op safety |
 
 **Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
 

@@ -4,6 +4,8 @@
 const ctx = require('../lib/context');
 const { authForServer } = require('../middleware/auth');
 const { getConsoleBuffer } = require('../lib/rpt-tailer');
+const { validate } = require('../lib/request-validator');
+const metricsStore = require('../lib/metrics-store');
 
 function filterLogs(rawLogs, { level, source, q, from, to }) {
   let logs = rawLogs;
@@ -105,4 +107,25 @@ module.exports = function(app) {
   app.get('/api/servers/:id/metrics/stream', authForServer('metrics.view'), (req, res) => {
     res.json({ message: 'Use Socket.IO events: metrics' });
   });
+
+  // Persisted historical metrics (survives restarts, arbitrary time ranges).
+  // Returns rows from the durable store; empty array if persistence is disabled.
+  app.get('/api/servers/:id/metrics/history',
+    authForServer('metrics.view'),
+    validate({
+      since: { type: 'integer', min: 0 },
+      until: { type: 'integer', min: 0 },
+      downsample: { type: 'integer', min: 0, max: 86400 },
+      limit: { type: 'integer', min: 1, max: 50000 },
+    }, 'query'),
+    (req, res) => {
+      const q = req.validated.query;
+      const rows = metricsStore.query(req.params.id, {
+        since: q.since,
+        until: q.until,
+        downsampleSeconds: q.downsample,
+        limit: q.limit,
+      });
+      res.json({ persistence: metricsStore.isEnabled(), count: rows.length, metrics: rows });
+    });
 };

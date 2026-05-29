@@ -16,6 +16,7 @@ const { autoDetectMods } = require('./mod-manager');
 const { getSidecarPort } = require('./sidecar-manager');
 const RCONClient = require('./rcon-client');
 const { validateKeyConfig } = require('./credential-encryption');
+const metricsStore = require('./metrics-store');
 
 /**
  * Initialize runtime state for a single server.
@@ -169,6 +170,13 @@ async function startup() {
   }
 
   cleanupStaleTempFiles(ctx.CONFIG.dataDir);
+
+  // Open the durable metrics store (no-op if better-sqlite3 is unavailable) and
+  // schedule a daily retention prune. In-memory metrics work regardless.
+  if (metricsStore.init(ctx.CONFIG.dataDir)) {
+    setInterval(() => { try { metricsStore.prune(); } catch { /* best effort */ } }, 24 * 60 * 60 * 1000).unref();
+  }
+
   migrateDefaultServer();
   migrateInHouseApiUrl();
   migrateNotificationFields();

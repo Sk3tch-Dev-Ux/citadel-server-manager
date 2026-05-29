@@ -5,6 +5,7 @@ const { v4: uuid } = require('uuid');
 const ctx = require('./context');
 const { saveJSON } = require('./data-store');
 const { sanitizeString } = require('./helpers');
+const metricsStore = require('./metrics-store');
 const {
   MAX_LOG_ENTRIES,
   MAX_AUDIT_ENTRIES,
@@ -47,6 +48,8 @@ function pushMetrics(serverId, cpu, ram, playerCount, fps) {
   const m = state.metricsHistory;
   m.cpu.push(cpu); m.ram.push(ram); m.players.push(playerCount); m.fps.push(fps); m.timestamps.push(now);
   Object.keys(m).forEach(k => { if (m[k].length > METRICS_HISTORY_SIZE) m[k] = m[k].slice(-METRICS_HISTORY_SIZE); });
+  // Persist to the durable store (no-op if persistence is disabled).
+  metricsStore.record(serverId, { cpu, ram, players: playerCount, fps });
   if (ctx.io) ctx.io.emit('metrics', { serverId, cpu, ram, players: playerCount, fps, timestamp: now });
 }
 
