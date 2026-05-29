@@ -13,6 +13,7 @@
  */
 const ctx = require('../lib/context');
 const auth = require('../middleware/auth');
+const { validate } = require('../lib/request-validator');
 
 function applyFilters(items, { severity, server, type, q }) {
   let out = items;
@@ -77,7 +78,7 @@ module.exports = function (app) {
   });
 
   // PATCH — mark read (all, or specific IDs)
-  app.patch('/api/notifications/read', auth(), (req, res) => {
+  app.patch('/api/notifications/read', auth(), validate({ ids: { type: 'array' } }), (req, res) => {
     const { ids } = req.body || {};
     if (ids && Array.isArray(ids)) {
       ids.forEach((id) => { const n = ctx.notifications.find((x) => x.id === id); if (n) n.read = true; });

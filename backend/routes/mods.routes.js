@@ -10,6 +10,7 @@ const { installModToServer, updateLaunchParamsMods, reorderMods, setModType } = 
 const { addAudit } = require('../lib/audit');
 const { addNotification, fireWebhooks } = require('../lib/notifications');
 const { auth, authForServer } = require('../middleware/auth');
+const { validate } = require('../lib/request-validator');
 const modCache = require('../lib/mod-cache');
 const { getPendingModUpdates, clearPendingModUpdate, checkModUpdatesNow } = require('../lib/polling');
 const logger = require('../lib/logger');
@@ -19,7 +20,13 @@ module.exports = function(app) {
     res.json(ctx.serverStates[req.params.id]?.modList || []);
   });
 
-  app.post('/api/servers/:id/mods/install', authForServer('mods.install'), async (req, res) => {
+  app.post('/api/servers/:id/mods/install',
+    authForServer('mods.install'),
+    validate({
+      workshopId: { required: true, maxLength: 32 },
+      name: { type: 'string', required: true, minLength: 1, maxLength: 200 },
+    }),
+    async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const state = ctx.serverStates[srv.id];
@@ -93,7 +100,10 @@ module.exports = function(app) {
   });
 
   // ─── Mod Reordering ────────────────────────────────────────────────
-  app.post('/api/servers/:id/mods/reorder', authForServer('mods.install'), (req, res) => {
+  app.post('/api/servers/:id/mods/reorder',
+    authForServer('mods.install'),
+    validate({ order: { type: 'array', required: true } }),
+    (req, res) => {
     const { order } = req.body;
     if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array of mod folder names' });
     const state = ctx.serverStates[req.params.id];
@@ -104,7 +114,10 @@ module.exports = function(app) {
   });
 
   // ─── Mod Type Designation (client / server) ────────────────────────
-  app.patch('/api/servers/:id/mods/:modName/type', authForServer('mods.install'), (req, res) => {
+  app.patch('/api/servers/:id/mods/:modName/type',
+    authForServer('mods.install'),
+    validate({ type: { type: 'string', required: true, enum: ['client', 'server'] } }),
+    (req, res) => {
     const { type } = req.body;
     if (!type || !['client', 'server'].includes(type)) {
       return res.status(400).json({ error: "type must be 'client' or 'server'" });

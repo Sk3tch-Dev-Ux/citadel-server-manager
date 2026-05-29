@@ -189,6 +189,21 @@ Coverage: `openapi.js` 100%, `request-validator.js` ~87%.
 
 ---
 
+## 15. Validator rollout (batch 2) — mods + notifications  *(P1)*
+
+Four more endpoints migrated to `validate()` (each reviewed against its handler; each now also self-documents in `/api/docs` via §14):
+
+- `POST /api/servers/:id/mods/install` — `workshopId` required (length-bounded), `name` required 1–200-char string.
+- `POST /api/servers/:id/mods/reorder` — `order` required array.
+- `PATCH /api/servers/:id/mods/:modName/type` — `type` required enum `['client','server']`.
+- `PATCH /api/notifications/read` — `ids` optional array (absent still means "mark all"; a non-array value is now rejected instead of silently marking everything read).
+
+Deliberately **skipped** `PUT /api/servers/:id/backup-config`: its handler already coerces and clamps every field robustly (`parseInt`+clamp, per-path sanitization), so adding strict middleware would only change its intentionally-lenient behavior.
+
+Running total: **7 endpoints** now use the shared validator (`/message`, `/update`, `/priority-queue` + these 4); ~33 body-taking endpoints remain for future batches.
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):
