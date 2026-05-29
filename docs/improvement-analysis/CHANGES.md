@@ -240,6 +240,19 @@ A focused round of working out latent issues (no Linux scope):
 
 ---
 
+## 18. Race-condition triage (`require-atomic-updates`)  *(Windows hardening)*
+
+Worked through the lint rule's clusters; fixed the real ones, deliberately left the noise:
+
+- **`server-lifecycle.js` — FIXED** (§17): the double-spawn race.
+- **`license/index.js` — FIXED**: a background `refresh()` mid-`await` could resolve after a user `deactivate()` and re-write `_state` with the stale token (silent local re-activation). Added a reusable **`lib/async-mutex.js`** (`createMutex()` → `runExclusive`, settles-before-next, rejection-safe; generalizes the SteamCMD-lock pattern) and routed `activate`/`refresh`/`deactivate` through one shared mutex. Both orderings now converge (deactivate wins; a later refresh sees no token and no-ops). 6 tests.
+- **`steam.routes.js` — triaged, no change (intentional)**: the `ctx.steamLoginValidated`/`steamCredentials` writes after `validateSteamLogin` are only racy under two *simultaneous admin* credential submissions — rare, self-correcting, and the actual SteamCMD process is already serialized by the SteamCMD mutex (§9). Not worth a mutex around it.
+- **Remaining single-warning files** (`auto-updater`, `cloud-bans`, `telemetry`, `auth`, `users`, `mods`, `steamcmd`): spot-checked — benign post-`await` assignments on per-request or already-guarded state, no cross-request clobber. Left as-is; the rule stays on as a *warning* so new genuine cases surface in review.
+
+This is the engineering-judgment half of "work out the kinks": fix the two real races, don't churn the codebase chasing heuristic false-positives.
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):
