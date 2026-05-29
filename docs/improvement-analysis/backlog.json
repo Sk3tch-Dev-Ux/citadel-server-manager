@@ -1,0 +1,3341 @@
+[
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Add process.on('SIGTERM'/'SIGINT') handler to drain connections and stop polling loops gracefully",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/polling.js, backend/app.js (or wherever main entry point is)",
+    "description": "Currently, Node process termination does not properly shut down server monitoring loops or child processes. Add `process.on('SIGTERM', gracefulShutdown)` that: (1) stops all polling timers, (2) waits for in-flight metrics collection to complete, (3) closes Socket.IO, (4) flushes audit/data JSON to disk. Prevents orphaned DayZ processes and data corruption on restart.",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Cache process detection results for 1 second to reduce OS query overhead",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/process-manager.js",
+    "description": "Polling collects metrics every 15s but may call detectRunningProcess multiple times per tick across different checks. Implement a simple TTL cache: `{ lastCheck, result, ttl: 1000 }`. Similar to reference's ServerDetector pattern.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Add CPU-based stuck-state detection: track 5 samples, alert if variance <3%",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/metrics-collector.js (or new file monitor-health.js)",
+    "description": "Reference monitor.ts monitors CPU in stuck-detection; Citadel has no equivalent. When CPU ticks stop incrementing (stuck loop or hung process), send Discord alert + mark server as 'stuck' state. Can be non-blocking (metric warning only) to avoid false positives on legitimate idle servers.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Refactor server-lifecycle.js to use named constants for magic timeouts (5s RCON grace, 10s launch grace, 5min cooldown reset)",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/server-lifecycle.js",
+    "description": "Lines 174, 197, etc. have hardcoded delays. Extract to constants.js alongside LAUNCH_GRACE_PERIOD_MS, etc. Makes tuning easier and documents intent.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Add JSDoc @returns type annotations to crash-detector.handleCrash and restart-scheduler functions",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/crash-detector.js, /Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/restart-scheduler.js",
+    "description": "Current functions lack return type annotations. Add `@returns {Promise<{success: boolean, error: string|null}>}` etc. Improves IDE autocomplete and future maintainability without requiring TypeScript conversion.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Wrap process.on('uncaughtException') handler around polling loop to log and continue instead of crashing",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/polling.js",
+    "description": "If collectMetrics or crash-detector throws unhandled error, entire polling loop dies. Wrap main tick logic in try/catch and emit to logger + Sentry (if configured). Current code has try/catch in tick() but not at top level.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Extract _pendingDetect and _pendingMetrics guards into a generic RequestDeduplicator utility",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/process-manager.js",
+    "description": "Lines 12–13 and 77–78 are nearly identical guard patterns. Create a reusable class to avoid duplicated logic and improve testability.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Add detailed comments explaining LAUNCH_GRACE_PERIOD_MS timeout semantics in spawnDayZServer",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/process-manager.js",
+    "description": "Lines 182–197 have a subtle promise that resolves after grace window even if process crashes. Document why this is 10s (DayZ slow startup) and that callers must check detectProcessByPid after launchFailed resolves.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Defensive: reject RCON/PID strings with shell-metachar regex in killProcess and port-checker",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/process-manager.js (line 146), backend/lib/port-checker.js",
+    "description": "Both already do regex validation (`/[;&|`$\\\\\"']/`), but worth adding explicit unit tests. No code change needed, just assert these guards work as intended.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Server lifecycle & process management",
+    "title": "Add exponential backoff state machine tests covering edge cases (server-runs >5min and resets cooldown)",
+    "file": "(test suite; would be new)",
+    "description": "Backoff logic in server-lifecycle.js and crash-detector.js is complex (cooldown reset on sustained uptime). Current code has no unit tests. Add Jest tests verifying: (1) first failure uses 3s, (2) second uses 6s, (3) server runs 5+ min then crashes again resets to 3s.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Cross-platform process detection (Windows vs. Linux/macOS)",
+    "description": "Reference: abstracts OS detection and has both Windows (WMIC) and Linux (/proc/) implementations. Current: Windows-only (tasklist/PowerShell). Citadel is commercial Windows-focused product — not a gap for the intended market, but a deliberate design choice.",
+    "priority": "low",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Graceful shutdown of service on process exit",
+    "description": "Reference: IStatefulService with explicit start/stop lifecycle, clearing timers and event listeners. Current: No formal shutdown hooks registered to Node.js process listeners (unhandled process termination could leave child processes orphaned). Polling loop just runs until force-killed.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "CPU-based stuck-state detection",
+    "description": "Reference: Monitors last 5 CPU samples; if variance <3% for 5+ ticks, marks server as stuck and alerts Discord. Current: No built-in stuck-state detection. Relies on manual operator intervention or external monitoring.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Process lookup caching with TTL",
+    "description": "Reference: ServerDetector caches DayZ process list for 1 second, reducing OS polling overhead. Current: Every metrics tick calls detectRunningProcess (no cache), creating overhead on 15s polling interval with 4+ servers.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Unified multi-metric collection in single OS call",
+    "description": "Reference: Processes.getProcessCPUUsage computes from two ProcessEntry samples. Current: getProcessMetrics() combines RAM + CPU ticks in ONE PowerShell call (major improvement over reference pattern). Citadel is ahead here.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Graceful RCON shutdown before kill",
+    "description": "Reference: killServer() tries RCON.shutdown() first, then falls back to process kill. Current: Also does graceful RCON shutdown (5s wait) then taskkill. Both are roughly equivalent.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "both_have_current_better"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Pre-start checks (port conflict, firewall rules)",
+    "description": "Reference: No port/firewall pre-checks before spawn. Current: Comprehensive port conflict detection (Citadel-managed + system-wide), firewall rule setup, all before spawn. Major operational advantage.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Exponential backoff on restart/crash with state-aware cooldown reset",
+    "description": "Reference: No retry or backoff logic. Current: Restart backoff 3s→120s with 5-min uptime cooldown; crash backoff 5s→5min with separate cooldown window. Sophisticated handling.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Circuit breaker for auto-restart (max 10/hour)",
+    "description": "Reference: No rate-limiting on auto-restart. Current: Tracks restart history per server in rolling 1-hour window, blocks auto-restart if limit hit. Prevents restart loops.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Audit logging on all lifecycle transitions",
+    "description": "Reference: Logging via LoggerFactory but no structured audit trail. Current: Every start/stop/restart logs to audit.json with user ID, timestamp, reason. Full traceability.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Centralized restart scheduler with multiple schedule types",
+    "description": "Reference: No scheduler in this domain. Current: Full cron-like scheduler with interval/daily/onetime, RCON warnings, persistence, history tracking. Operational necessity.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "State transition blocking (prevent intermediate state thrashing)",
+    "description": "Reference: Explicit block in monitor.ts: if state is STOPPING, reject incoming STARTED transition. Current: Uses _stateTransitioning flag during stop to block metrics polling. Both protect against concurrent state churn.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "both_have_current_better"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Dependency injection / IoC container",
+    "description": "Reference: Full tsyringe DI with @injectable/@singleton decorators, lazy initialization with @inject(delay()). Current: Plain require() with module-level state (ctx, logger). Less testable but simpler operationally.",
+    "priority": "low",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Server lifecycle & process management",
+    "title": "Type safety via TypeScript",
+    "description": "Reference: Full TypeScript with enums, interfaces, strict nullability. Current: Plain JavaScript with JSDoc comments. Less compile-time safety but faster iteration.",
+    "priority": "low",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Implement graceful shutdown handler: process.SIGTERM → drain + stop polling + flush state",
+    "description": "Citadel can crash abruptly on container/systemd restarts, potentially orphaning DayZ processes or losing in-flight audit/config changes. Reference pattern shows clean lifecycle management. Risk is low because handlers are backward compatible. Effort is small (register handlers, queue async work, await). Critical for production robustness.",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Cache detectRunningProcess and detectProcessByPid results for 1 second",
+    "description": "Citadel polls metrics every 15s, but crash-detector may call detectProcessByPid concurrently from the same tick. Reference ServerDetector uses 1s TTL. Effort is trivial (store timestamp + result). Reduces PowerShell invocations by ~50% on multi-server setups. No behavioral risk.",
+    "priority": "high",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Add CPU-based stuck-state detection to metrics-collector or monitor loop",
+    "description": "Reference detects when CPU variance <3% over 5 samples (hung process). Citadel currently has no stuck-state detection — admins must manually notice FPS drop or players complaining. Implementing as non-blocking (alert-only, not auto-restart) is safe. Effort small. Can save operator response time on frequent hangs.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Wrap polling tick loop in try/catch + emit to logger/Sentry to survive metric collection errors",
+    "description": "If collectMetrics throws unhandled, entire monitoring loop dies silently. Reference pattern has explicit error handling. Risk is low (just defensive catch). Effort small. Prevents cascading failures on bad PowerShell output or race conditions.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Add comprehensive unit tests for exponential backoff state machine (backoff.js, server-lifecycle.js, crash-detector.js)",
+    "description": "Backoff logic is complex and non-obvious (cooldown reset on 5+ min uptime). No current tests. Reference has similar logic but doesn't test it either. Risk of subtle bugs (restart loops, incorrect cooldown calculation). Effort medium but high confidence gain. Recommend Jest test suite covering edge cases.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Document restart/crash backoff tuning parameters in constants.js with rationale comments",
+    "description": "RESTART_BACKOFF_DELAYS_MS and CRASH_BACKOFF_DELAYS_MS are tuned for specific DayZ startup times. Current comments are minimal. Document why 3s is initial delay (reference ~2-3s startup), why cooldown is 5 min (stability threshold), why max crash restarts is 10/hour (prevent thrashing). Aids future maintainers.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Consider migrating to structured logging (e.g., winston + JSON output) for operational observability",
+    "description": "Current logger.js outputs to console/file. Reference uses LoggerFactory with levels. For production monitoring, structured JSON logs with timestamps, severity, context are better (easier to grep, parse in log aggregators). Not critical but medium-term win. Effort medium. No code change needed short-term.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Add audit trail index to audit.json (e.g., timestamp field) for faster querying of recent entries",
+    "description": "Audit trail is appended sequentially but may be large (10k entries). Current code reads entire file. Add optional index field for pagination/filtering. Low priority (not a blocker) but improves UX when auditing restarts over time.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Add integration test that spawns real DayZ server and exercises start/stop/restart lifecycle",
+    "description": "Process management is critical. Current tests (if any) likely mock child_process. Real integration test (spawn actual exe on Windows test box) would catch PowerShell escaping bugs, timing issues, port conflicts. Effort large but high confidence. Recommend separate CI step.",
+    "priority": "medium",
+    "effort": "large",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Server lifecycle & process management",
+    "title": "Extract lifecycle hook orchestration into separate file (lifecycle-hooks already exists but verify it's well-integrated)",
+    "description": "Hooks are called from multiple places: server-lifecycle.js, crash-detector.js, polling.js. Verify centralized executeHooks() is used consistently. Reference also has Hooks service. Current code seems well-separated, so this is a verification task (low priority).",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add SteamExitCodes enum and exit code mapping",
+    "file": "backend/lib/steamcmd.js",
+    "description": "Replace hardcoded output string checks with a typed enum mapping exit codes to success/failure booleans and descriptive messages. Reference lines 2-27 in steamcmd.ts show the pattern. This improves maintainability and makes it easier to handle new exit codes.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add per-mod lastDownloaded tracking metadata",
+    "file": "backend/lib/mod-cache.js",
+    "description": "Expand the mod cache metadata to include lastDownloaded timestamp alongside cachedAt. Compare against Steam's time_updated when available to invalidate outdated cache entries. Reference pattern at steamcmd.ts lines 46-87.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Improve mod installation validation robustness",
+    "file": "backend/lib/mod-manager.js",
+    "description": "Current validateModInstallation checks for meta.cpp, config.cpp, or .bikey files but doesn't verify they're readable or valid. Add sanity checks: verify meta.cpp is parseable, ensure mod dir isn't suspiciously small (< 100KB), check for known DayZ structure files (addons/, keys/, etc.).",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Harden SteamGuard detection for stall cases",
+    "file": "backend/lib/steamcmd.js",
+    "description": "Current validateSteamLogin has stall detection (20s timeout on 'Logging in' without success/failure), but the stall timer is only set once. If SteamCMD restarts output parsing mid-login, the timer may not fire. Add robust tracking of when 'Logging in' was last seen, restart the timer if seen again.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add checksum verification for downloaded mods",
+    "file": "backend/lib/mod-cache.js, backend/lib/mod-manager.js",
+    "description": "Store SHA256 of downloaded mod content in cache metadata and verify on retrieval. Detects corruption from incomplete downloads or disk errors. Reference doesn't do this either, but it's a safety improvement for a commercial product.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Prevent concurrent SteamCMD invocations",
+    "file": "backend/lib/steamcmd.js",
+    "description": "Current code spawns multiple SteamCMD processes without mutual exclusion. If two servers call updateServerApp() or downloadWorkshopMod() in parallel, both may run SteamCMD from the same directory, causing race conditions. Add a global semaphore or queue.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Reduce verbosity of console logging in SteamCMD output handlers",
+    "file": "backend/lib/steamcmd.js",
+    "description": "The handleData() functions in downloadWorkshopMod, updateServerApp, updateWorkshopMod parse the same regex patterns multiple times per line. Extract the parsing logic into a helper function to avoid duplication and reduce cognitive load. Lines 143-177 in steamcmd.js have repeated regex logic.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add explicit SteamCMD working directory isolation",
+    "file": "backend/lib/steamcmd.js",
+    "description": "Current code spawns SteamCMD with `cwd: path.dirname(cmdPath)` (implicit from spawn). If SteamCMD creates temporary files or config, they may be scattered. Explicitly ensure each invocation uses a dedicated working directory, or document why they're shared.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add retry to Steam API rate limit handling",
+    "file": "backend/lib/workshop.js",
+    "description": "fetchWithRateLimit() currently retries on network errors and 429, but doesn't retry on other 5xx errors. Add retry on 502/503/504 with exponential backoff.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Enforce cache directory size limit more aggressively",
+    "file": "backend/lib/mod-cache.js",
+    "description": "Current code checks maxSizeBytes only after adding a new entry and evicts if over. If many large mods are cached near the limit, eviction may not free enough space before the next download. Consider pre-checking available space and proactively evicting before download.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Validate server installDir exists before SteamCMD spawn",
+    "file": "backend/lib/steamcmd.js",
+    "description": "ensureSteamCMD() doesn't verify that the server installDir exists or is writable. If the path is missing or permissions are wrong, SteamCMD will silently fail or write elsewhere. Add explicit mkdir with error reporting.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Typed exit code mapping with metadata",
+    "description": "Reference has `SteamExitCodes` enum with detailed success/failure metadata; Citadel has hardcoded success checks (e.g., 'Success! App', 'already up to date') scattered throughout output parsing.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Local metadata caching per mod",
+    "description": "Reference tracks lastDownloaded timestamp per mod, compares with Steam's time_updated; Citadel has global mod cache with TTL-based eviction but no per-mod download tracking.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Batch size optimization by file size",
+    "description": "Reference batches mods by total download size (max 1GB, max 5 items), fetches mod metadata from Steam API to sort by size; Citadel downloads/updates mods individually or in simple batches without size awareness.",
+    "priority": "low",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Directory hash-based update detection",
+    "description": "Reference uses `sameDirHash()` to detect file-level changes; Citadel relies on meta.cpp timestamp comparison and manual cache validation.",
+    "priority": "low",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Auto-rollback on post-update crash",
+    "description": "Citadel has sophisticated 60-second verification window with automatic rollback if server crashes; reference has no rollback mechanism.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "RCON-based countdown notifications",
+    "description": "Citadel broadcasts countdowns to players, locks server, kicks on update; reference has no RCON integration for updates.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Update state persistence and crash recovery",
+    "description": "Citadel uses write-ahead journal for state machine recovery; reference has no crash recovery for interrupted updates.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Global mod cache with eviction",
+    "description": "Citadel has persistent 30-minute TTL cache with LRU eviction and disk space monitoring; reference stores only lastDownloaded timestamp per mod in local JSON.",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Workshop scraping with rate limiting",
+    "description": "Citadel includes full workshop HTML scraping with 5 fallback regex patterns and per-IP rate limiting; reference focuses on API calls, assumes workshop items are known.",
+    "priority": "medium",
+    "effort": "medium",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Atomic mod installation pattern",
+    "description": "Citadel uses staging → backup → atomic rename → cleanup; reference uses simpler link-or-copy approach with sameModMeta() comparison.",
+    "priority": "medium",
+    "effort": "medium",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Configurable mod batching without size optimization",
+    "description": "Reference optimizes batches by file size from Steam API; Citadel batches without size awareness.",
+    "priority": "low",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Dependency injection for testability",
+    "description": "Reference uses tsyringe for DI, makes FS/HTTPS swappable; Citadel uses direct `require()` imports and global ctx object.",
+    "priority": "low",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Event listener pattern for progress tracking",
+    "description": "Reference emits typed events (mod-progress, app-progress, output); Citadel uses Socket.IO emit directly, no abstract event interface.",
+    "priority": "low",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Mod type management (client vs server mods)",
+    "description": "Citadel tracks mod type in modList, builds separate -mod= and -serverMod= params; reference doesn't explicitly track this distinction.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Migrate SteamGuard logic to a dedicated module with state machine",
+    "description": "SteamGuard detection is scattered across validateSteamLogin, downloadWorkshopMod, updateServerApp, updateWorkshopMod. Create a SteamGuardHandler module that centralizes detection heuristics (regex patterns, stall timeouts, success/failure signals). This will reduce duplication and make it easier to handle edge cases (e.g., multiple guard prompts, SMS vs email vs authenticator).",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Extract SteamCMD output parsing into reusable regex library",
+    "description": "Progress parsing is currently duplicated across 4 functions (downloadWorkshopMod, updateServerApp, updateWorkshopMod, validateSteamLogin). Create a module with parsers for: login success/failure, download progress, update progress, error messages. Reduces maintenance burden and makes behavior consistent.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add distributed lock for SteamCMD to prevent concurrent invocations",
+    "description": "SteamCMD is not designed for concurrent use from the same directory. Current code may launch multiple SteamCMD processes simultaneously if auto-update and manual download happen at the same time. Use a simple file-based lock (flock on Unix, lockfile on Windows) to ensure only one SteamCMD process runs at a time.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Implement mod download queue with priority",
+    "description": "Currently, downloadWorkshopMod and updateWorkshopMod spawn SteamCMD directly. For commercial robustness, implement a queue (in-memory with optional persistence) that serializes downloads, prioritizes user-initiated downloads over auto-updates, and allows cancellation. This also solves the concurrent invocation problem.",
+    "priority": "medium",
+    "effort": "large",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add integration test for SteamGuard scenarios",
+    "description": "SteamGuard detection is critical and error-prone. Create mock SteamCMD outputs and test validateSteamLogin against: (1) no guard required, (2) guard with successful input, (3) guard timeout, (4) rate limiting, (5) invalid credentials. This will catch regressions early.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Document mod caching strategy and invalidation rules",
+    "description": "Citadel's mod cache is feature-rich but the interaction between TTL, Steam API time_updated, and per-mod lastDownloaded is not documented. Add inline comments and a CACHING.md file explaining: when cache hits, when it's invalidated, how LRU works, what to do if cache is corrupted.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add smoke tests for auto-updater state machine recovery",
+    "description": "Auto-updater uses a write-ahead journal for crash recovery. Create tests that simulate crashes at each state (detected, countdown, stopping, updating, starting) and verify the server recovers to the correct state on restart.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Implement telemetry for SteamCMD failures",
+    "description": "When downloadWorkshopMod or updateServerApp fails, log not just the error message but also: SteamCMD exit code, total time, retry count, which output patterns matched. This data helps diagnose systematic issues (e.g., Steam API throttling, network instability).",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Refactor mod-manager.js to decouple mod installation from mod detection",
+    "description": "autoDetectMods(), installModToServer(), updateLaunchParamsMods() are tightly coupled. Separate concerns: mod discovery (scan disk, parse meta.cpp), mod state (track in memory), mod installation (staging + atomic swap). This makes testing and reordering logic easier.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "SteamCMD, mods & updates",
+    "title": "Add daily cache validation job",
+    "description": "Mod cache can become stale if Citadel crashes or is killed mid-download. Add a background job (runs once per boot or on-demand) that iterates the cache directory, verifies each entry is complete (non-empty, has meta.json), and removes corrupted entries.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "RCON / BattlEye integration",
+    "title": "Add multi-part response assembly for large commands",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/rcon-client.js",
+    "description": "Current code assumes all responses fit in one packet. Large outputs (player lists, ban lists) may arrive fragmented. Add a `_multipartBuffer` Map keyed by sequence to buffer incomplete parts. On receipt of multi-part marker (0x00 flag in bytes 3-5), store part, check if all received, and concatenate.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "RCON / BattlEye integration",
+    "title": "Validate CRC32 on inbound packets",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/rcon-client.js",
+    "description": "Add checksum validation on received packets (similar to reference rcon.ts line 75-80). Read CRC from header bytes 2-6, compute CRC of payload (bytes 7+), compare. Reject packet if mismatch. Current code trusts all received data.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "RCON / BattlEye integration",
+    "title": "Add duplicate message deduplication cache",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/rcon-client.js",
+    "description": "Implement a small FIFO cache (3-5 messages) to filter repeated server messages (e.g. FPS reports). Skip emitting/logging if message is in cache. Reference rcon.ts lines 221-222, 761-769 for pattern. Reduces log spam.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "RCON / BattlEye integration",
+    "title": "Add explicit server response timeout (separate from keepalive)",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/rcon-client.js",
+    "description": "Track `lastResponse` timestamp. In keepalive interval, check if (now - lastResponse) > threshold (e.g. 30s). If so, force disconnect + reconnect. Current relies only on command timeout. This catches stuck servers faster.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "RCON / BattlEye integration",
+    "title": "Refactor socket message handler to use packet type enums",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/rcon-client.js",
+    "description": "Replace numeric switch on `type = msg[6]` with enum-based constants (PACKET_TYPE_LOGIN=0, etc.) for readability. Not a bug fix, but matches reference's pattern and is self-documenting.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "RCON / BattlEye integration",
+    "title": "Add defensive checks for null/undefined sequence in pending lookup",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/rcon-client.js",
+    "description": "Line 75 does `this.pendingCommands.get(seq)` without validating seq is in range [0, 255]. Add guard to ensure seq is a valid integer before lookup, similar to reference line 568 check.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Multi-part packet assembly",
+    "description": "Reference implements full multi-part response handling with packet buffering by index and completion detection (lines 675-712 in rcon.ts). Current implementation has no multi-part support—assumes all responses fit in a single packet. BattlEye can fragment large responses (e.g. player lists, ban lists) across multiple packets.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Inbound packet validation (CRC32)",
+    "description": "Reference validates CRC32 on inbound packets (rcon.ts line 78, comparing checksum to crc32(payload)). Current implementation does not validate packet checksums—it assumes received packets are valid. This could hide corruption or spoofed packets.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Duplicate message deduplication",
+    "description": "Reference tracks last 3 server messages (rcon.ts lines 221-222, 761-769) to filter duplicates. Current does not. Server may emit the same message multiple times; deduplication reduces noise.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Timeout-based connection monitoring",
+    "description": "Reference uses two-tier timeout: server response timeout (30s, line 199) and command interval (10s, line 198) with keepalive. Current uses only keepalive interval (15s). Reference detects stale connections faster if server stops responding.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Explicit login timeout handling",
+    "description": "Reference sets a dedicated login timeout (30s, line 610-613) that clears on successful login. Current has a general RCON_LOGIN_TIMEOUT_MS but relies on overall connect promise rejection. Reference is more surgical.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Packet direction enums",
+    "description": "Reference uses PacketDirection enum (lines 29-33) for explicit control flow (REQUEST, RESPONSE, MULTI_PART_RESPONSE). Current infers direction from numeric type in message handler. Enum-based is self-documenting.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "both_have_current_weaker"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Command validation whitelist (security)",
+    "description": "Current has comprehensive whitelist in rcon-validator.js (67-154) with pattern matching and custom validators. Reference does NOT validate commands—trusts the caller. Citadel's approach is more secure for untrusted input.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "RCON message routing to WebSocket/EventBus",
+    "description": "Current emits server messages (FPS, etc.) via Socket.io (rcon-client.js line 88). Reference emits via EventBus to Discord (rcon.ts line 772). Both have event systems but Citadel's is more direct; reference's is more decoupled.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "both_have_current_better"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Array-indexed request queueing vs Map",
+    "description": "Reference uses 255-element arrays indexed by sequence (rcon.ts line 208). Current uses a Map. Array is O(1) lookup; Map is O(1) with overhead. Both work, array is slightly more efficient for 0-255 key space.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "both_have_current_weaker"
+  },
+  {
+    "type": "feature",
+    "domain": "RCON / BattlEye integration",
+    "title": "Graceful command failure on not-logged-in",
+    "description": "Reference returns null immediately if not connected (rcon.ts line 627-629). Current auto-reconnects on send() if not logged in (rcon-client.js line 154), which can hide transient disconnects. Reference's eager fail is more transparent.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "both_have_current_weaker"
+  },
+  {
+    "type": "recommendation",
+    "domain": "RCON / BattlEye integration",
+    "title": "Implement multi-part response assembly for large player/ban lists",
+    "description": "BattlEye fragments responses > ~512 bytes across multiple packets. Current code will corrupt or lose data on large player/ban list queries. Reference demonstrates working assembly (rcon.ts lines 675-712). This is a correctness bug with high user impact (silent data loss).",
+    "priority": "critical",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "RCON / BattlEye integration",
+    "title": "Add inbound packet CRC32 validation",
+    "description": "Current code trusts all received packets without validation. Network glitches or spoofing could corrupt RCON data. Reference validates every inbound packet (rcon.ts line 78). Low cost, high confidence fix.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "RCON / BattlEye integration",
+    "title": "Implement response timeout independent of keepalive",
+    "description": "Current code only checks for command-level timeout (5s). If server hangs but keeps sending keepalive acks, connection stays 'alive' indefinitely. Reference tracks `lastResponse` time (30s threshold, rcon.ts line 590-593). Detects stuck servers faster and triggers reconnect.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "RCON / BattlEye integration",
+    "title": "Refactor command validation to be consistent across routes",
+    "description": "Current rcon-validator.js is solid but only applied at routes layer. Reference applies packet-level validation. Ensure all RCON commands (via routes, Discord bot, internal) go through validateCommand() before sending. Reduce duplication between rcon-players.routes.js and rcon-validator.js.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "RCON / BattlEye integration",
+    "title": "Add sequence number wraparound test coverage",
+    "description": "Both codebases use sequence % 256. Current code (line 44) and reference (line 566) both handle wraparound, but there are no tests for edge cases (e.g. seq 254->255->0 transitions, collision during rapid commands). Add test cases.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "RCON / BattlEye integration",
+    "title": "Document RCON protocol version and compatibility",
+    "description": "No comments in either codebase explaining which BattlEye RCON version is supported. Reference has minimal docs (enums, no protocol notes). Citadel should document: packet format, version constraints, known protocol limits (max response size, etc.).",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Config Management & Validation",
+    "title": "Add Config File Watcher (chokidar + MD5)",
+    "file": "backend/lib/config.js, backend/lib/config-watcher.js (new)",
+    "description": "Implement a ConfigWatcher module similar to reference's ConfigWatcher service. Watch citadel.config.json with chokidar, compute MD5 hash of loaded config, and only trigger callback if hash differs. Include debounce (1000ms) to avoid race conditions during file writes. Expose CONFIG._watchStart(callback) and CONFIG._watchStop().",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Config Management & Validation",
+    "title": "Enhance serverDZ.cfg Parser to Support Nested Classes",
+    "file": "backend/lib/dayz-config.js",
+    "description": "Upgrade readServerConfig() to handle Arma config format (class Missions { class DayZ { template = ... }; };). Either port reference's ConfigParser (regex-based state machine) or use a lightweight Arma cfg parser. Current regex-only approach misses deeply nested structures and will fail on complex configs.",
+    "priority": "low",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Config Management & Validation",
+    "title": "Add Comment Preservation to citadel.config.json",
+    "file": "backend/lib/config.js, backend/lib/config-schema.js",
+    "description": "Integrate comment-json library (already used in reference). Preserve user comments when writing config. Generate template with JSDoc-style field descriptions. Makes hand-editing citadel.config.json much friendlier.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Config Management & Validation",
+    "title": "Validate CREDENTIAL_ENCRYPTION_KEY Strength at Startup",
+    "file": "backend/lib/credential-encryption.js",
+    "description": "Add validation that CREDENTIAL_ENCRYPTION_KEY is a 64-char hex string (256 bits). If not, warn or fail loud. Current code doesn't validate input length or format. Weak keys defeat AES-256-GCM.",
+    "priority": "high",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Config Management & Validation",
+    "title": "Add Schema-Level Sensitive Field Audit Logging",
+    "file": "backend/lib/config.js, backend/routes/system.routes.js",
+    "description": "When CONFIG._applyUpdate() or config API endpoint writes sensitive fields, log an audit entry even if write is rejected (env override). Currently silent when env-locked. Should be 'config.update.blocked' with reason 'env override'.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Config Management & Validation",
+    "title": "Normalize DayZ Config Keys to Preserve Case",
+    "file": "backend/lib/dayz-config.js",
+    "description": "serverDZ.cfg keys are case-sensitive (maxPlayers vs maxplayers). Current regex in readServerConfig() uses case-insensitive match [a-zA-Z0-9]+ but doesn't normalize output. Should preserve exact key case when updating. Add a key-case cache or normalize all keys to camelCase consistently.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Config Management & Validation",
+    "title": "Implement Config Validation for Enum Values",
+    "file": "backend/lib/dayz-config.js",
+    "description": "Some serverDZ.cfg keys have restricted values (e.g., verifySignatures: 0|1|2, lightingConfig: 0|1). ALLOWED_CONFIG_KEYS set doesn't track constraints. sanitizeUpdates() should check enum constraints before write. Reference's validateConfig() does this for cron event types.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Config Management & Validation",
+    "title": "Add Numeric Range Validation to serverDZ.cfg Updates",
+    "file": "backend/lib/dayz-config.js",
+    "description": "Keys like maxPlayers (1–500), maxPing (0–10000), serverTimeAcceleration (0–24) have valid ranges. Current sanitizeUpdates() only checks for NaN. Should add optional range metadata to ALLOWED_CONFIG_KEYS (e.g., { name: 'maxPlayers', type: 'number', min: 1, max: 500 }) and validate before write.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "No Config File Watcher/Hot Reload",
+    "description": "Reference has chokidar-based ConfigWatcher with MD5 change detection and debounce. Citadel config.js loads at startup only; changes via API write or .env restart required. Missing capability for external config edits to be detected and reloaded.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "Limited DayZ serverDZ.cfg Parsing",
+    "description": "Reference has full ConfigParser supporting Arma config class syntax (nested classes, arrays, comments). Citadel uses simple regex parsing that handles key=value pairs but not nested class structures (e.g., 'class Missions { class DayZ { template = ...; }}'). Works for current use but brittle if config format becomes more complex.",
+    "priority": "low",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "No Reflect-Metadata Schema Introspection",
+    "description": "Reference uses TypeScript decorators (@Reflect.metadata) for field-level constraints. Citadel uses plain JS objects. Means Citadel cannot programmatically discover field-level requirements at runtime without reimplementing schema lookup logic.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "Citadel Has Production Credential Encryption, Reference Does Not",
+    "description": "Reference stores passwords (admin, steam, rcon) as plaintext in server-manager.json. Citadel implements AES-256-GCM with key derivation (PBKDF2). Much stronger security posture. Reference only has randomUUID generation for defaults, not encryption at rest.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "Citadel Has Environment Variable Override System",
+    "description": "Reference only supports JSON file. Citadel has intelligent env var parsing with type coercion, section/key mapping, and env-override locking (prevents API from overriding env-set values). Essential for containerized deployments.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "Citadel Has Mod Config Schema Registry",
+    "description": "Manifest-based system for defining schemas per mod (backend/schemas/<schemaId>/). Supports both raw JSON editing and form-based editing via JSON Schema. Reference has no modular schema extension point.",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "Reference Has Comment-JSON Support & Structured Comments",
+    "description": "Reference uses comment-json library to preserve comments in server-manager.json. generateConfigTemplate() also embeds JSDoc-style comments for each field. Citadel uses plain JSON (no inline docs). Makes hand-editing harder.",
+    "priority": "low",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "Citadel Has Safe-Default Auto-Generation",
+    "description": "Citadel auto-generates JWT_SECRET, admin passwords with randomUUID. Reference also does this (createDefaultConfig). Both are good.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "both_have_current_weaker"
+  },
+  {
+    "type": "feature",
+    "domain": "Config Management & Validation",
+    "title": "Reference Has Comprehensive Event Validation",
+    "description": "Validates event cron expressions with cron-parser, checks event types against enum, ensures all required fields. Citadel does not have event scheduling (different feature scope).",
+    "priority": "low",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Config Management & Validation",
+    "title": "Implement Config File Watcher for Hot Reload",
+    "description": "Reference demonstrates that watching config files with MD5 change detection is a proven pattern. Citadel currently requires API writes or restarts to pick up config changes, making it harder for ops to edit citadel.config.json manually. A small, low-risk addition of chokidar + debounce would enable live config reloads without restart. Improves developer and operator experience.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Config Management & Validation",
+    "title": "Enhance serverDZ.cfg Parser for Nested Classes",
+    "description": "Current regex-based parser works for simple key=value pairs but fails on Arma config's nested class structures. If a mod introduces a complex serverDZ.cfg with class hierarchies (e.g., Missions, Difficulty), the parser will silently miss those sections. Porting reference's ConfigParser (which handles full Arma syntax) is low-effort and prevents future bugs. Medium priority because risk is low-probability (most configs are flat) but impact is high (silent data loss).",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Config Management & Validation",
+    "title": "Validate CREDENTIAL_ENCRYPTION_KEY at Startup",
+    "description": "Citadel's credential encryption is a security win over reference, but only if the key is actually strong. Current code never validates that CREDENTIAL_ENCRYPTION_KEY is a 64-hex-char 256-bit string. A typo or short key defeats AES-256-GCM. Add a startup check that validates format and length, fails hard in production. Trivial effort, high security impact.",
+    "priority": "critical",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Config Management & Validation",
+    "title": "Add Comment Preservation & Schema Docs to citadel.config.json",
+    "description": "Reference's generateConfigTemplate() embeds field docs inline as comments, making hand-editing friendlier. Citadel's plain JSON is harder to understand. Integrate comment-json library to preserve user edits + generate templates with descriptions. Lower priority (UI nicety) but easy win. Helps ops understand what each field does.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Config Management & Validation",
+    "title": "Audit Log Config Overrides (Env-Locked Fields)",
+    "description": "CONFIG._applyUpdate() silently skips env-locked fields (e.g., if RCON_PASSWORD is set in .env, API cannot change it). Should log an audit entry with reason 'env override' when this happens, so admins know why a config change was rejected. Helps with debugging + compliance. Trivial effort.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Config Management & Validation",
+    "title": "Expand ALLOWED_CONFIG_KEYS with Type & Range Metadata",
+    "description": "Currently ALLOWED_CONFIG_KEYS is a flat set—no constraints. Should extend to include type (number/string/boolean), numeric ranges (min/max), and enum values. This mirrors reference's validate approach and prevents invalid values from being written to serverDZ.cfg. Improves robustness without breaking changes.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Config Management & Validation",
+    "title": "Consider TypeScript Migration for Config/Schema Layers",
+    "description": "Reference's TypeScript + reflect-metadata approach is more discoverable and type-safe than Citadel's plain JS objects. Given Citadel is a large product with many developers, a gradual migration of config.js, config-schema.js, dayz-config.js to TypeScript (with JSDoc types as interim step) would improve maintainability and catch schema errors at compile time. Larger effort, deferred as a long-term architectural improvement.",
+    "priority": "low",
+    "effort": "large",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Replace in-memory metrics with better-sqlite3 persistence",
+    "file": "backend/lib/audit.js, backend/lib/metrics-collector.js",
+    "description": "Current pushMetrics() (audit.js:43–51) stores metrics in ctx.serverStates[serverId].metricsHistory as rolling arrays. Add a metrics.db with tables per metric type (CPU, RAM, PLAYERS, FPS) with timestamp+value, implement retention via deleteMetrics(maxAge), migrate metrics polling to insert into DB. This enables historical trend queries and survives restarts.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Create MetricWrapper TS interface and typed metric enums",
+    "file": "backend/lib/audit.js, backend/lib/metrics-collector.js, backend/routes/logs-metrics.routes.js",
+    "description": "Define MetricWrapper<T> = { timestamp: number, value: T } and MetricType enum (SYSTEM, PLAYERS, AUDIT). Replace pushMetrics(serverId, cpu, ram, playerCount, fps) with pushMetricValue(type: MetricType, value: MetricWrapper). Type-safe emissions and DB inserts. Small risk if scoped to new code paths.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Wrap log tailing with retry + exponential backoff",
+    "file": "backend/lib/rpt-tailer.js",
+    "description": "Current readNewContent() catches errors but retrying is implicit. Reference LogReader (log-reader.ts:127–143) has explicit retry(count) and 10s delays. Add createTail-style retries to rpt-tailer's watchFile handler, cap at 3 attempts, log warnings, emit console.log entry on permanent failure.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Refactor pino logger to capture context/module names consistently",
+    "file": "backend/lib/logger.js",
+    "description": "Current pino logger is module-level default; callsites pass context via { serverId, consolePath } etc. Add createLogger(context: string) factory that auto-adds context to all logs from that module. Reduces boilerplate in logging calls (currently requires passing context in every log object).",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Add log rotation + archive for DayZ server console logs",
+    "file": "backend/lib/rpt-tailer.js",
+    "description": "Current rpt-tailer reads server_console.log directly but does not handle DayZ log rotation (DayZ rotates RPT/ADM/SCRIPT logs on restart). Add findRPTFiles-style logic to detect log rotation, handle file truncation gracefully (offset reset), and archive old server_console.log.N files to data/logs-archive/.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Formalize lifecycle hooks for tailing startup/shutdown",
+    "file": "backend/lib/rpt-tailer.js, backend/lib/metrics-collector.js",
+    "description": "Currently tailing is started/stopped ad-hoc. Reference LogReader extends IStatefulService with start()/stop() hooks. Formalize by wrapping rpt-tailer in a service object with start/stop, ensuring cleanup on server restart and preventing orphaned file watchers.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Add metrics export to CSV/JSON for long-term trend analysis",
+    "file": "backend/routes/logs-metrics.routes.js",
+    "description": "Current /api/:id/metrics returns in-memory rolling window. Add /api/:id/metrics/export with time range, format (csv/json), and aggregation (raw/downsampled). Useful for historical analysis. If metrics are persisted to DB, this becomes cheaper. Can also compress exports gzip.",
+    "priority": "low",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Harden system-metrics-sampler to handle PowerShell failures gracefully",
+    "file": "backend/lib/system-metrics-sampler.js",
+    "description": "Disk sampling (line 72) shells out to PowerShell; timeout is 5s but no retry. If PS call hangs or permission denied, sample silently fails. Add retry logic with exponential backoff, fallback to os.diskusage() if available, or use async child_process with .unref() to prevent blocking. Log failures but don't crash.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "De-duplicate identical console log lines (improve noise reduction)",
+    "file": "backend/lib/rpt-tailer.js",
+    "description": "Current rpt-tailer dedups via lastLine+lastLineTime (line 125). Reference LogReader has no dedup. Extend current approach: track last 3–5 lines in a rolling window, skip if line matches any recent entry. Reduces repeat-message spam in DayZ logs (e.g., repeating 'FPS' lines).",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Validate and document metrics sampling edge cases",
+    "file": "backend/lib/system-metrics-sampler.js, backend/lib/metrics-collector.js",
+    "description": "Current cpuPercent() uses os.cpus() deltas with 500ms delay; on 1-core VM might return 0. Document minimum requirements. Also: FPS fallback chain (sidecar → RPT → RCON) can return 0; audit.js should handle null/0 consistently for invalid metrics (skip emit or use sentinel value).",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Metrics persistence to database (ref stronger, current weaker)",
+    "description": "Reference stores metrics in better-sqlite3 with retention policy (deleteMetrics by maxAge), enabling historical queries and retention management. Current keeps metrics in memory only (~90min rolling window), loss on restart, no long-term trend data.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Type-safe metric enums and wrappers (ref stronger)",
+    "description": "Reference defines MetricTypeEnum and MetricWrapper<T> (types/metrics.ts) with explicit type discrimination. Current uses ad-hoc pushMetrics() calls with positional args (cpu, ram, playerCount, fps) and plain object emissions. No compile-time checks or schema.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Injection container + singleton services (ref stronger)",
+    "description": "Reference uses tsyringe DI for LoggerFactory, Database, LogReader, MetricsCollector with singleton scoping. Current has module-level globals (ctx, logger exports, _stores Map in pvp-stats). No service initialization pattern or lifecycle management.",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Sensitive field redaction (current stronger)",
+    "description": "Current pino logger (logger.js:35–62) auto-redacts 13+ fields (password, token, apiKey, jwt, rconPassword, guardCode) via redact paths + URL sanitizer. Reference logger (util/logger.ts) has no built-in redaction; relies on callsites to avoid logging sensitive data. Current goes further with URL query param scrubbing.",
+    "priority": "high",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Unified HTTP request logging middleware (current stronger)",
+    "description": "Current uses pino with transport, sensitive field redaction, and env-based pretty-printing. Reference middleware/logger.ts logs raw request/response with hardcoded console.log—no log-level filtering, no redaction, no file persistence. Current also sanitizes URLs before logging.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Killfeed parsing + leaderboard stats (current stronger)",
+    "description": "Current rpt-scraper.js (line 54) parses kill regex with victim/killer/method, updateLeaderboard calculates K/D/score. Current pvp-stats.js tracks kills/deaths/headshots/weapon stats/longestKill per player. Reference has no dedicated killfeed parsing or leaderboard module.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "File-level log rotation (neither implements well)",
+    "description": "Reference logs RPT/ADM/SCRIPT from DayZ server files directly (no rotation handling). Current scrapes tail of RPT + console tailer (no rotation safety). Neither implements log rotation or max-file-size handling for their own logs.",
+    "priority": "medium",
+    "effort": "medium",
+    "direction": "both_have_current_weaker"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Configurable metric poll intervals (ref stronger)",
+    "description": "Reference: metricPollIntervall from manager config (metrics-collector.ts:36). Current: hardcoded METRICS_POLL_INTERVAL_MS=15s and independent CPU sampler 30s, disk sampler 10min. No config override for metric frequency.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Process CPU/memory delta calculations (ref stronger)",
+    "description": "Reference SystemReporter calculates CPU delta by tracking prevReport timestamps and CPU spent (lines 50–53, 72–75), giving true interval usage. Current getProcessMetrics (from process-manager.js) returns raw CPU/RAM percentages; no delta-based interval calculation shown.",
+    "priority": "low",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Console buffer API via dedicated Socket.IO event (current stronger)",
+    "description": "Current rpt-tailer emits 'consoleLog' Socket.IO event per line + maintains getConsoleBuffer() API for /console route. Reference LogReader emits generic InternalEventTypes.LOG_ENTRY but no API route examples shown.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Adopt better-sqlite3 for metrics persistence with retention policy",
+    "description": "Reference's database design (src/services/database.ts, src/services/metrics.ts) enables historical trend queries and survives restarts. Current in-memory 90-min window is lost; customers with analytics dashboards or compliance needs lose data. Better-sqlite3 is lightweight, synchronous (fits current sync patterns), and already used by reference. Enables future exports, trend analysis, and longer-term alerting (e.g., 'server pegged for 2+ hours').",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Document and formalize server lifecycle hooks (start/stop services)",
+    "description": "Current tailing, metrics collection, and system sampling are ad-hoc. Reference uses IStatefulService pattern with lifecycle. Formalizing ensures cleanup on restarts, prevents file-descriptor leaks, and makes it testable. Low-risk refactor if scoped to new wrapping layer.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Consolidate log types and metric definitions into schema module",
+    "description": "Reference separates types (log-reader.ts, metrics.ts) from implementation. Current mixes them. Create backend/schemas/logging.js exporting LogType enum, MetricType enum, MetricWrapper type, LogMessage interface. All logging/metrics callsites import from there. Enables single source of truth and easier refactoring.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Extend metrics API with downsampling and time-range queries",
+    "description": "Current /api/:id/metrics returns raw in-memory array. Reference can query DB with time ranges. Add query params: ?since=<timestamp>&until=<timestamp>&downsample=<count>. Enables trend charts and long-term analysis. Low risk if current in-memory metrics are wrapped in a compatible interface first.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Preserve pino's sensitive-field redaction as a baseline security practice",
+    "description": "Current auto-redaction of 13+ fields (logger.js:35–62) is stronger than reference. Ensure all new logging integrations inherit this. Document the redaction list and update it if new sensitive fields are added (e.g., moderation tokens, webhook secrets). Makes security audit easier.",
+    "priority": "high",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Create integration test suite for log/metrics pipelines",
+    "description": "No tests evident in current rpt-tailer, rpt-scraper, or metrics-collector. Reference has test/services/log-reader.test.ts, test/services/metrics.test.ts. Add tests for: log filtering, regex parsing (kills), metric collection error handling, DB retention, and graceful degradation (e.g., RCON unavailable). Catches regressions in critical pipelines.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Implement log rotation safety for DayZ RPT/ADM/SCRIPT files",
+    "description": "DayZ rotates log files on restart; current scrapers/tailers do not track file rotation. Reference handles via FileDescriptor mtime tracking. Add findLatestFiles() style rescanning when file size drops or mtime resets, gracefully handle offset overflow, and log rotation events. Prevents missed or duplicate log entries.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Logging, metrics & monitoring data",
+    "title": "Establish SLA for metrics sampling (document latency, guarantees)",
+    "description": "Current samples CPU/RAM every 30s, disk every 10min, server metrics every 15s. No documented SLA or guarantees (e.g., 'metrics shall be available within 60s of collection'). Document sampling windows, acceptable latency, and failure modes. Helps diagnostic troubleshooting and sets expectations for real-time features.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Add in-progress flag timeout in backup creation",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/backup-engine.js (line 169-170, 223-225)",
+    "description": "If createBackup() is called twice in quick succession, the in-progress flag may persist indefinitely if the process crashes. Add a hardcoded timeout (e.g., 30 minutes) to auto-clear the flag. Currently: line 169 sets state.backup.inProgress = true, but no timeout exists if the process is killed.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Validate backup ZIP integrity after creation",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/backup-engine.js (line 235-240)",
+    "description": "After Compress-Archive completes, the code checks if the ZIP exists, but does not validate it (e.g., is it a valid ZIP? Can it be read?). Add a quick validation: try opening the ZIP with .NET ZipFile and reading one entry. Prevents corrupted backups being silently persisted.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Escape backup filename in safePath call",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/backup-engine.js (line 355, 386)",
+    "description": "deleteBackup() and findBackupFile() use safePath(backupsRoot, filename) without validation that filename is a simple basename. A malicious or confused client could pass '../../../etc/passwd' or 'file.zip?query'. Add path.basename(filename) before passing to safePath, or validate filename matches /^backup-[\\d-]+\\.zip$/ pattern.",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "high"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Handle wildcard expansion errors gracefully in backup restore",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/backup-engine.js (line 442-447)",
+    "description": "In restoreBackup(), the code expands wildcard paths to create a safety backup. If wildcard expansion returns an empty array (path doesn't exist), it skips the safety backup silently (line 486). Log a warning so admins know the safety snapshot wasn't created.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Add metrics/timing to hook execution results",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/lifecycle-hooks.js (line 238-240, 269-274)",
+    "description": "Hook execution logs success/failure but not duration. Slow hooks (e.g., 15s out of 30s timeout) go unnoticed. Store startTime before runHook(), measure elapsed, and include in log and Socket.IO event (e.g., 'durationMs': 1500). Helps operators spot performance issues.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Close staging directory race condition in backup creation",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/backup-engine.js (line 205-206, 232)",
+    "description": "The staging directory is removed asynchronously in proc.on('close'). If multiple backups fire in parallel (unlikely but possible), they may create the same staging dir name (based on timestamp) and interfere. Use a UUID or process-level counter for unique staging dirs, or add a locking mechanism.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Add robocopy success-code validation in backup creation",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/backup-engine.js (line 197)",
+    "description": "The robocopy step checks 'if ($LASTEXITCODE -ge 8)' but the PowerShell script continues anyway with 'Write-Warning' instead of failing. If robocopy partially copies files (exit 4 = some failures), the ZIP may contain incomplete data. Change to fail the entire backup if any robocopy returns non-zero.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Prevent concurrent backup ticks with atomic flag",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/backup-engine.js (line 630-635)",
+    "description": "The tick() function uses _tickRunning flag to prevent concurrent ticks, but the flag is set before the async work starts. If tick() runs twice and the first one is slower than 60s, the second tick may be skipped silently. Use a Promise-based approach or explicit queue instead of a boolean flag.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Add backoff retry for transient disk I/O errors",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/backup-engine.js (line 291-310)",
+    "description": "Cleanup reads dir entries and stats each file synchronously, but does not retry on ENOENT/EACCES errors (e.g., antivirus holding a file briefly). Add a simple retry loop (up to 3 attempts with 1s delay) for stat/unlink operations to avoid spammy debug logs.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Sanitize hook environment variables",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/lifecycle-hooks.js (line 176-192)",
+    "description": "buildHookEnv() injects CITADEL_SERVER_ROOT and other env vars from ctx without validation. If a server installDir is corrupted or contains newlines, hook scripts could be exploited. Validate and sanitize (e.g., reject paths with newlines, ensure absolute paths, resolve symlinks).",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Cron-based scheduling vs. timer-based scheduling",
+    "description": "Reference uses node-schedule with true cron patterns (via npm dependency); Citadel implements custom interval/daily/onetime timer logic without cron expressions. Cron is more flexible (e.g., 'every 2nd Tuesday'), but Citadel's approach is lighter-weight and has no external cron library deps.",
+    "priority": "medium",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Automatic backup ZIP compression",
+    "description": "Reference stores backups as plain directory copies (no compression); Citadel creates ZIP files with PowerShell, reducing storage by 50-80% depending on content. Citadel is strictly superior here.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Locked file handling in backups",
+    "description": "Reference backup does not address DayZ's file locks (mpmissions held by running server); Citadel uses robocopy staging + /R:0 /W:0 to copy around locks, then ZIPs the staged copy. Citadel prevents silent backup failures.",
+    "priority": "critical",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Wildcard path expansion in backups",
+    "description": "Reference supports only fixed paths; Citadel's expandWildcardPath() allows 'profiles/*.ADM' patterns for selective file backup. Citadel more flexible.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Disk space validation before backup",
+    "description": "Reference has no pre-flight disk check; Citadel checks 500MB free before starting. Citadel avoids out-of-disk failures.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Hook file discovery and ordering",
+    "description": "Reference requires explicit hook config in JSON; Citadel scans filesystem with naming convention (lifecycle.{event}[-{index}].{ext}), supporting indexed multi-hook orchestration. Citadel reduces config boilerplate.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Hook timeout enforcement",
+    "description": "Reference does not set per-hook timeouts; Citadel enforces HOOK_TIMEOUT_MS (default 30s) with process.kill() escalation. Prevents runaway hooks.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Blocking vs. non-blocking hook semantics",
+    "description": "Reference hooks appear to execute sequentially (no explicit blocking vs. async distinction); Citadel separates pre-start/stopped/crashed (blocking, sequential, abort on failure) from started (non-blocking, concurrent, fire-and-forget). Citadel is explicit and safer.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Backup restore with safety snapshot",
+    "description": "Reference has no restore capability shown; Citadel's restoreBackup() creates a pre-restore safety backup automatically, preventing accidental data loss. Citadel more robust.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Typed dependency injection vs. object-based context",
+    "description": "Reference uses tsyringe @singleton/@injectable for compile-time DI; Citadel uses module-level ctx object and require() for runtime coupling. Reference is more testable and refactor-friendly.",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Graceful service lifecycle (start/stop)",
+    "description": "Reference Events.start() and Events.stop() cleanly manage cron job lifecycle; Citadel's restart-scheduler uses initialize() (now a no-op due to Cloud migration) and shutdown(). Citadel's API is looser.",
+    "priority": "low",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Implement ZIP integrity validation after backup creation",
+    "description": "Citadel's backup-engine checks if the ZIP file exists, but does not validate it. A PowerShell Compress-Archive error could create a zero-byte or corrupted ZIP silently. Add a quick .NET ZipFile read to confirm the ZIP is valid before updating lastBackupAt and notifying operators. This is a low-risk, high-confidence win that prevents silent data loss.",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Validate backup filename as simple basename in delete/restore endpoints",
+    "description": "The deleteBackup() and findBackupFile() functions accept a filename parameter from the API without validating it. A malicious client could pass '../../../etc/passwd' and potentially access files outside the backup directory. Add a safeguard: filename = path.basename(filename) before processing, or validate it matches ^backup-[\\d\\-]+\\.zip$.",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Harden robocopy handling in backup creation",
+    "description": "The robocopy step in backup creation (line 197) issues a warning if exit code >= 8 but continues anyway. Exit codes 4-7 indicate partial success (some files skipped due to locks/permissions). A partially copied backup is worse than no backup. Either: (1) abort the ZIP if any robocopy fails, or (2) explicitly handle exit 0-7 as acceptable and only warn on 8+, with clear logging of which source paths were skipped.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Add in-progress timeout guard for backup creation",
+    "description": "If createBackup() process crashes or is killed externally, the in-progress flag persists indefinitely, blocking future backups. Add a hardcoded or configurable timeout (e.g., 30 minutes) that auto-clears the flag. This is a low-risk defensive measure.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Implement cron expression support as opt-in enhancement",
+    "description": "Citadel's restart scheduler uses custom interval/daily/onetime logic instead of cron. The reference uses node-schedule + cron-parser. Cron is more expressive (e.g., 'every 2nd Tuesday') and familiar to sysadmins. Add node-schedule as an optional parser: if a schedule contains a cron field, use node-schedule; otherwise fall back to existing interval/daily logic. This is non-breaking and gives power users more control. Effort is medium because it requires refactoring calculateNextRestart() and test coverage.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Add duration metrics to hook execution",
+    "description": "Hook logs currently show success/failure but not how long each hook took. Slow hooks (e.g., 20s of 30s timeout) go unnoticed, leading to surprise timeouts during restarts. Measure elapsed time (startTime before runHook), emit it in logs and Socket.IO events. Helps operators tune hook timeouts and spot hangs.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Use Promise-based queue for backup tick concurrency control",
+    "description": "The tick() function uses a boolean _tickRunning flag to prevent overlapping ticks. If a single tick takes >60s, the next tick will be skipped silently. Replace with a Promise-based queue (e.g., p-queue library) or explicit queue to ensure ticks are serialized without loss.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Validate hook environment variables for path injection",
+    "description": "buildHookEnv() injects CITADEL_SERVER_ROOT and other env vars from ctx without sanitization. A corrupted server installDir (e.g., containing newlines or quotes) could be exploited by a hook script. Validate and sanitize environment variable values (reject newlines, resolve symlinks, ensure absolute paths).",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Log warning when backup restore skips safety snapshot",
+    "description": "In restoreBackup(), if wildcard path expansion returns no results, the safety backup is skipped silently (line 486). Admins should know the restore may not have a rollback point. Add a clear warning log so this is visible in audit trails.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Event scheduler, lifecycle hooks & scheduled backups",
+    "title": "Implement gradual migration away from timer-based restart logic to event-driven",
+    "description": "Citadel's restart scheduler was recently stubbed for Cloud migration (initialize() is now a no-op, line 570-573). The in-Agent code still runs manually via API but the scheduled cron loop is disabled. This is a larger architectural shift already in flight (per the comment: 'Restart scheduling moved to Citadel Cloud in May 2026'). No action needed now, but ensure frontend and Cloud integration are complete before fully removing this code.",
+    "priority": "low",
+    "effort": "large",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Add event listener for server state changes and broadcast notifications",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/",
+    "description": "Create handlers/eventListener.js that subscribes to server events (via a WebSocket or polling adapter to the backend) and broadcasts formatted embeds to a configured notification channel. Useful for crash detection, startup/shutdown, update completion. Reduces user manual checks and improves transparency.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Implement message queueing and ready-state buffering in bot.js",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/bot.js",
+    "description": "Add a msgQueue array and defer outbound messages until client.readyAt is set. Call a flushQueue() function after client.once(Events.ClientReady). This prevents race conditions and lost messages during startup.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Consolidate cooldown checking into a middleware pattern",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/handlers/buttons.js, handlers/modals.js, commands/",
+    "description": "Extract the adminGate() pattern from buttons.js into a reusable middleware/decorator (or a checkAndEnforce() function) that can be called consistently across all handlers. Current duplication of isAdmin() + checkCooldown() + setCooldown() calls increases bugs if one spot is missed.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Add structured error logging with request tracing",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/api.js, lib/logger.js",
+    "description": "Enrich panelAction() errors with request ID (UUID) and user context, logged alongside the error. Helps debug which user action caused a backend failure. Current logging is minimal.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Add JSDoc type hints for better IDE support without TypeScript",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/api.js, handlers/*.js, commands/*.js",
+    "description": "Add JSDoc @param and @returns comments (e.g., `@param {Interaction} interaction`, `@returns {Promise<EmbedBuilder>}`). Enables VS Code autocomplete and type checking without a build step, improving dev experience.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Add unit tests for critical handlers (buttons, modals, commands)",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/__tests__/",
+    "description": "Create simple Jest tests for buttons.js, modals.js, and a sample command. Mock discord.js interactions and panelAction(). Reference has discord-message-handler.test.ts as precedent. Current has zero tests.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Validate interaction.user and role existence before use",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/utils/permissions.js, bot.js",
+    "description": "In isAdmin(), check if interaction.member exists and interaction.member.roles exists before calling cache.has(). Add null guards. Same for interaction.user in api.js signCall(). Current code will crash if user object is malformed.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Extract magic strings (customIds, action names) into constants",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/handlers/buttons.js, selectMenus.js, modals.js, ui/components.js",
+    "description": "Create ui/constants.js with BUTTON_IDS, MODAL_IDS, ACTION_NAMES enums. Replace inline strings like 'panel_status', 'modal_broadcast' with constants. Reduces typo-related bugs and improves refactorability.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Add retry logic with exponential backoff to panelAction()",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/api.js",
+    "description": "Current fetchWithRetry() only retries on 5xx once. For better resilience, use exponential backoff (e.g., 200ms, 500ms, 1000ms) for a configurable max attempts. Helps with transient backend failures.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Discord bot integration",
+    "title": "Implement graceful degradation for missing config values",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/discord-bot/config.js, bot.js",
+    "description": "If DISCORD_BOT_API_KEY is missing, log a warning and allow the bot to start in read-only mode (disable admin actions). Current exits immediately. This improves dev experience (can run locally without full .env).",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Event-driven server-status notifications",
+    "description": "Reference has dedicated DiscordEventConverter that subscribes to internal events (game updates, server state changes, mod updates) and broadcasts formatted Discord messages automatically. Current codebase has no equivalent event listener; status/feeds are only query-based (on-demand button clicks). Missing automatic notifications for crash detection, startup/shutdown, update completion.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Message queueing and readiness buffering",
+    "description": "Reference queues outbound Discord messages until bot is ready (sendQueuedMessage with 1000ms delay after onReady), preventing race conditions during startup. Current codebase sends immediately without ready-state buffering, risking dropped messages during rapid startup sequences.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Dependency injection and service lifecycle",
+    "description": "Reference uses tsyringe for dependency injection, decoupling services, enabling testability, and centralizing config. Current uses static requires and module-level state, making unit testing harder and dependency graphs implicit.",
+    "priority": "low",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Type safety and TypeScript",
+    "description": "Reference is fully typed (Request, RequestTemplate, DiscordMessage interfaces). Current is untyped JavaScript. This is a tradeoff: reference catches errors at compile time but requires build step; current is faster to iterate but riskier in production.",
+    "priority": "low",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Legacy text command syntax (!prefix)",
+    "description": "Reference supports both legacy `!command` text commands and modern interactions. Current has migrated fully to Discord slash commands (ChatInputCommand) and button/modal interactions. Modern approach is better aligned with current Discord best practices (no longer raw message handling).",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Slash command + button/modal/select UI",
+    "description": "Reference has no button or modal handlers (discord.js v13). Current has comprehensive slash-command + interactive component system (v14) with modals, select menus, buttons, and a full control panel UI.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Audit-layer HMAC signing",
+    "description": "Current includes signCall() in api.js that signs each backend call with HMAC-SHA256 (payload = `ts.action.userId`), sent as X-Discord-Ts and X-Discord-Sig headers. Backend can verify user attribution and replay-window. Reference has no equivalent audit layer.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Tiered rate limiting",
+    "description": "Current has sophisticated per-user, per-action cooldown system with three tiers (query 3s, admin 10s, control 30s) and automatic tier assignment. Reference has no visible cooldown/rate limiting.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Multi-server guild context",
+    "description": "Current supports per-guild server selection (selectedServers map) and passes guildId to panelAction() for context-aware responses. Reference has no multi-server awareness visible in Discord integration.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Discord bot integration",
+    "title": "Comprehensive input validation and sanitization",
+    "description": "Current has utils/sanitize.js with escapeMarkdown(), isValidSteam64(), isValidCoordinate(), isValidWorkshopId() validators. Handlers validate before calling backend. Reference uses simpler parsing without rich validation.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Discord bot integration",
+    "title": "Implement event-driven server notifications (crash detection, startup alerts)",
+    "description": "Reference's DiscordEventConverter shows a clean pattern: subscribe to internal events and emit Discord messages automatically. Current codebase is purely query-based (users must click buttons to see status). Adding a simple event listener (WebSocket or polling) that broadcasts to a notification channel would dramatically improve operator awareness without increasing user interaction friction. High ROI for server reliability ops.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Discord bot integration",
+    "title": "Migrate to TypeScript for type safety and IDE support",
+    "description": "Reference's TypeScript + tsyringe setup provides compile-time error catching, better refactoring, and self-documenting code. Current JS setup is faster to iterate but riskier at scale. If Citadel is a mission-critical product, the safety ROI justifies the build-step overhead. Can be done incrementally (new files in TS, gradual migration).",
+    "priority": "low",
+    "effort": "large",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Discord bot integration",
+    "title": "Add comprehensive test suite (unit + integration)",
+    "description": "Reference has discord-message-handler.test.ts. Current has zero tests. Given the number of button/modal handlers and the user-facing attack surface (untrusted input from players), tests would catch regressions and validate sanitization logic. Jest + discord.js mock is straightforward.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Discord bot integration",
+    "title": "Extract handler logic into a dispatch registry with validation middleware",
+    "description": "Current buttons.js, modals.js, selectMenus.js all manually dispatch on customId. Consolidating into a single registry with composable middleware (auth, cooldown, logging) would reduce duplication and make it harder to forget permission checks.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Discord bot integration",
+    "title": "Add detailed request tracing and error context to panelAction()",
+    "description": "When a user action fails, it's hard to debug without seeing the backend request/response. Adding request IDs, user context, and better error enrichment (what endpoint, what params) would make ops/support triage easier.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Discord bot integration",
+    "title": "Document the HMAC audit layer and versioning strategy",
+    "description": "Current api.js signCall() is sophisticated (audit L2 with replay window) but has no inline comments explaining the threat model. Adding clear docs (why HMAC, replay window rationale, header format) helps future maintainers and supports security audits.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Discord bot integration",
+    "title": "Add JSDoc type hints and migrate toward strict mode",
+    "description": "Current code lacks type hints, making IDE support poor and refactoring risky. JSDoc comments cost little but unlock autocomplete, parameter hints, and type checking via VS Code. A step toward TypeScript without the full commitment.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Discord bot integration",
+    "title": "Implement per-guild audit log subscriptions",
+    "description": "HMAC signing proves WHO called an action, but there's no persistent record of WHAT actions were called. Storing action calls in a local audit log (SQLite or JSON file per guild) would support compliance, security reviews, and user issue triage.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Add error recovery for malformed command responses",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/sidecar/command-queue.js (lines 87-114)",
+    "description": "Currently catches JSON.parse() SyntaxError and retries, but doesn't log which command failed. Add command action/ID to debug log so operators can trace hung commands.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Prevent command queue exhaustion by implementing max-age cleanup",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/sidecar/server.js",
+    "description": "The cleanup function exists (command-queue.js) but is never called automatically. Should run periodically (e.g. every 5min) to delete stale command files >1min old. Add to server startup.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Add mtime-based staleness detection to CitadelBridge polling",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/citadel-bridge.js (lines 61-70)",
+    "description": "Already caches mtime but doesn't emit a 'stale' event if data hasn't changed in >30s. Useful for dashboards to detect mod disconnection. Add optional staleness threshold config.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Validate command action string against whitelist before writing file",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/sidecar/command-queue.js (line 58)",
+    "description": "Currently no validation of `action` param before serializing. Add whitelist (player.*, vehicle.*, world.*) to prevent typos from creating orphaned command files.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Add response timeout debugging to CitadelCommandRunner",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/dayz-mod/@CitadelAdmin/scripts/5_Mission/CitadelCommandRunner.c",
+    "description": "If a command file sits unprocessed for >30s, log it to CitadelEventLogger with command ID and action. Helps diagnose mod hangs or file permission issues.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Move magic numbers to constants in CitadelReporter/CitadelMetricsTracker",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/dayz-mod/@CitadelAdmin/scripts/5_Mission/ (CitadelReporter.c, CitadelMetricsTracker.c)",
+    "description": "Interval values (5s, 10s, 15s) are hardcoded. Should read from CitadelConfiguration instead for runtime flexibility.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Add overflow protection to CitadelCore event registry",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/dayz-mod/@CitadelAdmin/scripts/3_Game/CitadelCore.c (m_TrackedEvents array)",
+    "description": "Events are appended indefinitely. If server runs for weeks without restart, array grows unbounded. Add max capacity (e.g. 1000) and FIFO eviction.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Document file format contracts in CitadelCommandRunner comments",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/dayz-mod/@CitadelAdmin/scripts/5_Mission/CitadelCommandRunner.c (lines 1-100)",
+    "description": "File format is documented but could benefit from examples of command/response payloads for each action type (player.heal, player.teleport, etc.).",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "In-game report mod & IPC",
+    "title": "Use file existence check before reading game-data-store files",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/sidecar/game-data-store.js (lines 24-46)",
+    "description": "readFileSync() will throw if file missing. Already guarded by fs.existsSync(), but error handling could be more specific (log file path on missing).",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "REST API option for ingame reports",
+    "description": "Reference supports toggling between file-based tick polling and direct REST POST to manager. Citadel always uses file-based IPC for data export. REST option would enable lower-latency updates in high-frequency scenarios.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Static data dumps (ammo, weapons, items, containers, zombies)",
+    "description": "Reference pre-computes comprehensive config dumps (ammunition, magazines, weapons, clothing, items, containers, zombies) on first run, stored as JSON. Citadel does not export this inventory/config metadata. Useful for UI item lists, wiki generation, admin tools.",
+    "priority": "low",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Real FPS calculation from tick time",
+    "description": "Citadel correctly derives real FPS from tick_avg (1000/tick_avg), reports fps*100 for precision. Reference behavior unclear from code shown but likely similar. Citadel is more rigorous (comment in game-data-store.js explains the derivation).",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "both_have_current_better"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Session duration tracking",
+    "description": "Citadel tracks player session start time in CitadelCore registry, exposes GetPlayerSessionDuration(). Reference does not mention this. Useful for admin/analytics.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Dynamic event tracking with positions",
+    "description": "Citadel tracks world events (heli crashes, contamination zones, etc.) with positions and metadata in CitadelCore. Reference focuses on player/vehicle positions only.",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Bidirectional command queue",
+    "description": "Citadel implements full request-response RPC via file queue (75+ commands: player actions, vehicle, world). Reference shows no command infrastructure—only data export via REST POST or tick file. Citadel is substantially more powerful.",
+    "priority": "critical",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Atomic file writes for command safety",
+    "description": "Citadel's command-queue.js uses atomic writes (.tmp → rename) to prevent mod reading partial JSON. Reference does not show explicit atomic write pattern (JsonFileLoader may or may not be atomic).",
+    "priority": "high",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Performance optimizations (caching, O(1) removal)",
+    "description": "Citadel caches active AI/animal counts with 2s TTL, uses swap-and-pop for O(1) removal. Reference's monolithic approach may iterate full player/AI arrays on every tick.",
+    "priority": "high",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Proper mission-layer lifecycle management",
+    "description": "Citadel properly places command runner and reporters in 5_Mission layer, flushes data on OnMissionFinish, uses ProgressEvent for mission-loaded detection. Reference's layer placement unclear.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "In-game report mod & IPC",
+    "title": "Grid-based static object scanning",
+    "description": "Citadel scans map in 10x10 grid sectors (starting 30s after mission load) to register static entity markers. Reference does not show this feature.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "In-game report mod & IPC",
+    "title": "Implement REST POST option for real-time ingame reports (optional fallback to file polling)",
+    "description": "Reference shows value of dual-mode reporting (file vs REST). Citadel is file-only. For high-frequency updates (player positions), REST POST would reduce latency. Would allow sidecar to opt-in without polling overhead. Backward-compatible since file-based remains default.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "In-game report mod & IPC",
+    "title": "Add automatic stale file cleanup to sidecar server startup",
+    "description": "Function exists (cleanupStaleFiles) but is never invoked. Orphaned command files left by timed-out requests can accumulate and waste disk space. Should run on startup + periodically (5min interval).",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "In-game report mod & IPC",
+    "title": "Implement overflow protection for CitadelCore event/vehicle registries",
+    "description": "Arrays grow unbounded. Long-running servers (weeks+) risk memory exhaustion. Add capacity limits (e.g., 1000 events, 5000 vehicles) with FIFO eviction. Track evictions in metrics.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "In-game report mod & IPC",
+    "title": "Add command action whitelist validation in sidecar before writing files",
+    "description": "Typos or injected action values could create orphaned or invalid command files. Whitelist (player.*, vehicle.*, world.*) guards against operator error and potential security issues.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "In-game report mod & IPC",
+    "title": "Add staleness detection events to CitadelBridge for connection monitoring",
+    "description": "Currently no way to detect if mod has stopped reporting (e.g., mod crash, file permission loss). Add optional 'stale' event emission (threshold 30s+ without mtime change) so dashboards can show 'connection lost'.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "In-game report mod & IPC",
+    "title": "Move configuration values from hardcoded to CitadelConfiguration in reporters/tracker",
+    "description": "Interval timings (5s vehicles, 10s events, 15s metrics) are hardcoded. Should read from CitadelConfiguration for operator flexibility without recompilation. Quick win for operational control.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "In-game report mod & IPC",
+    "title": "Add comprehensive logging to CitadelCommandRunner for timeout diagnostics",
+    "description": "If a command file sits unprocessed for >30s, there's no log entry. Should log to CitadelEventLogger with command ID, action, timestamp. Helps diagnose mod hangs, file permission issues, or command handler crashes.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "In-game report mod & IPC",
+    "title": "Consider optional static config dumps (low-priority future work)",
+    "description": "Reference generates ammo/weapon/item/container dumps on first run. Useful for wiki generation, UI item lists, admin tools. Citadel lacks this. Not urgent but valuable for ecosystem. Would require parsing config tree (150-200 LOC) + infrastructure to push to sidecar.",
+    "priority": "low",
+    "effort": "large",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Introduce request validation schema layer",
+    "file": "backend/routes/*.routes.js",
+    "description": "Replace ad-hoc manual validation (e.g., `if (!workshopId || !name) return res.status(400)...`) with a declarative schema validator. Create a lightweight lib/request-validator.js that supports common patterns: required/optional fields, type checking, string length, regex, enum, and custom validators. Use it at route entry to fail fast with consistent error messages. Reduces code duplication across 40+ route files and improves consistency.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Centralize error response format",
+    "file": "backend/lib/http-errors.js",
+    "description": "Errors are currently returned via clientError() and safeError() helpers — inconsistently applied. Establish a single error response shape: `{ error, code?, suggestion?, details? }`. Create middleware to catch unhandled exceptions and format them uniformly. Document error codes (e.g., 'INVALID_CREDENTIALS', 'LOGIN_LOCKED', 'ACCESS_DENIED') so frontend can localize messages.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Add request/response logging with correlation IDs",
+    "file": "backend/middleware/logging.js",
+    "description": "Current logging is pino-based but ad-hoc (individual route logs). Create a logging middleware that assigns a `requestId` (UUID) on entry and includes it in all logs for the duration of that request. Log request envelope (method, path, status, durationMs) to make diagnostics easier. Already partially done in frontend (api.js event ring), extend to backend.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Generate OpenAPI spec from route metadata",
+    "file": "backend/lib/openapi-generator.js",
+    "description": "Create a low-code OpenAPI generator that inspects routes and middleware, then produces a spec.json. Start minimal (just endpoints, methods, auth requirements, basic param docs) and iterate. Expose via /api/docs/openapi.json + /api/docs/swagger-ui endpoint. Use swagger-ui-express. This unblocks SDK generation, API doc site, and third-party integrations.",
+    "priority": "high",
+    "effort": "large",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Normalize WebSocket message structure",
+    "file": "backend/lib/citadel-socket.js",
+    "description": "WebSocket events are point-to-point socket.io emissions (e.g., `socket.emit('mods', {...})`). Define a standard message envelope like `{ type, requestId?, data, error? }` to match REST response patterns. Allows frontend to unify request/response tracking and error handling across REST and WS.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Audit and document all permission checks",
+    "file": "backend/routes/auth.routes.js, backend/middleware/auth.js",
+    "description": "Permission checks are scattered: some use `auth('permission')` middleware, some check `req.user.role` directly. Create a permission audit matrix (e.g., CSV or JSON) listing every endpoint, required permission, and server scope logic. Ensures no endpoints bypass checks and helps operators understand the permission model.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Validate CSRF token in rate-limit middleware",
+    "file": "backend/middleware/csrf.js, backend/middleware/rate-limit.js",
+    "description": "CSRF protection runs per route, but rate-limiting counts requests before CSRF validation. A malicious actor flooding with invalid CSRF tokens can still burn through the rate limit. Move CSRF check before rate-limit count (or exempt valid tokens).",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Frontend: consolidate API client patterns",
+    "file": "web/frontend/src/api.js",
+    "description": "The API class uses static methods (API.get(), API.post()). Each component typically wraps these in custom hooks. Define a higher-order hook abstraction (useAPI) that handles loading/error/retry so each component isn't reinventing it. This is more of a React pattern improvement than API design, but improves robustness.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Add request timeout configuration per endpoint",
+    "file": "backend/routes/*.routes.js",
+    "description": "Some operations are long-running (file operations, Steam updates). Currently, all requests timeout after `REQUEST_TIMEOUT_MS = 30000` (api.js). Add per-endpoint timeout override (e.g., file download = 2 min, SteamCMD = 10 min) to avoid premature client-side timeouts on slow operations.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Centralized request schema/validation",
+    "description": "Reference has RequestTemplate with declarative param definitions (location, optional, parse function). Current lacks schema validation framework — every route manually validates its inputs with inline if-checks. No single source of truth for API contract.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "OpenAPI/Swagger documentation",
+    "description": "Reference integrates swagger-ui-express (though design is not fully auto-generated). Current has zero API documentation — developers must read route handlers to understand endpoints. No ability for clients to auto-generate SDKs.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Declarative command/endpoint registry",
+    "description": "Reference's CommandMap allows introspection of all endpoints, their methods, permissions, and parameters at runtime. Current routes are scattered across files — no programmatic way to list/inspect the API surface. Makes it hard to auto-generate docs or validate coverage.",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Server-scoped permissions with role scope arrays",
+    "description": "Current has serverScope array on roles for multi-tenant isolation (authForServer middleware, auth.js line 114-118). Reference uses simple permission string checks — no concept of per-role server access lists.",
+    "priority": "high",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "WebSocket streaming responses",
+    "description": "Reference's websocketRespond() and ResponsePartHandler support chunked streaming over WS for long-running operations. Current WebSocket uses point-to-point socket.io events. Not directly comparable but useful pattern for large data transfers.",
+    "priority": "low",
+    "effort": "medium",
+    "direction": "both_have_current_weaker"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Unified request/response model across transports",
+    "description": "Reference uses same Request/Response classes for REST and WebSocket. Current uses fetch/REST for HTTP and socket.io events for WS — different abstractions.",
+    "priority": "low",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Basic auth vs. JWT",
+    "description": "Reference uses express-basic-auth (stateless). Current uses JWT with token revocation, MFA support (TOTP), brute-force lockout, and session tracking. Current auth is significantly more sophisticated.",
+    "priority": "high",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "API diagnostic event logging",
+    "description": "Current records recent API calls to a ring buffer for support diagnostics (api.js line 38, downloadDiagnostics). Reference has no equivalent.",
+    "priority": "low",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Webhook event system",
+    "description": "Current has fireWebhooks() that triggers on mod install, ban, session events, etc. Reference has no visible webhook layer (only Discord message handler for commands).",
+    "priority": "low",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Implement lightweight request validation schema layer (phase 1)",
+    "description": "Citadel has 40+ route files with repeated boilerplate validation. A centralized schema layer (similar to RequestTemplate.params in reference) reduces code duplication by 20-30% and catches bugs earlier. Start with a simple validation function that takes a schema object and returns middleware. No external libraries needed — keep it minimal to avoid dependency bloat.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Document existing API surface with OpenAPI spec (phase 2)",
+    "description": "Current codebase has zero API documentation. Writing an OpenAPI spec forces a review of all endpoints, parameters, and error codes. This unblocks: (1) SDK generation for desktop/mobile clients, (2) third-party integrations (Discord bot, Cloud bridge), (3) automated API testing. Start by documenting 5-10 critical endpoints (auth, servers, mods) as a proof-of-concept; iterate to full coverage.",
+    "priority": "high",
+    "effort": "large",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Standardize error response envelope",
+    "description": "Errors return various shapes — sometimes `{ error }`, sometimes `{ error, code, suggestion }`. A single shape (e.g., `{ error, code?, suggestion?, details? }`) means the frontend can reliably parse errors and show localized messages. Add a global error handler middleware that catches unhandled exceptions and reformats them.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Add per-route timeout configuration",
+    "description": "30-second default timeout is too tight for Steam update operations that can run 5-10 minutes. Add a route-level `timeout` option (e.g., `auth('permission', { timeout: 600000 })`) so long-running ops don't fail prematurely. Frontend's 30s timeout was likely chosen conservatively to avoid hanging UI.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Normalize WebSocket event structure",
+    "description": "WebSocket currently uses point-to-point socket.io events with no standard envelope. Wrapping payloads in `{ type, data, requestId?, error? }` allows frontend to correlate requests/responses (useful for streaming long operations) and apply uniform error handling. Non-breaking: add new event names alongside old ones, deprecate over time.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Create API audit matrix",
+    "description": "Citadel has complex permission/scope logic (global, per-server, Discord bot synthetic role, etc.). Document it in a matrix format (CSV/JSON): endpoint → method → permission → server scope → DCB role behavior. Helps operators understand what each role can do and prevents permission-check regressions during refactoring.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Move CSRF validation before rate-limit accounting",
+    "description": "Rate limiting currently counts requests before CSRF validation. An attacker can flood with invalid tokens and burn the rate limit for legitimate users. Low-effort fix: check CSRF in an early middleware (after cookie parsing, before rate-limit) so invalid tokens don't consume quota.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Web UI & REST API Architecture",
+    "title": "Do not flatten the current route structure into a CommandMap",
+    "description": "Reference's CommandMap pattern is elegant for a small manager (50-100 endpoints). Citadel has 40+ route files and 200+ endpoints spanning diverse domains (auth, servers, mods, files, roles, webhooks, etc.). Flattening into a single map would be harder to navigate and parallelize than the current modular approach. Instead, extract lessons (validation schema, OpenAPI generation) without restructuring.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Mission files & XML editors",
+    "title": "Add XML entity escaping to globals-xml-parser.js",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/globals-xml-parser.js",
+    "description": "Line 74 in buildGlobalsXml() and line 48 in parseGlobalsXml() do not escape attribute values. If a global's name or value contains &, <, \", or >, the XML will be malformed. Import and use escapeXml() from economycore-parser.js or create a shared utility.",
+    "priority": "critical",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Mission files & XML editors",
+    "title": "Add XML entity escaping to spawnabletypes-parser.js and other parsers",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/spawnabletypes-parser.js",
+    "description": "Similar issue across all parser builders. Audit all buildXml() functions to ensure attribute and text node values are escaped via escapeXml().",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Mission files & XML editors",
+    "title": "Validate numeric fields in types-xml-parser.js before serialization",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/types-xml-parser.js",
+    "description": "Lines 154-159 serialize nominal, lifetime, restock, min, quantmin, quantmax, cost directly without range checks. Negative nominal or cost values are valid per getInt() but should be validated against server-known limits. Add validateItem() function checking ranges align with DayZ economy constraints.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Mission files & XML editors",
+    "title": "Add ReDoS-safe regex pattern compilation in types-xml-parser.js",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/types-xml-parser.js",
+    "description": "Lines 73, 97-108 use new RegExp() on each parse call. On large files (>50MB types.xml with thousands of items), repeated regex compilation wastes cycles. Pre-compile at module scope and reuse.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Mission files & XML editors",
+    "title": "Extract shared safe-path validation to central helper",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/routes/types-editor.routes.js",
+    "description": "Line 209 and similar in all editor routes duplicate safePath() calls. Consolidate into a middleware or shared validation function to reduce duplication and ensure uniform policy.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Mission files & XML editors",
+    "title": "Add return type validation on parseTypesXml() results",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/lib/types-xml-parser.js",
+    "description": "buildTypesXml() at line 210 assumes items array structure without validating. Add an itemToXml() guard ensuring name, numeric fields, and array fields have safe types before serialization.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Mission files & XML editors",
+    "title": "Formalize error messages for invalid XML file paths",
+    "file": "/Users/sk3tch/Documents/GitHub/DayzServerController/backend/routes/types-editor.routes.js",
+    "description": "Line 209-210 silently skips invalid paths in some cases. Add explicit error responses (403) with reasons to help admins debug misconfigured cfgeconomycore.xml.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Path traversal defense depth",
+    "description": "Reference implements simple string checks (startsWith, includes '..'). Citadel uses cross-platform `safePath()` with realpath canonicalization, Windows absolute path detection, case-insensitive containment on Windows-on-Linux, and segregated checks for filesystem existence. Citadel is more robust.",
+    "priority": "high",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "XML escaping coverage",
+    "description": "Reference has no XML-specific escaping (ConfigParser is for .cfg format). Citadel has `escapeXml()` covering all five XML entities plus attribute whitespace normalization (economycore-parser.js:205-213). Reference would produce malformed XML if values contain & or <.",
+    "priority": "critical",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Per-file error isolation",
+    "description": "Citadel batch-reads multiple types files and isolates parse errors per-file (types-editor.routes.js:151-157) so one corrupt file doesn't block the editor. Reference would fail entirely on bad input.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Schema validation with limits definition expansion",
+    "description": "Citadel parses and expands user-defined groups in types.xml (types-xml-parser.js:61-118, 180-196), preserving intent during edits. Reference has no economy domain knowledge.",
+    "priority": "medium",
+    "effort": "medium",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Caching with mtime invalidation",
+    "description": "Citadel implements lookup cache for limits definitions (types-editor.routes.js:64-105) avoiding re-parse on every request. Reference loads on every read.",
+    "priority": "low",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Dependency injection & testing harness",
+    "description": "Reference uses tsyringe DI with proper lifecycle management and comprehensive unit tests with mocked dependencies (test/services/mission-files.test.ts:1-210). Citadel uses synchronous require() and route-level integration tests (backend/test_api.test.js exists but not examined). Makes refactoring harder in current.",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Promise-based async API",
+    "description": "Reference wraps all I/O in async/await (all methods return Promise). Citadel uses synchronous fs calls throughout. Current is not future-proof for concurrent operations or high-throughput scenarios.",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Unified file service abstraction",
+    "description": "Reference centralizes all mission/profile file access via MissionFiles service. Citadel duplicates path resolution and error handling across editor routes. Violation of DRY; harder to audit global policy changes.",
+    "priority": "low",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Audit trail & semantic logging",
+    "description": "Citadel logs user actions with username/userId/action/details (audit.js:31-37). Reference has hooks but no audit-specific logging; would require custom instrumentation per consumer.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Mission files & XML editors",
+    "title": "Backup before every write",
+    "description": "Both integrate backup systems. Reference via `backup.createBackup()` on write flag. Citadel calls `createBackup()` explicitly before each write operation in editor routes (lines 224, 274, 317, 425). Citadel's explicit calls are clearer intent but both achieve same goal.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "both_have_current_better"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Mission files & XML editors",
+    "title": "Consolidate XML escaping into shared utility module",
+    "description": "Citadel already has escapeXml() in economycore-parser.js. All parsers should use it. Creates single point of control for XML safety, reduces copy-paste bugs, and makes future entity fixes atomic. Low effort, high confidence.",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Mission files & XML editors",
+    "title": "Create centralized editor middleware for path validation and backup",
+    "description": "All 7 editor routes duplicate safePath() and createBackup() calls. Extracting to middleware (or a shared `withMissionFileGuards()` helper) reduces LOC, ensures uniform policy, and makes auditing easier. Surgical refactor with low breakage risk.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Mission files & XML editors",
+    "title": "Add input validation function for XML values before serialization",
+    "description": "Protect against out-of-range numeric fields, empty strings in required positions, and malformed arrays. Create validateItem(item, schema) reused across types.xml, events.xml, globals.xml builders. Prevents invalid game configs reaching the server.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Mission files & XML editors",
+    "title": "Implement async/await refactor for I/O critical path",
+    "description": "Current synchronous fs calls block event loop on large file edits. Refactor core parsers and route handlers to async. Critical for multi-user edit concurrency and UI responsiveness. Large effort but high payoff for production stability.",
+    "priority": "high",
+    "effort": "large",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Mission files & XML editors",
+    "title": "Pre-compile RegExp patterns at module scope",
+    "description": "types-xml-parser.js and others create RegExp objects on every parse call. Pre-compile at module scope and reuse. Measurable perf gain on large mission folders (50+ MB files). Trivial code change.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Mission files & XML editors",
+    "title": "Add comprehensive JSON schema validation for imported items",
+    "description": "POST /api/servers/:id/types/import accepts raw JSON from frontend. Add schema validation (e.g., via ajv) to reject malformed imports before merging. Prevents data corruption from UI bugs or hostile JSON.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Mission files & XML editors",
+    "title": "Formalize error categorization in XML parsers",
+    "description": "Current parsers return null on error or throw uncaught exceptions. Standardize on { success, data, error: { code, message, file } } for all parser functions. Makes client error handling and logging consistent.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Strengthen ESLint Config for Async/Promise Safety",
+    "file": "backend/.eslintrc.json",
+    "description": "Add @typescript-eslint/no-floating-promises and @typescript-eslint/no-misused-promises rules (as in reference). Currently no detection of unawaited promises or .then()/.catch() on voids. With 4979 lines of JS, this is a silent bug vector.",
+    "priority": "high",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Add JSDoc Type Annotations to Context & Core Modules",
+    "file": "backend/lib/context.js, backend/lib/config.js, backend/lib/data-store.js",
+    "description": "Retrofit comprehensive /** @type {} */ JSDoc to the main ctx object and exported functions. This enables IDE autocomplete and catches some type errors in plain JS. Example: ctx.servers becomes /** @type {ServerDefinition[]} */.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Establish Service Layer Boundaries",
+    "file": "backend/lib/, backend/routes/",
+    "description": "Routes currently directly mutate ctx and call internal functions. Create a thin service facade (e.g., backend/lib/services/index.js exporting { getServerState, startServer, ... }) so routes depend on services, not raw ctx. Reduces coupling, aids testability.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Expand Test Suite with Jest Snapshots for API Responses",
+    "file": "backend/test_api.test.js",
+    "description": "Current 1 test file covers only helpers. Add supertest tests for at least 10 high-value routes (e.g., GET /api/servers, POST /api/servers/{id}/restart, POST /api/users) with Jest snapshots to catch unintended API response changes. Aim for 20+ test cases.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Add jest.config.js Coverage Thresholds",
+    "file": "backend/jest.config.js",
+    "description": "Reference enforces 85% lines, 100% functions. Set collectCoverage: true and coverageThreshold: { global: { lines: 50, functions: 60 } } as a minimum. Gradually raise it as tests improve.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Document Data Model with Schema Comments",
+    "file": "backend/lib/context.js",
+    "description": "ctx.servers, ctx.users, ctx.roles, ctx.auditLog, ctx.webhooks are bare arrays. Add JSDoc comments describing shape: /** @typedef {object} ServerDefinition @property {string} id @property {string} name ... */. Makes intent clear and improves IDE hints.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Isolate Context Initialization from Bootstrap",
+    "file": "backend/server.js (lines 23-100)",
+    "description": "Move ctx initialization into a separate module (e.g., backend/lib/bootstrap.js) that returns a fully-initialized ctx. server.js becomes cleaner (load bootstrap, then wire express). Easier to test context setup without starting the server.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Add Graceful Shutdown Tests for data-store.js",
+    "file": "backend/test_api.test.js (or new file backend/lib/data-store.test.js)",
+    "description": "Test flushAll() and forceFlush() under various scenarios: pending write, concurrent writes, temp file cleanup. Currently no unit tests for the atomic write logic—highest-risk persistence code deserves coverage.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Extract Configuration Validation into a Testable Module",
+    "file": "backend/lib/config.js, backend/lib/config-schema.js",
+    "description": "config.js loads and applies defaults. Add unit tests for validation logic (e.g., schema enforcement, bad port numbers, missing required fields). Currently config errors may slip into runtime.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Add Error Boundary Middleware to Express",
+    "file": "backend/server.js (bottom of route setup)",
+    "description": "Add catch-all error handler middleware after all routes to log unhandled errors and return 500 JSON. Currently missing; would prevent silent failures and edge-case 500s being returned as html.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Dependency Injection & Inversion of Control",
+    "description": "Reference uses tsyringe with @injectable/@singleton decorators and container.resolve() for testability and loose coupling. Citadel uses a global context singleton with direct require() coupling throughout 4979 lines of code.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Event Bus Abstraction",
+    "description": "Reference has EventBus (event-bus.ts) with strongly-typed overloaded emit/on methods and async request/response. Citadel has no event bus; services directly mutate ctx and call each other's functions.",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Test Coverage & Test Suite Size",
+    "description": "Reference: 35 test files with Mocha+Chai, NYC enforcement of 85% lines / 100% functions. Citadel: 1 test file with 451 lines, jest with no coverage thresholds, missing tests for most routes and services.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Type Safety (TypeScript vs JavaScript)",
+    "description": "Reference is compiled TypeScript with explicit return types and member accessibility enforcement. Citadel is plain JavaScript with only JSDoc comments for type hints, no compile-time checking.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Linting & Code Quality Standards",
+    "description": "Reference: 115-line .eslintrc enforcing TypeScript-specific rules (explicit return types, no-floating-promises, no-misused-promises, naming conventions). Citadel: minimal .eslintrc.json with eslint:recommended and loose rules, no async/promise enforcement.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Data Persistence with Atomic Writes",
+    "description": "Citadel's data-store.js has sophisticated debounced write queues with atomic temp-file+rename, symlink refusal, permission modes (0o600 for sensitive files), and crash-recovery cleanup. Reference uses SQLite via better-sqlite3, simpler persistence model.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Error Handling & Process Resilience",
+    "description": "Citadel explicitly handles uncaughtException, unhandledRejection at process level with logging. Reference's index.ts has similar handlers. Both are comparable here, but Citadel's context.js forces explicit error boundaries.",
+    "priority": "low",
+    "effort": "small",
+    "direction": "both_have_current_weaker"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Modular Service Composition",
+    "description": "Reference: ManagerController explicitly wires 15+ services with clear dependencies. Citadel: sprawling 30+ route files that implicitly depend on ctx, no clear service boundaries or startup order guarantees.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Multi-Server Instance Complexity",
+    "description": "Citadel manages multiple DayZ server instances (ctx.servers array) with sophisticated state tracking (ctx.serverStates, activeInstalls). Reference appears single-server focused. Citadel handles a harder problem set.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Upgrade ESLint Config to Catch Floating Promises",
+    "description": "With 4979 lines of async JavaScript and 30+ route files, unhandled promise rejections are a high-risk blind spot. The reference enforces @typescript-eslint/no-floating-promises; Citadel should add similar rules in plain ESLint (via eslint-plugin-promise) for minimal friction.",
+    "priority": "critical",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Expand Test Suite to Cover Routes & Services (15-20 high-value tests)",
+    "description": "Citadel's 1 test file covers only helpers. The 30+ route files (actions.routes.js, discord.routes.js, deploy.routes.js, etc.) are untested. Start with 2-3 critical routes (server status, auth, restart) with supertest to catch regressions. Reference has 35 test files; aim for 10+ within 6 months.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Document & Enforce Service Layer Boundaries (Low-Risk Refactor)",
+    "description": "Routes directly mutate ctx and call internal helpers, creating implicit contracts. Add a simple services/ facade (e.g., services.startServer(serverId), services.getServerState(serverId)) and refactor routes to use it. Improves testability without breaking architecture. Can be done incrementally per route.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Add Jest Coverage Thresholds & Baseline Measurement",
+    "description": "Reference enforces 85% lines / 100% functions via NYC. Citadel has no thresholds. Running `npm test -- --coverage` will show current baseline; set a 50% lines threshold initially, then raise by 10-20% every sprint.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Retrofit JSDoc Type Hints to Core Modules (Quick Win)",
+    "description": "No compile-time type checking in JavaScript. Adding /** @type {ServerDefinition[]} */ to ctx.servers and /** @returns {Promise<ServerInfo>} */ to functions improves IDE autocomplete and catches typos. Does not require refactoring; does not break anything.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Add Automated Graceful Shutdown Test for data-store.js",
+    "description": "data-store.js has 200+ lines of sophisticated atomic-write logic (temp files, symlink checks, permission modes, crash recovery). This is the most critical persistence code; currently 0 unit tests. Add 3-5 test cases to catch regressions.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "DO NOT Convert to TypeScript or Adopt tsyringe (Large Refactor, Not Recommended)",
+    "description": "Reference uses TypeScript + tsyringe (full DI). Citadel is a 2+ year old commercial product with 4979 JS lines. Full migration would introduce weeks of risk, break existing deployments, and strain testing. Instead, focus on: (1) stronger ESLint, (2) JSDoc hints, (3) test coverage, (4) service layer clarity. Incremental wins without big rewrites.",
+    "priority": "low",
+    "effort": "large",
+    "riskLevel": "high"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Architecture, Code Quality & Testing",
+    "title": "Extract & Unit Test Critical Helpers (config, auth, data-store)",
+    "description": "config.js (schema validation), lib/helpers.js (safePath, checkPasswordPolicy), data-store.js (atomic writes) are foundation. Unit tests for these prevent cascading bugs. Reference tests all utilities (test/util/*). Aim for 100% coverage of helpers within 2 sprints.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "Add JWT ID (jti) to token generation",
+    "file": "backend/routes/auth.routes.js",
+    "description": "Tokens should include a `jti` (JWT ID) claim at line 145-149 for more granular token revocation. Current code lacks this; it would enable revoking specific tokens, not just all tokens for a user.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "Validate jti presence in token revocation check",
+    "file": "backend/lib/token-revocation.js",
+    "description": "The isTokenRevoked() function (lines 107-124) checks both specific jti and user-wide revocation. Should validate that decoded.jti exists before using it; currently it silently passes if jti is absent.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "Add SameSite=Strict to JWT auth-token cookie",
+    "file": "backend/middleware/security.js",
+    "description": "secureCookies() wrapper (lines 17-28) sets sameSite for all cookies, but auth-token cookie should explicitly enforce SameSite=Strict on line 22 — ensure it's not accidentally relaxed elsewhere.",
+    "priority": "high",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "Rate limiter is applied after CORS and helmet",
+    "file": "backend/server.js",
+    "description": "Check that apiLimiter middleware is wired BEFORE expensive operations (XML parsing, file I/O). If it's after, a DoS attacker can still exhaust resources before hitting the limiter. Verify ordering in server.js startup.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "RCON password decryption error handling",
+    "file": "backend/lib/rcon-client.js",
+    "description": "Constructor takes password parameter (line 24) — this password should be decrypted from storage at the call site, not here. Verify all RCON client instantiations decrypt passwords using credential-encryption.js before passing.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "Audit logging should redact sensitive parameters",
+    "file": "backend/lib/audit.js",
+    "description": "addAudit() on line 31 accepts arbitrary details. Should sanitize/redact passwords, tokens, API keys from details before persisting. Currently relies on caller discretion.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "Token expiration could be shorter for high-permission users",
+    "file": "backend/routes/auth.routes.js",
+    "description": "All tokens use 8h lifetime (line 148). Consider issuing shorter-lived tokens for admin users and longer for viewer roles. Would reduce compromise window for stolen admin tokens.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "PBKDF2 iterations could scale with Node version",
+    "file": "backend/lib/credential-encryption.js",
+    "description": "PBKDF2_ITERATIONS hardcoded to 100,000 (line 25). Best practice is to scale with CPU speed or use Argon2. Current value is acceptable but may become weak as hardware improves.",
+    "priority": "low",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "Fail2Ban escalation could have max cap",
+    "file": "backend/middleware/rate-limit.js",
+    "description": "Ban durations escalate [60s, 5m, 1h] (line 63) and reset on successful login (line 143). After 3+ failures, attacker is banned for 1h; subsequent attacks still need to wait 1h. Consider capping at a max duration or adding exponential backoff.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Security & Authentication",
+    "title": "CSRF token reuse logic could be tightened",
+    "file": "backend/middleware/csrf.js",
+    "description": "Lines 70-77 reuse an existing nonce if its signature is valid. This is correct for the same user session, but if cookies are stolen, the nonce is also exposed (it's in a non-HttpOnly cookie on line 96). Acceptable given the double-submit pattern, but document why reuse is safe.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "JWT vs Basic Auth",
+    "description": "Reference uses plaintext Basic Auth in config; Citadel uses stateful JWT + refresh tokens. Citadel is more secure and scalable.",
+    "priority": "critical",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "CSRF Protection",
+    "description": "Reference has none; Citadel implements HMAC-signed double-submit cookies with constant-time validation. Major gap in reference.",
+    "priority": "critical",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "Rate Limiting & Fail2Ban",
+    "description": "Reference has none. Citadel has per-endpoint limiters + IP-level fail2ban with escalating bans. Reference is trivial DoS target.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "TOTP 2FA",
+    "description": "Reference has none; Citadel implements RFC 6238 TOTP. Strongly recommended for production admin access.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "Credential Encryption",
+    "description": "Reference stores all passwords plaintext in config; Citadel encrypts at rest with AES-256-GCM. Huge gap — plaintext credentials in config is unacceptable for production.",
+    "priority": "critical",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "Audit Logging",
+    "description": "Reference has none; Citadel logs all user actions with timestamp + user + action + details.",
+    "priority": "high",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "RCON Password Exposure",
+    "description": "Citadel stores RCON passwords encrypted; reference would store plaintext. Citadel is better.",
+    "priority": "high",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "Token Revocation",
+    "description": "Reference has none (tokens never expire until app restart); Citadel has persistent revocation + cleanup. Enables forced logout, user deletion safety.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "Timing Attack Protection",
+    "description": "Reference's Basic Auth may leak user existence via timing; Citadel uses constant-time bcrypt + dummy hash. Citadel is more hardened.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "Brute-Force Protection",
+    "description": "Reference has none; Citadel has per-IP+username lockout + fail2ban. Reference is a weak point.",
+    "priority": "high",
+    "effort": "small",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Security & Authentication",
+    "title": "Config Security Validation",
+    "description": "Reference validates JSON schema; both lack explicit validation of credential format/strength. Citadel's runtime approach (database) is better than reference's config file approach.",
+    "priority": "medium",
+    "effort": "small",
+    "direction": "both_have_current_better"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Explicitly document that CREDENTIAL_ENCRYPTION_KEY must differ from JWT_SECRET in production",
+    "description": "credential-encryption.js (lines 50-86) refuses to derive from JWT_SECRET in production but falls back in development. A production operator who skips setting CREDENTIAL_ENCRYPTION_KEY, restarts the app, and the fallback silently activates would collapse two secrets into one. Add a loud config validation in server.js that aborts startup if in production mode and CREDENTIAL_ENCRYPTION_KEY is missing.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Rotate RCON passwords in encrypted form only (via UI/API, never plaintext config files)",
+    "description": "RCON credentials must never be stored plaintext. Citadel encrypts them (good), but verify that the only path to set/rotate an RCON password is via an auth-gated API endpoint that encrypts before storing. If operators can edit a plaintext config file, the encryption is worthless.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Add HTTPS enforcement in production with HSTS headers",
+    "description": "Helmet is present (good); verify that `helmet({ hsts: { maxAge: 31536000 } })` is set. Also verify server.js enforces HTTPS in production and redirects HTTP → HTTPS. CSRF and auth cookies are only secure over TLS.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Audit logs should be tamper-evident (e.g., signed or append-only)",
+    "description": "audit.js persists to a JSON file (line 35). A compromised operator could edit the JSON to cover their tracks. Consider: (1) signing each entry with a key separate from JWT_SECRET, or (2) appending to a file with checksums, or (3) integrating with a syslog server. Low effort → high security gain.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Session/token rotation: issue a new token after login + MFA, expire the 'pre-MFA' token",
+    "description": "Currently, login issues one token; MFA is checked server-side but the token is issued before MFA. A token leaked mid-login could be used before MFA check. Best practice: issue token only after MFA succeeds (or issue a limited temporary token for MFA challenge phase).",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Rate limiter should apply to per-user login attempts, not just per-IP",
+    "description": "fail2ban on line 110 tracks by IP only. An attacker on a shared IP (cloud VPN, corporate network) can abuse many usernames; a botnet across IPs can attack one username. Add per-username rate limiting (in addition to per-IP) to mitigate username enumeration + brute force across IP ranges.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Token revocation entries should have a reason code for audit trail",
+    "description": "token-revocation.js (lines 79-84) stores `reason` but it's freeform. Define an enum of revocation reasons (e.g., 'user.deleted', 'user.disabled', 'forced.logout', 'security.breach') and validate. Helps operators understand why tokens were revoked when investigating audit logs.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Export RCON validation rules as an API endpoint for UI display",
+    "description": "rcon-validator.js has ALLOWED_COMMANDS (line 17) but it's only used server-side. The UI should call getAllowedCommands() (line 261) via an API endpoint so users can see what commands are allowed without guessing. Low effort, high UX gain.",
+    "priority": "low",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Consider rate-limiting by username + IP combination for brute force",
+    "description": "Citadel tracks per-IP + per-username, but separately (lines 85-86). A user lockout is per IP+username combo, and fail2ban is per IP. These are complementary, but documenting the interaction and testing edge cases (shared IP + many usernames) would harden the system further.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Security & Authentication",
+    "title": "Store failed login attempts in a persistent, queryable audit trail",
+    "description": "Failed login attempts are logged to logger (line 102 in auth.routes.js) but lockout state is in-memory (persisted to disk for restart recovery). For compliance/forensics, failed logins should also appear in the audit log with IP + username so operators can investigate brute-force attempts.",
+    "priority": "medium",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Cross-platform support & operations",
+    "title": "Create util/detect-os.js to abstract platform detection",
+    "file": "backend/lib/detect-os.js (new)",
+    "description": "Export `detectOS()` function returning 'windows', 'linux', or 'unknown'. Cover process.platform check for win32 vs unix variants (darwin, linux, freebsd). Use in firewall-manager, service-installer, and setup modules to gate platform-specific code. Follows reference pattern from src/util/detect-os.ts.",
+    "priority": "high",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Cross-platform support & operations",
+    "title": "Extend firewall-manager.js with Linux/macOS stub",
+    "file": "backend/lib/firewall-manager.js",
+    "description": "Wrap ensureFirewallRules() and removeFirewallRules() in detectOS() check. On non-Windows, log a stub message (e.g., 'Firewall rules managed via OS firewall') instead of spawning PowerShell. Prevents port-binding failures on non-Windows; aligns with reference pattern.",
+    "priority": "high",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Cross-platform support & operations",
+    "title": "Refactor service-installer.js for platform abstraction",
+    "file": "backend/lib/service-installer.js",
+    "description": "Wrap all NSSM-dependent code (lines 41–498) inside a Windows-only guard using detectOS(). Export a no-op or systemd-stub for non-Windows. Move OS check to module level; currently expects NSSM on all platforms. Prevents failures on non-Windows where NSSM is unavailable.",
+    "priority": "high",
+    "effort": "medium",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "code",
+    "domain": "Cross-platform support & operations",
+    "title": "Add requirements validation for Windows/Linux",
+    "file": "backend/lib/requirements-checker.js (new)",
+    "description": "Create async function `checkRuntimeLibs()` that on Windows checks for VCRedist/DirectX (like reference), on Linux checks libcap-dev, lib32gcc-s1, libcurl4 via dpkg. Log user-friendly installation commands. Called during setup or health-check. Follows reference's requirements.ts pattern.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Cross-platform support & operations",
+    "title": "Fortify install.ps1 with pre-copy service stop verification",
+    "file": "install.ps1 (lines 46–63)",
+    "description": "Already stops service before copying (lines 45–63), but add explicit retry loop waiting for process exit (already present). Verify the service is fully stopped before file copy proceeds. Current implementation is sound; document in code that this prevents node.exe lock on upgrade.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Cross-platform support & operations",
+    "title": "Add README section for future Linux/Docker support",
+    "file": "README.md",
+    "description": "Add a 'Roadmap / Future' section mentioning that Linux and Docker support are planned. Link to reference implementation as proof-of-concept. Set user expectations: currently Windows-only, multi-platform support in development.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "code",
+    "domain": "Cross-platform support & operations",
+    "title": "Sanitize FirewallRule names like reference (alphabetic only)",
+    "file": "backend/lib/firewall-manager.js (line 133)",
+    "description": "Already sanitizes using `(name || 'Server').replace(/[^a-zA-Z0-9 _\\-.]/g, '')` on line 133, matching reference pattern exactly. No change needed; code is well-written.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "feature",
+    "domain": "Cross-platform support & operations",
+    "title": "Linux Server Support (Binary & Containerization)",
+    "description": "Reference supports full Linux deployment (binary, systemd, Docker); Citadel is Windows-only with no Docker.",
+    "priority": "high",
+    "effort": "large",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Cross-platform support & operations",
+    "title": "Cross-platform OS Detection Layer",
+    "description": "Reference has clean `detectOS()` utility covering 7 Unix variants; Citadel has no abstraction (hardcoded Win32).",
+    "priority": "high",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Cross-platform support & operations",
+    "title": "Multi-platform Requirements Checking",
+    "description": "Reference checks VCRedist/DirectX on Windows, libcap/libcurl on Linux; Citadel has no requirements validation.",
+    "priority": "medium",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Cross-platform support & operations",
+    "title": "Firewall Abstraction & Linux Support",
+    "description": "Reference has OS-aware firewall (Windows netsh, Linux stub); Citadel hardcoded to PowerShell netsh, not portable.",
+    "priority": "high",
+    "effort": "medium",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Cross-platform support & operations",
+    "title": "Service Management (Windows NSSM vs Generic)",
+    "description": "Citadel has more robust NSSM config (15s throttle, failure recovery, log rotation) than reference; reference offers systemd for Linux as alternative.",
+    "priority": "medium",
+    "effort": "trivial",
+    "direction": "both_have_current_better"
+  },
+  {
+    "type": "feature",
+    "domain": "Cross-platform support & operations",
+    "title": "GUI Detection Portability",
+    "description": "Reference detects Windows GUI (WMIC); Citadel has no equivalent; both Windows-centric.",
+    "priority": "low",
+    "effort": "small",
+    "direction": "ref_has_current_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Cross-platform support & operations",
+    "title": "Desktop App (Electron)",
+    "description": "Citadel has desktop/Electron app; reference is CLI-only (web UI via browser).",
+    "priority": "medium",
+    "effort": "large",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "feature",
+    "domain": "Cross-platform support & operations",
+    "title": "Installer Robustness",
+    "description": "Citadel's install.ps1 stops existing service before copying files (prevents lock); reference lacks this detail.",
+    "priority": "low",
+    "effort": "trivial",
+    "direction": "current_has_ref_lacks"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Cross-platform support & operations",
+    "title": "Implement OS detection abstraction layer (detect-os.js)",
+    "description": "Unblocks all subsequent cross-platform work. Reference demonstrates clean separation; Citadel has zero platform abstraction. Creates foundation for graceful Linux/macOS stubs without rewriting firewall/service modules.",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Cross-platform support & operations",
+    "title": "Add platform guards to firewall-manager.js and service-installer.js",
+    "description": "These modules will fail on non-Windows (NSSM not found, PowerShell hardcoded). Quick surgical fixes prevent runtime errors if code ever runs on Linux. Align with reference's approach (linux stub returns true).",
+    "priority": "critical",
+    "effort": "small",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Cross-platform support & operations",
+    "title": "Plan Linux/Docker support in v3.x roadmap",
+    "description": "Reference proves DayZ server manager can run on Linux (native binary + Docker). Citadel is feature-rich commercial product with GUI; adding Linux would differentiate from reference and unlock VPS/cloud markets. Effort is large but strategic value high.",
+    "priority": "high",
+    "effort": "large",
+    "riskLevel": "medium"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Cross-platform support & operations",
+    "title": "Document Windows-specific assumptions in code comments",
+    "description": "Install.ps1, service-installer.js, firewall-manager.js all assume Win32. Add comments like 'Windows-only: NSSM dependency' to every function. Helps future maintainers and prevents accidental breakage when porting.",
+    "priority": "medium",
+    "effort": "trivial",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Cross-platform support & operations",
+    "title": "Adopt reference's requirements validation pattern (later phase)",
+    "description": "Reference's Requirements service is robust and multi-platform. If Linux support is added, reuse this pattern: detect VCRedist/DirectX on Windows, dpkg/ldconfig on Linux, provide user-friendly install commands. Not urgent for Windows-only product but valuable for future multi-platform support.",
+    "priority": "medium",
+    "effort": "medium",
+    "riskLevel": "low"
+  },
+  {
+    "type": "recommendation",
+    "domain": "Cross-platform support & operations",
+    "title": "Keep NSSM configuration as-is (15s throttle, restart policy)",
+    "description": "Citadel's service installer is more mature than reference (lines 240–268). 15s AppThrottle handles slow disks/AV; failure recovery with 3 retarts + 60s delays prevents PAUSED state. Reference has bare-bones systemd. Current implementation is a strength; do not regress.",
+    "priority": "low",
+    "effort": "trivial",
+    "riskLevel": "low"
+  }
+]

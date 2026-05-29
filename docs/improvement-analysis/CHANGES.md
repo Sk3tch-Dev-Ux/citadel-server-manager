@@ -1,0 +1,126 @@
+# Phase 3 — Implemented Improvements (Change Log)
+
+**Branch:** `analysis/dsm-cross-reference`
+**Date:** 2026-05-29
+**Scope:** The P0 tier of the [improvement roadmap](README.md) — verified correctness/security bugs plus cheap, low-risk safety nets. Each change was verified against the real code before editing, and every change is covered by a new test or a manual verification noted below.
+
+> Strategy: surgical, low-risk wins only. No architecture changes, no TypeScript migration, no dependency additions. Everything here is behaviour-preserving for valid inputs and only changes behaviour for the malformed/malicious inputs that were previously mishandled.
+
+---
+
+## 1. Fixed unescaped XML serialization across all mission-file parsers  *(VERIFIED BUG — critical)*
+
+**Problem:** Only `economycore-parser.js` escaped XML special characters. Every other economy-file serializer interpolated user-supplied strings directly into XML attributes/text. Any value containing `&`, `<`, `>`, `"` or `'` produced malformed XML that the DayZ server silently rejects on boot — i.e. silent economy-config corruption. The canonical case was `globals-xml-parser.js:74`.
+
+**Fix:**
+- Added a single shared helper module **`backend/lib/xml-escape.js`** exporting `escapeXml` (attribute values — also collapses CR/LF/TAB runs to one space) and `escapeXmlText` (element text — preserves whitespace).
+- Applied escaping to every user-controllable string attribute/text node in:
+  - `lib/globals-xml-parser.js` — `name`, `type`, `value`
+  - `lib/types-xml-parser.js` — `type name`, `category`, `user`/`usage`/`value`/`tag` names
+  - `lib/events-xml-parser.js` — `event name`, `secondary`, `position`, `child type`
+  - `lib/limits-parser.js` — `category`/`usage`/`value`/`tag` names
+  - `lib/cfgeventspawns-parser.js` — `event name`, `pos.group`
+- Consolidated the two pre-existing local copies onto the shared util (single source of truth):
+  - `lib/economycore-parser.js` now imports `escapeXml` (removed its duplicate; still re-exported for backward compatibility with `economycore-editor.routes.js`).
+  - `lib/spawnabletypes-parser.js` — local `escXml` now delegates to the shared `escapeXml`.
+- Numeric fields (nominal, lifetime, coords, etc.) were intentionally **not** wrapped — escaping never changes a number, and leaving them untouched keeps diffs minimal and output byte-identical for valid data.
+- `lib/spawnpoints-parser.js` left unchanged — it only emits fixed group keys and numeric coordinates (no injection surface).
+
+**Verification:** New regression suite `tests/parser-xml-escaping.test.js` round-trips malicious values through a real `fast-xml-parser` and asserts the decoded attributes equal the originals; `tests/xml-escape.test.js` unit-tests the helper.
+
+---
+
+## 2. Closed backup filename path-traversal vector  *(VERIFIED — high security)*
+
+**Problem:** `deleteBackup()` and `findBackupFile()` (`backend/lib/backup-engine.js`) passed a client-supplied `filename` into `safePath()` with no `path.basename()` or filename allowlist. While `safePath` blocks `..` containment escapes, there was no defence-in-depth ensuring the target is actually a backup archive.
+
+**Fix:**
+- Added `sanitizeBackupFilename(filename)` to `backup-engine.js`: rejects any value containing a path separator or `..`, strips to `path.basename`, and requires a plain `^[A-Za-z0-9._-]+\.zip$` name.
+- Applied it at the top of both `deleteBackup()` and `findBackupFile()` (returns `false`/`null` on rejection). The audit log message now records the sanitized name.
+- Exported the function for testability.
+
+**Verification:** `tests/backup-filename.test.js` covers traversal, separators, non-zip extensions, and bad input types.
+
+---
+
+## 3. Validate `CREDENTIAL_ENCRYPTION_KEY` loudly at startup  *(VERIFIED gap — high)*
+
+**Problem:** `credential-encryption.js` refused a *missing* key in production but never validated that a *provided* key was strong. A truncated/typo'd key silently weakened the AES-256-GCM derivation (the key is used as a PBKDF2 passphrase, so even a 4-char key "works").
+
+**Fix:**
+- Added `validateKeyConfig()` to `lib/credential-encryption.js`:
+  - Production + missing → throws (unchanged contract, now centralized).
+  - Production + shorter than 32 chars → throws (a real `openssl rand -hex 32` key is 64 chars; anything this short is misconfiguration).
+  - Present but not 64-hex → non-fatal warning (still usable as a passphrase).
+  - Dev + missing → non-fatal warning.
+- Wired it into the boot sequence in `lib/server-init.js` `startup()`, right beside the existing `JWT_SECRET` fatal guard. Fatal cases log `logger.fatal` and rethrow; warnings go to `logger.warn`.
+- **Deliberately not a hard 64-hex requirement**, to avoid bricking existing production installs that set a reasonable (≥32-char) passphrase. Genuinely weak keys still fail fast.
+
+**Verification:** `tests/credential-encryption.test.js` covers all branches plus an encrypt/decrypt round-trip and random-IV property.
+
+---
+
+## 4. ESLint async-safety rules + clean error baseline  *(hygiene — high leverage)*
+
+**Problem:** `backend/.eslintrc.json` was bare `eslint:recommended` — no async-correctness signal across ~5000 lines of async JS. Lint also had **2 pre-existing errors**.
+
+**Fix (`backend/.eslintrc.json`):**
+- Fixed the 2 pre-existing `no-useless-escape` errors in `economycore-parser.js:22` (`VALID_FOLDER_REGEX`) — `[..._\-]` → `[..._-]`, behaviour-identical. Lint now reports **0 errors**.
+- Added async/quality rules **as warnings** (so CI is not broken by the existing backlog, but the signal is now visible):
+  - `no-async-promise-executor` (error — the one genuinely dangerous pattern)
+  - `no-promise-executor-return`, `require-atomic-updates`, `no-return-await`, `no-unused-expressions` (warn)
+
+**Note:** Full floating-promise detection requires type information (`@typescript-eslint` with `checkJs`, or `eslint-plugin-promise`). That was intentionally deferred to avoid adding a dependency and flooding CI with new failures — tracked as a P1 follow-up.
+
+**Verification:** `npx eslint .` → 0 errors (was 2).
+
+---
+
+## 5. Jest coverage ratchet  *(hygiene)*
+
+**Fix (`backend/jest.config.js`):** added a low `coverageThreshold` floor (statements/lines 10, functions 5, branches 3) and excluded `*.test.js` from `collectCoverageFrom`. Only enforced under `--coverage`; normal `npm test` is unaffected. Ratchet upward as the suite grows.
+
+---
+
+## Test summary
+
+New suites under `backend/tests/` (28 tests, all passing):
+
+| File | Covers |
+|---|---|
+| `tests/xml-escape.test.js` | the shared escaping helper |
+| `tests/parser-xml-escaping.test.js` | regression — every mission-file serializer escapes correctly (round-trips through a real parser) |
+| `tests/credential-encryption.test.js` | key validation branches + encrypt/decrypt round-trip |
+| `tests/backup-filename.test.js` | path-traversal guard |
+
+**Pre-existing failures (not introduced here):** `test_api.test.js` has 3 failing tests caused by `server.js` starting `setInterval` timers at require-time (open-handle timeouts). These are unrelated to these changes and are documented as a P1 testability fix (the server should expose an injectable/disable-timers test mode).
+
+---
+
+## Files changed
+
+```
+backend/lib/xml-escape.js                 (new)
+backend/lib/globals-xml-parser.js
+backend/lib/types-xml-parser.js
+backend/lib/events-xml-parser.js
+backend/lib/limits-parser.js
+backend/lib/cfgeventspawns-parser.js
+backend/lib/economycore-parser.js
+backend/lib/spawnabletypes-parser.js
+backend/lib/backup-engine.js
+backend/lib/credential-encryption.js
+backend/lib/server-init.js
+backend/.eslintrc.json
+backend/jest.config.js
+backend/tests/xml-escape.test.js          (new)
+backend/tests/parser-xml-escaping.test.js (new)
+backend/tests/credential-encryption.test.js (new)
+backend/tests/backup-filename.test.js     (new)
+```
+
+## Not done (and why)
+
+- **Multi-part RCON assembly, metrics persistence, request-validation layer, OpenAPI, config hot-reload, Linux/Docker** — all P1/P2; larger and/or riskier than an unattended overnight pass should attempt. See the [roadmap](README.md#prioritized-roadmap).
+- **Full TypeScript / DI migration, CommandMap flattening** — explicitly rejected as regressions for a working commercial product (see "Where Citadel already leads").
+- **Graceful shutdown, sidecar stale-file cleanup** — already implemented in the current code; the domain agents' recommendations to add them were ground-truthed and dropped.
