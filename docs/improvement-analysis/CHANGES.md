@@ -276,6 +276,17 @@ Audited and locked in the Windows Firewall rule construction, which runs **eleva
 
 ---
 
+## 21. Test coverage — service-installer (sc.exe output parsing)  *(hardening)*
+
+`service-installer.js` is mostly imperative NSSM/sc.exe glue built from *constants* (no user input → no injection surface), so heavy testing has low ROI. The one fragile piece is parsing external-tool (`sc.exe`) output, which varies across Windows versions. Extracted that into pure, tested functions:
+
+- Refactored `getServiceStatus()` to use new `parseServiceState(stdout)` and `parseStartType(stdout)` (also simplified the redundant 1060 branch).
+- Tests cover RUNNING/STOPPED states, AUTO_START/DEMAND_START types, absent fields, and null/undefined input. 7 tests.
+
+This finishes honest coverage of the OS-touching modules' *testable* surface without churning the imperative command flow.
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):

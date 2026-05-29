@@ -132,6 +132,26 @@ function requireNssm() {
 // ─── Service operations ─────────────────────────────────
 
 /**
+ * Parse the service state from `sc.exe query` output (e.g. "STATE : 4 RUNNING").
+ * @param {string} stdout
+ * @returns {string} lowercased state, or 'unknown'
+ */
+function parseServiceState(stdout) {
+  const m = String(stdout || '').match(/STATE\s+:\s+\d+\s+(\S+)/);
+  return m ? m[1].toLowerCase() : 'unknown';
+}
+
+/**
+ * Parse the start type from `sc.exe qc` output (e.g. "START_TYPE : 2 AUTO_START").
+ * @param {string} stdout
+ * @returns {string|null} lowercased start type, or null
+ */
+function parseStartType(stdout) {
+  const m = String(stdout || '').match(/START_TYPE\s+:\s+\d+\s+(\S+)/);
+  return m ? m[1].toLowerCase() : null;
+}
+
+/**
  * Query the Windows service and return its state.
  * Uses sc.exe query which works for NSSM-managed services.
  */
@@ -139,21 +159,14 @@ async function getServiceStatus() {
   const result = run(`sc.exe query "${SERVICE_NAME}"`);
 
   if (!result.ok) {
-    if (result.stderr.includes('1060') || result.stdout.includes('1060')) {
-      return { installed: false, state: 'not-installed', startType: null };
-    }
+    // 1060 = ERROR_SERVICE_DOES_NOT_EXIST
     return { installed: false, state: 'not-installed', startType: null };
   }
 
-  const stateMatch = result.stdout.match(/STATE\s+:\s+\d+\s+(\S+)/);
-  const state = stateMatch ? stateMatch[1].toLowerCase() : 'unknown';
+  const state = parseServiceState(result.stdout);
 
   const qcResult = run(`sc.exe qc "${SERVICE_NAME}"`);
-  let startType = null;
-  if (qcResult.ok) {
-    const startMatch = qcResult.stdout.match(/START_TYPE\s+:\s+\d+\s+(\S+)/);
-    startType = startMatch ? startMatch[1].toLowerCase() : null;
-  }
+  const startType = qcResult.ok ? parseStartType(qcResult.stdout) : null;
 
   return { installed: true, state, startType };
 }
@@ -495,4 +508,6 @@ module.exports = {
   startService,
   stopService,
   repairService,
+  parseServiceState,
+  parseStartType,
 };
