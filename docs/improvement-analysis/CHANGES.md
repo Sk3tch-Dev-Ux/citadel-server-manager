@@ -177,9 +177,21 @@ Coverage ratchet raised to 15 / 7 / 10 / 16 (`openapi.js` 100%).
 
 ---
 
+## 14. OpenAPI request-body schemas from the validator  *(P1)*
+
+Closes the loop between §10–13: the `validate()` middleware now tags itself with `_validationSchema`, and the OpenAPI generator reads it off each route's stack to emit real request schemas — so any endpoint that adopts `validate()` automatically documents its body/query in the spec.
+
+- `request-validator.js` — the middleware returned by `validate()` carries `_validationSchema = { schema, source }`.
+- `openapi.js` — `extractRoutes` surfaces that schema per route; new pure helpers `ruleToJsonSchema` (validator rule → JSON Schema keywords incl. RegExp→`pattern` source, numeric `min/max`→`minimum/maximum`, lengths, enum, non-function defaults) and `validationToOpenApi` (body → `requestBody`; query → `parameters`). `generateOpenApi` folds these in alongside the path parameters.
+- Net effect: `/servers/:id/update` and `/priority-queue` (the endpoints migrated in §12) now show typed request bodies in `/api/docs`, and every future `validate()` adoption is self-documenting.
+
+Coverage: `openapi.js` 100%, `request-validator.js` ~87%.
+
+---
+
 ## Test summary
 
-New suites under `backend/tests/` (151 tests, all passing):
+New suites under `backend/tests/` (160 tests, all passing):
 
 | File | Covers |
 |---|---|

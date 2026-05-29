@@ -25,12 +25,70 @@ function extractRoutes(app) {
     if (!layer.route || !layer.route.path) continue;
     const paths = Array.isArray(layer.route.path) ? layer.route.path : [layer.route.path];
     const methods = Object.keys(layer.route.methods || {}).filter((m) => m !== '_all');
+    // A validate() middleware on this route tags itself with _validationSchema;
+    // surface it so the generator can emit requestBody/query parameter schemas.
+    let validation = null;
+    for (const sub of layer.route.stack || []) {
+      if (sub.handle && sub.handle._validationSchema) { validation = sub.handle._validationSchema; break; }
+    }
     for (const path of paths) {
       if (typeof path !== 'string') continue; // skip regex routes
-      for (const method of methods) out.push({ method: method.toLowerCase(), path });
+      for (const method of methods) out.push({ method: method.toLowerCase(), path, validation });
     }
   }
   return out;
+}
+
+/**
+ * Convert a single request-validator field rule to a JSON Schema fragment.
+ */
+function ruleToJsonSchema(rule) {
+  const s = {};
+  if (rule.type) s.type = rule.type;
+  if (rule.enum) s.enum = rule.enum;
+  if (rule.min !== undefined) s.minimum = rule.min;
+  if (rule.max !== undefined) s.maximum = rule.max;
+  if (rule.minLength !== undefined) s.minLength = rule.minLength;
+  if (rule.maxLength !== undefined) s.maxLength = rule.maxLength;
+  if (rule.pattern) s.pattern = rule.pattern.source;
+  if (rule.default !== undefined && typeof rule.default !== 'function') s.default = rule.default;
+  return s;
+}
+
+/**
+ * Turn a { schema, source } validation descriptor into OpenAPI fragments:
+ *   - body  → { requestBody }
+ *   - query → { parameters: [...] }
+ */
+function validationToOpenApi(validation) {
+  if (!validation || !validation.schema) return {};
+  const { schema, source } = validation;
+  const properties = {};
+  const required = [];
+  for (const [field, rule] of Object.entries(schema)) {
+    properties[field] = ruleToJsonSchema(rule);
+    if (rule.required) required.push(field);
+  }
+
+  if (source === 'query') {
+    const parameters = Object.entries(schema).map(([field, rule]) => ({
+      name: field,
+      in: 'query',
+      required: !!rule.required,
+      schema: ruleToJsonSchema(rule),
+    }));
+    return { parameters };
+  }
+
+  // default: body
+  const jsonSchema = { type: 'object', properties };
+  if (required.length) jsonSchema.required = required;
+  return {
+    requestBody: {
+      required: required.length > 0,
+      content: { 'application/json': { schema: jsonSchema } },
+    },
+  };
 }
 
 /**
@@ -62,7 +120,7 @@ function generateOpenApi(routes, info = {}) {
   const paths = {};
   const tags = new Set();
 
-  for (const { method, path } of routes) {
+  for (const { method, path, validation } of routes) {
     if (path.includes('*')) continue; // skip catch-all / wildcard mounts
     const { path: oaPath, params } = expressPathToOpenApi(path);
     const tag = tagFor(path);
@@ -78,14 +136,20 @@ function generateOpenApi(routes, info = {}) {
         401: { description: 'Unauthorized' },
       },
     };
-    if (params.length) {
-      operation.parameters = params.map((name) => ({
-        name,
-        in: 'path',
-        required: true,
-        schema: { type: 'string' },
-      }));
-    }
+
+    const parameters = params.map((name) => ({
+      name,
+      in: 'path',
+      required: true,
+      schema: { type: 'string' },
+    }));
+
+    // Fold in body/query schemas from the route's validate() middleware.
+    const fromValidation = validationToOpenApi(validation);
+    if (fromValidation.parameters) parameters.push(...fromValidation.parameters);
+    if (fromValidation.requestBody) operation.requestBody = fromValidation.requestBody;
+
+    if (parameters.length) operation.parameters = parameters;
     paths[oaPath][method] = operation;
   }
 
@@ -109,4 +173,11 @@ function generateOpenApi(routes, info = {}) {
   };
 }
 
-module.exports = { extractRoutes, expressPathToOpenApi, tagFor, generateOpenApi };
+module.exports = {
+  extractRoutes,
+  expressPathToOpenApi,
+  tagFor,
+  generateOpenApi,
+  ruleToJsonSchema,
+  validationToOpenApi,
+};

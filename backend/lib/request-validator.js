@@ -148,7 +148,7 @@ function validateObject(schema, data) {
  * @returns {function} Express middleware
  */
 function validate(schema, source = 'body') {
-  return function (req, res, next) {
+  const middleware = function (req, res, next) {
     const result = validateObject(schema, req[source]);
     if (!result.ok) {
       // `error` carries a complete human-readable message (matching the
@@ -160,6 +160,10 @@ function validate(schema, source = 'body') {
     req.validated[source] = result.cleaned;
     next();
   };
+  // Expose the schema so tooling (e.g. the OpenAPI generator) can introspect
+  // the validation rules off the mounted route stack.
+  middleware._validationSchema = { schema, source };
+  return middleware;
 }
 
 module.exports = { validate, validateObject, validateValue };
