@@ -490,6 +490,12 @@ if (process.env.NODE_ENV !== 'test') {
       logger.error({ err }, 'Failed to start update checker');
     }
 
+    // Watch citadel.config.json for external edits and hot-reload safe sections
+    // (logging level, polling/backup intervals) without requiring a restart.
+    try { require('./lib/config-watcher').start(); } catch (err) {
+      logger.error({ err }, 'Failed to start config watcher');
+    }
+
     // Start the cloud-bridge supervisor — opens a WS per linked DayZ server
     // (one CloudWsClient instance per ctx.servers row with a saved key) and
     // keeps them connected. Reconciles on a 5s tick; per-server routes also
