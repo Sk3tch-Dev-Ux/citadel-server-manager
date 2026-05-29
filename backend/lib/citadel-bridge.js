@@ -26,8 +26,6 @@ const STALE_THRESHOLD_MS = 30_000;
 const COMMAND_TIMEOUT_MS = 10_000;
 /** Max events to keep in memory */
 const MAX_CACHED_EVENTS = 500;
-/** How many lines to read from the tail of events.jsonl */
-const EVENTS_TAIL_LINES = 500;
 
 class CitadelBridge extends EventEmitter {
   /**

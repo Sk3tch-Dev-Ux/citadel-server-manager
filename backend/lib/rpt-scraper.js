@@ -2,10 +2,9 @@
  * DayZ RPT log file scraping for FPS, kills, and leaderboard data.
  */
 const fs = require('fs');
-const path = require('path');
 const ctx = require('./context');
 const { saveJSON } = require('./data-store');
-const { resolveProfileDir, findRPTFiles } = require('./profile-resolver');
+const { findRPTFiles } = require('./profile-resolver');
 
 /**
  * Extract average FPS from the most recent RPT log file.

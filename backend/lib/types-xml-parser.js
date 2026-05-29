@@ -3,8 +3,6 @@
  * Parses types.xml, cfglimitsdefinition.xml, cfglimitsdefinitionuser.xml
  * Ported from DayZ-Types-Editor Python source.
  */
-const fs = require('fs');
-const path = require('path');
 const { escapeXml } = require('./xml-escape');
 
 // ─── Limits Parser ──────────────────────────────────────────

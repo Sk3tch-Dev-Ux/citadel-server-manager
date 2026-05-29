@@ -7,7 +7,6 @@
 const fs = require('fs');
 const path = require('path');
 const ctx = require('./context');
-const logger = require('./logger');
 
 /**
  * Known mod identifiers — maps Workshop IDs and directory name patterns

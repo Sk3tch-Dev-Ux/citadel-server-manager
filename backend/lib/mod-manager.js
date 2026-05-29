@@ -8,7 +8,6 @@ const logger = require('./logger');
 const ctx = require('./context');
 const { copyDirSync } = require('./helpers');
 const { saveJSON } = require('./data-store');
-const { addLog } = require('./audit');
 
 /**
  * Sanitize mod folder names on disk — rename any @-prefixed directory that

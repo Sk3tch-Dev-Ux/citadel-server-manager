@@ -8,8 +8,6 @@
  * Allowed commands are validated for syntax and parameters.
  */
 
-const logger = require('./logger');
-
 /**
  * Whitelist of allowed RCON commands with their validation rules.
  * Command names are case-insensitive.

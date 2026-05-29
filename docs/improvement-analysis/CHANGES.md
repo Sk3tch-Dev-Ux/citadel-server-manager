@@ -287,6 +287,16 @@ This finishes honest coverage of the OS-touching modules' *testable* surface wit
 
 ---
 
+## 22. Lint hygiene — reduce no-unused-vars noise  *(hardening)*
+
+Cleared most of the unused-variable warnings so the genuinely useful async-safety warnings stand out in review. Total ESLint warnings **142 → 88** (`no-unused-vars` 78 → ~24), still **0 errors**, suite **271/271**.
+
+- `server-actions/providers/base.js` (41 of the 78): an abstract interface whose method-stub params *document the contract* — added a single file-level `eslint-disable no-unused-vars` rather than mangling the signatures.
+- Removed ~13 genuinely-unused `require` imports across `lib/` (`bot-manager`, `crash-detector`, `mod-config-detector`, `rcon-validator`, `server-lifecycle`, `rpt-scraper`, `types-xml-parser`, `mod-manager`, `restart-scheduler`, `expansion-quest-manager`, `citadel-bridge`). Verified nothing broke.
+- Remaining ~24 (scattered route imports + a few dead locals) left for opportunistic cleanup as those files are next touched — not worth a churn-heavy sweep.
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):

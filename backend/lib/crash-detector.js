@@ -15,7 +15,6 @@
  * server's PID can no longer be detected.
  */
 const ctx = require('./context');
-const logger = require('./logger');
 const { addLog } = require('./audit');
 const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notifications');
 const { executeHooks } = require('./lifecycle-hooks');

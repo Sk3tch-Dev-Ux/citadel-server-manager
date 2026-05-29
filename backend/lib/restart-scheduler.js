@@ -20,7 +20,7 @@ const ctx = require('./context');
 const { loadJSON, saveJSON } = require('./data-store');
 const { restartServer } = require('./server-lifecycle');
 const { addAudit, addLog } = require('./audit');
-const { addNotification, fireWebhooks } = require('./notifications');
+const { fireWebhooks } = require('./notifications');
 
 const DATA_FILE = 'restart-schedules.json';
 const HISTORY_FILE = 'restart-history.json';

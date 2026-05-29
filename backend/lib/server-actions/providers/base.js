@@ -5,6 +5,8 @@
  * should throw with a descriptive message so the executor can try the
  * next provider in the chain.
  */
+/* eslint-disable no-unused-vars -- abstract method signatures; param names
+   document the interface contract that concrete providers implement. */
 
 class BaseProvider {
   constructor(name) {

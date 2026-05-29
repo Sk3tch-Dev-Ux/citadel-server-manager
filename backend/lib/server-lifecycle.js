@@ -10,7 +10,6 @@
  *
  * Includes lifecycle hooks, sidecar/tailer management, audit, notifications.
  */
-const logger = require('./logger');
 const ctx = require('./context');
 const { detectRunningProcess, detectProcessByPid, killProcess, spawnDayZServer } = require('./process-manager');
 const { startSidecar, stopSidecar } = require('./sidecar-manager');

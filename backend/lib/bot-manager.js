@@ -6,7 +6,6 @@
  * The bot communicates with the backend exclusively via REST API —
  * no shared memory, no circular dependencies.
  */
-const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('./logger');
 

@@ -7,7 +7,6 @@
 const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
-const ctx = require('./context');
 
 // Objective type → folder name and file prefix mapping
 const OBJECTIVE_TYPES = {
