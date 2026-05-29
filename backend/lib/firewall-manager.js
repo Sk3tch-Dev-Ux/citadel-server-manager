@@ -286,4 +286,4 @@ async function ensurePanelFirewallRule(port = 3001) {
   return { success: errors.length === 0, created, skipped, errors };
 }
 
-module.exports = { ensureFirewallRules, removeFirewallRules, ensurePanelFirewallRule };
+module.exports = { ensureFirewallRules, removeFirewallRules, ensurePanelFirewallRule, sanitizeName, buildRuleSpecs };

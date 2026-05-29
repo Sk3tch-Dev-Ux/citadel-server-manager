@@ -266,6 +266,16 @@ Locked in regression coverage for the launch-parameter string surgery that drive
 
 ---
 
+## 20. Test coverage — firewall-manager (elevated command safety)  *(security hardening)*
+
+Audited and locked in the Windows Firewall rule construction, which runs **elevated** (so an injection here would be high-impact). Verdict: **safe** — double-protected, now pinned by tests:
+
+- `sanitizeName` strips every shell/PowerShell metacharacter (`'"\`$|&;()` etc.), leaving only `[A-Za-z0-9 _-.]`, and falls back to `"Server"` for empty/all-stripped input. Rule display names are *additionally* single-quoted with `'`→`''` escaping; `-LocalPort` values pass through `Number()`. No injection path.
+- `buildRuleSpecs` verified: UDP game/query + TCP rcon rules, falsy-port skipping, numeric coercion.
+- Exported both for testing. 8 tests, including explicit injection-payload cases (`"; Start-Process calc; "`, `$(...)`, pipe/ampersand/backtick).
+
+---
+
 ## Test summary
 
 New suites under `backend/tests/` (160 tests, all passing):
