@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
 import API from '../api';
-import { ArrowLeft, Save, Plus, X, Search, ChevronRight, ChevronDown, ShoppingCart, Trash2, Check, Edit, Copy } from '../components/Icon';
+import { ArrowLeft, Save, Plus, X, Search, ChevronRight, ChevronDown, ShoppingCart, Trash2, Check, Edit, Copy, Upload, Download } from '../components/Icon';
 import { toolWikiUrl, WIKI_TOOLS } from '../utils/wikiLinks';
+import ItemPicker from '../components/ItemPicker';
+import useItemCatalog from '../hooks/useItemCatalog';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
 import useServerMap from '../hooks/useServerMap';
@@ -14,6 +17,7 @@ const TABS = [
   { id: 'traders', label: 'Traders' },
   { id: 'zones', label: 'Trader Zones' },
   { id: 'spawns', label: 'NPC Spawns' },
+  { id: 'diagnostics', label: 'Diagnostics' },
 ];
 
 const ICON_OPTIONS = [
@@ -86,6 +90,7 @@ function Badge({ count, color }) {
 // ─── Tab 1: Market Categories ───────────────────────────────────────
 
 function MarketCategoriesTab({ serverId }) {
+  const catalog = useItemCatalog(serverId);
   const [categories, setCategories] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [categoryData, setCategoryData] = useState(null);
@@ -587,8 +592,7 @@ function MarketCategoriesTab({ serverId }) {
                             </button>
                           </td>
                           <td style={{ padding: '4px 10px' }}>
-                            <input className="input" value={item.ClassName || ''} onChange={e => updateItem(realIdx, 'ClassName', e.target.value)}
-                              style={{ width: '100%', fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }} />
+                            <ItemPicker value={item.ClassName || ''} onChange={v => updateItem(realIdx, 'ClassName', v)} catalog={catalog} style={{ minWidth: 0 }} />
                           </td>
                           <td style={{ padding: '4px 10px' }}>
                             <input className="input" type="number" value={item.MinPriceThreshold ?? 0} onChange={e => updateItem(realIdx, 'MinPriceThreshold', Number(e.target.value))}
@@ -639,11 +643,11 @@ function MarketCategoriesTab({ serverId }) {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                       {(item.SpawnAttachments || []).map((att, aIdx) => (
                                         <div key={aIdx} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                          <input className="input" value={att} onChange={e => {
+                                          <ItemPicker value={att} onChange={v => {
                                             const atts = [...item.SpawnAttachments];
-                                            atts[aIdx] = e.target.value;
+                                            atts[aIdx] = v;
                                             updateItem(realIdx, 'SpawnAttachments', atts);
-                                          }} style={{ flex: 1, fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }} />
+                                          }} catalog={catalog} />
                                           <button onClick={() => {
                                             const atts = item.SpawnAttachments.filter((_, i) => i !== aIdx);
                                             updateItem(realIdx, 'SpawnAttachments', atts);
@@ -667,11 +671,11 @@ function MarketCategoriesTab({ serverId }) {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                       {(item.Variants || []).map((variant, vIdx) => (
                                         <div key={vIdx} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                          <input className="input" value={variant} onChange={e => {
+                                          <ItemPicker value={variant} onChange={v => {
                                             const vars = [...item.Variants];
-                                            vars[vIdx] = e.target.value;
+                                            vars[vIdx] = v;
                                             updateItem(realIdx, 'Variants', vars);
-                                          }} style={{ flex: 1, fontSize: 12, fontFamily: 'var(--font-mono, monospace)' }} />
+                                          }} catalog={catalog} />
                                           <button onClick={() => {
                                             const vars = item.Variants.filter((_, i) => i !== vIdx);
                                             updateItem(realIdx, 'Variants', vars);
@@ -716,6 +720,7 @@ function MarketCategoriesTab({ serverId }) {
 // ─── Tab 2: Traders ─────────────────────────────────────────────────
 
 function TradersTab({ serverId }) {
+  const catalog = useItemCatalog(serverId);
   const [traders, setTraders] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -1010,6 +1015,31 @@ function TradersTab({ serverId }) {
                   <input className="input" value={traderData.RequiredFaction || ''} onChange={e => updateField('RequiredFaction', e.target.value)}
                     style={{ width: '100%', fontSize: 13 }} placeholder="(none)" />
                 </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Required Completed Quest ID</label>
+                  <input className="input" type="number" value={traderData.RequiredCompletedQuestID ?? -1} onChange={e => updateField('RequiredCompletedQuestID', Number(e.target.value))}
+                    style={{ width: '100%', fontSize: 13 }} title="-1 = no quest required" />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Display Currency Name</label>
+                  <input className="input" value={traderData.DisplayCurrencyName || ''} onChange={e => updateField('DisplayCurrencyName', e.target.value)}
+                    style={{ width: '100%', fontSize: 13 }} placeholder="(optional label)" />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Display Currency Value</label>
+                  <button className="btn btn-secondary" onClick={() => updateField('DisplayCurrencyValue', traderData.DisplayCurrencyValue ? 0 : 1)}
+                    style={{ width: '100%', fontSize: 13, padding: '6px 12px', background: traderData.DisplayCurrencyValue ? 'var(--accent-green)' : undefined, color: traderData.DisplayCurrencyValue ? '#fff' : undefined }}>
+                    {traderData.DisplayCurrencyValue ? 'Yes' : 'No'}
+                  </button>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Use Category Order</label>
+                  <button className="btn btn-secondary" onClick={() => updateField('UseCategoryOrder', traderData.UseCategoryOrder ? 0 : 1)}
+                    style={{ width: '100%', fontSize: 13, padding: '6px 12px', background: traderData.UseCategoryOrder ? 'var(--accent-green)' : undefined, color: traderData.UseCategoryOrder ? '#fff' : undefined }}
+                    title="Respect the explicit category ordering below">
+                    {traderData.UseCategoryOrder ? 'Yes' : 'No'}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1038,9 +1068,7 @@ function TradersTab({ serverId }) {
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="input" value={newCurrency} onChange={e => setNewCurrency(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addCurrency()}
-                    placeholder="Add currency class..." style={{ flex: 1, fontSize: 13 }} />
+                  <ItemPicker value={newCurrency} onChange={setNewCurrency} catalog={catalog} placeholder="Add currency class..." />
                   <button className="btn btn-secondary" onClick={addCurrency}
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', fontSize: 13 }}>
                     <Plus size={14} /> Add
@@ -1161,9 +1189,8 @@ function TradersTab({ serverId }) {
                   </table>
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="input" value={newItemOverride.className} onChange={e => setNewItemOverride(prev => ({ ...prev, className: e.target.value }))}
-                    onKeyDown={e => e.key === 'Enter' && addItemOverride()}
-                    placeholder="ClassName..." style={{ flex: 1, fontSize: 13 }} />
+                  <ItemPicker value={newItemOverride.className} onChange={v => setNewItemOverride(prev => ({ ...prev, className: v }))}
+                    catalog={catalog} placeholder="ClassName..." />
                   <select className="input" value={newItemOverride.mode} onChange={e => setNewItemOverride(prev => ({ ...prev, mode: parseInt(e.target.value) }))}
                     style={{ width: 140, fontSize: 12 }}>
                     {SELL_MODES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -2033,9 +2060,232 @@ function GearEditor({ gear, onAdd, onRemove }) {
 
 // ─── Main Page Component ────────────────────────────────────────────
 
+// ─── Diagnostics engine ─────────────────────────────────────────────
+//
+// Pure function over the loaded category + trader files (each {fileName, data}).
+// Returns issues sorted by severity. Mirrors the official Market Manager's
+// Diagnostics panel: inverted prices/stock, duplicate classnames (in-file and
+// cross-file), missing DisplayName, traders pointing at categories that don't
+// exist, and a light missing-dependency hint.
+const SEV_ORDER = { error: 0, warn: 1, info: 2 };
+const DEP_HINTS = [
+  { pattern: /optic|scope|nvg|rangefinder|reflexoptic|acog|pso/i, requires: /battery9v|battery|energizer/i, label: 'optics/NVGs typically need a battery (e.g. Battery9V)' },
+];
+
+function runDiagnostics(categories, traders) {
+  const issues = [];
+  const add = (severity, file, message, detail) => issues.push({ severity, file, message, detail });
+
+  const soldClasses = new Map(); // className(lower) -> [fileName,...]
+
+  for (const c of categories || []) {
+    const d = c.data;
+    if (!d) { add('error', c.fileName, 'File could not be parsed', c.error); continue; }
+    if (!d.DisplayName) add('warn', c.fileName, 'Missing DisplayName');
+    const seenInFile = new Set();
+    for (const it of d.Items || []) {
+      const cn = (it.ClassName || '').trim();
+      if (!cn) { add('warn', c.fileName, 'Item with empty ClassName'); continue; }
+      const low = cn.toLowerCase();
+      if (seenInFile.has(low)) add('warn', c.fileName, `Duplicate ClassName in file: ${cn}`);
+      seenInFile.add(low);
+      soldClasses.set(low, [...(soldClasses.get(low) || []), c.fileName]);
+      const minP = it.MinPriceThreshold, maxP = it.MaxPriceThreshold;
+      if (minP >= 0 && maxP >= 0 && minP > maxP) add('error', c.fileName, `Inverted price on ${cn}: min ${minP} > max ${maxP}`);
+      const minS = it.MinStockThreshold, maxS = it.MaxStockThreshold;
+      if (minS >= 0 && maxS >= 0 && minS > maxS) add('error', c.fileName, `Inverted stock on ${cn}: min ${minS} > max ${maxS}`);
+    }
+  }
+
+  // Cross-file duplicate classnames (same item sold by multiple category files).
+  for (const [low, files] of soldClasses) {
+    if (files.length > 1) add('info', files.join(', '), `Sold in ${files.length} category files: ${low}`);
+  }
+
+  // Missing-dependency hints.
+  const allSold = [...soldClasses.keys()];
+  for (const hint of DEP_HINTS) {
+    const needers = allSold.filter((cn) => hint.pattern.test(cn));
+    const hasDep = allSold.some((cn) => hint.requires.test(cn));
+    if (needers.length && !hasDep) add('info', '(market)', `${hint.label} — sold: ${needers.slice(0, 3).join(', ')}${needers.length > 3 ? '…' : ''}`);
+  }
+
+  // Trader checks.
+  const categoryNames = new Set((categories || []).map((c) => c.fileName.replace(/\.json$/i, '').toLowerCase()));
+  for (const t of traders || []) {
+    const d = t.data;
+    if (!d) { add('error', t.fileName, 'File could not be parsed', t.error); continue; }
+    if (!d.DisplayName) add('warn', t.fileName, 'Missing DisplayName');
+    if (!(d.Currencies || []).length) add('warn', t.fileName, 'No currencies — trader cannot transact');
+    for (const entry of d.Categories || []) {
+      const name = String(entry).split(':')[0].trim();
+      if (name && !categoryNames.has(name.toLowerCase())) add('error', t.fileName, `References missing category file: ${name}.json`);
+    }
+  }
+
+  return issues.sort((a, b) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity]);
+}
+
+const SEV_STYLE = {
+  error: { color: 'var(--accent-red, #ef4444)', label: 'Error' },
+  warn: { color: 'var(--accent-orange, #f59e0b)', label: 'Warning' },
+  info: { color: 'var(--accent-blue, #3b82f6)', label: 'Info' },
+};
+
+function DiagnosticsTab({ serverId }) {
+  const [issues, setIssues] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const run = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [cats, trds] = await Promise.all([
+        API.get(`/api/servers/${serverId}/trader-editor/categories`).catch(() => []),
+        API.get(`/api/servers/${serverId}/trader-editor/traders`).catch(() => []),
+      ]);
+      setIssues(runDiagnostics(Array.isArray(cats) ? cats : [], Array.isArray(trds) ? trds : []));
+    } finally {
+      setLoading(false);
+    }
+  }, [serverId]);
+
+  useEffect(() => { run(); }, [run]);
+
+  const counts = useMemo(() => {
+    const c = { error: 0, warn: 0, info: 0 };
+    (issues || []).forEach((i) => { c[i.severity]++; });
+    return c;
+  }, [issues]);
+
+  if (loading) return <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Scanning market & trader files…</div>;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <span style={{ color: SEV_STYLE.error.color, fontWeight: 700 }}>{counts.error} errors</span>
+          <span style={{ color: SEV_STYLE.warn.color, fontWeight: 700 }}>{counts.warn} warnings</span>
+          <span style={{ color: SEV_STYLE.info.color, fontWeight: 700 }}>{counts.info} info</span>
+        </div>
+        <div style={{ flex: 1 }} />
+        <button className="btn btn-secondary btn-sm" onClick={run} style={{ fontSize: 12 }}>Re-scan</button>
+      </div>
+      {issues && issues.length === 0 && (
+        <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--accent-green, #22c55e)' }}>
+          ✓ No issues found — prices, stock, duplicates, and trader references all look valid.
+        </div>
+      )}
+      {issues && issues.length > 0 && (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          {issues.map((iss, i) => {
+            const s = SEV_STYLE[iss.severity];
+            return (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 14px', borderBottom: '1px solid var(--border)', borderLeft: `3px solid ${s.color}` }}>
+                <span style={{ color: s.color, fontSize: 11, fontWeight: 700, minWidth: 58, textTransform: 'uppercase' }}>{s.label}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13 }}>{iss.message}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1, fontFamily: 'var(--font-mono, monospace)' }}>{iss.file}{iss.detail ? ` — ${iss.detail}` : ''}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Import / Export (single .json + bulk ZIP) ──────────────────────
+// Category files have an Items[] array; trader files have Currencies/Categories.
+function detectFileType(data) {
+  if (data && Array.isArray(data.Items)) return 'category';
+  if (data && (Array.isArray(data.Currencies) || Array.isArray(data.Categories))) return 'trader';
+  return null;
+}
+
+async function importOneFile(serverId, fileName, data) {
+  const type = detectFileType(data);
+  if (!type) throw new Error(`${fileName}: unrecognized (not a market category or trader file)`);
+  const base = type === 'category' ? 'categories' : 'traders';
+  const name = fileName.endsWith('.json') ? fileName : `${fileName}.json`;
+  // NOTE: the API layer returns { error } for non-2xx (it does not throw), so we
+  // inspect the response. A create that fails (typically "already exists") is
+  // retried as an overwrite via PUT.
+  const created = await API.post(`/api/servers/${serverId}/trader-editor/${base}`, { fileName: name, data });
+  if (created && created.error) {
+    const saved = await API.put(`/api/servers/${serverId}/trader-editor/${base}/${encodeURIComponent(name)}`, { data });
+    if (saved && saved.error) throw new Error(`${name}: ${saved.error}`);
+  }
+  return type;
+}
+
 export default function TraderEditorPage({ serverId }) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('categories');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Export every market + trader file as a ZIP (Market/ + Traders/ folders).
+  const handleExportAll = async () => {
+    setBusy(true);
+    try {
+      const [cats, trds] = await Promise.all([
+        API.get(`/api/servers/${serverId}/trader-editor/categories`).catch(() => []),
+        API.get(`/api/servers/${serverId}/trader-editor/traders`).catch(() => []),
+      ]);
+      const zip = new JSZip();
+      (Array.isArray(cats) ? cats : []).forEach((c) => c.data && zip.file(`Market/${c.fileName}`, JSON.stringify(c.data, null, 2)));
+      (Array.isArray(trds) ? trds : []).forEach((t) => t.data && zip.file(`Traders/${t.fileName}`, JSON.stringify(t.data, null, 2)));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `market_export_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      window.addToast?.('Exported market + trader files', 'success');
+    } catch (err) {
+      window.addToast?.(`Export failed: ${err.message}`, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Import a single .json or a .zip of many. ZIP entries are routed by content.
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!window.confirm(`Import "${file.name}"? Existing files with the same name will be overwritten (backups are kept on save).`)) return;
+    setBusy(true);
+    let ok = 0; const errors = [];
+    try {
+      if (/\.zip$/i.test(file.name)) {
+        const zip = await JSZip.loadAsync(file);
+        const entries = Object.values(zip.files).filter((f) => !f.dir && /\.json$/i.test(f.name));
+        for (const entry of entries) {
+          try {
+            const data = JSON.parse(await entry.async('string'));
+            await importOneFile(serverId, entry.name.split('/').pop(), data);
+            ok++;
+          } catch (err) { errors.push(err.message); }
+        }
+      } else if (/\.json$/i.test(file.name)) {
+        const data = JSON.parse(await file.text());
+        await importOneFile(serverId, file.name, data);
+        ok++;
+      } else {
+        throw new Error('Please choose a .json or .zip file');
+      }
+      setRefreshKey((k) => k + 1); // force the active tab to reload
+      window.addToast?.(`Imported ${ok} file(s)${errors.length ? `, ${errors.length} skipped` : ''}`, errors.length ? 'warning' : 'success');
+      if (errors.length) console.warn('Market import skips:', errors);
+    } catch (err) {
+      window.addToast?.(`Import failed: ${err.message}`, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -2055,6 +2305,17 @@ export default function TraderEditorPage({ serverId }) {
             <ShoppingCart size={20} /> Trader Editor
           </h2>
         </div>
+        <input ref={fileInputRef} type="file" accept="application/json,.json,.zip" style={{ display: 'none' }} onChange={handleImportFile} />
+        <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={busy}
+          title="Import a .json (single file) or .zip (bulk) — e.g. exported from the official Market Manager"
+          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', fontSize: 13 }}>
+          <Upload size={16} /> Import
+        </button>
+        <button className="btn btn-secondary" onClick={handleExportAll} disabled={busy}
+          title="Export all market + trader files as a ZIP"
+          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', fontSize: 13 }}>
+          <Download size={16} /> {busy ? 'Working…' : 'Export All'}
+        </button>
       </div>
 
       {/* Tab Bar */}
@@ -2079,11 +2340,12 @@ export default function TraderEditorPage({ serverId }) {
         })}
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'categories' && <MarketCategoriesTab serverId={serverId} />}
-      {activeTab === 'traders' && <TradersTab serverId={serverId} />}
+      {/* Tab Content (refreshKey forces a reload after an import) */}
+      {activeTab === 'categories' && <MarketCategoriesTab key={refreshKey} serverId={serverId} />}
+      {activeTab === 'traders' && <TradersTab key={refreshKey} serverId={serverId} />}
       {activeTab === 'zones' && <TraderZonesTab serverId={serverId} />}
       {activeTab === 'spawns' && <NPCSpawnsTab serverId={serverId} />}
+      {activeTab === 'diagnostics' && <DiagnosticsTab key={refreshKey} serverId={serverId} />}
     </div>
   );
 }

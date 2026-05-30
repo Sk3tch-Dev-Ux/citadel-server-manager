@@ -14,8 +14,9 @@
  * All editing is immutable: each editor gets `node` + `onChange(newNode)` and
  * rebuilds its subtree, so the parent always receives a fresh object tree.
  */
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, ChevronDown, ChevronRight } from './Icon';
+import ItemPicker from './ItemPicker';
 
 // Common DayZ/Expansion attachment slot names, for the "add slot" menu.
 export const DAYZ_SLOTS = [
@@ -56,59 +57,6 @@ function NumberField({ label, value, onChange, step = 0.05, min, max, width }) {
         onChange={(e) => onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
         style={{ ...numInput, width: width || numInput.width }}
       />
-    </div>
-  );
-}
-
-/** Catalog-backed classname picker with free-text fallback. */
-function ItemPicker({ value, onChange, catalog, placeholder, options }) {
-  const [q, setQ] = useState(value || '');
-  const [open, setOpen] = useState(false);
-  useEffect(() => { setQ(value || ''); }, [value]);
-
-  const matches = useMemo(() => {
-    if (options) return options;
-    if (!q || !catalog?.length) return [];
-    const ql = q.toLowerCase();
-    return catalog.filter((c) => c.className.toLowerCase().includes(ql)).slice(0, 40);
-  }, [q, catalog, options]);
-
-  return (
-    <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
-      <input
-        className="input"
-        value={q}
-        placeholder={placeholder || 'ClassName…'}
-        onChange={(e) => { setQ(e.target.value); onChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        style={{ width: '100%', fontSize: 12, padding: '4px 8px', fontFamily: 'var(--font-mono, monospace)' }}
-      />
-      {open && matches.length > 0 && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
-          maxHeight: 220, overflowY: 'auto', background: 'var(--bg-elevated, var(--bg-deep))',
-          border: '1px solid var(--border)', borderRadius: 4, marginTop: 2,
-          boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
-        }}>
-          {matches.map((m) => {
-            const cn = typeof m === 'string' ? m : m.className;
-            const cat = typeof m === 'string' ? '' : m.category;
-            return (
-              <div
-                key={cn}
-                onMouseDown={() => { onChange(cn); setQ(cn); setOpen(false); }}
-                style={{ padding: '5px 8px', cursor: 'pointer', fontSize: 12, display: 'flex', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid var(--border)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-deep)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{cn}</span>
-                {cat && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{cat}</span>}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
