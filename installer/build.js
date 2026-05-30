@@ -463,6 +463,19 @@ async function main() {
   log('Step 6/7: Building Electron desktop app...');
   const desktopSrcDir = path.join(ROOT, 'desktop');
   if (fs.existsSync(path.join(desktopSrcDir, 'package.json'))) {
+    // Keep the Electron app's version in lockstep with the root version that
+    // stamps latest.yml. electron-updater compares app.getVersion() (baked from
+    // desktop/package.json at pack time) against latest.yml's version; if they
+    // drift, a fresh install reports the old version forever and shows a
+    // perpetual "update available" prompt. Syncing here means a single root
+    // version bump is always sufficient.
+    const desktopPkgPath = path.join(desktopSrcDir, 'package.json');
+    const desktopPkg = JSON.parse(fs.readFileSync(desktopPkgPath, 'utf-8'));
+    if (desktopPkg.version !== VERSION) {
+      log(`  Syncing desktop/package.json version ${desktopPkg.version} -> ${VERSION}`);
+      desktopPkg.version = VERSION;
+      fs.writeFileSync(desktopPkgPath, JSON.stringify(desktopPkg, null, 2) + '\n', 'utf-8');
+    }
     const desktopNodeModules = path.join(desktopSrcDir, 'node_modules');
     if (!fs.existsSync(desktopNodeModules)) {
       log('  Installing desktop/ dependencies (first run — downloads Electron ~150MB)...');

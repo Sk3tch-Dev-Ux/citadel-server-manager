@@ -6,6 +6,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.1 — 2026-05-29
+
+**Fix: desktop auto-update loop.** v2.21.0 bumped only the root version, so the
+Electron desktop app (whose version comes from `desktop/package.json`) still
+reported `2.20.0` while the update feed advertised `2.21.0` — producing a
+perpetual "Update v2.21.0 ready to install" prompt that reinstalling could not
+clear.
+
+### Fixed
+- Bumped `desktop/package.json` in lockstep with the root version.
+- `installer/build.js` now **syncs `desktop/package.json` to the root version**
+  before packing the Electron app, so the packaged `app.getVersion()` always
+  matches the `latest.yml` it ships — the version can never drift again from a
+  single root bump.
+
+---
+
 ## v2.21.0 — 2026-05-29
 
 **Closing the gap with CF Architect.** A focused pass that cross-referenced
