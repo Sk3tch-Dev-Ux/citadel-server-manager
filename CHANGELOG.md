@@ -6,7 +6,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## v2.21.2 — 2026-05-29
+## v2.21.3 — 2026-05-30
+
+**Visual Expansion Loadout Builder.** The Loadouts editor is overhauled from a
+generic schema form into a purpose-built visual builder that matches the
+official Expansion Loadout Builder — but catalog-aware (it knows your server's
+actual modded items).
+
+### Added
+- **Slot-based worn-gear editor** (Body, Legs, Feet, Mask, Gloves, Headgear,
+  Back, Shoulder, Hips…), **Cargo**, and the special **WEAPON / MELEE / SIDEARM
+  Sets**, each item with Chance / Health / Quantity and fully recursive nested
+  attachments + cargo (e.g. weapon → magazine, backpack → contents).
+- **Catalog-backed item picker** — autocompletes against the server's real item
+  classnames (`/api/servers/:id/items`) with free-text fallback.
+- **Import / Export** of loadout `.json` — interchangeable with the official
+  web builder.
+- **Builder ⇄ Raw JSON toggle** (Builder is the default; raw editor is live-
+  validated for power users).
 
 **Fix: API Docs page blank.** The Swagger UI page at `/api/docs` loaded its
 assets from the unpkg CDN, but the global helmet CSP only allows scripts from
