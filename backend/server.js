@@ -201,6 +201,7 @@ require('./routes/rcon-players.routes')(app);
 require('./routes/logs-metrics.routes')(app);
 require('./routes/config.routes')(app);
 require('./routes/mods.routes')(app);
+require('./routes/integrity.routes')(app);
 require('./routes/files.routes')(app);
 require('./routes/users.routes')(app);
 require('./routes/roles.routes')(app);

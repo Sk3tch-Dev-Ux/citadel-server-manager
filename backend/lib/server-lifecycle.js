@@ -67,6 +67,7 @@ async function startServer(serverId, reason) {
     state.startedAt = new Date().toISOString();
     ctx.io.emit('serverStatus', { serverId, status: 'running' });
     startSidecar(srv);
+    try { require('./dzsa-publisher').start(srv); } catch { /* best effort */ }
     _syncServerData(serverId);
     return { success: true, message: `Already running (PID: ${existingPid})` };
   }
@@ -104,6 +105,15 @@ async function startServer(serverId, reason) {
       return { success: false, error: `Start aborted by pre-start hook: ${preStartResult.hook}` };
     }
 
+    // Auto-tune the DayZ engine's job system to this host's CPU before launch
+    // (idempotent; honors srv.engineAutoTune). Best-effort — never blocks start.
+    try {
+      const tune = require('./engine-tuner').applyEngineTuning(srv);
+      if (tune.applied) addLog(serverId, 'info', 'server', `Engine auto-tuned: ${tune.jobSystem.maxcores} cores, ${tune.jobSystem.reservedcores} reserved`);
+    } catch (err) {
+      addLog(serverId, 'debug', 'server', `Engine auto-tune skipped: ${err.message}`);
+    }
+
     const { child, launchFailed } = spawnDayZServer(srv);
     state.process = child;
     state.pid = child.pid;
@@ -117,7 +127,18 @@ async function startServer(serverId, reason) {
 
     addLog(serverId, 'info', 'server', `Process spawned with PID: ${child.pid}`);
     startSidecar(srv);
+    try { require('./dzsa-publisher').start(srv); } catch { /* best effort */ }
     _syncServerData(serverId);
+
+    // Integrity & build tracking — runs in the background so PBO hashing never
+    // delays the launch. Flags mod drift (changed/missing bytes vs the trusted
+    // snapshot) and records which game build this deployment is on.
+    {
+      const integrity = require('./integrity-engine');
+      integrity.checkServerDrift(serverId).catch((err) =>
+        addLog(serverId, 'debug', 'integrity', `Drift check failed: ${err.message}`));
+      try { integrity.recordInstalledBuild(serverId); } catch { /* best effort */ }
+    }
 
     // Monitor launch asynchronously
     launchFailed.then(async (failReason) => {
@@ -182,6 +203,7 @@ async function stopServer(serverId, reason) {
     }
     await killProcess(state.pid, srv.executable);
     stopSidecar(serverId);
+    try { require('./dzsa-publisher').stop(serverId); } catch { /* best effort */ }
     stopTailing(serverId);
     state.status = 'stopped'; state.pid = null; state.process = null; state.players = []; state.startedAt = null;
     state._stateTransitioning = false;
@@ -194,6 +216,7 @@ async function stopServer(serverId, reason) {
     return { success: true, message: 'Stopped' };
   } catch {
     stopSidecar(serverId);
+    try { require('./dzsa-publisher').stop(serverId); } catch { /* best effort */ }
     stopTailing(serverId);
     state.status = 'stopped'; state.pid = null;
     state._stateTransitioning = false;

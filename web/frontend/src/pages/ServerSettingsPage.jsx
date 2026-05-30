@@ -265,6 +265,22 @@ export default function ServerSettingsPage({ serverId }) {
             </select>
           </div>
         </div>
+        <SettingsToggle
+          label="Engine Auto-Tune (dayzsetting.xml)"
+          checked={srv.engineAutoTune !== false}
+          onChange={v => update('engineAutoTune', v)}
+        />
+        <div className="settings-hint" style={{ marginTop: -4 }}>
+          On start, Citadel sizes the DayZ job system (max/reserved cores, queue depths) to this host&apos;s CPU. Disable to manage dayzsetting.xml manually.
+        </div>
+        <SettingsToggle
+          label="Publish mod list to DZSA Launcher"
+          checked={srv.dzsaPublish === true}
+          onChange={v => update('dzsaPublish', v)}
+        />
+        <div className="settings-hint" style={{ marginTop: -4 }}>
+          Serves this server&apos;s mod list at <code>http://{srv.ip || 'SERVER_IP'}:{(parseInt(srv.gamePort) || 2302) + 10}/</code> so the DayZ Standalone Launcher can discover it and players can one-click-subscribe to the exact mod set. Requires opening that port in your firewall.
+        </div>
       </Accordion>
 
       <Accordion title="Environment" icon="">

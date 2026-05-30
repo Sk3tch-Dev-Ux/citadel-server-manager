@@ -41,16 +41,24 @@ function addAudit(userId, username, action, details) {
  * Push server metrics to history and emit via Socket.IO.
  * Keeps a rolling window of 360 entries (~90 minutes at 15s intervals).
  */
-function pushMetrics(serverId, cpu, ram, playerCount, fps) {
+function pushMetrics(serverId, cpu, ram, playerCount, fps, inGame = null) {
   const state = ctx.serverStates[serverId];
   if (!state) return;
   const now = new Date().toISOString();
   const m = state.metricsHistory;
   m.cpu.push(cpu); m.ram.push(ram); m.players.push(playerCount); m.fps.push(fps); m.timestamps.push(now);
   Object.keys(m).forEach(k => { if (m[k].length > METRICS_HISTORY_SIZE) m[k] = m[k].slice(-METRICS_HISTORY_SIZE); });
+  // Pull the in-game telemetry the mod already produces (tick time, entity/AI
+  // counts). Safe when the sidecar isn't reporting — fields default to 0.
+  const g = inGame || {};
+  const ingameSample = {
+    tick_avg: g.tick_avg, tick_low: g.tick_low, tick_high: g.tick_high,
+    ai_count: g.ai_count, active_ai: g.active_ai, animal_count: g.animal_count,
+    vehicle_count: g.vehicle_count, entity_count: g.entity_count,
+  };
   // Persist to the durable store (no-op if persistence is disabled).
-  metricsStore.record(serverId, { cpu, ram, players: playerCount, fps });
-  if (ctx.io) ctx.io.emit('metrics', { serverId, cpu, ram, players: playerCount, fps, timestamp: now });
+  metricsStore.record(serverId, { cpu, ram, players: playerCount, fps, ...ingameSample });
+  if (ctx.io) ctx.io.emit('metrics', { serverId, cpu, ram, players: playerCount, fps, timestamp: now, ...ingameSample });
 }
 
 module.exports = { addLog, addAudit, pushMetrics };

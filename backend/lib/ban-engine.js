@@ -194,6 +194,45 @@ function syncAllBansToServer(serverId) {
   } catch (err) {
     logger.warn({ err: err.message, serverId }, 'Failed to sync bans to ban.txt');
   }
+  // Also write the richer JSON the @CitadelAdmin mod loads, so in-game
+  // enforcement can show ban reasons (ban.txt carries SteamIDs only).
+  syncBansJsonToProfile(srv);
+}
+
+/**
+ * Resolve a server's profile Citadel directory (mirrors citadel-bridge):
+ *   {profileDir or installDir/profiles}/Citadel
+ */
+function _citadelProfileDir(srv) {
+  const profileDir = srv.profileDir
+    ? path.resolve(srv.installDir, srv.profileDir)
+    : path.join(srv.installDir, 'profiles');
+  return path.join(profileDir, 'Citadel');
+}
+
+/**
+ * Write $profile:Citadel/bans.json (the file CitadelBanManager loads) from the
+ * global ban database. Reasons + names are included so the mod can reject a
+ * banned player on connect with a meaningful message.
+ */
+function syncBansJsonToProfile(srv) {
+  if (!srv?.installDir) return;
+  try {
+    const dir = _citadelProfileDir(srv);
+    fs.mkdirSync(dir, { recursive: true });
+    const bans = ctx.banDatabase
+      .filter(b => b.steamId)
+      .map(b => ({
+        player_id: String(b.steamId),
+        player_name: b.playerName || 'Unknown',
+        reason: b.reason || 'Banned',
+        // Match the mod's "YYYY-MM-DD HH:MM:SS" format (from ISO).
+        banned_at: (b.bannedAt || '').replace('T', ' ').slice(0, 19),
+      }));
+    fs.writeFileSync(path.join(dir, 'bans.json'), JSON.stringify({ bans }, null, 2));
+  } catch (err) {
+    logger.warn({ err: err.message, serverId: srv.id }, 'Failed to write bans.json for mod enforcement');
+  }
 }
 
 // ─── Import / Export ──────────────────────────────────────
@@ -278,5 +317,5 @@ function _removeBanFromFile(srv, steamId) {
 module.exports = {
   listBans, getBanById, getBanBySteamId,
   addBan, removeBan, banPlayer,
-  syncAllBansToServer, importBans, exportBans,
+  syncAllBansToServer, syncBansJsonToProfile, importBans, exportBans,
 };

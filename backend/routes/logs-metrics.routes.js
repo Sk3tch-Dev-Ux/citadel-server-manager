@@ -147,9 +147,11 @@ module.exports = function(app) {
       const safeName = srvName.replace(/[^a-zA-Z0-9-]+/g, '_');
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${safeName}-metrics-${new Date().toISOString().slice(0, 10)}.csv"`);
-      res.write('timestamp,cpu,ram,players,fps\n');
+      const cols = ['cpu', 'ram', 'players', 'fps', 'tick_avg', 'tick_low', 'tick_high',
+        'ai_count', 'active_ai', 'animal_count', 'vehicle_count', 'entity_count'];
+      res.write(`timestamp,${cols.join(',')}\n`);
       for (const r of rows) {
-        res.write(`${new Date(r.ts).toISOString()},${r.cpu},${r.ram},${r.players},${r.fps}\n`);
+        res.write(`${new Date(r.ts).toISOString()},${cols.map((c) => r[c] ?? 0).join(',')}\n`);
       }
       res.end();
     });

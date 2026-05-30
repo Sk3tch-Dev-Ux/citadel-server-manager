@@ -13,6 +13,7 @@ const { auth, authForServer } = require('../middleware/auth');
 const { validate } = require('../lib/request-validator');
 const modCache = require('../lib/mod-cache');
 const { getPendingModUpdates, clearPendingModUpdate, checkModUpdatesNow } = require('../lib/polling');
+const integrity = require('../lib/integrity-engine');
 const logger = require('../lib/logger');
 
 module.exports = function(app) {
@@ -55,6 +56,8 @@ module.exports = function(app) {
       if (result.error) throw new Error(result.error);
       state.modList.push({ name: result.safeName, workshopId: String(workshopId), enabled: true, order: state.modList.length, type: 'client' });
       updateLaunchParamsMods(srv.id);
+      // Snapshot the freshly-installed bytes as the trusted integrity baseline.
+      integrity.snapshotMod(srv.id, result.safeName).catch(() => {});
       ctx.activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
       ctx.io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
       ctx.io.emit('mods', { serverId: srv.id, mods: state.modList });
@@ -79,6 +82,7 @@ module.exports = function(app) {
       const modPath = path.join(srv.installDir, mod.name);
       if (fs.existsSync(modPath)) fs.rmSync(modPath, { recursive: true, force: true });
       state.modList = state.modList.filter(m => m.workshopId !== req.params.workshopId);
+      integrity.forgetMod(srv.id, mod.name);
       updateLaunchParamsMods(srv.id);
       ctx.io.emit('mods', { serverId: srv.id, mods: state.modList });
       addAudit(req.user.id, req.user.username, 'mod.uninstall', `Uninstalled ${mod.name} from ${srv.name}`);
@@ -181,6 +185,8 @@ module.exports = function(app) {
         const installResult = installModToServer(contentPath, mod.name, workshopId, srv.installDir);
         if (installResult.error) throw new Error(installResult.error);
         modCache.storeInCache(workshopId, contentPath, mod.name);
+        // Re-baseline integrity after a legitimate update.
+        integrity.snapshotMod(srv.id, mod.name).catch(() => {});
       }
 
       clearPendingModUpdate(workshopId);
@@ -235,6 +241,7 @@ module.exports = function(app) {
           const installResult = installModToServer(contentPath, mod.name, workshopId, srv.installDir);
           if (installResult.error) throw new Error(installResult.error);
           modCache.storeInCache(workshopId, contentPath, mod.name);
+          integrity.snapshotMod(srv.id, mod.name).catch(() => {});
         }
 
         clearPendingModUpdate(workshopId);

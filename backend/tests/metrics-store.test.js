@@ -65,6 +65,33 @@ afterAll(() => store.close());
     expect(rows[0].cpu).toBe(2);
   });
 
+  test('persists and returns in-game metrics (tick time, entity/AI counts)', () => {
+    store.record('g', {
+      cpu: 5, ram: 6, players: 3, fps: 42.5,
+      tick_avg: 22.1, tick_low: 18, tick_high: 40,
+      ai_count: 120, active_ai: 45, animal_count: 30, vehicle_count: 12, entity_count: 9000,
+      ts: 8000,
+    });
+    const rows = store.query('g', { since: 0 });
+    expect(rows[0]).toMatchObject({
+      fps: 42.5, tick_avg: 22.1, ai_count: 120, active_ai: 45,
+      animal_count: 30, vehicle_count: 12, entity_count: 9000,
+    });
+  });
+
+  test('defaults in-game metrics to 0 when only basics are recorded', () => {
+    store.record('basic', { cpu: 1, ram: 2, players: 0, fps: 60, ts: 9000 });
+    const rows = store.query('basic', { since: 0 });
+    expect(rows[0]).toMatchObject({ tick_avg: 0, ai_count: 0, entity_count: 0 });
+  });
+
+  test('downsampling averages in-game metrics too', () => {
+    store.record('dg', { entity_count: 100, ts: 60_000 });
+    store.record('dg', { entity_count: 200, ts: 90_000 });
+    const rows = store.query('dg', { since: 0, downsampleSeconds: 60 });
+    expect(rows[0].entity_count).toBe(150);
+  });
+
   test('coerces invalid sample fields to safe numbers', () => {
     store.record('c', { cpu: 'oops', ram: null, players: undefined, fps: NaN, ts: 7777 });
     const rows = store.query('c', { since: 0 });

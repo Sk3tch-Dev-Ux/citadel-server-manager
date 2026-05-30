@@ -178,7 +178,7 @@ module.exports = function(app) {
   app.patch('/api/servers/:id', auth('server.deploy'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
-    const allowed = ['name','installDir','executable','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreModUpdates','notifications','cftoolsServerApiId','cftoolsBanlistId','inHouseApiUrl','inHouseApiKey','autoUpdateEnabled','updateCountdownSeconds','updateWarningIntervals'];
+    const allowed = ['name','installDir','executable','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreModUpdates','notifications','cftoolsServerApiId','cftoolsBanlistId','inHouseApiUrl','inHouseApiKey','autoUpdateEnabled','updateCountdownSeconds','updateWarningIntervals','engineAutoTune','dzsaPublish'];
     // Migrate old field name: ignoreServerModUpdates → ignoreModUpdates
     if (req.body.ignoreServerModUpdates !== undefined && req.body.ignoreModUpdates === undefined) {
       req.body.ignoreModUpdates = req.body.ignoreServerModUpdates;
@@ -198,10 +198,17 @@ module.exports = function(app) {
         }
       }
     }
+    const dzsaWas = srv.dzsaPublish === true;
     for (const key of allowed) { if (req.body[key] !== undefined) srv[key] = req.body[key]; }
     // Clean up legacy field if canonical name is now set
     if (srv.ignoreModUpdates !== undefined) delete srv.ignoreServerModUpdates;
     saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    // Reconcile the DZSA endpoint if the toggle changed and the server is up.
+    if (req.body.dzsaPublish !== undefined && (srv.dzsaPublish === true) !== dzsaWas) {
+      const running = ctx.serverStates[srv.id]?.status === 'running';
+      const dzsa = require('../lib/dzsa-publisher');
+      if (srv.dzsaPublish === true && running) dzsa.start(srv); else dzsa.stop(srv.id);
+    }
     // Update firewall rules if ports or name changed
     if (req.body.gamePort || req.body.queryPort || req.body.rconPort || req.body.name) {
       ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort }).catch(() => {});
@@ -209,6 +216,41 @@ module.exports = function(app) {
     addAudit(req.user.id, req.user.username, 'server.update', `Updated server: ${srv.name}`);
     const { rconPassword: _, ...safeSrv } = srv;
     res.json(safeSrv);
+  });
+
+  // ─── DZSA Launcher publishing status ───────────────────────────
+  app.get('/api/servers/:id/dzsa', auth('server.view'), (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const dzsa = require('../lib/dzsa-publisher');
+    res.json({
+      enabled: srv.dzsaPublish === true,
+      publishing: dzsa.isPublishing(srv.id),
+      port: dzsa.dzsaPort(srv),
+      url: dzsa.publicUrl(srv),
+      modCount: dzsa.buildModList(srv.id).length,
+    });
+  });
+
+  // ─── Engine auto-tuning (dayzsetting.xml job system) ───────────
+  // Preview the values Citadel would write for this host's CPU.
+  app.get('/api/servers/:id/engine-tuning', auth('server.deploy'), (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const tuner = require('../lib/engine-tuner');
+    res.json({
+      enabled: srv.engineAutoTune !== false,
+      recommended: tuner.computeJobSystem(),
+    });
+  });
+
+  // Apply the tuning to dayzsetting.xml now (also runs automatically on start).
+  app.post('/api/servers/:id/engine-tuning/apply', auth('server.deploy'), (req, res) => {
+    const srv = ctx.servers.find(s => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+    const result = require('../lib/engine-tuner').applyEngineTuning(srv);
+    addAudit(req.user.id, req.user.username, 'server.engine_tune', `Engine tuning applied to ${srv.name}`);
+    res.json(result);
   });
 
   // ─── Batch Operations (start/stop/restart multiple servers) ───

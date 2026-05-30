@@ -28,6 +28,9 @@ export default function ModsPage({ serverId }) {
   const [pendingUpdates, setPendingUpdates] = useState({});
   const [updatingMods, setUpdatingMods] = useState({});
   const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [integrity, setIntegrity] = useState(null);   // { build, lastCheck, installedBuild }
+  const [drift, setDrift] = useState(null);            // result of an on-demand check
+  const [checkingIntegrity, setCheckingIntegrity] = useState(false);
   const searchTimeout = useRef(null);
 
   useEffect(() => { API.get(`/api/servers/${serverId}/mods`).then(d => setMods(Array.isArray(d) ? d : [])); }, [serverId]);
@@ -35,6 +38,11 @@ export default function ModsPage({ serverId }) {
   // Fetch pending mod updates
   useEffect(() => {
     API.get(`/api/servers/${serverId}/mods/updates`).then(d => setPendingUpdates(d || {})).catch(() => {});
+  }, [serverId]);
+
+  // Fetch integrity report (baseline snapshot + last drift check + installed build)
+  useEffect(() => {
+    API.get(`/api/servers/${serverId}/integrity`).then(setIntegrity).catch(() => {});
   }, [serverId]);
 
   // Listen for real-time mod update events
@@ -203,6 +211,34 @@ export default function ModsPage({ serverId }) {
     setCheckingUpdates(false);
   };
 
+  // Recompute PBO hashes and compare to the trusted baseline (does not re-baseline).
+  const verifyIntegrity = async () => {
+    setCheckingIntegrity(true);
+    try {
+      const result = await API.post(`/api/servers/${serverId}/integrity/check`);
+      setDrift(result);
+      if (result.ok) window.addToast('Integrity verified — no drift detected', 'success');
+      else window.addToast(`Integrity drift: ${[...result.drifted, ...result.missing].join(', ')}`, 'warning');
+    } catch (err) {
+      window.addToast(`Integrity check failed: ${err.message}`, 'error');
+    }
+    setCheckingIntegrity(false);
+  };
+
+  // Adopt the current on-disk bytes as the new trusted baseline (after a deliberate change).
+  const reBaseline = async () => {
+    setCheckingIntegrity(true);
+    try {
+      const result = await API.post(`/api/servers/${serverId}/integrity/snapshot`);
+      setDrift(null);
+      window.addToast(`Re-baselined ${result.count} mod(s)`, 'success');
+      API.get(`/api/servers/${serverId}/integrity`).then(setIntegrity).catch(() => {});
+    } catch (err) {
+      window.addToast(`Re-baseline failed: ${err.message}`, 'error');
+    }
+    setCheckingIntegrity(false);
+  };
+
   useEffect(() => {
     const handler = (data) => {
       if (data.serverId !== serverId) return;
@@ -251,7 +287,36 @@ export default function ModsPage({ serverId }) {
                     <Download size={14} /> Update All ({pendingCount})
                   </button>
                 )}
+                <button className="btn btn-sm btn-secondary" onClick={verifyIntegrity} disabled={checkingIntegrity} title="Recompute mod PBO hashes and compare to the trusted baseline">
+                  <RefreshCw size={14} className={checkingIntegrity ? 'spin' : ''} /> Verify Integrity
+                </button>
+                {isAdmin && (
+                  <button className="btn btn-sm btn-secondary" onClick={reBaseline} disabled={checkingIntegrity} title="Adopt the current on-disk mods as the new trusted baseline">
+                    Re-baseline
+                  </button>
+                )}
               </div>
+
+              {/* ─── Integrity status line ──────────────────────────── */}
+              {(drift || integrity?.lastCheck || integrity?.installedBuild) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, fontSize: 12, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                  {(() => {
+                    const d = drift || integrity?.lastCheck;
+                    const bad = d && (!d.ok || (d.drifted?.length) || (d.missing?.length));
+                    if (bad) {
+                      const items = [...(d.drifted || []), ...(d.missing || [])];
+                      return (
+                        <span style={{ color: 'var(--danger, #e06c75)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <AlertTriangle size={14} /> Integrity drift: {items.join(', ')}
+                        </span>
+                      );
+                    }
+                    if (d) return <span style={{ color: 'var(--success, #5cb85c)' }}>✓ Mod integrity verified</span>;
+                    return null;
+                  })()}
+                  {integrity?.installedBuild && <span>· Game build <code>{integrity.installedBuild}</code></span>}
+                </div>
+              )}
 
               {mods.map((mod, i) => (
                 <div className="mod-item" key={mod.workshopId || mod.name}>

@@ -71,7 +71,9 @@ async function collectMetrics(srv, state, pid) {
     }
   }
 
-  if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps);
+  // modMetrics carries the mod's in-game telemetry (tick time, entity/AI/vehicle
+  // counts) when the sidecar is reporting; pushMetrics persists + emits it.
+  if (metrics) pushMetrics(srv.id, metrics.cpu, metrics.ram, state.players.length, fps, modMetrics);
 
   // ─── Player list ───────────────────────────────────────
   if (players !== null) {

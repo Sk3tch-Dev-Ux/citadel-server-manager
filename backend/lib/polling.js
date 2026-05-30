@@ -272,6 +272,7 @@ async function runStartupDetection() {
       addLog(srv.id, 'info', 'server', `Detected running process for ${srv.name} (PID: ${pid})`);
       applyProcessSettings(pid, srv);
       startSidecar(srv); // Ensure sidecar is running for live map
+      try { require('./dzsa-publisher').start(srv); } catch { /* best effort */ }
       startTailing(srv.id); // Stream RPT output to console
     } else if (pid && claimedPids.has(pid)) {
       addLog(srv.id, 'info', 'server', `PID ${pid} already claimed by another server instance — skipping`);
@@ -287,6 +288,7 @@ async function runStartupDetection() {
         const { child, launchFailed } = spawnDayZServer(srv);
         state.process = child; state.pid = child.pid;
         startSidecar(srv); // Start sidecar alongside auto-started server
+        try { require('./dzsa-publisher').start(srv); } catch { /* best effort */ }
         addLog(srv.id, 'info', 'server', `Auto-start initiated (PID: ${child.pid || 'none'})`);
         launchFailed.then(async (failReason) => {
           if (failReason) {

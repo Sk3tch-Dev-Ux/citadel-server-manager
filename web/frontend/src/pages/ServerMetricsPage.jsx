@@ -18,7 +18,12 @@ const RANGES = {
   '30d': { label: '30d', ms: 30 * DAY,  downsample: 3600 },
 };
 
-const EMPTY = { cpu: [], ram: [], players: [], fps: [], timestamps: [] };
+// Series tracked across both the live window and persisted history. The first
+// four are OS/basic signals; the rest are the @CitadelAdmin mod's in-game
+// telemetry (simulation tick time and world entity counts).
+const SERIES = ['cpu', 'ram', 'players', 'fps', 'tick_avg', 'entity_count', 'ai_count', 'vehicle_count'];
+const emptySeries = () => SERIES.reduce((o, k) => ((o[k] = []), o), { timestamps: [] });
+const EMPTY = emptySeries();
 
 export default function ServerMetricsPage({ serverId }) {
   const socket = useSocket();
@@ -43,9 +48,9 @@ export default function ServerMetricsPage({ serverId }) {
     );
     setPersistence(resp.persistence !== false);
     const rows = resp.metrics || [];
-    const m = { cpu: [], ram: [], players: [], fps: [], timestamps: [] };
+    const m = emptySeries();
     for (const r of rows) {
-      m.cpu.push(r.cpu); m.ram.push(r.ram); m.players.push(r.players); m.fps.push(r.fps);
+      for (const k of SERIES) m[k].push(r[k] ?? 0);
       m.timestamps.push(new Date(r.ts).toISOString());
     }
     setMetrics(m);
@@ -68,10 +73,7 @@ export default function ServerMetricsPage({ serverId }) {
       setMetrics(prev => {
         if (!prev) return prev;
         const m = { ...prev };
-        m.cpu = [...(m.cpu || []), data.cpu].slice(-360);
-        m.ram = [...(m.ram || []), data.ram].slice(-360);
-        m.players = [...(m.players || []), data.players].slice(-360);
-        m.fps = [...(m.fps || []), data.fps].slice(-360);
+        for (const k of SERIES) m[k] = [...(m[k] || []), data[k] ?? 0].slice(-360);
         m.timestamps = [...(m.timestamps || []), data.timestamp].slice(-360);
         return m;
       });
@@ -112,6 +114,14 @@ export default function ServerMetricsPage({ serverId }) {
   const ramStats = calcStats(m.ram);
   const playerStats = calcStats(m.players);
   const fpsStats = calcStats(m.fps);
+  const tickStats = calcStats(m.tick_avg);
+  const entityStats = calcStats(m.entity_count);
+  const aiStats = calcStats(m.ai_count);
+  const vehicleStats = calcStats(m.vehicle_count);
+  // The in-game section is only meaningful once the mod reports — detect any
+  // non-zero entity/tick reading so we don't show an empty panel on servers
+  // without @CitadelAdmin.
+  const hasInGame = (m.entity_count || []).some((v) => v > 0) || (m.tick_avg || []).some((v) => v > 0);
   const dataPoints = m.timestamps?.length || 0;
   const timeSpan = dataPoints > 1
     ? Math.round((new Date(m.timestamps[dataPoints - 1]) - new Date(m.timestamps[0])) / 60000)
@@ -174,6 +184,26 @@ export default function ServerMetricsPage({ serverId }) {
             <MiniChart data={m.players || []} color="#5cb85c" height={240} label="Players" />
             <MiniChart data={m.fps || []} color="#e5c07b" height={240} label="FPS" />
           </div>
+
+          {hasInGame && (
+            <>
+              <div style={{ margin: '28px 0 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                In-Game World (via @CitadelAdmin)
+              </div>
+              <div className="grid grid-4" style={{ marginBottom: 20 }}>
+                <StatCard label="Tick Time" stats={tickStats} unit="ms" color="#ef7c8e" />
+                <StatCard label="Entities" stats={entityStats} unit="" color="#56c2c2" />
+                <StatCard label="AI" stats={aiStats} unit="" color="#d98e4a" />
+                <StatCard label="Vehicles" stats={vehicleStats} unit="" color="#9aa7ff" />
+              </div>
+              <div className="grid grid-2">
+                <MiniChart data={m.tick_avg || []} color="#ef7c8e" height={240} label="Tick Time (ms)" />
+                <MiniChart data={m.entity_count || []} color="#56c2c2" height={240} label="Entity Count" />
+                <MiniChart data={m.ai_count || []} color="#d98e4a" height={240} label="AI Count" />
+                <MiniChart data={m.vehicle_count || []} color="#9aa7ff" height={240} label="Vehicle Count" />
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
