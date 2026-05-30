@@ -268,8 +268,25 @@ try {
     }));
   });
 
-  // Minimal Swagger UI page (loaded from CDN — no bundled dependency).
+  // Minimal Swagger UI page (loaded from the unpkg CDN).
+  //
+  // The global helmet CSP only allows scripts from 'self' + cdnjs, which blocks
+  // the unpkg bundle and inline init script — that left this page blank in both
+  // the browser and the desktop app. We scope a relaxed CSP to THIS response
+  // only (the global app CSP is untouched) so the docs page can load its vendor
+  // assets without weakening the rest of the app.
   app.get('/api/docs', auth(), (_req, res) => {
+    res.setHeader('Content-Security-Policy', [
+      "default-src 'self'",
+      // 'unsafe-eval' is needed by the Swagger UI bundle (it uses Function());
+      // scoped to this admin-only docs response, never the global app CSP.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com",
+      "style-src 'self' 'unsafe-inline' https://unpkg.com",
+      "img-src 'self' data: https://unpkg.com",
+      "font-src 'self' data: https://unpkg.com",
+      "connect-src 'self'",
+      "worker-src 'self' blob:",
+    ].join('; '));
     res.type('html').send(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Citadel Agent API</title>
 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css"></head>

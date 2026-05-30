@@ -6,6 +6,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.2 — 2026-05-29
+
+**Fix: API Docs page blank.** The Swagger UI page at `/api/docs` loaded its
+assets from the unpkg CDN, but the global helmet CSP only allows scripts from
+`'self'` + cdnjs — so the bundle and inline init script were blocked and the
+page rendered blank in both the browser and the desktop app's docs window.
+
+### Fixed
+- `/api/docs` now sends a **route-scoped Content-Security-Policy** that permits
+  its Swagger assets (script/style/font/img from unpkg + the inline initializer,
+  plus `'unsafe-eval'` the bundle needs). Scoped to this single admin-gated
+  response — the strict global app CSP is unchanged.
+
+---
+
 ## v2.21.1 — 2026-05-29
 
 **Fix: desktop auto-update loop.** v2.21.0 bumped only the root version, so the
