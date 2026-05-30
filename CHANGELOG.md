@@ -6,6 +6,40 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.0 — 2026-05-29
+
+**Closing the gap with CF Architect.** A focused pass that cross-referenced
+Citadel against the Architect ecosystem and shipped the engine-level hosting
+disciplines we were missing — plus surfacing in-game telemetry the
+@CitadelAdmin mod was already producing but the Agent had been discarding.
+
+### Added
+- **In-game world metrics** — server tick time (avg/low/high) and entity / AI /
+  vehicle counts are now persisted locally and charted in an "In-Game World"
+  section on the Metrics page. The metrics store schema was widened with a
+  transparent migration for existing `metrics.db` files; history JSON + CSV
+  export carry the new fields.
+- **Mod integrity & drift detection** — SHA-256 PBO fingerprints are snapshotted
+  on install/update; a background check on server start flags mods whose bytes
+  changed on disk (corruption, tampering, partial sync) or went missing. The
+  installed game build id is read from the Steam appmanifest and surfaced. New
+  Mods-page status bar with **Verify Integrity** / **Re-baseline** actions.
+- **Engine auto-tuning** — on start, Citadel sizes the DayZ engine job system
+  (`dayzsetting.xml` max/reserved cores + queue depths) to the host CPU.
+  Idempotent; opt-out via the new **Engine Auto-Tune** toggle.
+- **DZSA Launcher publishing** — opt-in per server, serves the mod list on
+  `gamePort + 10` so the DayZ Standalone Launcher can discover the server and
+  players can one-click-subscribe to the exact mod set. Always-fresh (read live
+  on each request).
+- **Cloud-ban in-game enforcement** — implemented the `CitadelBanManager` in the
+  @CitadelAdmin mod (kick-on-connect with ban reason); the Agent now writes
+  `$profile:Citadel/bans.json` with reasons alongside `ban.txt`.
+- **Assisted self-update** — admin-only endpoints download + verify the signed
+  installer from trusted release hosts and launch it (interactive by default,
+  silent opt-in), handing file replacement to the proven NSIS installer.
+
+---
+
 ## v2.20.0 — 2026-05-25
 
 **The Cloud is plugged in.** v2.19 split the product into Agent + Cloud

@@ -1,6 +1,6 @@
 {
   "name": "citadel",
-  "version": "2.20.0",
+  "version": "2.21.0",
   "private": true,
   "license": "UNLICENSED",
   "description": "Citadel Agent \u2014 local DayZ server management for Windows. Pairs with Citadel Cloud for remote operations.",
