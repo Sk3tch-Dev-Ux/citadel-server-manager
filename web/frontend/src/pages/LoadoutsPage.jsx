@@ -13,10 +13,10 @@
  * Schema:  /api/mod-configs/expansion          (fetches BanditLoadout.schema.json)
  * Wiki:    https://dayzexpansion.com/tools/custom/expansion-loadout-builder
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import API from '../api';
-import SchemaEditor from '../components/SchemaEditor';
-import { ArrowLeft, Save, Plus, X, Trash2, RefreshCw } from '../components/Icon';
+import LoadoutBuilder from '../components/LoadoutBuilder';
+import { ArrowLeft, Save, Plus, X, Trash2, RefreshCw, Upload, Download } from '../components/Icon';
 import { toolWikiUrl, WIKI_TOOLS } from '../utils/wikiLinks';
 import { getTemplates } from '../utils/expansionDocsCache';
 
@@ -61,11 +61,20 @@ export default function LoadoutsPage({ serverId }) {
   const [selected, setSelected] = useState(null);         // name string
   const [data, setData] = useState(null);                 // current loadout body
   const [originalData, setOriginalData] = useState(null); // baseline for "is modified"
-  const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [mode, setMode] = useState('visual');             // 'visual' | 'json'
+  const [catalog, setCatalog] = useState([]);             // item classnames for the picker
+  const fileInputRef = useRef(null);
+
+  // -- Load the server item catalog once (backs the visual picker) --
+  useEffect(() => {
+    API.get(`/api/servers/${serverId}/items`)
+      .then((items) => setCatalog(Array.isArray(items) ? items : []))
+      .catch(() => setCatalog([]));  // free-text entry still works without it
+  }, [serverId]);
 
   // -- Load file list --
   const refresh = useCallback(async () => {
@@ -78,30 +87,6 @@ export default function LoadoutsPage({ serverId }) {
     } finally {
       setLoading(false);
     }
-  }, [serverId]);
-
-  // -- Load schema (BanditLoadout) --
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        // /mod-configs/:schemaId returns { manifest, schemas, configs } for
-        // the mod. We pull just BanditLoadout — all Expansion loadout files
-        // share the same shape so one schema covers them all.
-        const bundle = await API.get(`/api/servers/${serverId}/mod-configs/expansion`);
-        if (cancelled || !bundle) return;
-        const schemas = bundle.schemas || {};
-        // The schemas map is keyed by fileName (the manifest's `fileName` field).
-        // BanditLoadout in our generated manifest is keyed under the upstream
-        // file path. Find any key that ends in BanditLoadout.json.
-        const key = Object.keys(schemas).find(k => k.endsWith('BanditLoadout.json'))
-          || Object.keys(schemas).find(k => k.endsWith('Loadout.json'));
-        if (key) setSchema(schemas[key]);
-      } catch {
-        // Schema fetch failure isn't fatal — editor falls back to raw view.
-      }
-    })();
-    return () => { cancelled = true; };
   }, [serverId]);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -154,6 +139,36 @@ export default function LoadoutsPage({ serverId }) {
       refresh();
     } catch (err) {
       window.addToast?.(err.message || 'Delete failed', 'error');
+    }
+  };
+
+  // -- Export the selected loadout as a .json download --
+  const handleExport = () => {
+    if (!data || !selected) return;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${selected}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // -- Import a .json (e.g. exported from the official builder) into the
+  //    selected loadout. The user reviews and clicks Save to persist. --
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-importing the same file
+    if (!file) return;
+    if (!selected) { window.addToast?.('Select or create a loadout first, then import into it.', 'warning'); return; }
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Not a loadout object');
+      if (!window.confirm(`Replace the contents of ${selected}.json with "${file.name}"? (Save to persist; a backup is kept on save.)`)) return;
+      setData(parsed);
+      window.addToast?.(`Imported ${file.name} — review and Save`, 'success');
+    } catch (err) {
+      window.addToast?.(`Import failed: ${err.message}`, 'error');
     }
   };
 
@@ -277,33 +292,37 @@ export default function LoadoutsPage({ serverId }) {
             <div>
               <div className="card" style={{
                 padding: '10px 16px', marginBottom: 8,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
               }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{selected}.json</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                    {schema ? 'Schema-driven editor' : 'No schema available — basic editor'}
+                    Visual loadout builder · catalog-aware item picker
                   </div>
                 </div>
-                <button className="btn btn-danger btn-sm" onClick={handleDelete} title="Delete this loadout" style={{ padding: '4px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Trash2 size={12} /> Delete
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {/* Visual / Raw JSON toggle */}
+                  <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+                    <button className={`btn btn-sm ${mode === 'visual' ? 'btn-primary' : 'btn-ghost'}`} style={{ borderRadius: 0, fontSize: 12, padding: '4px 10px' }} onClick={() => setMode('visual')}>Builder</button>
+                    <button className={`btn btn-sm ${mode === 'json' ? 'btn-primary' : 'btn-ghost'}`} style={{ borderRadius: 0, fontSize: 12, padding: '4px 10px' }} onClick={() => setMode('json')}>Raw JSON</button>
+                  </div>
+                  <input ref={fileInputRef} type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={handleImportFile} />
+                  <button className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current?.click()} title="Import a .json (e.g. from the official builder) into this loadout" style={{ padding: '4px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Upload size={12} /> Import
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={handleExport} title="Download this loadout as JSON" style={{ padding: '4px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Download size={12} /> Export
+                  </button>
+                  <button className="btn btn-danger btn-sm" onClick={handleDelete} title="Delete this loadout" style={{ padding: '4px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
               </div>
 
               <div className="card" style={{ padding: 20 }}>
-                {schema ? (
-                  <SchemaEditor
-                    schema={schema}
-                    data={data || {}}
-                    onChange={setData}
-                  />
-                ) : (
-                  <pre style={{
-                    fontFamily: 'var(--font-mono, monospace)', fontSize: 12,
-                    background: 'var(--bg-deep)', padding: 12, borderRadius: 4,
-                    maxHeight: 600, overflow: 'auto',
-                  }}>{JSON.stringify(data, null, 2)}</pre>
-                )}
+                {mode === 'visual'
+                  ? <LoadoutBuilder data={data} onChange={setData} catalog={catalog} />
+                  : <RawJsonEditor data={data} onChange={setData} />}
               </div>
             </div>
           )}
@@ -465,6 +484,48 @@ function NewLoadoutModal({ serverId, onClose, onCreated }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Raw JSON editor (power-user escape hatch) ──────────────────────
+// Editable textarea bound to a local string so invalid intermediate states
+// don't blow away the parsed object. Commits to the parent only on valid parse.
+function RawJsonEditor({ data, onChange }) {
+  const [text, setText] = useState(() => JSON.stringify(data, null, 2));
+  const [error, setError] = useState(null);
+
+  // Re-sync when the underlying object changes from outside (e.g. import).
+  useEffect(() => { setText(JSON.stringify(data, null, 2)); setError(null); }, [data]);
+
+  const handle = (val) => {
+    setText(val);
+    try {
+      const parsed = JSON.parse(val);
+      setError(null);
+      onChange(parsed);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div>
+      {error && (
+        <div style={{ fontSize: 12, color: 'var(--accent-red, #ef4444)', marginBottom: 6 }}>
+          Invalid JSON — changes won’t apply until fixed: {error}
+        </div>
+      )}
+      <textarea
+        value={text}
+        onChange={(e) => handle(e.target.value)}
+        spellCheck={false}
+        style={{
+          width: '100%', minHeight: 540, fontFamily: 'var(--font-mono, monospace)', fontSize: 12,
+          background: 'var(--bg-deep)', color: 'var(--text-primary)', border: `1px solid ${error ? 'var(--accent-red, #ef4444)' : 'var(--border)'}`,
+          borderRadius: 4, padding: 12, resize: 'vertical',
+        }}
+      />
     </div>
   );
 }
