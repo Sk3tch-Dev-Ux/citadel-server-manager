@@ -6,6 +6,34 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.6 — 2026-05-30
+
+**Trust Network loop + security hardening.**
+
+### Added
+- **Trust Network ban loop closed end-to-end.** Community/shared bans now flow
+  into the mod's `bans.json` so a community-banned player is rejected on connect
+  **with a reason** ("Trust Network: cheating/griefing/exploiting"), not just a
+  bare BattlEye kick. Live local bans/unbans refresh that file immediately
+  (previously only on restart). Local bans can now **contribute up** to the
+  shared DB — but only when the admin explicitly categorizes the ban, so the
+  cheater network isn't polluted by personal/uncategorized bans.
+
+### Security
+- **Agent self-updater hardened** — the download allowlist is tightened to this
+  repo's release assets only (was "any github.com URL"); the installer's
+  Authenticode signature is verified before launch and a **silent/unattended
+  install of an unverified binary is refused** (operator must confirm
+  interactively); downloads stage to a fresh unique temp dir.
+- **DZSA public endpoint** (`gamePort+10`) gained a per-IP rate limit,
+  connection cap, request timeouts, and a cached payload.
+- **Integrity endpoints** got a tight dedicated rate limit + a per-server
+  in-flight lock so they can't be spammed to saturate disk/CPU.
+- **Ban writes validate the SteamID/GUID** (no control chars), preventing
+  newline-injection of extra `ban.txt` entries.
+
+---
+
 ## v2.21.5 — 2026-05-30
 
 **Audit hotfix.** A full-codebase audit surfaced regressions in the recent
