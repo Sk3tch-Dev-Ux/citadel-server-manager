@@ -33,6 +33,7 @@ class Forwarder {
     this._bridge = null;
     this._handlers = null;  // { metrics, players, events } — kept so we can off() on detach
     this._rconTimer = null; // periodic RCon player (IP/ping) forward for cloud enforcement
+    this._healthTimer = null; // periodic deep-health snapshot forward (agent_health)
     // sessionStarts is a per-Forwarder cache of when each steamId joined,
     // keyed by steamId. Lets us emit player_disconnect with `duration` even
     // if the mod's events.jsonl rotates or we missed the original `playtime`
@@ -78,7 +79,43 @@ class Forwarder {
     this._rconTimer = setInterval(() => { void this._forwardRconPlayers(); }, 30_000);
     this._rconTimer.unref?.();
 
+    // Forward a deep-health snapshot (the GET /api/health/deep per-server slice)
+    // every 30s so Cloud can observe local degradation — sidecar/DZSA down, RCON
+    // disconnected, integrity drift, crash-loop — before it becomes an outage.
+    this._forwardAgentHealth();
+    this._healthTimer = setInterval(() => { this._forwardAgentHealth(); }, 30_000);
+    this._healthTimer.unref?.();
+
     logger.debug({ localServerId: this.localServerId }, 'forwarder: attached');
+  }
+
+  /** Build + send the agent_health snapshot for this server. Best-effort. */
+  _forwardAgentHealth() {
+    try {
+      const ctx = require('../context');
+      const id = this.localServerId;
+      const state = ctx.serverStates[id] || {};
+      const safe = (fn, fb) => { try { return fn(); } catch { return fb; } };
+      const crash = safe(() => require('../crash-detector').getCrashStats(id), null) || {};
+      const lastCheck = safe(() => require('../integrity-engine').getReport(id)?.lastCheck, null);
+      const data = {
+        status: state.status || 'unknown',
+        players: state.players?.length || 0,
+        uptime_sec: state.startedAt ? Math.floor((Date.now() - new Date(state.startedAt).getTime()) / 1000) : 0,
+        rcon_connected: !!state.rcon?.loggedIn,
+        sidecar_running: safe(() => require('../sidecar-manager').isSidecarRunning(id), false),
+        dzsa_publishing: safe(() => require('../dzsa-publisher').isPublishing(id), false),
+        integrity_ok: lastCheck ? !!lastCheck.ok : null,
+        restart_pending: safe(() => require('../server-lifecycle').isRestartPending(id), false),
+        crash_restarts_hour: crash.restartsLastHour || 0,
+        breaker_tripped: !!crash.breakerTripped,
+        agent_rss_mb: Math.round(process.memoryUsage().rss / 1048576),
+        metrics_store_enabled: safe(() => require('../metrics-store').isEnabled(), false),
+      };
+      this._client?.send({ type: 'agent_health', ts: Date.now(), data });
+    } catch (err) {
+      logger.debug({ err: err.message, localServerId: this.localServerId }, 'forwarder: agent_health forward failed');
+    }
   }
 
   async _forwardRconPlayers() {
@@ -98,6 +135,7 @@ class Forwarder {
   /** Tear down. Idempotent. */
   detach() {
     if (this._rconTimer) { clearInterval(this._rconTimer); this._rconTimer = null; }
+    if (this._healthTimer) { clearInterval(this._healthTimer); this._healthTimer = null; }
     if (!this._client || !this._bridge || !this._handlers) {
       this._client = null;
       this._bridge = null;
