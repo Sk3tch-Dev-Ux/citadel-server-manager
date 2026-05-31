@@ -17,7 +17,7 @@ const COMMON_FOLDERS = [
 ];
 
 /** Characters allowed in folder names (visual hint for the user). */
-const FOLDER_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_\-]*(\/[a-zA-Z0-9][a-zA-Z0-9_\-]*)*$/;
+const FOLDER_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_-]*(\/[a-zA-Z0-9][a-zA-Z0-9_-]*)*$/;
 const FILENAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_\-. ]*\.xml$/i;
 
 // ─── Helpers ─────────────────────────────────────────────────

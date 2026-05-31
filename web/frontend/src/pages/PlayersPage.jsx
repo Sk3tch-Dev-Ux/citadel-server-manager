@@ -13,7 +13,7 @@ import {
   Trash2, Bomb, Skull, ShieldBan, Search, Locate, Lock,
   Navigation, Eye, Loader, Droplets, Pill, Coffee,
   UtensilsCrossed, ZapOff, Eraser, ArrowUpFromLine,
-  Shield, Zap, Infinity, Backpack, Wand2, Clock, User, X,
+  Shield, Zap, Infinity as InfinityIcon, Backpack, Wand2, Clock, User, X,
 } from '../components/Icon';
 import { useDebouncedValue, timeAgo } from '../utils';
 
@@ -720,10 +720,10 @@ function PlayerActionsMenu({
           <Eye size={14} /> Invisible Off
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onSetStaminaInfinite}>
-          <Infinity size={14} /> Infinite Stamina On
+          <InfinityIcon size={14} /> Infinite Stamina On
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onRemoveStaminaInfinite}>
-          <Infinity size={14} /> Infinite Stamina Off
+          <InfinityIcon size={14} /> Infinite Stamina Off
         </DropdownMenuItem>
 
         {/* ─── Inventory & Items ─── */}

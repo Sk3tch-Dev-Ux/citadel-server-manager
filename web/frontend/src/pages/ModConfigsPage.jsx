@@ -331,7 +331,7 @@ export default function ModConfigsPage({ serverId }) {
           <div className="card" style={{ padding: 32, textAlign: 'center' }}>
             <Puzzle size={48} style={{ opacity: 0.3, marginBottom: 12 }} />
             <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 500 }}>No mod configs detected</h3>
-            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 14, maxWidth: 400, margin: '0 auto' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 400, margin: '0 auto' }}>
               Mod configs are automatically detected when mods are installed that have known configuration schemas.
               Install mods from the Mods page and their configs will appear here.
             </p>
