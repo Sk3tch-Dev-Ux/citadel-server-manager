@@ -15,7 +15,7 @@
  * rebuilds its subtree, so the parent always receives a fresh object tree.
  */
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronRight } from './Icon';
+import { Plus, Trash2, Copy, ChevronDown, ChevronRight } from './Icon';
 import ItemPicker from './ItemPicker';
 
 // Common DayZ/Expansion attachment slot names, for the "add slot" menu.
@@ -113,7 +113,7 @@ function HealthEditor({ health, onChange }) {
 }
 
 // ─── A single loadout node (recursive) ───────────────────
-function NodeEditor({ node, onChange, onRemove, catalog, classNameMode, depth = 0 }) {
+function NodeEditor({ node, onChange, onRemove, onDuplicate, catalog, classNameMode, depth = 0 }) {
   const [expanded, setExpanded] = useState(depth < 1);
   const upd = (patch) => onChange({ ...node, ...patch });
   const attCount = (node.InventoryAttachments || []).length;
@@ -144,6 +144,9 @@ function NodeEditor({ node, onChange, onRemove, catalog, classNameMode, depth = 
         <button className="btn btn-ghost btn-sm" style={{ padding: '4px 6px' }} title={expanded ? 'Collapse' : 'Expand'} onClick={() => setExpanded(!expanded)}>
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}{nested > 0 ? ` ${nested}` : ''}
         </button>
+        {onDuplicate && (
+          <button className="btn btn-ghost btn-sm" style={{ padding: '4px 6px' }} title="Duplicate" onClick={onDuplicate}><Copy size={13} /></button>
+        )}
         {onRemove && (
           <button className="btn btn-danger btn-sm" style={{ padding: '4px 6px' }} title="Remove" onClick={onRemove}><Trash2 size={13} /></button>
         )}
@@ -187,6 +190,7 @@ function SlotEditor({ slot, onChange, onRemove, catalog, depth }) {
   const setItem = (i, v) => onChange({ ...slot, Items: items.map((it, j) => j === i ? v : it) });
   const addItem = () => onChange({ ...slot, Items: [...items, newNode('')] });
   const removeItem = (i) => onChange({ ...slot, Items: items.filter((_, j) => j !== i) });
+  const dupItem = (i) => onChange({ ...slot, Items: [...items.slice(0, i + 1), stripKeys(items[i]), ...items.slice(i + 1)] });
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 10, marginBottom: 8 }}>
@@ -199,7 +203,7 @@ function SlotEditor({ slot, onChange, onRemove, catalog, depth }) {
         <button className="btn btn-danger btn-sm" style={{ padding: '3px 6px' }} title="Remove slot" onClick={onRemove}><Trash2 size={12} /></button>
       </div>
       {items.map((it, i) => (
-        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} catalog={catalog} depth={depth} />
+        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} onDuplicate={() => dupItem(i)} catalog={catalog} depth={depth} />
       ))}
       {items.length === 0 && (
         <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>No items — add candidate items the wearer may spawn with.</div>
@@ -240,6 +244,7 @@ function CargoSection({ cargo, onChange, catalog, depth, title }) {
   const setItem = (i, v) => onChange(list.map((it, j) => j === i ? v : it));
   const addItem = () => onChange([...list, newNode('')]);
   const removeItem = (i) => onChange(list.filter((_, j) => j !== i));
+  const dupItem = (i) => onChange([...list.slice(0, i + 1), stripKeys(list[i]), ...list.slice(i + 1)]);
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -249,7 +254,7 @@ function CargoSection({ cargo, onChange, catalog, depth, title }) {
         <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={addItem}><Plus size={12} /> Item</button>
       </div>
       {list.map((it, i) => (
-        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} catalog={catalog} depth={depth} />
+        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} onDuplicate={() => dupItem(i)} catalog={catalog} depth={depth} />
       ))}
     </div>
   );
@@ -300,7 +305,7 @@ export default function LoadoutBuilder({ data, onChange, catalog }) {
           <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setSets([...sets, newSet(newSetType)])}><Plus size={12} /> Set</button>
         </div>
         {sets.map((s, i) => (
-          <NodeEditor key={ensureKey(s)} node={s} onChange={(v) => setSets(sets.map((x, j) => j === i ? v : x))} onRemove={() => setSets(sets.filter((_, j) => j !== i))} catalog={catalog} classNameMode="set" depth={0} />
+          <NodeEditor key={ensureKey(s)} node={s} onChange={(v) => setSets(sets.map((x, j) => j === i ? v : x))} onRemove={() => setSets(sets.filter((_, j) => j !== i))} onDuplicate={() => setSets([...sets.slice(0, i + 1), stripKeys(s), ...sets.slice(i + 1)])} catalog={catalog} classNameMode="set" depth={0} />
         ))}
       </Section>
     </div>
