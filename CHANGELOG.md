@@ -6,6 +6,34 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.5 — 2026-05-30
+
+**Audit hotfix.** A full-codebase audit surfaced regressions in the recent
+editor/feature work plus some pre-existing landmines. All fixed.
+
+### Fixed
+- **Delete was broken** in the loadout + market editors — calls used the
+  non-existent `API.delete` (only `API.del` exists) and threw. Now works.
+- **DZSA endpoint went stale after restart** — `restartServer` now re-syncs the
+  mod-list endpoint (and re-applies engine tuning + integrity check), not just
+  start/stop.
+- **ExpansionEditorPage crash** — `useState` after an early return in the
+  Airdrop/Map/SafeZones sections (React rules-of-hooks) is fixed.
+- **metrics DB** is now closed (WAL checkpointed) on shutdown; DZSA endpoints
+  stop cleanly.
+- **engine auto-tune respects manual `dayzsetting.xml`** — a hand-authored
+  jobsystem block (no Citadel marker) is left untouched instead of overwritten.
+- **integrity drift** check is delayed past the engine's PBO load and only
+  alerts on *new* drift — eliminates false-positive notifications on start.
+- **Loadout builder** uses stable row identity (fixes inputs/expand-state
+  sticking to the wrong row on remove/reorder); never written to saved JSON.
+- **Mod uninstall now confirms** before deleting files.
+- **Frontend lint gate restored** — the eslint config never enabled
+  `react/jsx-uses-vars`, hiding ~700 false warnings *and* 19 real errors. Fixed
+  the config and the real errors; lint is now clean (0 errors).
+
+---
+
 ## v2.21.4 — 2026-05-30
 
 **Market Editor overhaul.** A major upgrade to the Trader/Market editor,
