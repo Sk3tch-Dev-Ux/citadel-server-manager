@@ -27,22 +27,60 @@ const updateChecker = require('./update-checker');
 const MIN_INSTALLER_BYTES = 1_000_000;   // 1 MB — guards against truncated/error-page downloads
 const MAX_INSTALLER_BYTES = 500_000_000; // 500 MB ceiling
 
-/** Allow downloads only from the official release hosts. */
+// Only this repo's release assets are accepted — not "any github.com path".
+const RELEASE_PATH_PREFIX = '/Sk3tch-Dev-Ux/DayzServerController/releases/download/';
+// If set, a signed installer's certificate subject must contain this string for
+// a SILENT install to be allowed (e.g. the code-signing CN once releases are
+// signed). Unset → silent requires a Valid signature of any publisher.
+const EXPECTED_PUBLISHER = process.env.CITADEL_UPDATE_PUBLISHER || '';
+
+/**
+ * Allow downloads only from this repo's release assets / Citadel Cloud's
+ * downloads path — scoped to an `.exe`. The previous version accepted any
+ * github.com URL, which (if the update feed were influenced) let an arbitrary
+ * attacker-hosted release be downloaded and launched as the service.
+ */
 function isAllowedDownloadUrl(url) {
   try {
     const u = new URL(url);
     if (u.protocol !== 'https:') return false;
     const host = u.hostname.toLowerCase();
-    return (
-      host === 'citadels.cc' ||
-      host.endsWith('.citadels.cc') ||
-      host === 'github.com' ||
-      host.endsWith('.github.com') ||
-      host.endsWith('.githubusercontent.com')
-    );
+    const p = u.pathname;
+    const isExe = p.toLowerCase().endsWith('.exe');
+    if (host === 'github.com') return isExe && p.startsWith(RELEASE_PATH_PREFIX);
+    // GitHub serves release assets from this CDN (the redirect target).
+    if (host.endsWith('.githubusercontent.com')) return isExe;
+    if (host === 'citadels.cc' || host.endsWith('.citadels.cc')) return isExe && p.startsWith('/downloads/');
+    return false;
   } catch {
     return false;
   }
+}
+
+/**
+ * Verify the Authenticode signature of a downloaded installer via PowerShell.
+ * Best-effort: if PowerShell is unavailable or errors, returns status 'unknown'
+ * (which is treated as untrusted for silent installs).
+ * @returns {{status:string, subject:string}}
+ */
+function verifyAuthenticode(filePath) {
+  try {
+    const { execFileSync } = require('child_process');
+    const safe = filePath.replace(/'/g, "''");
+    const ps = `$s = Get-AuthenticodeSignature -LiteralPath '${safe}'; Write-Output $s.Status; Write-Output $s.SignerCertificate.Subject`;
+    const out = execFileSync('powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', ps],
+      { timeout: 20000, windowsHide: true }).toString();
+    const lines = out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    return { status: lines[0] || 'unknown', subject: lines[1] || '' };
+  } catch (err) {
+    return { status: 'unknown', subject: '', error: err.message };
+  }
+}
+
+/** Whether a signature is trusted enough to permit a SILENT (unattended) install. */
+function isTrustedForSilent(sig) {
+  return sig.status === 'Valid' && (!EXPECTED_PUBLISHER || sig.subject.includes(EXPECTED_PUBLISHER));
 }
 
 /** Derive a safe installer filename for a version. */
@@ -65,8 +103,16 @@ async function downloadInstaller() {
   if (state.status !== 'update_available') return { ok: false, error: 'No update available' };
   if (!isAllowedDownloadUrl(state.downloadUrl)) return { ok: false, error: 'Download URL is not a trusted release host' };
 
-  const dir = updatesDir();
-  try { fs.mkdirSync(dir, { recursive: true }); } catch { /* exists */ }
+  const baseDir = updatesDir();
+  try { fs.mkdirSync(baseDir, { recursive: true }); } catch { /* exists */ }
+  // Clean prior staging dirs, then stage into a fresh unique dir so the
+  // download path isn't predictable (mitigates a TOCTOU swap before launch).
+  try {
+    for (const e of fs.readdirSync(baseDir)) {
+      if (e.startsWith('u-')) fs.rmSync(path.join(baseDir, e), { recursive: true, force: true });
+    }
+  } catch { /* best effort */ }
+  const dir = fs.mkdtempSync(path.join(baseDir, 'u-'));
   const dest = path.join(dir, installerFilename(state.latestVersion));
 
   try {
@@ -94,12 +140,21 @@ async function downloadInstaller() {
 function launchInstaller(installerPath, opts = {}) {
   if (!installerPath || !fs.existsSync(installerPath)) return { ok: false, error: 'Installer not found' };
   if (!installerPath.toLowerCase().endsWith('.exe')) return { ok: false, error: 'Not an executable' };
+  // Verify the signature right before launch. A SILENT (unattended) install is
+  // only allowed for a Valid, expected-publisher signature — otherwise the
+  // operator must run it interactively so Windows SmartScreen/UAC is in the
+  // loop. This blocks an attacker-supplied unsigned binary from being installed
+  // headlessly as the (often admin) service.
+  const sig = verifyAuthenticode(installerPath);
+  if (opts.silent && !isTrustedForSilent(sig)) {
+    return { ok: false, signature: sig.status, error: `Refusing silent install of an unverified installer (signature: ${sig.status}). Apply interactively to confirm.` };
+  }
   try {
     const args = opts.silent ? ['/S'] : [];
     const child = spawn(installerPath, args, { detached: true, stdio: 'ignore', windowsHide: false });
     child.unref();
-    logger.info({ installerPath, silent: !!opts.silent }, 'agent-updater: installer launched');
-    return { ok: true };
+    logger.info({ installerPath, silent: !!opts.silent, signature: sig.status }, 'agent-updater: installer launched');
+    return { ok: true, signature: sig.status };
   } catch (err) {
     logger.warn({ err: err.message }, 'agent-updater: launch failed');
     return { ok: false, error: err.message };
@@ -120,5 +175,6 @@ async function applyUpdate(opts = {}) {
 
 module.exports = {
   isAllowedDownloadUrl, installerFilename, updatesDir,
+  verifyAuthenticode, isTrustedForSilent,
   downloadInstaller, launchInstaller, applyUpdate,
 };

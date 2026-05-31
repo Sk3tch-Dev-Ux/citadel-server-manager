@@ -8,6 +8,7 @@
 const ctx = require('../lib/context');
 const { authForServer } = require('../middleware/auth');
 const { addAudit } = require('../lib/audit');
+const { expensiveLimiter } = require('../middleware/rate-limit');
 const integrity = require('../lib/integrity-engine');
 const { safeError } = require('../lib/http-errors');
 
@@ -20,7 +21,7 @@ module.exports = function (app) {
   });
 
   // Re-baseline every enabled mod to the current on-disk bytes.
-  app.post('/api/servers/:id/integrity/snapshot', authForServer('mods.install'), async (req, res) => {
+  app.post('/api/servers/:id/integrity/snapshot', expensiveLimiter, authForServer('mods.install'), async (req, res) => {
     const srv = ctx.servers.find((s) => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     try {
@@ -32,7 +33,7 @@ module.exports = function (app) {
   });
 
   // Run a drift check now (does not change the baseline).
-  app.post('/api/servers/:id/integrity/check', authForServer('mods.view'), async (req, res) => {
+  app.post('/api/servers/:id/integrity/check', expensiveLimiter, authForServer('mods.view'), async (req, res) => {
     const srv = ctx.servers.find((s) => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     try {

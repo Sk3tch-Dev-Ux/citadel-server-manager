@@ -17,6 +17,15 @@ const { saveJSON } = require('./data-store');
 
 // ─── Persistence ──────────────────────────────────────────
 
+/**
+ * A valid ban identity: Steam64 (17 digits) or a BattlEye GUID (32 hex) — i.e.
+ * alphanumeric, no whitespace/newlines/control chars. This guards the flat
+ * ban.txt and bans.json writers against an id containing a newline injecting
+ * extra ban entries.
+ */
+const _BAN_ID_RE = /^[A-Za-z0-9]{1,64}$/;
+function _isValidBanId(id) { return typeof id === 'string' && _BAN_ID_RE.test(id); }
+
 /** Debounced write of banDatabase to disk */
 function _persist() {
   saveJSON(ctx.CONFIG.dataDir, 'bans.json', ctx.banDatabase);
@@ -195,7 +204,7 @@ function syncAllBansToServer(serverId) {
   const srv = ctx.servers.find(s => s.id === serverId);
   if (!srv?.installDir) return;
   const banPath = path.join(srv.installDir, 'ban.txt');
-  const globalIds = ctx.banDatabase.map(b => b.steamId).filter(Boolean);
+  const globalIds = ctx.banDatabase.map(b => b.steamId).filter(_isValidBanId);
   // Merge with existing ban.txt (preserve manual entries not in our database)
   let existing = [];
   try {
@@ -243,7 +252,7 @@ function syncBansJsonToProfile(srv) {
     // community bans only reached ban.txt (BattlEye), with no reason shown.
     const byId = new Map();
     for (const b of ctx.banDatabase) {
-      if (!b.steamId) continue;
+      if (!_isValidBanId(String(b.steamId || ''))) continue;
       byId.set(String(b.steamId), {
         player_id: String(b.steamId),
         player_name: b.playerName || 'Unknown',
@@ -255,7 +264,7 @@ function syncBansJsonToProfile(srv) {
     let community = [];
     try { community = require('./cloud-bans').listCachedBans() || []; } catch { community = []; }
     for (const c of community) {
-      if (!c.steamId || byId.has(String(c.steamId))) continue;
+      if (!_isValidBanId(String(c.steamId || '')) || byId.has(String(c.steamId))) continue;
       byId.set(String(c.steamId), {
         player_id: String(c.steamId),
         player_name: 'Unknown',
@@ -284,7 +293,7 @@ function importBans(bansArray, adminUsername) {
   let added = 0, skipped = 0, errors = 0;
   for (const entry of bansArray) {
     try {
-      if (!entry.steamId) { errors++; continue; }
+      if (!_isValidBanId(String(entry.steamId || ''))) { errors++; continue; }
       const existing = ctx.banDatabase.find(b => b.steamId === entry.steamId);
       if (existing) { skipped++; continue; }
       ctx.banDatabase.push({
@@ -327,6 +336,7 @@ function exportBans() {
 function _writeBanToFile(srv, steamId) {
   try {
     if (!srv?.installDir) return;
+    if (!_isValidBanId(steamId)) { logger.warn({ steamId }, 'Refused to write invalid SteamID to ban.txt'); return; }
     const banPath = path.join(srv.installDir, 'ban.txt');
     let existing = '';
     if (fs.existsSync(banPath)) existing = fs.readFileSync(banPath, 'utf-8');

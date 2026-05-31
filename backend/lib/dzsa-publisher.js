@@ -56,6 +56,40 @@ function buildPayload(srv) {
   };
 }
 
+// ─── Abuse protection for the public endpoint ───────────────
+const MAX_CONNECTIONS = 50;        // concurrent sockets cap
+const RATE_WINDOW_MS = 10_000;     // per-IP window
+const RATE_MAX = 30;               // requests/window/IP
+const PAYLOAD_TTL_MS = 5_000;      // serve a cached payload (don't rebuild per request)
+
+const _rate = new Map();           // serverId -> Map<ip, {count, windowStart}>
+const _payloadCache = new Map();   // serverId -> { body, at }
+
+/** Sliding-window per-IP throttle. Returns true if the request is allowed. */
+function _allow(serverId, ip) {
+  let perIp = _rate.get(serverId);
+  if (!perIp) { perIp = new Map(); _rate.set(serverId, perIp); }
+  const now = Date.now();
+  const e = perIp.get(ip);
+  if (!e || now - e.windowStart > RATE_WINDOW_MS) {
+    perIp.set(ip, { count: 1, windowStart: now });
+    if (perIp.size > 5000) perIp.clear(); // crude unbounded-growth guard
+    return true;
+  }
+  e.count++;
+  return e.count <= RATE_MAX;
+}
+
+/** Cached JSON body (rebuilt at most every PAYLOAD_TTL_MS). */
+function _cachedBody(srv) {
+  const c = _payloadCache.get(srv.id);
+  const now = Date.now();
+  if (c && now - c.at < PAYLOAD_TTL_MS) return c.body;
+  const body = JSON.stringify(buildPayload(srv));
+  _payloadCache.set(srv.id, { body, at: now });
+  return body;
+}
+
 /** The address a player/launcher uses to read this server's mod list. */
 function publicUrl(srv) {
   const host = srv.ip || ctx.CONFIG?.dayz?.serverIp || 'YOUR_SERVER_IP';
@@ -71,16 +105,28 @@ function start(srv) {
   if (_servers.has(srv.id)) return;
   const port = dzsaPort(srv);
   const server = http.createServer((req, res) => {
+    const ip = req.socket?.remoteAddress || 'unknown';
+    if (!_allow(srv.id, ip)) {
+      res.statusCode = 429;
+      res.end('{"error":"rate limited"}');
+      return;
+    }
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
     try {
-      res.end(JSON.stringify(buildPayload(srv)));
+      res.end(_cachedBody(srv));
     } catch (err) {
       res.statusCode = 500;
       res.end('{"error":"internal"}');
       logger.debug({ err: err.message, serverId: srv.id }, 'dzsa-publisher: payload error');
     }
   });
+  // Bound exposure: cap concurrent sockets and time out slow clients so the
+  // public, unauthenticated port can't be tied up by a connection flood.
+  server.maxConnections = MAX_CONNECTIONS;
+  server.headersTimeout = 5_000;
+  server.requestTimeout = 5_000;
+  server.keepAliveTimeout = 5_000;
   server.on('error', (err) => {
     logger.warn({ err: err.message, serverId: srv.id, port }, 'dzsa-publisher: listen failed');
     _servers.delete(srv.id);

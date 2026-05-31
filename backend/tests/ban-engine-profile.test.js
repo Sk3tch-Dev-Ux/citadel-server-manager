@@ -70,6 +70,18 @@ describe('syncBansJsonToProfile (mod enforcement file)', () => {
     expect(community).toMatchObject({ reason: 'Trust Network: cheating', banned_at: '2026-05-20 10:00:00' });
   });
 
+  test('drops a SteamID containing a newline (ban.txt/bans.json injection guard)', () => {
+    ctx.banDatabase = [
+      { steamId: '76561198000000001', playerName: 'Good', reason: 'x', bannedAt: '2026-05-29T12:00:00.000Z' },
+      { steamId: '76561198000000002\n76561198099999999', playerName: 'Evil', reason: 'inject' },
+    ];
+    const srv = { id: 's7', installDir };
+    syncBansJsonToProfile(srv);
+    const json = read(srv);
+    expect(json.bans).toHaveLength(1);
+    expect(json.bans[0].player_id).toBe('76561198000000001');
+  });
+
   test('local ban wins when a SteamID is both locally and community banned', () => {
     ctx.banDatabase = [{ steamId: '76561198000000007', playerName: 'Dupe', reason: 'Local reason', bannedAt: '2026-05-29T00:00:00.000Z' }];
     cloudBans.listCachedBans.mockReturnValueOnce([{ steamId: '76561198000000007', reasonCategory: 'cheating' }]);

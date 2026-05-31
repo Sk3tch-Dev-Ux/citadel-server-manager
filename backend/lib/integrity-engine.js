@@ -39,6 +39,9 @@ const STORE_FILE = 'integrity.json';
 //       lastCheck: { at, ok, drifted:[], missing:[] }
 //   } }
 let _store = null;
+// Servers with an in-flight fingerprint job — guards against overlapping
+// (heavy) drift checks on the same server.
+const _inFlight = new Set();
 function _load() {
   if (!_store) _store = loadJSON(ctx.CONFIG.dataDir, STORE_FILE, {}) || {};
   return _store;
@@ -163,6 +166,12 @@ async function checkServerDrift(serverId, opts = {}) {
   const result = { ok: true, drifted: [], missing: [], unsnapshotted: [] };
   if (!srv || !state?.modList) return result;
 
+  // Only one fingerprint job per server at a time — PBO hashing is heavy disk/CPU
+  // work, and overlapping runs (e.g. spammed /integrity/check) would contend.
+  if (_inFlight.has(serverId)) { result.busy = true; return result; }
+  _inFlight.add(serverId);
+  try {
+
   const rec = _server(serverId);
   for (const mod of state.modList) {
     if (mod.enabled === false) continue;
@@ -202,6 +211,9 @@ async function checkServerDrift(serverId, opts = {}) {
     fireWebhooks('integrity.drift', { serverId, serverName: srv.name, drifted: result.drifted, missing: result.missing });
   }
   return result;
+  } finally {
+    _inFlight.delete(serverId);
+  }
 }
 
 /** Read the build id a deployment is installed at from its Steam appmanifest. */

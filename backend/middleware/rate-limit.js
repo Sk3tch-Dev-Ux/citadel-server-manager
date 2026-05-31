@@ -43,6 +43,19 @@ const authLimiter = rateLimit({
   message: { error: 'Too many login attempts, please try again later' },
 });
 
+/**
+ * Tight limiter for expensive operations (e.g. mod-integrity hashing of many GB
+ * of PBOs). These do heavy disk/CPU work, so even an authenticated low-priv user
+ * shouldn't be able to fire them in a loop and saturate the host. 10/min/IP.
+ */
+const expensiveLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Rate limit exceeded — this operation is throttled' },
+});
+
 /** Discord bot endpoint: 60 requests per minute */
 const discordLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -180,6 +193,7 @@ if (_cleanupInterval.unref) _cleanupInterval.unref();
 module.exports = {
   apiLimiter,
   authLimiter,
+  expensiveLimiter,
   discordLimiter,
   fail2ban,
   recordLoginFailure,
