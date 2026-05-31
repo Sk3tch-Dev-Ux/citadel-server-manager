@@ -83,6 +83,11 @@ async function pullSync() {
       cursor = nextCursor;
       if (!response.hasMore) break;
     }
+    // Push the refreshed community set into each server's bans.json so the mod
+    // enforces community bans with a reason (the enforcer only writes ban.txt).
+    if (totalAdded || totalRemoved) {
+      try { require('../ban-engine').syncBansJsonToAllServers(); } catch { /* ban-engine optional */ }
+    }
     _lastError = null;
     telemetry.report('cloud-bans.sync.success', undefined);
     logger.info(
@@ -190,6 +195,8 @@ function onLicenseDeactivated() {
   enforcer.clearAllCommunityBans();
   cacheModule.clear();
   _cache = cacheModule.load();
+  // Drop community entries from the mod enforcement file too.
+  try { require('../ban-engine').syncBansJsonToAllServers(); } catch { /* ban-engine optional */ }
   logger.info('cloud-bans: cleared all community ban enforcement on license deactivation');
 }
 

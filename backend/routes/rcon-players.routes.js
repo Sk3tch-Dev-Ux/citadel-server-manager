@@ -91,7 +91,7 @@ module.exports = function(app) {
     const state = ctx.serverStates[req.params.id];
     if (!state) return res.status(400).json({ error: 'Server not found' });
     // Use global ban database — includes RCON enforce + kick + player list update
-    const ban = await banPlayer(req.params.id, req.params.playerId, req.body.reason, req.body.expiration, req.user.username);
+    const ban = await banPlayer(req.params.id, req.params.playerId, req.body.reason, req.body.expiration, req.user.username, req.body.reasonCategory);
     addAudit(req.user.id, req.user.username, 'player.ban', `Banned player ${req.params.playerId}: ${req.body.reason || 'Banned'}`);
     addNotification(req.params.id, 'player.ban', 'Player Banned', `Player ${req.params.playerId} was banned`, 'error');
     const banSrv = ctx.servers.find(s => s.id === req.params.id);

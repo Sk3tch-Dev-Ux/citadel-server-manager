@@ -3,6 +3,12 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+
+// Stub the Trust-Network cache so the merge is deterministic. Tests override
+// listCachedBans per-case; default is "no community bans".
+jest.mock('../lib/cloud-bans', () => ({ listCachedBans: jest.fn(() => []) }));
+const cloudBans = require('../lib/cloud-bans');
+
 const ctx = require('../lib/context');
 const { syncBansJsonToProfile } = require('../lib/ban-engine');
 
@@ -49,5 +55,28 @@ describe('syncBansJsonToProfile (mod enforcement file)', () => {
   test('no-op when installDir is missing', () => {
     ctx.banDatabase = [{ steamId: '76561198000000005' }];
     expect(() => syncBansJsonToProfile({ id: 's4' })).not.toThrow();
+  });
+
+  test('merges Trust-Network community bans with a category reason', () => {
+    ctx.banDatabase = [{ steamId: '76561198000000001', playerName: 'Local', reason: 'Toxic', bannedAt: '2026-05-29T12:00:00.000Z' }];
+    cloudBans.listCachedBans.mockReturnValueOnce([
+      { steamId: '76561198000000009', reasonCategory: 'cheating', activatedAt: '2026-05-20T10:00:00.000Z' },
+    ]);
+    const srv = { id: 's5', installDir };
+    syncBansJsonToProfile(srv);
+    const json = read(srv);
+    expect(json.bans).toHaveLength(2);
+    const community = json.bans.find(b => b.player_id === '76561198000000009');
+    expect(community).toMatchObject({ reason: 'Trust Network: cheating', banned_at: '2026-05-20 10:00:00' });
+  });
+
+  test('local ban wins when a SteamID is both locally and community banned', () => {
+    ctx.banDatabase = [{ steamId: '76561198000000007', playerName: 'Dupe', reason: 'Local reason', bannedAt: '2026-05-29T00:00:00.000Z' }];
+    cloudBans.listCachedBans.mockReturnValueOnce([{ steamId: '76561198000000007', reasonCategory: 'cheating' }]);
+    const srv = { id: 's6', installDir };
+    syncBansJsonToProfile(srv);
+    const json = read(srv);
+    expect(json.bans).toHaveLength(1);
+    expect(json.bans[0].reason).toBe('Local reason');
   });
 });

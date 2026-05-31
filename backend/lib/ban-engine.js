@@ -68,9 +68,10 @@ function addBan({ steamId, playerName, reason, expiresAt, bannedBy, source }) {
     ctx.banDatabase.push(ban);
   }
   _persist();
-  // Sync to ban.txt for all servers
+  // Sync to ban.txt (BattlEye) + bans.json (mod reason-aware enforcement).
   for (const srv of ctx.servers) {
     _writeBanToFile(srv, steamId);
+    syncBansJsonToProfile(srv);
   }
   return ban;
 }
@@ -84,9 +85,10 @@ function removeBan(banId) {
   if (!ban) return null;
   ctx.banDatabase = ctx.banDatabase.filter(b => b.id !== banId);
   _persist();
-  // Remove from all server ban.txt files
+  // Remove from ban.txt and refresh the mod enforcement file.
   for (const srv of ctx.servers) {
     _removeBanFromFile(srv, ban.steamId);
+    syncBansJsonToProfile(srv);
   }
   return ban;
 }
@@ -134,7 +136,7 @@ function _formatKickMessage(reason, banId) {
  * number (0, 1, 2...) not a Steam64 ID. ban.txt is the reliable persistence
  * mechanism — DayZ checks it on every connection attempt.
  */
-async function banPlayer(serverId, playerId, reason, expiration, adminUsername) {
+async function banPlayer(serverId, playerId, reason, expiration, adminUsername, reasonCategory) {
   const state = ctx.serverStates[serverId];
   const player = state?.players?.find(p => p.id === playerId || p.steamId === playerId);
   const steamId = player?.steamId || player?.id || playerId;
@@ -164,6 +166,20 @@ async function banPlayer(serverId, playerId, reason, expiration, adminUsername) 
   if (state?.players) {
     state.players = state.players.filter(p => p.id !== playerId && p.steamId !== playerId);
     if (ctx.io) ctx.io.emit('players', { serverId, players: state.players });
+  }
+
+  // 4. Contribute to the Trust Network — ONLY when the admin explicitly
+  // categorized the ban (cheating/griefing/exploiting). The shared DB is a
+  // *cheater* network; auto-guessing a category from free-text would pollute
+  // it, so an uncategorized ban stays local. submitFromLocalBan self-gates on
+  // the Cloud entitlement.
+  if (reasonCategory) {
+    try {
+      require('./cloud-bans')
+        .submitFromLocalBan({ steamId, reasonCategory, notesLocal: reason || '' })
+        .then((r) => { if (r?.ok) logger.info({ steamId, reasonCategory }, 'Contributed ban to Trust Network'); })
+        .catch(() => {});
+    } catch { /* cloud-bans unavailable */ }
   }
 
   return ban;
@@ -220,19 +236,42 @@ function syncBansJsonToProfile(srv) {
   try {
     const dir = _citadelProfileDir(srv);
     fs.mkdirSync(dir, { recursive: true });
-    const bans = ctx.banDatabase
-      .filter(b => b.steamId)
-      .map(b => ({
+    // Build the union of local/global bans and Trust-Network community bans,
+    // keyed by SteamID. Local entries win (they carry an admin reason + name);
+    // community entries fill in the rest so the mod can reject a community-banned
+    // player on connect with a "Trust Network: <category>" message — previously
+    // community bans only reached ban.txt (BattlEye), with no reason shown.
+    const byId = new Map();
+    for (const b of ctx.banDatabase) {
+      if (!b.steamId) continue;
+      byId.set(String(b.steamId), {
         player_id: String(b.steamId),
         player_name: b.playerName || 'Unknown',
         reason: b.reason || 'Banned',
         // Match the mod's "YYYY-MM-DD HH:MM:SS" format (from ISO).
         banned_at: (b.bannedAt || '').replace('T', ' ').slice(0, 19),
-      }));
-    fs.writeFileSync(path.join(dir, 'bans.json'), JSON.stringify({ bans }, null, 2));
+      });
+    }
+    let community = [];
+    try { community = require('./cloud-bans').listCachedBans() || []; } catch { community = []; }
+    for (const c of community) {
+      if (!c.steamId || byId.has(String(c.steamId))) continue;
+      byId.set(String(c.steamId), {
+        player_id: String(c.steamId),
+        player_name: 'Unknown',
+        reason: `Trust Network: ${c.reasonCategory || 'banned'}`,
+        banned_at: (c.activatedAt || '').replace('T', ' ').slice(0, 19),
+      });
+    }
+    fs.writeFileSync(path.join(dir, 'bans.json'), JSON.stringify({ bans: [...byId.values()] }, null, 2));
   } catch (err) {
     logger.warn({ err: err.message, serverId: srv.id }, 'Failed to write bans.json for mod enforcement');
   }
+}
+
+/** Refresh the mod enforcement file (bans.json) for every managed server. */
+function syncBansJsonToAllServers() {
+  for (const srv of ctx.servers) syncBansJsonToProfile(srv);
 }
 
 // ─── Import / Export ──────────────────────────────────────
@@ -317,5 +356,5 @@ function _removeBanFromFile(srv, steamId) {
 module.exports = {
   listBans, getBanById, getBanBySteamId,
   addBan, removeBan, banPlayer,
-  syncAllBansToServer, syncBansJsonToProfile, importBans, exportBans,
+  syncAllBansToServer, syncBansJsonToProfile, syncBansJsonToAllServers, importBans, exportBans,
 };

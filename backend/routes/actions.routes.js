@@ -168,7 +168,7 @@ module.exports = function(app) {
 
     try {
       const { banPlayer } = require('../lib/ban-engine');
-      const ban = await banPlayer(req.params.id, steamId, reason || 'Banned by admin', null, req.user.username);
+      const ban = await banPlayer(req.params.id, steamId, reason || 'Banned by admin', null, req.user.username, req.body.reasonCategory);
       addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.BAN_PLAYER],
         `Banned ${session.playerName || session.name}: ${reason || 'Banned by admin'}`);
       const { addNotification, fireWebhooks } = require('../lib/notifications');
