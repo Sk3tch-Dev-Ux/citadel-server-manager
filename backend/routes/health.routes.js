@@ -17,6 +17,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const ctx = require('../lib/context');
 const logger = require('../lib/logger');
+const auth = require('../middleware/auth');
 /**
  * Application version (read from package.json at startup)
  */
@@ -125,6 +126,56 @@ module.exports = function (app) {
         error: 'Internal error during health check',
       });
     }
+  });
+
+  /**
+   * GET /api/health/deep — Authenticated deep diagnostics.
+   *
+   * Exposes the Agent's internal subsystem state per server (lifecycle status,
+   * RCON, sidecar, DZSA endpoint, integrity, pending restart, crash/breaker
+   * counters) plus agent-level state (metrics-store, cloud-bridge). This is the
+   * observability surface Citadel Cloud polls to see local degradation before it
+   * becomes an outage. Auth-required since it reveals internals.
+   */
+  app.get('/api/health/deep', auth(), (req, res) => {
+    const lifecycle = require('../lib/server-lifecycle');
+    const crash = require('../lib/crash-detector');
+    const { isSidecarRunning } = require('../lib/sidecar-manager');
+    const dzsa = require('../lib/dzsa-publisher');
+    const integrity = require('../lib/integrity-engine');
+    const metricsStore = require('../lib/metrics-store');
+    const safe = (fn, fallback) => { try { return fn(); } catch { return fallback; } };
+
+    const servers = (ctx.servers || []).map((srv) => {
+      const state = ctx.serverStates[srv.id] || {};
+      return {
+        id: srv.id,
+        name: srv.name,
+        status: state.status || 'unknown',
+        pid: state.pid || null,
+        startedAt: state.startedAt || null,
+        players: state.players?.length || 0,
+        rcon: { connected: !!state.rcon?.loggedIn },
+        sidecar: { running: safe(() => isSidecarRunning(srv.id), false) },
+        dzsa: { enabled: srv.dzsaPublish === true, publishing: safe(() => dzsa.isPublishing(srv.id), false) },
+        restartPending: safe(() => lifecycle.isRestartPending(srv.id), false),
+        crash: safe(() => crash.getCrashStats(srv.id), null),
+        integrity: safe(() => integrity.getReport(srv.id)?.lastCheck || null, null),
+      };
+    });
+
+    res.json({
+      status: 'ok',
+      version: APP_VERSION,
+      uptime: Math.floor((Date.now() - STARTUP_TIME) / 1000),
+      timestamp: new Date().toISOString(),
+      agent: {
+        rssMB: Math.round(process.memoryUsage().rss / 1048576),
+        metricsStore: { enabled: safe(() => metricsStore.isEnabled(), false) },
+        cloudBridge: safe(() => require('../lib/cloud-bridge/supervisor').getStatus(), {}),
+      },
+      servers,
+    });
   });
 };
 

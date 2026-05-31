@@ -172,9 +172,12 @@ async function startup() {
   cleanupStaleTempFiles(ctx.CONFIG.dataDir);
 
   // Open the durable metrics store (no-op if better-sqlite3 is unavailable) and
-  // schedule a daily retention prune. In-memory metrics work regardless.
+  // run retention maintenance hourly. Hourly (not daily) matters because the
+  // service is frequently restarted (updates/NSSM) — a 24h interval could fire
+  // rarely or never, letting metrics.db grow unbounded. init() already prunes
+  // once on boot; the row cap backstops runaway growth between passes.
   if (metricsStore.init(ctx.CONFIG.dataDir)) {
-    setInterval(() => { try { metricsStore.prune(); } catch { /* best effort */ } }, 24 * 60 * 60 * 1000).unref();
+    setInterval(() => { try { metricsStore.runMaintenance(); } catch { /* best effort */ } }, 60 * 60 * 1000).unref();
   }
 
   migrateDefaultServer();

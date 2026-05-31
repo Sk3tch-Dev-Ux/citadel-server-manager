@@ -31,6 +31,9 @@ try {
 
 const DEFAULT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MAX_ROWS = 50_000;
+// Per-server row cap (backstop against runaway growth between time-based prunes).
+// ~250k rows ≈ 43 days at a 15s cadence — comfortably above the 30-day window.
+const MAX_ROWS_PER_SERVER = 250_000;
 
 let db = null;
 let insertStmt = null;
@@ -185,6 +188,39 @@ function prune(retentionMs = DEFAULT_RETENTION_MS) {
   }
 }
 
+/**
+ * Cap the number of rows kept per server (newest-N), so even a server that runs
+ * continuously between time-based prunes can't grow the table unbounded.
+ * @param {number} [maxPerServer]
+ * @returns {number} rows deleted
+ */
+function pruneRowCap(maxPerServer = MAX_ROWS_PER_SERVER) {
+  if (!db) return 0;
+  try {
+    // For each server, delete everything older than its newest `maxPerServer`
+    // rows (rowid ordering matches insertion/time order).
+    return db.prepare(
+      `DELETE FROM server_metrics WHERE rowid IN (
+         SELECT rowid FROM (
+           SELECT rowid, ROW_NUMBER() OVER (PARTITION BY server_id ORDER BY ts DESC) AS rn
+           FROM server_metrics
+         ) WHERE rn > ?
+       )`
+    ).run(maxPerServer).changes;
+  } catch (err) {
+    logger.debug({ err: err.message }, 'metrics-store: pruneRowCap failed');
+    return 0;
+  }
+}
+
+/** Run both retention passes (time window + per-server row cap). */
+function runMaintenance() {
+  const byTime = prune();
+  const byCap = pruneRowCap();
+  if (byTime || byCap) logger.debug({ byTime, byCap }, 'metrics-store: maintenance pruned rows');
+  return byTime + byCap;
+}
+
 /** Close the database (graceful shutdown / tests). */
 function close() {
   if (db) {
@@ -194,4 +230,4 @@ function close() {
   }
 }
 
-module.exports = { init, record, query, prune, close, isEnabled, DEFAULT_RETENTION_MS };
+module.exports = { init, record, query, prune, pruneRowCap, runMaintenance, close, isEnabled, DEFAULT_RETENTION_MS };

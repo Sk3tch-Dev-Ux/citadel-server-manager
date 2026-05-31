@@ -66,6 +66,23 @@ function recordCrashRestart(serverId) {
   _crashRestartHistory.get(serverId).push(Date.now());
 }
 
+/** Crash/circuit-breaker stats for a server (for /health/deep). */
+function getCrashStats(serverId) {
+  const history = _crashRestartHistory.get(serverId) || [];
+  const recent = history.filter((ts) => ts > Date.now() - HOUR_MS);
+  return {
+    restartsLastHour: recent.length,
+    breakerTripped: recent.length >= MAX_CRASH_RESTARTS_PER_HOUR,
+    lastRestartAt: history.length ? new Date(Math.max(...history)).toISOString() : null,
+  };
+}
+
+/** Clear per-server crash state (called when a server is deleted). */
+function forget(serverId) {
+  _crashRestartHistory.delete(serverId);
+  _crashBackoffState.delete(serverId);
+}
+
 /**
  * Handle crash detection for a server whose PID has disappeared.
  *
@@ -128,4 +145,4 @@ async function handleCrash(srv, state) {
   }
 }
 
-module.exports = { handleCrash, canAttemptCrashRestart, recordCrashRestart };
+module.exports = { handleCrash, canAttemptCrashRestart, recordCrashRestart, getCrashStats, forget };

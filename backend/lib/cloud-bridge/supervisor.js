@@ -229,9 +229,15 @@ function shutdownAll() {
   _started = false;
 }
 
+/** Lightweight status for /health/deep: supervisor running + which servers have an active cloud client. */
+function getStatus() {
+  return { started: _started, linkedServers: Array.from(_clients.keys()) };
+}
+
 module.exports = {
   start,
   shutdownAll,
   reconcileOne,
   reconcileAll,
+  getStatus,
 };

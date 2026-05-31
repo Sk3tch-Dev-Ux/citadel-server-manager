@@ -326,6 +326,8 @@ module.exports = function(app) {
     // Clean up all active resources for this server
     stopSidecar(req.params.id);
     stopTailing(req.params.id);
+    // Release lifecycle/crash/dzsa per-server state so the maps don't leak.
+    try { require('../lib/server-lifecycle').forget(req.params.id); } catch { /* optional */ }
     if (ctx.serverStates[req.params.id]?.rcon) {
       try { ctx.serverStates[req.params.id].rcon.disconnect(); } catch { /* ok */ }
     }

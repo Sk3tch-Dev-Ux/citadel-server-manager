@@ -238,6 +238,11 @@ function startMetricsPolling() {
             ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
             startTailing(srv.id);
           }
+          // Self-heal: if the sidecar or DZSA endpoint died while the game server
+          // kept running, re-establish them. Both starts are idempotent (no-op
+          // when already alive), so this is a cheap per-tick reconcile.
+          try { startSidecar(srv); } catch { /* best effort */ }
+          try { require('./dzsa-publisher').start(srv); } catch { /* best effort */ }
           // Delegate metrics collection + health monitoring to focused module
           await collectMetrics(srv, state, pid);
         } else if (state.status === 'running') {
@@ -318,9 +323,16 @@ async function runStartupDetection() {
 }
 
 // ─── Steam update polling (every 15 minutes) ─────────────
+let _steamPollRunning = false;
 function startSteamUpdatePolling() {
   _ensureTrackingLoaded();
   return setInterval(async () => {
+    // Re-entrancy guard: a slow SteamCMD/network poll must not overlap with the
+    // next interval (which would spawn concurrent SteamCMD processes and race
+    // the shared lastModVersions/pendingModUpdates state).
+    if (_steamPollRunning) return;
+    _steamPollRunning = true;
+    try {
     // ─── Batch mod version check across ALL servers ───────────
     // Collect all unique workshopIds from all servers, then make ONE batched
     // Steam API call instead of N sequential calls. A typical server with
@@ -395,6 +407,7 @@ function startSteamUpdatePolling() {
     }
 
     _persistTracking();
+    } finally { _steamPollRunning = false; }
   }, STEAM_UPDATE_POLL_INTERVAL_MS);
 }
 

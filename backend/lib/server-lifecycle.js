@@ -34,6 +34,22 @@ const _pendingRestarts = new Set();
 /** Track restart backoff state per server */
 const _restartBackoffState = new Map();
 
+/** Whether a restart is currently in progress for a server (for /health/deep). */
+function isRestartPending(serverId) { return _pendingRestarts.has(serverId); }
+
+/**
+ * Release all per-server state when a server is deleted, so the maps don't leak
+ * stale entries and a future server reusing the id starts clean. One place to
+ * tear down lifecycle + crash + sidecar + DZSA state.
+ */
+function forget(serverId) {
+  _pendingRestarts.delete(serverId);
+  _restartBackoffState.delete(serverId);
+  try { require('./crash-detector').forget(serverId); } catch { /* optional */ }
+  try { require('./sidecar-manager').stopSidecar(serverId); } catch { /* optional */ }
+  try { require('./dzsa-publisher').stop(serverId); } catch { /* optional */ }
+}
+
 /**
  * Start a server through the full lifecycle: port check -> firewall -> hooks -> spawn -> verify.
  *
@@ -358,4 +374,4 @@ async function restartServer(serverId, reason) {
   return { success: restartSuccess, error: lastError };
 }
 
-module.exports = { startServer, stopServer, restartServer };
+module.exports = { startServer, stopServer, restartServer, forget, isRestartPending };
