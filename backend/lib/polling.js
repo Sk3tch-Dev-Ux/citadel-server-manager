@@ -510,8 +510,12 @@ function gracefulShutdown(httpServer, signal) {
   // Close any open cloud-bridge WebSockets so we exit clean instead of
   // letting the cloud's idle timer reap us 60s later.
   try { require('./cloud-bridge/supervisor').shutdownAll(); } catch { /* not loaded */ }
+  // Stop DZSA mod-list endpoints
+  try { ctx.servers.forEach((s) => require('./dzsa-publisher').stop(s.id)); } catch { /* not loaded */ }
   // Close WebSocket server
   if (ctx.io) ctx.io.close(() => logger.info('WebSocket server closed'));
+  // Checkpoint + close the metrics DB so the WAL is flushed cleanly.
+  try { require('./metrics-store').close(); } catch { /* not loaded */ }
   // Flush pending data writes
   flushAll();
   // Soft exit after normal timeout

@@ -196,7 +196,7 @@ function MarketCategoriesTab({ serverId }) {
   const handleDeleteCategory = async (fileName) => {
     if (!confirm(`Delete category "${fileName}"? This cannot be undone.`)) return;
     try {
-      await API.delete(`/api/servers/${serverId}/trader-editor/categories/${encodeURIComponent(fileName)}`);
+      await API.del(`/api/servers/${serverId}/trader-editor/categories/${encodeURIComponent(fileName)}`);
       window.addToast?.('Category deleted', 'success');
       if (selectedFile === fileName) {
         setSelectedFile(null);
@@ -1292,7 +1292,7 @@ function TraderZonesTab({ serverId }) {
     if (!confirm(`Delete zone "${zone.DisplayName || zoneId}"?`)) return;
     try {
       const fileName = zone.fileName || zoneId;
-      await API.delete(`/api/servers/${serverId}/trader-editor/zones/${encodeURIComponent(fileName)}`);
+      await API.del(`/api/servers/${serverId}/trader-editor/zones/${encodeURIComponent(fileName)}`);
       window.addToast?.('Zone deleted', 'success');
       if (selectedZone === zoneId) setSelectedZone(null);
       loadZones();

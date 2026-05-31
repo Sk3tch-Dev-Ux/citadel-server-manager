@@ -182,10 +182,17 @@ async function checkServerDrift(serverId, opts = {}) {
   }
 
   result.ok = result.drifted.length === 0 && result.missing.length === 0;
+  // Debounce: only alert when the problem set actually changes since the last
+  // check, so a known/unresolved drift (or a transient lock during the engine's
+  // PBO load) doesn't re-spam notifications on every start.
+  const prev = rec.lastCheck;
+  const prevKey = prev ? `${(prev.drifted || []).join(',')}|${(prev.missing || []).join(',')}` : null;
+  const nextKey = `${result.drifted.join(',')}|${result.missing.join(',')}`;
+  const changed = prevKey !== nextKey;
   rec.lastCheck = { at: new Date().toISOString(), ok: result.ok, drifted: result.drifted, missing: result.missing };
   _save();
 
-  if (notify && (result.drifted.length || result.missing.length)) {
+  if (notify && changed && (result.drifted.length || result.missing.length)) {
     const bits = [];
     if (result.drifted.length) bits.push(`changed on disk: ${result.drifted.join(', ')}`);
     if (result.missing.length) bits.push(`missing: ${result.missing.join(', ')}`);

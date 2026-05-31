@@ -134,9 +134,15 @@ export default function ModsPage({ serverId }) {
   };
 
   const uninstall = async (workshopId) => {
-    await API.del(`/api/servers/${serverId}/mods/uninstall/${workshopId}`);
-    setMods(ms => ms.filter(m => m.workshopId !== workshopId));
-    window.addToast('Mod uninstalled', 'success');
+    const mod = mods.find(m => String(m.workshopId) === String(workshopId));
+    if (!window.confirm(`Uninstall ${mod?.name || 'this mod'}? Its files will be deleted from the server. This can't be undone.`)) return;
+    try {
+      await API.del(`/api/servers/${serverId}/mods/uninstall/${workshopId}`);
+      setMods(ms => ms.filter(m => m.workshopId !== workshopId));
+      window.addToast('Mod uninstalled', 'success');
+    } catch (err) {
+      window.addToast(`Uninstall failed: ${err.message}`, 'error');
+    }
   };
 
   const toggleMod = async (workshopId, enabled) => {

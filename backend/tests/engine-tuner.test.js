@@ -73,6 +73,16 @@ describe('applyEngineTuning', () => {
     expect(second.reason).toBe('unchanged');
   });
 
+  test('respects a manually-authored jobsystem block (no Citadel marker)', () => {
+    const srv = { id: 'sm', installDir: dir };
+    fs.writeFileSync(path.join(dir, 'dayzsetting.xml'),
+      '<setting>\n  <jobsystem globalqueue="999" threadqueue="111">\n    <pc maxcores="2" reservedcores="1"></pc>\n  </jobsystem>\n</setting>\n');
+    const res = applyEngineTuning(srv);
+    expect(res).toMatchObject({ applied: false, reason: 'manual-override' });
+    // The operator's hand-tuned values are left untouched.
+    expect(fs.readFileSync(path.join(dir, 'dayzsetting.xml'), 'utf8')).toContain('globalqueue="999"');
+  });
+
   test('honors the engineAutoTune=false opt-out', () => {
     const srv = { id: 's2', installDir: dir, engineAutoTune: false };
     expect(applyEngineTuning(srv)).toMatchObject({ applied: false, reason: 'disabled' });

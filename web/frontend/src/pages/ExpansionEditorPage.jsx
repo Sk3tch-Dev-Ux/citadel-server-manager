@@ -1208,10 +1208,11 @@ function GarageSection({ data, onChange }) {
 // ─── Airdrop section ─────────────────────────────────────────────────
 
 function AirdropSection({ data, onChange }) {
-  if (!data) return <NoData />;
+  // Hooks must run unconditionally (before any early return) — React rules-of-hooks.
   const [expandedContainer, setExpandedContainer] = useState(null);
   const [expandedLoot, setExpandedLoot] = useState(null);
   const [searchText, setSearchText] = useState('');
+  if (!data) return <NoData />;
   const update = (key, val) => onChange({ ...data, [key]: val });
 
   const updateContainer = (idx, key, val) => {
@@ -1607,10 +1608,10 @@ function AirdropSection({ data, onChange }) {
 
 function MapSection({ data, onChange, serverId }) {
   const serverMap = useServerMap(serverId);
-  if (!data) return <NoData />;
-  const update = (key, val) => onChange({ ...data, [key]: val });
   const [mapMode, setMapMode] = useState('view');
   const [selectedMarker, setSelectedMarker] = useState(null);
+  if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
 
   const addMarkerAtPos = (x, z) => {
     const markers = [...(data.ServerMarkers || [])];
@@ -1848,10 +1849,10 @@ function BaseBuildingSection({ data, onChange }) {
 
 function SafeZonesSection({ data, onChange, serverId }) {
   const serverMap = useServerMap(serverId);
-  if (!data) return <NoData />;
-  const update = (key, val) => onChange({ ...data, [key]: val });
   const [mapMode, setMapMode] = useState('view');
   const [selectedZone, setSelectedZone] = useState(null);
+  if (!data) return <NoData />;
+  const update = (key, val) => onChange({ ...data, [key]: val });
 
   const addZoneAtPos = (x, z) => {
     const zones = [...(data.CircleZones || [])];

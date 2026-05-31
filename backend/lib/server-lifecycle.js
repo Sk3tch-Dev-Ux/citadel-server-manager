@@ -132,12 +132,14 @@ async function startServer(serverId, reason) {
 
     // Integrity & build tracking — runs in the background so PBO hashing never
     // delays the launch. Flags mod drift (changed/missing bytes vs the trusted
-    // snapshot) and records which game build this deployment is on.
+    // snapshot) and records which game build this deployment is on. The drift
+    // check is delayed so it doesn't race the engine memory-mapping the PBOs at
+    // launch (which would otherwise produce spurious "drift" from locked files).
     {
       const integrity = require('./integrity-engine');
-      integrity.checkServerDrift(serverId).catch((err) =>
-        addLog(serverId, 'debug', 'integrity', `Drift check failed: ${err.message}`));
       try { integrity.recordInstalledBuild(serverId); } catch { /* best effort */ }
+      setTimeout(() => integrity.checkServerDrift(serverId).catch((err) =>
+        addLog(serverId, 'debug', 'integrity', `Drift check failed: ${err.message}`)), 30000).unref();
     }
 
     // Monitor launch asynchronously
@@ -290,6 +292,9 @@ async function restartServer(serverId, reason) {
       state.status = 'starting';
       ctx.io.emit('serverStatus', { serverId, status: 'starting' });
 
+      // Re-apply engine tuning before each spawn (idempotent; respects manual edits).
+      try { require('./engine-tuner').applyEngineTuning(srv); } catch { /* best effort */ }
+
       const { child, launchFailed } = spawnDayZServer(srv);
       state.process = child;
       state.pid = child.pid;
@@ -313,6 +318,15 @@ async function restartServer(serverId, reason) {
         sendDiscordWebhook(`🔄 **${srv.name}** restarted (${reason})`);
         addLog(serverId, 'info', 'server', `Restart succeeded on attempt ${attempt}`);
         startSidecar(srv);
+        // Re-publish the DZSA mod-list endpoint (reconciles port/toggle changes).
+        try { require('./dzsa-publisher').sync(srv); } catch { /* best effort */ }
+        // Integrity drift check (delayed so it doesn't race the engine's PBO
+        // load; debounced inside the engine) + build record.
+        {
+          const integrity = require('./integrity-engine');
+          try { integrity.recordInstalledBuild(serverId); } catch { /* best effort */ }
+          setTimeout(() => integrity.checkServerDrift(serverId).catch(() => {}), 30000).unref();
+        }
         startTailing(serverId);
         // Sync global bans to this server's ban.txt
         require('./ban-engine').syncAllBansToServer(serverId);

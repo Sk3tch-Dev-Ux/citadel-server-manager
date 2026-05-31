@@ -25,6 +25,27 @@ export const DAYZ_SLOTS = [
 ];
 const SET_TYPES = ['WEAPON', 'MELEE', 'SIDEARM'];
 
+// ─── Stable React keys ───────────────────────────────────
+// Loadout nodes have no natural id, and index keys make expand-state/inputs
+// stick to the wrong row on remove/reorder. We tag each object with an
+// enumerable `_key` (so immutable {...node} spreads carry it forward, keeping
+// identity stable across edits) and strip it at serialization via stripKeys.
+let _keySeq = 0;
+function ensureKey(o) {
+  if (o && typeof o === 'object' && !o._key) o._key = `k${++_keySeq}`;
+  return o ? o._key : undefined;
+}
+/** Deep-clone without the transient `_key` tags — use before save/export. */
+export function stripKeys(value) {
+  if (Array.isArray(value)) return value.map(stripKeys);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const k of Object.keys(value)) if (k !== '_key') out[k] = stripKeys(value[k]);
+    return out;
+  }
+  return value;
+}
+
 // ─── Factories ───────────────────────────────────────────
 export function newNode(className = '') {
   return {
@@ -74,7 +95,7 @@ function HealthEditor({ health, onChange }) {
         </button>
       )}
       {list.map((h, i) => (
-        <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+        <div key={ensureKey(h)} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
           <input className="input" type="number" step={0.05} min={0} max={1} value={h.Min ?? 0} onChange={(e) => set(i, 'Min', parseFloat(e.target.value) || 0)} style={numInput} title="Min" />
           <span style={{ color: 'var(--text-muted)' }}>–</span>
           <input className="input" type="number" step={0.05} min={0} max={1} value={h.Max ?? 1} onChange={(e) => set(i, 'Max', parseFloat(e.target.value) || 0)} style={numInput} title="Max" />
@@ -178,7 +199,7 @@ function SlotEditor({ slot, onChange, onRemove, catalog, depth }) {
         <button className="btn btn-danger btn-sm" style={{ padding: '3px 6px' }} title="Remove slot" onClick={onRemove}><Trash2 size={12} /></button>
       </div>
       {items.map((it, i) => (
-        <NodeEditor key={i} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} catalog={catalog} depth={depth} />
+        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} catalog={catalog} depth={depth} />
       ))}
       {items.length === 0 && (
         <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>No items — add candidate items the wearer may spawn with.</div>
@@ -207,7 +228,7 @@ function AttachmentsSection({ attachments, onChange, catalog, depth, title }) {
         <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={addSlot}><Plus size={12} /> Slot</button>
       </div>
       {list.map((s, i) => (
-        <SlotEditor key={i} slot={s} onChange={(v) => setSlot(i, v)} onRemove={() => removeSlot(i)} catalog={catalog} depth={depth} />
+        <SlotEditor key={ensureKey(s)} slot={s} onChange={(v) => setSlot(i, v)} onRemove={() => removeSlot(i)} catalog={catalog} depth={depth} />
       ))}
     </div>
   );
@@ -228,7 +249,7 @@ function CargoSection({ cargo, onChange, catalog, depth, title }) {
         <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={addItem}><Plus size={12} /> Item</button>
       </div>
       {list.map((it, i) => (
-        <NodeEditor key={i} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} catalog={catalog} depth={depth} />
+        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} catalog={catalog} depth={depth} />
       ))}
     </div>
   );
@@ -279,7 +300,7 @@ export default function LoadoutBuilder({ data, onChange, catalog }) {
           <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setSets([...sets, newSet(newSetType)])}><Plus size={12} /> Set</button>
         </div>
         {sets.map((s, i) => (
-          <NodeEditor key={i} node={s} onChange={(v) => setSets(sets.map((x, j) => j === i ? v : x))} onRemove={() => setSets(sets.filter((_, j) => j !== i))} catalog={catalog} classNameMode="set" depth={0} />
+          <NodeEditor key={ensureKey(s)} node={s} onChange={(v) => setSets(sets.map((x, j) => j === i ? v : x))} onRemove={() => setSets(sets.filter((_, j) => j !== i))} catalog={catalog} classNameMode="set" depth={0} />
         ))}
       </Section>
     </div>

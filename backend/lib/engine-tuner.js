@@ -89,6 +89,13 @@ function applyEngineTuning(srv) {
   let existing = null;
   try { existing = fs.readFileSync(file, 'utf8'); } catch { /* no file yet */ }
 
+  // Respect a manually-authored job-system block. If an existing <jobsystem>
+  // exists and does NOT carry our managed marker comment, the operator tuned it
+  // by hand — leave it alone rather than clobbering their values every start.
+  if (existing && /<jobsystem[\s\S]*?<\/jobsystem>/i.test(existing) && !existing.includes(TUNE_COMMENT)) {
+    return { applied: false, reason: 'manual-override', jobSystem: js };
+  }
+
   const next = patchDayzSetting(existing, js);
   if (existing != null && next === existing) {
     return { applied: false, reason: 'unchanged', jobSystem: js };

@@ -15,7 +15,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import API from '../api';
-import LoadoutBuilder from '../components/LoadoutBuilder';
+import LoadoutBuilder, { stripKeys } from '../components/LoadoutBuilder';
 import { ArrowLeft, Save, Plus, X, Trash2, RefreshCw, Upload, Download } from '../components/Icon';
 import { toolWikiUrl, WIKI_TOOLS } from '../utils/wikiLinks';
 import { getTemplates } from '../utils/expansionDocsCache';
@@ -115,7 +115,7 @@ export default function LoadoutsPage({ serverId }) {
     if (!selected || !data) return;
     setSaving(true);
     try {
-      await API.put(`/api/servers/${serverId}/expansion/loadouts/${encodeURIComponent(selected)}`, data);
+      await API.put(`/api/servers/${serverId}/expansion/loadouts/${encodeURIComponent(selected)}`, stripKeys(data));
       setOriginalData(JSON.parse(JSON.stringify(data)));
       window.addToast?.('Saved (backup created)', 'success');
       // Refresh the list — slot/item counts may have changed.
@@ -131,7 +131,7 @@ export default function LoadoutsPage({ serverId }) {
     if (!selected) return;
     if (!window.confirm(`Delete ${selected}.json? A backup will be kept.`)) return;
     try {
-      await API.delete(`/api/servers/${serverId}/expansion/loadouts/${encodeURIComponent(selected)}`);
+      await API.del(`/api/servers/${serverId}/expansion/loadouts/${encodeURIComponent(selected)}`);
       window.addToast?.('Deleted (backup kept)', 'success');
       setSelected(null);
       setData(null);
@@ -145,7 +145,7 @@ export default function LoadoutsPage({ serverId }) {
   // -- Export the selected loadout as a .json download --
   const handleExport = () => {
     if (!data || !selected) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(stripKeys(data), null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `${selected}.json`;
@@ -492,11 +492,11 @@ function NewLoadoutModal({ serverId, onClose, onCreated }) {
 // Editable textarea bound to a local string so invalid intermediate states
 // don't blow away the parsed object. Commits to the parent only on valid parse.
 function RawJsonEditor({ data, onChange }) {
-  const [text, setText] = useState(() => JSON.stringify(data, null, 2));
+  const [text, setText] = useState(() => JSON.stringify(stripKeys(data), null, 2));
   const [error, setError] = useState(null);
 
   // Re-sync when the underlying object changes from outside (e.g. import).
-  useEffect(() => { setText(JSON.stringify(data, null, 2)); setError(null); }, [data]);
+  useEffect(() => { setText(JSON.stringify(stripKeys(data), null, 2)); setError(null); }, [data]);
 
   const handle = (val) => {
     setText(val);
