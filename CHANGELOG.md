@@ -6,6 +6,37 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.7 — 2026-05-30
+
+**Bulletproofing the local executor + observability + editor polish.** Focused
+on the Agent's real mandate (a rock-solid local executor with clean interfaces
+for Citadel Cloud to build on).
+
+### Reliability
+- **Bounded metrics DB** — per-server row cap (250k) plus retention pruning now
+  runs **hourly** (was daily, which could rarely fire given service restarts).
+- **No overlapping Steam polls** — a re-entrancy guard prevents concurrent
+  SteamCMD runs racing the shared update state.
+- **Self-heal watchdog** — if a server's sidecar or DZSA endpoint dies while the
+  game keeps running, the supervisor re-establishes them on the next tick.
+- **No state leaks on delete** — `server-lifecycle.forget()` tears down
+  lifecycle/crash/sidecar/DZSA per-server state when a server is removed.
+
+### Observability
+- **New `GET /api/health/deep`** (authenticated) exposing per-server internals
+  (state, RCON, sidecar, DZSA, integrity, pending-restart, crash/breaker
+  counters) and agent state (metrics-store, cloud-bridge) — the surface Citadel
+  Cloud polls to catch local degradation early.
+
+### UX
+- **ItemPicker keyboard navigation** — ↑/↓/Enter/Esc with combobox/listbox aria
+  roles (shared by the loadout + market editors).
+- **Duplicate** action on loadout slot items, cargo, and weapon/melee/sidearm
+  sets.
+- Slightly lighter **muted-text** color for better small-text contrast.
+
+---
+
 ## v2.21.6 — 2026-05-30
 
 **Trust Network loop + security hardening.**
