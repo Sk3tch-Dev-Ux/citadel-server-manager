@@ -6,6 +6,33 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.4 — 2026-05-30
+
+**Market Editor overhaul.** A major upgrade to the Trader/Market editor,
+cross-referenced against the official Expansion Market Manager and closing the
+four highest-value gaps — while keeping our edge on trader-zone + NPC `.map`
+placement and bulk price math.
+
+### Added
+- **Catalog-backed item picker on every ClassName field** — category items,
+  SpawnAttachments, Variants, trader currencies, and item overrides now
+  autocomplete against the server's real item classnames (vanilla + mods), with
+  free-text fallback. Extracted into a shared `ItemPicker` + cached
+  `useItemCatalog` hook (also used by the loadout builder).
+- **Diagnostics tab** — flags inverted prices (min>max), inverted stock,
+  duplicate classnames (in-file and cross-file), missing DisplayName, traders
+  referencing categories that don't exist, and a missing-dependency hint. Scans
+  all files in two requests, grouped by severity.
+- **Import / Export with ZIP** — import a single `.json` or a bulk `.zip`
+  (entries auto-routed to category/trader by content, create-or-overwrite);
+  export all market + trader files as a ZIP. Interchangeable with the official
+  builder.
+- **Missing trader fields** restored — `DisplayCurrencyValue`,
+  `DisplayCurrencyName`, `UseCategoryOrder`, `RequiredCompletedQuestID` (no more
+  silent round-trip loss).
+
+---
+
 ## v2.21.3 — 2026-05-30
 
 **Visual Expansion Loadout Builder.** The Loadouts editor is overhauled from a
