@@ -6,6 +6,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.9 — 2026-05-30
+
+### Added
+- **Deep-health push to Citadel Cloud.** The cloud-bridge now forwards an
+  `agent_health` telemetry frame every 30s carrying the `GET /api/health/deep`
+  per-server slice (lifecycle status, RCON/sidecar/DZSA liveness, integrity,
+  restart-pending, crash-breaker counters, agent memory, metrics-store state).
+  Citadel Cloud ingests it (new health hypertable + read API) so it can surface
+  local degradation — and alert — before it becomes an outage. Forward-
+  compatible: a Cloud without the new ingestion safely ignores the topic.
+
+---
+
 ## v2.21.8 — 2026-05-30
 
 ### Added
