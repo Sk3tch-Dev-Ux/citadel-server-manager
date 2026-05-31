@@ -6,6 +6,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.21.8 — 2026-05-30
+
+### Added
+- **Drag-to-reorder** in the loadout and market editors — slot items, cargo, and
+  weapon/melee/sidearm sets in the loadout builder; category item rows and
+  trader assigned-categories in the market editor. Drag-handle based (row inputs
+  stay usable) with a drop-position hint. This completes the editor-polish set
+  (keyboard-nav + duplicate landed in 2.21.7).
+
+---
+
 ## v2.21.7 — 2026-05-30
 
 **Bulletproofing the local executor + observability + editor polish.** Focused
