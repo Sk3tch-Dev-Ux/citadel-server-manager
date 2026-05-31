@@ -17,6 +17,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Copy, ChevronDown, ChevronRight } from './Icon';
 import ItemPicker from './ItemPicker';
+import useDragReorder, { move, gripStyle } from '../hooks/useDragReorder';
 
 // Common DayZ/Expansion attachment slot names, for the "add slot" menu.
 export const DAYZ_SLOTS = [
@@ -113,7 +114,7 @@ function HealthEditor({ health, onChange }) {
 }
 
 // ─── A single loadout node (recursive) ───────────────────
-function NodeEditor({ node, onChange, onRemove, onDuplicate, catalog, classNameMode, depth = 0 }) {
+function NodeEditor({ node, onChange, onRemove, onDuplicate, dragHandleProps, dragRowProps, isOver, catalog, classNameMode, depth = 0 }) {
   const [expanded, setExpanded] = useState(depth < 1);
   const upd = (patch) => onChange({ ...node, ...patch });
   const attCount = (node.InventoryAttachments || []).length;
@@ -121,9 +122,12 @@ function NodeEditor({ node, onChange, onRemove, onDuplicate, catalog, classNameM
   const nested = attCount + cargoCount;
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 6, marginBottom: 8, background: 'var(--bg-deep)' }}>
+    <div {...(dragRowProps || {})} style={{ border: `1px solid ${isOver ? 'var(--accent-blue)' : 'var(--border)'}`, borderRadius: 6, marginBottom: 8, background: 'var(--bg-deep)' }}>
       {/* Header row */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', padding: '8px 10px', flexWrap: 'wrap' }}>
+        {dragHandleProps && (
+          <span {...dragHandleProps} style={{ ...gripStyle(), alignSelf: 'center' }}>⋮⋮</span>
+        )}
         {classNameMode === 'set' ? (
           <div style={{ flex: 1, minWidth: 140 }}>
             <label style={lbl}>Set type</label>
@@ -191,6 +195,7 @@ function SlotEditor({ slot, onChange, onRemove, catalog, depth }) {
   const addItem = () => onChange({ ...slot, Items: [...items, newNode('')] });
   const removeItem = (i) => onChange({ ...slot, Items: items.filter((_, j) => j !== i) });
   const dupItem = (i) => onChange({ ...slot, Items: [...items.slice(0, i + 1), stripKeys(items[i]), ...items.slice(i + 1)] });
+  const dr = useDragReorder((from, to) => onChange({ ...slot, Items: move(items, from, to) }));
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 10, marginBottom: 8 }}>
@@ -203,7 +208,8 @@ function SlotEditor({ slot, onChange, onRemove, catalog, depth }) {
         <button className="btn btn-danger btn-sm" style={{ padding: '3px 6px' }} title="Remove slot" onClick={onRemove}><Trash2 size={12} /></button>
       </div>
       {items.map((it, i) => (
-        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} onDuplicate={() => dupItem(i)} catalog={catalog} depth={depth} />
+        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} onDuplicate={() => dupItem(i)}
+          dragHandleProps={dr.handleProps(i)} dragRowProps={dr.rowProps(i)} isOver={dr.overIndex === i} catalog={catalog} depth={depth} />
       ))}
       {items.length === 0 && (
         <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>No items — add candidate items the wearer may spawn with.</div>
@@ -245,6 +251,7 @@ function CargoSection({ cargo, onChange, catalog, depth, title }) {
   const addItem = () => onChange([...list, newNode('')]);
   const removeItem = (i) => onChange(list.filter((_, j) => j !== i));
   const dupItem = (i) => onChange([...list.slice(0, i + 1), stripKeys(list[i]), ...list.slice(i + 1)]);
+  const dr = useDragReorder((from, to) => onChange(move(list, from, to)));
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -254,7 +261,8 @@ function CargoSection({ cargo, onChange, catalog, depth, title }) {
         <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={addItem}><Plus size={12} /> Item</button>
       </div>
       {list.map((it, i) => (
-        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} onDuplicate={() => dupItem(i)} catalog={catalog} depth={depth} />
+        <NodeEditor key={ensureKey(it)} node={it} onChange={(v) => setItem(i, v)} onRemove={() => removeItem(i)} onDuplicate={() => dupItem(i)}
+          dragHandleProps={dr.handleProps(i)} dragRowProps={dr.rowProps(i)} isOver={dr.overIndex === i} catalog={catalog} depth={depth} />
       ))}
     </div>
   );
@@ -263,6 +271,11 @@ function CargoSection({ cargo, onChange, catalog, depth, title }) {
 // ─── Top-level builder (root node) ───────────────────────
 export default function LoadoutBuilder({ data, onChange, catalog }) {
   const [newSetType, setNewSetType] = useState('WEAPON');
+  // Hook must run before the early return (rules-of-hooks); reads `data` lazily.
+  const setDr = useDragReorder((from, to) => {
+    if (!data) return;
+    onChange({ ...data, Sets: move(data.Sets || [], from, to) });
+  });
   if (!data || typeof data !== 'object') {
     return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>This file isn’t a recognizable loadout object.</div>;
   }
@@ -305,7 +318,8 @@ export default function LoadoutBuilder({ data, onChange, catalog }) {
           <button className="btn btn-secondary btn-sm" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setSets([...sets, newSet(newSetType)])}><Plus size={12} /> Set</button>
         </div>
         {sets.map((s, i) => (
-          <NodeEditor key={ensureKey(s)} node={s} onChange={(v) => setSets(sets.map((x, j) => j === i ? v : x))} onRemove={() => setSets(sets.filter((_, j) => j !== i))} onDuplicate={() => setSets([...sets.slice(0, i + 1), stripKeys(s), ...sets.slice(i + 1)])} catalog={catalog} classNameMode="set" depth={0} />
+          <NodeEditor key={ensureKey(s)} node={s} onChange={(v) => setSets(sets.map((x, j) => j === i ? v : x))} onRemove={() => setSets(sets.filter((_, j) => j !== i))} onDuplicate={() => setSets([...sets.slice(0, i + 1), stripKeys(s), ...sets.slice(i + 1)])}
+            dragHandleProps={setDr.handleProps(i)} dragRowProps={setDr.rowProps(i)} isOver={setDr.overIndex === i} catalog={catalog} classNameMode="set" depth={0} />
         ))}
       </Section>
     </div>

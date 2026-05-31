@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Plus, X, Search, ChevronRight, ChevronDown, ShoppingCa
 import { toolWikiUrl, WIKI_TOOLS } from '../utils/wikiLinks';
 import ItemPicker from '../components/ItemPicker';
 import useItemCatalog from '../hooks/useItemCatalog';
+import useDragReorder, { move, gripStyle } from '../hooks/useDragReorder';
 
 const InteractiveMap = lazy(() => import('../components/InteractiveMap'));
 import useServerMap from '../hooks/useServerMap';
@@ -108,6 +109,8 @@ function MarketCategoriesTab({ serverId }) {
   const [bulkOp, setBulkOp] = useState('set');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
+  // Drag-to-reorder item rows (operates on the real Items array by index).
+  const itemDr = useDragReorder((from, to) => setCategoryData(d => (d ? { ...d, Items: move(d.Items || [], from, to) } : d)));
 
   const loadCategories = useCallback(async () => {
     setLoading(true);
@@ -581,9 +584,13 @@ function MarketCategoriesTab({ serverId }) {
                     const isSelected = selectedItems.has(realIdx);
                     return (
                       <React.Fragment key={realIdx}>
-                        <tr style={{ background: isSelected ? 'rgba(59,130,246,0.08)' : undefined }}>
+                        <tr {...(searchText ? {} : itemDr.rowProps(realIdx))}
+                          style={{ background: isSelected ? 'rgba(59,130,246,0.08)' : undefined, boxShadow: itemDr.overIndex === realIdx ? 'inset 0 2px 0 var(--accent-blue)' : undefined }}>
                           <td style={{ padding: '4px 8px' }}>
-                            <input type="checkbox" checked={isSelected} onChange={() => toggleSelectItem(realIdx)} style={{ cursor: 'pointer' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              {!searchText && <span {...itemDr.handleProps(realIdx)} style={gripStyle()}>⋮⋮</span>}
+                              <input type="checkbox" checked={isSelected} onChange={() => toggleSelectItem(realIdx)} style={{ cursor: 'pointer' }} />
+                            </div>
                           </td>
                           <td style={{ padding: '4px 6px' }}>
                             <button onClick={() => toggleRow(realIdx)}
@@ -733,6 +740,8 @@ function TradersTab({ serverId }) {
   const [newTraderName, setNewTraderName] = useState('');
   const [newCurrency, setNewCurrency] = useState('');
   const [newItemOverride, setNewItemOverride] = useState({ className: '', mode: 0 });
+  // Drag-to-reorder assigned categories (order matters when UseCategoryOrder=1).
+  const catDr = useDragReorder((from, to) => setTraderData(d => (d ? { ...d, Categories: move(d.Categories || [], from, to) } : d)));
 
   const loadTraders = useCallback(async () => {
     setLoading(true);
@@ -1102,8 +1111,12 @@ function TradersTab({ serverId }) {
                       {(traderData.Categories || []).map((catEntry, idx) => {
                         const parsed = parseCategoryEntry(catEntry);
                         return (
-                          <tr key={idx}>
-                            <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono, monospace)' }}>{parsed.name}</td>
+                          <tr key={idx} {...catDr.rowProps(idx)}
+                            style={{ boxShadow: catDr.overIndex === idx ? 'inset 0 2px 0 var(--accent-blue)' : undefined }}>
+                            <td style={{ padding: '6px 10px', fontFamily: 'var(--font-mono, monospace)' }}>
+                              <span {...catDr.handleProps(idx)} style={{ ...gripStyle(), marginRight: 6 }}>⋮⋮</span>
+                              {parsed.name}
+                            </td>
                             <td style={{ padding: '6px 10px' }}>
                               <select className="input" value={parsed.mode} onChange={e => updateCategoryMode(idx, parseInt(e.target.value))}
                                 style={{ width: '100%', fontSize: 12 }}>
