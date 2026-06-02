@@ -14,6 +14,7 @@ class CitadelConfiguration
     int playerUpdateIntervalMs = 5000;
     int metricsUpdateIntervalMs = 15000;
     int reportingIntervalMs = 10000;
+    int statsUpdateIntervalMs = 30000; // periodic per-player stats emit (live anti-cheat)
 
     // Anti-cheat: speed hack detection
     bool speedCheckEnabled = false;
@@ -68,6 +69,7 @@ class CitadelConfiguration
     int GetPlayerUpdateIntervalMs() { return playerUpdateIntervalMs; }
     int GetMetricsUpdateIntervalMs() { return metricsUpdateIntervalMs; }
     int GetReportingIntervalMs() { return reportingIntervalMs; }
+    int GetStatsUpdateIntervalMs() { return statsUpdateIntervalMs; }
 
     bool GetSpeedCheckEnabled() { return speedCheckEnabled; }
     float GetSpeedCheckThresholdFoot() { return speedCheckThresholdFoot; }
@@ -101,6 +103,8 @@ class CitadelConfiguration
             metricsUpdateIntervalMs = 15000;
         if (reportingIntervalMs < 5000)
             reportingIntervalMs = 10000;
+        if (statsUpdateIntervalMs < 5000)
+            statsUpdateIntervalMs = 30000;
         if (speedCheckThresholdFoot <= 1.0)
             speedCheckThresholdFoot = 8.0;
         if (speedCheckThresholdVehicle <= 1.0)

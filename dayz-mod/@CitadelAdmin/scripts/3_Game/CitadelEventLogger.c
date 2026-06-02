@@ -292,6 +292,26 @@ class CitadelEventLogger
         AppendLine(l);
     }
 
+    // ─── Player Stats Snapshot (live anti-cheat) ────────
+
+    // Periodic per-player cumulative-stats snapshot feeding the cloud
+    // anti-cheat pipeline (accuracy / aimbot signals). Emitted on its own
+    // cadence (statsUpdateIntervalMs) by CitadelPlayerTracker, NOT just on
+    // disconnect. Keys are deliberately cloud-aligned (snake_case) so the
+    // agent forwarder maps 1:1 onto the `player_stats_update` message.
+    static void LogPlayerStats(string steamId, CitadelPlayerStats s)
+    {
+        string l = "{" + JStr("type", "playerStats");
+        l += "," + JStr("steamId", steamId);
+        l += "," + JNum("shots_fired", s.shotsFired.ToString());
+        l += "," + JNum("shots_hit_player", s.shotsHitPlayers.ToString());
+        l += "," + JNum("shots_hit_infected", s.shotsHitInfected.ToString());
+        l += "," + JNum("shots_hit_animal", s.shotsHitAnimals.ToString());
+        l += "," + JNum("shots_hit_vehicle", s.shotsHitVehicles.ToString());
+        l += "," + JStr("timestamp", GetTimestamp()) + "}";
+        AppendLine(l);
+    }
+
     // ─── Vehicle Events ─────────────────────────────────
 
     static void LogVehicleEnter(string steamId, string name, string vehicleType, vector pos)

@@ -139,6 +139,7 @@ function removeLink(localServerId) {
   const state = _readRaw();
   if (!state.links[localServerId]) return false;
   delete state.links[localServerId];
+  _pendingOffsets.delete(localServerId);
   _writeRaw(state);
   return true;
 }
@@ -161,6 +162,53 @@ function updateStatus(localServerId, status, error) {
   _writeRaw(state);
 }
 
+// ─── Durable telemetry cursor (G1) ───────────────────────────────────────
+//
+// events.jsonl byte offset through which telemetry has been forwarded to the
+// cloud, per local server. Persisted so a backend restart or cloud outage
+// resumes forwarding from where it left off instead of silently losing the
+// gap. Writes are DEBOUNCED because _writeRaw rewrites the whole file
+// synchronously and the forwarder advances the offset ~every second.
+
+const _pendingOffsets = new Map(); // localServerId -> latest offset not yet flushed
+let _offsetFlushTimer = null;
+
+/**
+ * Record the latest cloud-forwarded byte offset for a server. Coalesced and
+ * flushed to disk after a short delay (or explicitly via flushAckedOffsets).
+ */
+function setAckedOffset(localServerId, offset) {
+  if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0) return;
+  _pendingOffsets.set(localServerId, offset);
+  if (!_offsetFlushTimer) {
+    _offsetFlushTimer = setTimeout(flushAckedOffsets, 2000);
+    _offsetFlushTimer.unref?.();
+  }
+}
+
+/**
+ * Read the persisted (or pending) cloud-forwarded offset for a server.
+ * Returns null when there is none — caller treats that as "brand-new link,
+ * start at the current tail" rather than replaying all history.
+ */
+function getAckedOffset(localServerId) {
+  if (_pendingOffsets.has(localServerId)) return _pendingOffsets.get(localServerId);
+  const link = _readRaw().links[localServerId];
+  return link && typeof link.cloudAckedOffset === 'number' ? link.cloudAckedOffset : null;
+}
+
+/** Flush any pending offsets to disk now. Safe to call with nothing pending. */
+function flushAckedOffsets() {
+  if (_offsetFlushTimer) { clearTimeout(_offsetFlushTimer); _offsetFlushTimer = null; }
+  if (_pendingOffsets.size === 0) return;
+  const state = _readRaw();
+  for (const [id, off] of _pendingOffsets) {
+    if (state.links[id]) state.links[id].cloudAckedOffset = off;
+  }
+  _pendingOffsets.clear();
+  _writeRaw(state);
+}
+
 module.exports = {
   getPublic,
   listPublic,
@@ -168,5 +216,8 @@ module.exports = {
   setLink,
   removeLink,
   updateStatus,
+  setAckedOffset,
+  getAckedOffset,
+  flushAckedOffsets,
   FILE,
 };

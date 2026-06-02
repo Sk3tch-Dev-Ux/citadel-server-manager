@@ -21,7 +21,16 @@
  */
 const { getBridge } = require('../citadel-bridge');
 const { fetchRCONPlayerData } = require('../player-data');
+const storage = require('./storage');
 const logger = require('../logger');
+
+// How often the durable tailer reads new events.jsonl lines and forwards them.
+// 1s keeps live latency on par with the bridge's 2s poll while bounding the
+// re-read window after a reconnect.
+const EVENTS_TAIL_INTERVAL_MS = 1000;
+// Cap how far back a reconnect/restart will replay, so a very long outage
+// can't flood the cloud on reconnect. Older bytes are skipped (and logged).
+const MAX_REPLAY_BYTES = 8 * 1024 * 1024;
 
 class Forwarder {
   /**
@@ -31,9 +40,11 @@ class Forwarder {
     this.localServerId = localServerId;
     this._client = null;
     this._bridge = null;
-    this._handlers = null;  // { metrics, players, events } — kept so we can off() on detach
+    this._handlers = null;  // { metrics, players } — kept so we can off() on detach
     this._rconTimer = null; // periodic RCon player (IP/ping) forward for cloud enforcement
     this._healthTimer = null; // periodic deep-health snapshot forward (agent_health)
+    this._eventsTimer = null; // durable events.jsonl tailer (G1)
+    this._cloudOffset = 0;    // byte offset through which events.jsonl is forwarded
     // sessionStarts is a per-Forwarder cache of when each steamId joined,
     // keyed by steamId. Lets us emit player_disconnect with `duration` even
     // if the mod's events.jsonl rotates or we missed the original `playtime`
@@ -58,20 +69,33 @@ class Forwarder {
     this._bridge = bridge;
 
     // Build the handlers in one place so detach can off() the same fn refs.
+    // metrics + players are point-in-time SNAPSHOTS (mod overwrites the whole
+    // file each tick), so the live push is correct for them — there is nothing
+    // to replay. events.jsonl is an append-only LOG, handled separately below.
     const handlers = {
       metrics: (data) => this._onMetrics(data),
       players: (players) => this._onPlayers(players),
-      events: (events) => this._onEvents(events),
     };
     bridge.on('metrics', handlers.metrics);
     bridge.on('players', handlers.players);
-    bridge.on('events', handlers.events);
     this._handlers = handlers;
 
     // Bridge polling reference-counts via addSubscriber. Without this the
     // bridge stays idle when no dashboard client is watching, and we'd
-    // never get any events even though the WS is connected.
+    // never get any metrics/players even though the WS is connected.
     bridge.addSubscriber();
+
+    // events.jsonl is forwarded via our OWN durable byte cursor rather than the
+    // bridge's live 'events' push, so cloud delivery survives backend restarts
+    // and cloud outages: we persist how far we've forwarded and resume there.
+    // Resolve the start offset (persisted, or the current tail for a brand-new
+    // link), persist a baseline, then tail on an interval AND once immediately
+    // so a reconnect backfills the missed window right away.
+    this._cloudOffset = this._resolveStartOffset();
+    storage.setAckedOffset(this.localServerId, this._cloudOffset);
+    this._eventsTimer = setInterval(() => { this._tailEvents(); }, EVENTS_TAIL_INTERVAL_MS);
+    this._eventsTimer.unref?.();
+    this._tailEvents();
 
     // Forward the BattlEye RCon player snapshot (IP + ping) every 30s so the
     // cloud enforcement worker can run VPN/geo/Steam/ping checks — data the
@@ -136,6 +160,7 @@ class Forwarder {
   detach() {
     if (this._rconTimer) { clearInterval(this._rconTimer); this._rconTimer = null; }
     if (this._healthTimer) { clearInterval(this._healthTimer); this._healthTimer = null; }
+    if (this._eventsTimer) { clearInterval(this._eventsTimer); this._eventsTimer = null; }
     if (!this._client || !this._bridge || !this._handlers) {
       this._client = null;
       this._bridge = null;
@@ -143,16 +168,63 @@ class Forwarder {
       this._sessionStarts.clear();
       return;
     }
-    const { metrics, players, events } = this._handlers;
+    const { metrics, players } = this._handlers;
     try { this._bridge.off('metrics', metrics); } catch { /* fine */ }
     try { this._bridge.off('players', players); } catch { /* fine */ }
-    try { this._bridge.off('events', events); } catch { /* fine */ }
     try { this._bridge.removeSubscriber(); } catch { /* fine */ }
     this._client = null;
     this._bridge = null;
     this._handlers = null;
     this._sessionStarts.clear();
     logger.debug({ localServerId: this.localServerId }, 'forwarder: detached');
+  }
+
+  // ─── durable events.jsonl tailer (G1) ────────────────────────────────
+  //
+  // Decide where to start forwarding from on (re)attach:
+  //  - brand-new link (no persisted offset) → current tail; we don't replay
+  //    the whole historical log on first ever connect.
+  //  - existing link → resume from the persisted offset, guarding against
+  //    rotation (offset > size) and capping how far back we replay.
+  _resolveStartOffset() {
+    const size = this._bridge.getEventsSize();
+    const persisted = storage.getAckedOffset(this.localServerId);
+    if (persisted == null) return size;
+
+    let start = persisted;
+    if (start > size) start = 0; // file rotated/shrank — re-tail from the start
+    if (size - start > MAX_REPLAY_BYTES) {
+      logger.warn(
+        { localServerId: this.localServerId, skippedBytes: size - start - MAX_REPLAY_BYTES },
+        'forwarder: events backlog exceeds replay cap — skipping oldest to bound reconnect replay',
+      );
+      start = size - MAX_REPLAY_BYTES;
+    }
+    return start;
+  }
+
+  // Forward any new complete events.jsonl lines, then advance + persist the
+  // durable cursor. Only runs while authenticated; JS is single-threaded so
+  // the socket can't flip OPEN→closed mid-batch — either we were authed for
+  // the whole synchronous forward (advance) or we skip entirely (no advance,
+  // re-read next tick). Worst case is one duplicate-free at-most-once loss of
+  // a batch the OS buffered but never delivered at a hard TCP drop.
+  _tailEvents() {
+    if (!this._client || !this._bridge) return;
+    if (typeof this._client.isAuthenticated === 'function' && !this._client.isAuthenticated()) return;
+
+    let res;
+    try {
+      res = this._bridge.readEventsFrom(this._cloudOffset);
+    } catch (err) {
+      logger.debug({ err: err.message, localServerId: this.localServerId }, 'forwarder: tail read failed');
+      return;
+    }
+    if (!res || res.nextOffset === this._cloudOffset) return; // nothing new
+
+    this._onEvents(res.events);
+    this._cloudOffset = res.nextOffset;
+    storage.setAckedOffset(this.localServerId, res.nextOffset);
   }
 
   // ─── metrics ─────────────────────────────────────────────────────────
@@ -254,6 +326,9 @@ class Forwarder {
         case 'suicide':
           this._emitDeath({ ...ev, deathType: 'suicide', cause: ev.cause || 'suicide' });
           break;
+        case 'playerStats':
+          this._emitPlayerStats(ev);
+          break;
         default:
           // Other event types (hit, baseBuilt, dynamicEvent, etc.) are out
           // of scope for Phase 4 — left for a later pass.
@@ -353,6 +428,29 @@ class Forwarder {
         steam_id: String(ev.steamId),
         name: String(ev.name || ''),
         duration: Math.max(0, Math.floor(duration) || 0),
+      },
+    });
+  }
+
+  // ─── player_stats_update (live anti-cheat) ───────────────────────────
+  //
+  // Periodic cumulative per-player counters. The mod already emits
+  // cloud-aligned snake_case keys (shots_fired, shots_hit_player, …), so
+  // this is a 1:1 copy — no rename logic. Cloud's recordPlayerStats stores
+  // cumulative values and computes deltas at query time, which is what the
+  // cheat-detection sweep and trust score consume.
+  _emitPlayerStats(ev) {
+    if (!ev.steamId) return;
+    this._client?.send({
+      type: 'player_stats_update',
+      ts: _eventTs(ev),
+      data: {
+        steam_id: String(ev.steamId),
+        shots_fired: _safeInt(ev.shots_fired, 0),
+        shots_hit_player: _safeInt(ev.shots_hit_player, 0),
+        shots_hit_infected: _safeInt(ev.shots_hit_infected, 0),
+        shots_hit_animal: _safeInt(ev.shots_hit_animal, 0),
+        shots_hit_vehicle: _safeInt(ev.shots_hit_vehicle, 0),
       },
     });
   }

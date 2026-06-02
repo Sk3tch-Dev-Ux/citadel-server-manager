@@ -149,6 +149,9 @@ class CitadelBridge extends EventEmitter {
   _pollEvents() {
     try {
       const stat = fs.statSync(this.files.events);
+      // Rotation/truncation guard: if the file shrank below our cursor, the
+      // log was rotated — reset so we don't compute a negative read length.
+      if (stat.size < this._eventsFileSize) this._eventsFileSize = 0;
       if (stat.size === this._eventsFileSize) return; // No change
 
       const isFirstRead = this._eventsFileSize === 0;
@@ -187,6 +190,74 @@ class CitadelBridge extends EventEmitter {
         logger.debug({ err: err.message, serverId: this.serverId }, 'CitadelBridge: error reading events.jsonl');
       }
     }
+  }
+
+  // ─── Durable event tail (G1 — cloud forwarder) ───────────
+  //
+  // The methods below give the cloud forwarder its OWN byte-cursor over
+  // events.jsonl, independent of the live _pollEvents cursor (which serves
+  // local dashboard consumers). This is what makes cloud delivery survive
+  // backend restarts and cloud outages: the forwarder persists how far it
+  // got and resumes from there, instead of the in-memory _eventsFileSize
+  // that resets every process start.
+
+  /** Current size of events.jsonl in bytes (0 if absent/unreadable). */
+  getEventsSize() {
+    try {
+      return fs.statSync(this.files.events).size;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Read complete event lines from events.jsonl starting at `fromOffset`.
+   * Line-boundary safe (never splits a partial trailing line still being
+   * appended) and rotation safe (if the file shrank below the offset, re-tail
+   * from the start). Pure read — does not mutate any bridge cursor.
+   *
+   * @param {number} fromOffset — byte offset to read from
+   * @returns {{ events: object[], nextOffset: number }}
+   */
+  readEventsFrom(fromOffset) {
+    let stat;
+    try {
+      stat = fs.statSync(this.files.events);
+    } catch {
+      return { events: [], nextOffset: fromOffset };
+    }
+
+    let from = (typeof fromOffset === 'number' && fromOffset >= 0) ? fromOffset : 0;
+    if (from > stat.size) from = 0; // rotated/truncated — re-tail from start
+    if (from >= stat.size) return { events: [], nextOffset: from };
+
+    const len = stat.size - from;
+    const buf = Buffer.alloc(len);
+    const fd = fs.openSync(this.files.events, 'r');
+    try {
+      fs.readSync(fd, buf, 0, len, from);
+    } finally {
+      fs.closeSync(fd);
+    }
+
+    // Only consume through the last newline so a partial final line (mid-append)
+    // is left for the next read rather than being split and lost.
+    const lastNl = buf.lastIndexOf(0x0a);
+    if (lastNl === -1) return { events: [], nextOffset: from };
+    const consumed = buf.subarray(0, lastNl + 1);
+    const nextOffset = from + consumed.length;
+
+    const events = [];
+    for (const line of consumed.toString('utf-8').split('\n')) {
+      const t = line.trim();
+      if (!t) continue;
+      try {
+        events.push(JSON.parse(t));
+      } catch {
+        // skip malformed line
+      }
+    }
+    return { events, nextOffset };
   }
 
   // ─── Data Readers ────────────────────────────────────────

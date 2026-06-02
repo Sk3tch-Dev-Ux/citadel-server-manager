@@ -9,19 +9,55 @@ class CitadelPlayerTracker
     static const string PLAYER_FILE = "$profile:Citadel/players.json";
 
     protected ref Timer m_UpdateTimer;
+    protected ref Timer m_StatsTimer;
 
     void CitadelPlayerTracker()
     {
         int interval = GetCitadel().GetConfiguration().GetPlayerUpdateIntervalMs();
         m_UpdateTimer = new Timer();
         m_UpdateTimer.Run(interval * 0.001, this, "UpdatePlayerData", null, true);
-        GetCitadel().GetLogger().Info(string.Format("Player tracker initialized (interval=%1ms)", interval.ToString()));
+
+        // Independent, slower cadence for per-player stats snapshots that feed
+        // the cloud anti-cheat pipeline (accuracy/aimbot). Decoupled from the
+        // position loop so each can be tuned separately.
+        int statsInterval = GetCitadel().GetConfiguration().GetStatsUpdateIntervalMs();
+        m_StatsTimer = new Timer();
+        m_StatsTimer.Run(statsInterval * 0.001, this, "EmitPlayerStats", null, true);
+
+        GetCitadel().GetLogger().Info(string.Format("Player tracker initialized (interval=%1ms, stats=%2ms)", interval.ToString(), statsInterval.ToString()));
     }
 
     void ~CitadelPlayerTracker()
     {
         if (m_UpdateTimer)
             m_UpdateTimer.Stop();
+        if (m_StatsTimer)
+            m_StatsTimer.Stop();
+    }
+
+    // Periodic per-player cumulative-stats emit (~30s). Mirrors the active-player
+    // iteration in UpdatePlayerData (cast element → identity → plain id) so the
+    // steamId keying matches the disconnect-time LogSession path exactly.
+    // Gated on the same trackPlayerStats flag the session dump uses.
+    void EmitPlayerStats()
+    {
+        if (!GetCitadel().GetConfiguration().GetTrackPlayerStats())
+            return;
+
+        map<string, Man> activePlayers = GetCitadel().GetActivePlayers();
+        for (int i = 0; i < activePlayers.Count(); i++)
+        {
+            PlayerBase player = PlayerBase.Cast(activePlayers.GetElement(i));
+            if (!player) continue;
+
+            PlayerIdentity identity = player.GetIdentity();
+            if (!identity) continue;
+
+            string steamId = identity.GetPlainId();
+            CitadelPlayerStats stats = GetCitadel().GetPlayerStats(steamId);
+            if (stats)
+                CitadelEventLogger.LogPlayerStats(steamId, stats);
+        }
     }
 
     void UpdatePlayerData()

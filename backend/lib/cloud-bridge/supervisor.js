@@ -226,6 +226,9 @@ function start() {
 function shutdownAll() {
   if (_tickTimer) { clearInterval(_tickTimer); _tickTimer = null; }
   for (const id of Array.from(_clients.keys())) _stopClient(id);
+  // Persist any pending durable telemetry offsets so a clean shutdown doesn't
+  // lose the last few seconds of forwarding progress (G1).
+  try { storage.flushAckedOffsets(); } catch { /* best-effort */ }
   _started = false;
 }
 
