@@ -7,6 +7,8 @@ coverage/
 # Environment variables (contains secrets!)
 .env
 .env.*
+# ...but the placeholder template IS tracked (referenced by README + installer build.js)
+!.env.example
 
 # Structured config (user-specific, may contain non-default settings)
 citadel.config.json

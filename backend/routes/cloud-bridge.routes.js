@@ -21,7 +21,15 @@ const storage = require('../lib/cloud-bridge/storage');
 const { addAudit } = require('../lib/audit');
 const logger = require('../lib/logger');
 
-const requireAdmin = auth(['admin', 'owner', '*']);
+// auth() takes a SINGLE permission string — it does
+// `role.permissions.includes('*') || role.permissions.includes(requiredPermission)`.
+// Passing an array (the old `['admin','owner','*']`) could never match: includes()
+// on the permission string-array never equals an array value, so only the
+// built-in wildcard ('*') role passed and the intended owner/admin custom roles
+// silently 403'd. Gate on the real panel-admin permission used by the sibling
+// roles/audit routes; wildcard roles still pass, and operators can grant
+// `users.manage` to a custom role to delegate Cloud pairing management.
+const requireAdmin = auth('users.manage');
 
 // Raw key shape produced by /api/v1/plugin-servers on the Cloud side:
 // 32 random bytes → base64url → 43 chars. We allow 32–256 to stay in lockstep

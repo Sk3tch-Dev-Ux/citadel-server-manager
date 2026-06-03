@@ -59,7 +59,17 @@ function loadFromDisk() {
     return;
   }
   try {
-    const claims = verifyToken(cached.token);
+    let claims;
+    try {
+      claims = verifyToken(cached.token);
+    } catch (err) {
+      if (err.name !== 'TokenExpiredError') throw err;
+      // Expired but possibly genuine — re-verify signature/issuer/product
+      // with expiry ignored. evaluateStatus() then routes the expired claims
+      // into the grace/expired flow instead of de-activating a paying
+      // customer whose machine was simply off past token expiry.
+      claims = verifyToken(cached.token, { ignoreExpiration: true });
+    }
     _state.token = cached.token;
     _state.claims = claims;
     _state.subscription = cached.subscription || null;

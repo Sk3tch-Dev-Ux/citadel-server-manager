@@ -118,15 +118,32 @@ function getSecret(localServerId) {
 function setLink(localServerId, { cloudServerId, apiKey, name }) {
   const state = _readRaw();
   const now = new Date().toISOString();
+  const prev = state.links[localServerId];
+  // Preserve the durable replay cursor across a re-pair (operator re-pastes /
+  // updates the key) as long as the cloud server IDENTITY is unchanged. Without
+  // this, getAckedOffset() returns null after a re-link and the tailer
+  // re-baselines to the live file tail, silently dropping every events.jsonl
+  // line buffered since the last flush — exactly the backlog the durable
+  // journal exists to deliver, and re-pairing is most likely right after an
+  // auth-failure recovery when a backlog is present. Reset only when the link
+  // now points at a DIFFERENT cloud server, where the old cursor is meaningless.
+  const sameCloudServer = prev && prev.cloudServerId === cloudServerId;
+  const preservedOffset = sameCloudServer && typeof prev.cloudAckedOffset === 'number'
+    ? prev.cloudAckedOffset
+    : undefined;
   state.links[localServerId] = {
     cloudServerId,
     apiKey: encrypt(apiKey),
     name: name || '',
-    linkedAt: state.links[localServerId]?.linkedAt || now,
+    linkedAt: prev?.linkedAt || now,
     lastStatus: 'unknown',
     lastStatusAt: now,
     lastError: null,
+    ...(preservedOffset !== undefined ? { cloudAckedOffset: preservedOffset } : {}),
   };
+  // If the cloud identity changed, drop any not-yet-flushed offset so the stale
+  // cursor can't be resurrected via getAckedOffset()'s pending-first lookup.
+  if (!sameCloudServer) _pendingOffsets.delete(localServerId);
   _writeRaw(state);
 }
 

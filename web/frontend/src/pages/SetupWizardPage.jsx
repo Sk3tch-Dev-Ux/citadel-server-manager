@@ -93,10 +93,6 @@ export default function SetupWizardPage() {
   const [deployProgress, setDeployProgress] = useState(null);
 
   // License step
-  const [licenseKey, setLicenseKey] = useState('');
-  const [licenseStatus, setLicenseStatus] = useState(null); // { tier, licensee, expiresAt }
-  const [licenseError, setLicenseError] = useState('');
-  const [activating, setActivating] = useState(false);
 
   // Listen for deploy progress
   useEffect(() => {
@@ -344,24 +340,6 @@ export default function SetupWizardPage() {
       setDeployProgress(null);
     }
     setLoading(false);
-  };
-
-  const handleActivateLicense = async () => {
-    if (!licenseKey.trim()) return setLicenseError('Please paste your license key');
-    setActivating(true);
-    setLicenseError('');
-    try {
-      const result = await API.post('/api/license/activate', { key: licenseKey.trim() });
-      if (result.success || result.license) {
-        setLicenseStatus(result.license);
-        setLicenseError('');
-      } else {
-        setLicenseError(result.error || 'Invalid license key');
-      }
-    } catch (err) {
-      setLicenseError(err.message || 'Failed to activate license');
-    }
-    setActivating(false);
   };
 
   const completeSetup = async () => {

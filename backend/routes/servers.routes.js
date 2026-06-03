@@ -51,6 +51,25 @@ const TEMPLATE_TO_MAP = {
   'pripyat':                   'pripyat',
 };
 
+// Secret/credential fields that must never leave the API in a server response.
+// rconPassword was historically stripped inline; inHouseApiKey is the sidecar
+// Bearer credential (full game-server admin) and the cftools IDs are external
+// service credentials — all of them are redacted here so the set can't drift
+// per-route. Listed once so list/create/update responses stay consistent.
+const SERVER_SECRET_FIELDS = ['rconPassword', 'inHouseApiKey', 'inHouseApiUrl', 'cftoolsServerApiId', 'cftoolsBanlistId'];
+
+/**
+ * Return a copy of a persisted server record with all secret/credential
+ * fields stripped. Use for any response that surfaces a server object so a
+ * low-privilege (e.g. viewer) user can never recover the sidecar API key,
+ * RCON password, or CFTools credentials.
+ */
+function publicServerView(s) {
+  const safe = { ...s };
+  for (const field of SERVER_SECRET_FIELDS) delete safe[field];
+  return safe;
+}
+
 module.exports = function(app) {
   // Detect existing DayZ server installation from a directory path
   app.post('/api/servers/detect', auth('server.deploy'), (req, res) => {
@@ -123,7 +142,7 @@ module.exports = function(app) {
     const result = ctx.servers.map(s => {
       const state = ctx.serverStates[s.id] || {};
       return {
-        ...s, rconPassword: undefined,
+        ...publicServerView(s),
         status: state.status || 'stopped',
         playerCount: state.players?.length || 0,
         maxPlayers: state.config?.maxPlayers || s.maxPlayers || 60,
@@ -171,8 +190,7 @@ module.exports = function(app) {
     // Auto-apply firewall rules for the new server's ports
     ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort }).catch(() => {});
     addAudit(req.user.id, req.user.username, 'server.create', `Created server: ${name}`);
-    const { rconPassword: _, ...safe } = srv;
-    res.json(safe);
+    res.json(publicServerView(srv));
   });
 
   app.patch('/api/servers/:id', auth('server.deploy'), (req, res) => {
@@ -214,8 +232,7 @@ module.exports = function(app) {
       ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort }).catch(() => {});
     }
     addAudit(req.user.id, req.user.username, 'server.update', `Updated server: ${srv.name}`);
-    const { rconPassword: _, ...safeSrv } = srv;
-    res.json(safeSrv);
+    res.json(publicServerView(srv));
   });
 
   // ─── DZSA Launcher publishing status ───────────────────────────

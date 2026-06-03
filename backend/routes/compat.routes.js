@@ -9,6 +9,7 @@ const ctx = require('../lib/context');
 const { readServerConfig, writeServerConfig } = require('../lib/dayz-config');
 const { safePath } = require('../lib/helpers');
 const auth = require('../middleware/auth');
+const { isConfigFile, redactConfigSecrets, restoreRedactedSecrets } = require('../lib/config-secrets');
 
 module.exports = function(app) {
   app.get('/api/server/status', auth(), (req, res) => {
@@ -68,7 +69,9 @@ module.exports = function(app) {
       if (stat.size > 5 * 1024 * 1024) return res.status(400).json({ error: 'File too large' });
       const binaryExts = ['.exe','.dll','.pdb','.pbo','.pak','.bin','.so','.png','.jpg','.jpeg','.gif','.bmp','.ico','.wav','.ogg','.mp3','.zip','.rar','.7z','.bikey','.bisign'];
       if (binaryExts.includes(path.extname(fp).toLowerCase())) return res.status(400).json({ error: 'Binary file' });
-      res.json({ content: fs.readFileSync(fp, 'utf8'), path: file, size: stat.size, modified: stat.mtimeMs });
+      let content = fs.readFileSync(fp, 'utf8');
+      if (isConfigFile(fp)) content = redactConfigSecrets(content); // mask RConPassword/password in .cfg reads
+      res.json({ content, path: file, size: stat.size, modified: stat.mtimeMs });
     } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 
@@ -88,8 +91,11 @@ module.exports = function(app) {
     try {
       const bd = path.join(srv.installDir, '.backups');
       if (!fs.existsSync(bd)) fs.mkdirSync(bd, { recursive: true });
-      if (fs.existsSync(fp)) fs.copyFileSync(fp, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`));
-      fs.writeFileSync(fp, content);
+      const existed = fs.existsSync(fp);
+      if (existed) fs.copyFileSync(fp, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`));
+      let toWrite = content;
+      if (isConfigFile(fp) && existed) toWrite = restoreRedactedSecrets(content, fs.readFileSync(fp, 'utf8'));
+      fs.writeFileSync(fp, toWrite);
       res.json({ message: 'Saved' });
     } catch (err) { safeError(err, req, res, { status: 500 }); }
   });

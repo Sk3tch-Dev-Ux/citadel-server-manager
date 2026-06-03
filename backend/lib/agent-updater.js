@@ -36,9 +36,19 @@ const EXPECTED_PUBLISHER = process.env.CITADEL_UPDATE_PUBLISHER || '';
 
 /**
  * Allow downloads only from this repo's release assets / Citadel Cloud's
- * downloads path — scoped to an `.exe`. The previous version accepted any
- * github.com URL, which (if the update feed were influenced) let an arbitrary
- * attacker-hosted release be downloaded and launched as the service.
+ * downloads path. The previous version accepted any github.com URL, which (if
+ * the update feed were influenced) let an arbitrary attacker-hosted release be
+ * downloaded and launched as the service.
+ *
+ * Host scoping is the load-bearing security control. The `.exe` extension is
+ * enforced ONLY for GitHub release-asset URLs (which always carry the asset
+ * filename, e.g. CitadelSetup-2.21.9.exe, per .github/workflows/release.yml).
+ * The Citadel Cloud downloads endpoint serves the installer from a clean,
+ * extension-less path (/downloads/installer), so requiring `.exe` there would
+ * (and did) reject every cloud-driven self-update. The downloaded bytes are
+ * still validated by the MZ-header + size checks in downloadInstaller(), and
+ * the Authenticode signature is verified before any silent launch — so an
+ * extension-less cloud path does not weaken the executable-integrity gate.
  */
 function isAllowedDownloadUrl(url) {
   try {
@@ -50,7 +60,9 @@ function isAllowedDownloadUrl(url) {
     if (host === 'github.com') return isExe && p.startsWith(RELEASE_PATH_PREFIX);
     // GitHub serves release assets from this CDN (the redirect target).
     if (host.endsWith('.githubusercontent.com')) return isExe;
-    if (host === 'citadels.cc' || host.endsWith('.citadels.cc')) return isExe && p.startsWith('/downloads/');
+    // Citadel Cloud: scope to the /downloads/ path; the endpoint streams the
+    // signed installer from an extension-less URL, so don't require `.exe` here.
+    if (host === 'citadels.cc' || host.endsWith('.citadels.cc')) return p.startsWith('/downloads/');
     return false;
   } catch {
     return false;

@@ -523,6 +523,35 @@ if (process.env.NODE_ENV !== 'test') {
     }
 
     // Listen
+    //
+    // server.listen emits an asynchronous 'error' event (NOT a promise
+    // rejection) for bind failures such as EADDRINUSE. Without a listener
+    // that event is rethrown and reaches the uncaughtException handler,
+    // which calls process.exit(1) — bypassing the service-mode keep-alive
+    // path below and leaving NSSM in a crash-loop/PAUSED state with the only
+    // clue buried in data/service.log. Attach the handler BEFORE listen().
+    server.on('error', (err) => {
+      if (err && err.code === 'EADDRINUSE') {
+        const msg =
+          `Port ${CONFIG.port} on ${CONFIG.bindHost} is already in use. ` +
+          `Another process (a stale Citadel/node.exe, or a different app) is holding it. ` +
+          `Stop that process or change "port" in citadel.config.json, then restart the Citadel service.`;
+        // eslint-disable-next-line no-console
+        console.error(`FATAL: ${msg}`);
+        try { require('./lib/logger').fatal({ err, port: CONFIG.port, bindHost: CONFIG.bindHost }, msg); } catch {}
+        // Can't bind CONFIG.port (it's busy), so serve the diagnostic page on
+        // a fallback port in service mode rather than crash-looping the service.
+        serveStartupError(msg, { avoidPort: CONFIG.port });
+        return;
+      }
+      // Any other listen error: log and fall back to the diagnostic page.
+      const msg = `Citadel failed to bind ${CONFIG.bindHost}:${CONFIG.port}: ${err.message || err}`;
+      // eslint-disable-next-line no-console
+      console.error(`FATAL: ${msg}`);
+      try { require('./lib/logger').fatal({ err }, msg); } catch {}
+      serveStartupError(msg);
+    });
+
     server.listen(CONFIG.port, CONFIG.bindHost, () => {
       // Discord bot was extracted to the citadel-bot repo. The Agent no
       // longer launches it by default — customers run citadel-bot
@@ -568,24 +597,43 @@ if (process.env.NODE_ENV !== 'test') {
     // eslint-disable-next-line no-console
     console.error('FATAL: Startup failed —', err.message || err);
     try { require('./lib/logger').fatal({ err }, 'Startup failed'); } catch {}
+    serveStartupError(`Citadel startup failed: ${err.message || err}. Check data/service.log for details.`);
+  });
+}
 
-    // When running as an NSSM service, do NOT call process.exit(1).
-    // If the process exits too quickly, NSSM enters a PAUSED state that
-    // the user cannot recover from without manual intervention.
-    // Instead, keep the process alive and serve an error page so the
-    // admin can diagnose the issue via the dashboard URL.
-    if (isServiceMode) {
-      const errApp = express();
-      const errMsg = `Citadel startup failed: ${err.message || err}. Check data/service.log for details.`;
-      errApp.get('*', (_req, res) => res.status(503).json({ error: errMsg }));
-      const errServer = http.createServer(errApp);
-      errServer.listen(CONFIG.port, CONFIG.bindHost, () => {
-        // eslint-disable-next-line no-console
-        console.error(`Service is alive on ${CONFIG.bindHost}:${CONFIG.port} but in error state. Fix the issue and restart the service.`);
-      });
-    } else {
-      process.exit(1);
-    }
+/**
+ * Keep the process alive (in service mode) and serve a 503 diagnostic page so
+ * the admin can see why startup/bind failed via the dashboard URL, instead of
+ * exiting and leaving NSSM in an unrecoverable PAUSED/crash-loop state.
+ *
+ * In non-service (dev) mode we exit nonzero so the developer sees the crash.
+ *
+ * @param {string} errMsg human-readable cause shown to the admin.
+ * @param {{avoidPort?: number}} [opts] when the primary port is the thing that
+ *   failed to bind (EADDRINUSE), pass avoidPort so we bind the error page to a
+ *   fallback port rather than re-attempting the busy port (which would loop).
+ */
+function serveStartupError(errMsg, opts = {}) {
+  if (!isServiceMode) {
+    process.exit(1);
+    return;
+  }
+  const errApp = express();
+  errApp.get('*', (_req, res) => res.status(503).json({ error: errMsg }));
+  const errServer = http.createServer(errApp);
+  // If the primary port is busy, fall back to a nearby port for the diagnostic
+  // page so we don't immediately re-trigger EADDRINUSE.
+  const listenPort = opts.avoidPort === CONFIG.port ? CONFIG.port + 1 : CONFIG.port;
+  errServer.on('error', (e) => {
+    // Last resort: even the diagnostic server can't bind. Log and stay alive
+    // (do not exit) so the service supervisor doesn't enter a PAUSED state.
+    // eslint-disable-next-line no-console
+    console.error(`Citadel error-page server could not bind ${CONFIG.bindHost}:${listenPort}: ${e.message || e}`);
+    try { require('./lib/logger').error({ err: e }, 'Startup error-page server failed to bind'); } catch {}
+  });
+  errServer.listen(listenPort, CONFIG.bindHost, () => {
+    // eslint-disable-next-line no-console
+    console.error(`Service is alive on ${CONFIG.bindHost}:${listenPort} but in error state. Fix the issue and restart the service.`);
   });
 }
 

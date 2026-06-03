@@ -20,6 +20,18 @@ describe('isAllowedDownloadUrl', () => {
     expect(isAllowedDownloadUrl('https://github.com/Sk3tch-Dev-Ux/DayzServerController/releases/download/v1/notes.txt')).toBe(false);
   });
 
+  test('accepts the cloud’s extension-less installer path (the real /downloads/latest shape)', () => {
+    // GET /downloads/latest returns downloadUrl '/downloads/installer'; after
+    // update-checker resolves it against api.citadels.cc this is what reaches
+    // isAllowedDownloadUrl. It must be allowed (host-scoped to /downloads/),
+    // even though it has no .exe extension — the MZ-header/size checks in
+    // downloadInstaller still validate the bytes. Regression for
+    // updater-relative-url-and-zip-mismatch.
+    expect(isAllowedDownloadUrl('https://api.citadels.cc/downloads/installer')).toBe(true);
+    // Still scoped to /downloads/ — an arbitrary extension-less cloud path is rejected.
+    expect(isAllowedDownloadUrl('https://api.citadels.cc/secret')).toBe(false);
+  });
+
   test('rejects non-https and untrusted hosts (SSRF guard)', () => {
     expect(isAllowedDownloadUrl('http://citadels.cc/downloads/x.exe')).toBe(false); // not https
     expect(isAllowedDownloadUrl('https://evil.com/x.exe')).toBe(false);

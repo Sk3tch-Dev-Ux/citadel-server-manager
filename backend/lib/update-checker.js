@@ -30,6 +30,26 @@ function apiBase() {
   return (process.env.CITADEL_LICENSE_API || DEFAULT_API_BASE).replace(/\/$/, '');
 }
 
+/**
+ * Resolve the cloud's downloadUrl into an absolute https URL.
+ *
+ * The cloud returns a relative path ('/downloads/installer'); an absolute URL
+ * is passed through unchanged. A missing/blank value falls back to the default
+ * installer path on the API host. This guarantees the stored downloadUrl is
+ * always absolute so both agent-updater (new URL(url)) and the dashboard
+ * banner anchor work against the cloud API, not the dashboard origin.
+ */
+function resolveDownloadUrl(downloadUrl) {
+  const base = apiBase();
+  if (!downloadUrl) return `${base}/downloads/installer`;
+  try {
+    // Absolute URL → use as-is; relative path → resolve against the API base.
+    return new URL(downloadUrl, `${base}/`).toString();
+  } catch {
+    return `${base}/downloads/installer`;
+  }
+}
+
 // ── Local version ────────────────────────────────────────────
 let _localVersion = null;
 
@@ -127,7 +147,12 @@ async function checkForUpdate() {
     _state.status = hasUpdate ? 'update_available' : 'current';
     _state.latestVersion = latestVersion;
     _state.releaseNotes = data.releaseNotes || null;
-    _state.downloadUrl = data.downloadUrl || `${apiBase()}/downloads/installer`;
+    // The cloud's /downloads/latest returns a RELATIVE downloadUrl (e.g.
+    // '/downloads/installer'). Resolve it against the API base so the value we
+    // store is an absolute https URL — otherwise agent-updater's `new URL(url)`
+    // (no base) throws and rejects every self-update, and the dashboard banner
+    // anchor would resolve against the dashboard origin (3001) and 404.
+    _state.downloadUrl = resolveDownloadUrl(data.downloadUrl);
     _state.publishedAt = data.publishedAt || null;
     _state.size = data.size || null;
     _state.prerelease = data.prerelease || false;
@@ -212,4 +237,5 @@ module.exports = {
   startUpdateChecker,
   stopUpdateChecker,
   getLocalVersion,
+  resolveDownloadUrl,
 };

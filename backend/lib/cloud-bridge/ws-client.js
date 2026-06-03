@@ -37,6 +37,7 @@ const logger = require('../logger');
 // them in JS without importing the TS shared types.
 const CLOSE_NORMAL = 1000;
 const CLOSE_AUTH_TIMEOUT = 4001;
+const CLOSE_PROTOCOL_VIOLATION = 4002;
 const CLOSE_IDLE_TIMEOUT = 4004;
 const CLOSE_SUPERSEDED = 4007;
 const CLOSE_AUTH_FAILED = 4008;
@@ -153,9 +154,13 @@ class CloudWsClient extends EventEmitter {
 
       if (this._stopped) return;
 
-      // 4008 = auth refused. Don't loop on bad credentials — let the
-      // supervisor reopen us when the operator updates the link.
-      if (code === CLOSE_AUTH_FAILED) {
+      // 4008 = auth refused; 4002 = protocol violation (e.g. a structurally
+      // invalid auth payload such as a truncated <32-char API key, which the
+      // cloud rejects at the schema before reaching the auth check). Both are
+      // fatal credential/payload problems: reconnecting would re-send the same
+      // bad auth forever (a flapping loop with no terminal state). Stop and let
+      // the supervisor reopen us when the operator fixes/updates the link.
+      if (code === CLOSE_AUTH_FAILED || code === CLOSE_PROTOCOL_VIOLATION) {
         this._lastAuthFailed = true;
         return;
       }
@@ -201,7 +206,12 @@ class CloudWsClient extends EventEmitter {
       }
       case 'auth_error': {
         this._authed = false;
-        const reason = msg.reason || 'unknown';
+        // The cloud sends the actionable, customer-facing sentence in `message`
+        // (e.g. "API key has been revoked. Visit citadels.cc/account..."); read
+        // it first, keeping `reason` as a forward-compat fallback. Surfacing
+        // this string in the status lets the operator self-serve instead of
+        // seeing a generic 'unknown'.
+        const reason = msg.message || msg.reason || 'unknown';
         logger.warn({ reason }, 'cloud-ws: auth refused');
         this.emit('auth-failed', reason);
         // Server should close us with 4008 next; we don't preempt the close.
@@ -258,6 +268,7 @@ class CloudWsClient extends EventEmitter {
 module.exports = {
   CloudWsClient,
   CLOSE_AUTH_TIMEOUT,
+  CLOSE_PROTOCOL_VIOLATION,
   CLOSE_IDLE_TIMEOUT,
   CLOSE_SUPERSEDED,
   CLOSE_AUTH_FAILED,

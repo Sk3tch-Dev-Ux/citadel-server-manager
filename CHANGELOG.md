@@ -6,6 +6,53 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.22.0 — 2026-06-03
+
+Production-readiness hardening pass ahead of public signups. Full-stack audit
+(33 agents, 10 dimensions) with adversarial verification of every finding.
+
+### Security
+- **`GET /api/servers` no longer returns the sidecar `inHouseApiKey`** (full
+  game-server admin capability) or other secret fields to non-admin panel
+  users. POST/PATCH responses share the same redaction set.
+- **BattlEye/serverDZ passwords are masked in file-browser reads** of
+  `.cfg`/`.config` files (`RConPassword`, `password`, `passwordAdmin`). The
+  config editor can still change them — a saved-back masked value is restored
+  from disk, a new value is kept.
+- Cloud-bridge admin endpoints now require the real `users.manage` permission
+  (previous guard never matched, falling through to wildcard-only access).
+
+### Fixed
+- **In-dashboard self-update works again** — the cloud's relative download
+  URL is resolved against the API base, and the extension-less
+  `/downloads/installer` path passes the allowlist (MZ-header/size/signature
+  checks unchanged).
+- **Cloud Bans and telemetry now talk to `api.citadels.cc`** instead of the
+  apex marketing site — Cloud Bans sync was silently dead on default installs.
+- **Expired-but-genuine license tokens enter the offline grace window at
+  boot** instead of being cleared as invalid, and license verification
+  tolerates 5 minutes of client-clock drift — no more spurious de-activations
+  after a PC has been off past token expiry.
+- **Port conflicts produce an actionable error** (which port, what to do)
+  instead of an unhandled-exception crash; in service mode the diagnostic
+  page is served on a fallback port.
+- Cloud-bridge: `auth_error` close reasons from the cloud are surfaced
+  verbatim in the UI; a 4002 protocol-violation close stops reconnecting
+  (like 4008) instead of looping; re-pairing a server with the same cloud
+  identity preserves the durable telemetry replay cursor.
+
+### Changed
+- **The deprecated `discord-bot/` folder is no longer staged into the
+  installer.** The bot lives in the `citadel-bot` repo / Citadel Cloud; the
+  legacy `CITADEL_AGENT_SPAWN_BOT=1` path still works for from-source
+  installs. README rewritten to match (bot, real 6-step setup wizard, removed
+  phantom docs commands).
+
+### Added
+- `.env.example` documenting every environment variable the Agent reads.
+
+---
+
 ## v2.21.9 — 2026-05-30
 
 ### Added

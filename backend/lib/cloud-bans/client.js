@@ -4,14 +4,18 @@
  * Mirrors backend/lib/license/client.js patterns — same lightweight
  * Node http/https with no axios/got dependency.
  *
- * Base URL: CITADEL_LICENSE_API or default https://citadels.cc.
+ * Base URL: CITADEL_LICENSE_API or default https://api.citadels.cc.
+ * The Fastify API lives on the `api.` subdomain; the marketing Next.js site is
+ * at the apex `citadels.cc` and does NOT serve /api routes — so the default
+ * MUST be the api. host (matches license/update-checker/cloud-bridge clients),
+ * otherwise every cloud-bans call 404s on the marketing site.
  * Auth: Bearer license JWT from the license module's state.
  */
 const https = require('https');
 const http = require('http');
 const { URL } = require('url');
 
-const DEFAULT_BASE = 'https://citadels.cc';
+const DEFAULT_BASE = 'https://api.citadels.cc';
 
 function apiBase() {
   return (process.env.CITADEL_LICENSE_API || DEFAULT_BASE).replace(/\/$/, '');

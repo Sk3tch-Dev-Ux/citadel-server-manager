@@ -60,10 +60,19 @@ const NSSM_SHA256 = process.env.NSSM_SHA256 || '';
 const pkg = require(path.join(ROOT, 'package.json'));
 const VERSION = pkg.version || '2.0.0';
 
-// Files/dirs to copy into the installer staging area
+// Files/dirs to copy into the installer staging area.
+//
+// The Discord bot was extracted to the separate citadel-bot repo / Citadel
+// Cloud in the v2.19.0 product split, where discord-bot/DEPRECATED.md kept the
+// folder bundled "for one release only" behind the CITADEL_AGENT_SPAWN_BOT=1
+// legacy escape hatch. That one-release compat window is long past (we are at
+// v2.21.9, ~9 releases later), so discord-bot/ is no longer staged into the
+// installer — customers run the bot via citadel-bot / Citadel Cloud. The
+// CITADEL_AGENT_SPAWN_BOT=1 path still works for from-source installs that have
+// the folder; for installer builds it now no-ops gracefully (bot-manager's
+// spawn error handler logs and skips when discord-bot/bot.js is absent).
 const COPY_ITEMS = [
   'backend',
-  'discord-bot',
   'web',
   'package.json',
   'package-lock.json',
@@ -452,12 +461,8 @@ async function main() {
     run('npm install --production', { cwd: backendDir });
     log('  Backend dependencies installed');
   }
-  // Install discord-bot deps
-  const discordDir = path.join(appDir, 'discord-bot');
-  if (fs.existsSync(path.join(discordDir, 'package.json'))) {
-    run('npm install --production', { cwd: discordDir });
-    log('  Discord bot dependencies installed');
-  }
+  // (discord-bot/ is no longer staged — see COPY_ITEMS above — so there are no
+  // bot dependencies to install. The bot lives in the citadel-bot repo / Cloud.)
 
   // Step 6: Build Electron desktop app
   log('Step 6/7: Building Electron desktop app...');

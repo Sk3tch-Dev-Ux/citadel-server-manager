@@ -68,9 +68,13 @@ const HTTP_TIMEOUT_MS = 10 * 1000;
 const DEFAULT_ENABLED = true; // D-telemetry: opt-out
 
 function apiBase() {
+  // Default to the api. host — the Fastify API serves /api/v1/telemetry/events
+  // there. The apex citadels.cc is the marketing Next.js site with no /api
+  // routes, so defaulting to it makes every POST 404 (and 4xx batches are
+  // dropped permanently). Matches the license/cloud-bans/update-checker base.
   return (process.env.CITADEL_TELEMETRY_API
        || process.env.CITADEL_LICENSE_API
-       || 'https://citadels.cc').replace(/\/$/, '');
+       || 'https://api.citadels.cc').replace(/\/$/, '');
 }
 
 // ─── Allowed events + payload shapes ───────────────────────────

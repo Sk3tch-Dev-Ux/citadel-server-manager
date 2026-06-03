@@ -12,6 +12,7 @@ const { safePath } = require('../lib/helpers');
 const { addAudit } = require('../lib/audit');
 const { authForServer } = require('../middleware/auth');
 const logger = require('../lib/logger');
+const { isConfigFile, redactConfigSecrets, restoreRedactedSecrets } = require('../lib/config-secrets');
 
 // Whitelist of safe file extensions for writing
 const SAFE_WRITE_EXTENSIONS = new Set([
@@ -122,7 +123,14 @@ module.exports = function(app) {
       if (stat.size > 5 * 1024 * 1024) return res.status(400).json({ error: 'File too large' });
       const binaryExts = ['.exe','.dll','.pdb','.pbo','.pak','.bin','.so','.png','.jpg','.jpeg','.gif','.bmp','.ico','.wav','.ogg','.mp3','.zip','.rar','.7z','.bikey','.bisign'];
       if (binaryExts.includes(path.extname(filePath).toLowerCase())) return res.status(400).json({ error: 'Binary file' });
-      res.json({ content: fs.readFileSync(filePath, 'utf8'), path: file, size: stat.size, modified: stat.mtimeMs });
+      let content = fs.readFileSync(filePath, 'utf8');
+      // Redact plaintext secrets (BattlEye RConPassword, serverDZ password/
+      // passwordAdmin) in .cfg reads so files.edit holders can't recover the
+      // RCON password the servers API deliberately strips. The write path
+      // (restoreRedactedSecrets) restores the on-disk value when a masked line
+      // is saved back unchanged, so editing the file still works.
+      if (isConfigFile(filePath)) content = redactConfigSecrets(content);
+      res.json({ content, path: file, size: stat.size, modified: stat.mtimeMs });
     } catch (err) { safeError(err, req, res, { status: 500 }); }
   });
 
@@ -190,8 +198,18 @@ module.exports = function(app) {
     try {
       const bd = path.join(srv.installDir, '.backups');
       if (!fs.existsSync(bd)) fs.mkdirSync(bd, { recursive: true });
-      if (fs.existsSync(filePath)) fs.copyFileSync(filePath, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`));
-      fs.writeFileSync(filePath, content);
+      const existed = fs.existsSync(filePath);
+      if (existed) fs.copyFileSync(filePath, path.join(bd, `${path.basename(file)}.${Date.now()}.bak`));
+      // For config files, a secret line saved back with the redaction mask (the
+      // value the editor was shown on read) must NOT clobber the real on-disk
+      // password — restore it from the existing file. A genuinely new value is
+      // kept, so passwords can still be changed.
+      let toWrite = content;
+      if (isConfigFile(filePath) && existed) {
+        const onDisk = fs.readFileSync(filePath, 'utf8');
+        toWrite = restoreRedactedSecrets(content, onDisk);
+      }
+      fs.writeFileSync(filePath, toWrite);
       // Differentiate audit entries so a security-minded operator can grep
       // their audit log for script writes specifically.
       const action = SCRIPT_EXTENSIONS.has(ext) ? 'file.edit-script' : 'file.edit';
