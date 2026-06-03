@@ -34,13 +34,24 @@ const apiLimiter = rateLimit({
   message: { error: 'Rate limit exceeded' },
 });
 
-/** Auth endpoints: 15 attempts per 15 minutes (brute-force protection) */
+/**
+ * Login limiter: only FAILED attempts count, 30 per 15 min per IP.
+ *
+ * `skipSuccessfulRequests` means a successful login (or any <400 response)
+ * does NOT consume budget, so a legitimate admin reloading the dashboard or
+ * logging in normally is never throttled — only repeated *failures* are. The
+ * primary brute-force defense is fail2ban (5-strike escalating IP ban); this
+ * is a secondary cap. Apply ONLY to POST /api/auth/login — never blanket the
+ * whole /api/auth/* surface, or read endpoints like the session check get
+ * throttled and the panel logs users out on reload.
+ */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: 30,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many login attempts, please try again later' },
+  message: { error: 'Too many failed login attempts, please try again later' },
 });
 
 /**

@@ -106,9 +106,22 @@ async function startServer(serverId, reason) {
     addLog(serverId, 'warn', 'server', `Port check failed (proceeding anyway): ${err.message}`);
   }
 
-  // Ensure firewall rules (non-blocking)
-  ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort })
-    .catch(err => addLog(serverId, 'warn', 'server', `Firewall rule setup failed: ${err.message}`));
+  // Ensure firewall rules (non-fatal, but runs before spawn so servers are
+  // reachable online/LAN). We await + inspect the result so service.log shows
+  // exactly what happened — ensureFirewallRules resolves (never rejects) with
+  // { success, created, skipped, errors }.
+  const fwPorts = [srv.gamePort, srv.queryPort, srv.rconPort].filter(Boolean).join(', ');
+  try {
+    const fw = await ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort });
+    if (fw.created.length) {
+      addLog(serverId, 'info', 'server', `Firewall rules created for ports ${fwPorts}: ${fw.created.join('; ')}`);
+    }
+    if (fw.errors.length) {
+      addLog(serverId, 'warn', 'server', `Firewall rule setup failed for ports ${fwPorts} (server may be unreachable online/LAN): ${fw.errors.join('; ')}`);
+    }
+  } catch (err) {
+    addLog(serverId, 'warn', 'server', `Firewall rule setup failed for ports ${fwPorts}: ${err.message}`);
+  }
 
   // (status was already set to 'starting' synchronously at the top)
   try {

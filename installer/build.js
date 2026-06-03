@@ -74,6 +74,13 @@ const VERSION = pkg.version || '2.0.0';
 const COPY_ITEMS = [
   'backend',
   'web',
+  // The sidecar is the per-server IPC bridge to the @CitadelAdmin in-game mod
+  // (live map positions, admin actions, killfeed). A non-bundled install
+  // resolves SIDECAR_ENTRY to <root>/sidecar/server.js (see backend/lib/paths.js);
+  // if this folder isn't staged the sidecar spawn exits code 1 on every server
+  // start and the mod bridge is dead. MUST be staged + have its prod deps
+  // installed (Step 5).
+  'sidecar',
   'package.json',
   'package-lock.json',
   '.env.example',
@@ -460,6 +467,14 @@ async function main() {
   if (fs.existsSync(path.join(backendDir, 'package.json'))) {
     run('npm install --production', { cwd: backendDir });
     log('  Backend dependencies installed');
+  }
+  // Install sidecar deps — the sidecar is spawned as its own node process
+  // (express/pino/uuid/dotenv) and needs its own node_modules or it exits
+  // code 1 the moment a server starts.
+  const sidecarDir = path.join(appDir, 'sidecar');
+  if (fs.existsSync(path.join(sidecarDir, 'package.json'))) {
+    run('npm install --production', { cwd: sidecarDir });
+    log('  Sidecar dependencies installed');
   }
   // (discord-bot/ is no longer staged — see COPY_ITEMS above — so there are no
   // bot dependencies to install. The bot lives in the citadel-bot repo / Cloud.)

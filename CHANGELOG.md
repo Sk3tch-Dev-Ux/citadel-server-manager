@@ -6,6 +6,38 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.22.1 — 2026-06-03
+
+Live-operation fixes found while validating a real server install.
+
+### Fixed
+- **Dashboard login lockout.** The brute-force login limiter was applied to the
+  entire `/api/auth/*` surface — including the session check the dashboard
+  makes on every page load — so a few reloads returned HTTP 429, which the UI
+  read as an expired session and logged the operator out, then blocked
+  re-login with "too many requests". The strict limiter now covers only
+  `POST /api/auth/login`, counts failed attempts only (`skipSuccessfulRequests`),
+  and allows 30 per 15 min; fail2ban remains the primary brute-force defense.
+- **serverDZ.cfg edits not persisting.** `writeServerConfig` silently dropped
+  changes three ways: keys outside an over-narrow allowlist were rejected; a
+  *new* key whose value was `0`/`false`/`""` was skipped (so e.g.
+  `disableVoN = 0` never wrote); and the in-place regex required a trailing `;`
+  and overwrote inline comments. All three fixed and the allowlist expanded
+  (`enableCfgGameplayFile`, `disableBaseDamage`, `maxPing`, network-tuning keys,
+  …). Regression-tested.
+- **Firewall rules never created under the Windows Service.** Rules were created
+  via UAC elevation (`Start-Process -Verb RunAs`), which cannot work from the
+  non-interactive SYSTEM service — so DayZ ports were never opened and servers
+  were invisible online and to other LAN machines. The failure was also
+  swallowed (fire-and-forget). In service mode the Agent now creates rules
+  directly (SYSTEM is already privileged) and logs the outcome per port.
+- **Sidecar missing from installed builds.** The installer never staged the
+  `sidecar/` folder, so the per-server IPC bridge to the @CitadelAdmin mod
+  (live map, admin actions, killfeed) exited code 1 on every server start. The
+  installer now stages `sidecar/` and installs its production dependencies.
+
+---
+
 ## v2.22.0 — 2026-06-03
 
 Production-readiness hardening pass ahead of public signups. Full-stack audit

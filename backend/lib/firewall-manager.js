@@ -22,6 +22,7 @@ const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
 const logger = require('./logger');
+const ctx = require('./context');
 
 const PS_FLAGS = ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden'];
 const PS_TIMEOUT = 30000; // 30 s — elevation + rule creation can be slow
@@ -126,6 +127,43 @@ function runElevatedPS(command) {
 }
 
 /**
+ * Detect whether we are running as a Windows Service / SYSTEM account.
+ *
+ * In service mode the process is launched non-interactively in session 0
+ * (under SYSTEM via NSSM) and is ALREADY fully privileged — so it must NOT
+ * try to elevate via `Start-Process -Verb RunAs` (there is no interactive
+ * desktop to show a UAC prompt against, and elevation fails silently).
+ * Instead it should create rules directly via the plain `runPS()` path.
+ *
+ * Primary signal: ctx.isServiceMode (set by server.js from CITADEL_SERVICE_MODE).
+ * Fallback: the CITADEL_SERVICE_MODE env var directly, in case this module is
+ * loaded before server.js wires up the context.
+ */
+function isServiceMode() {
+  if (ctx && ctx.isServiceMode === true) return true;
+  return process.env.CITADEL_SERVICE_MODE === '1';
+}
+
+/**
+ * Run a PowerShell command that creates/modifies firewall rules, choosing the
+ * correct execution path:
+ *   - Service / SYSTEM mode: run DIRECTLY via runPS() (already privileged;
+ *     elevation is impossible and unnecessary in session 0).
+ *   - Interactive mode: run via runElevatedPS() so a UAC prompt can grant
+ *     admin rights when the backend is not already elevated.
+ *
+ * Returns { success, exitCode }.
+ */
+async function runPrivilegedPS(command) {
+  if (isServiceMode()) {
+    const r = await runPS(command);
+    return { success: r.success, exitCode: r.success ? 0 : 1, stderr: r.stderr, direct: true };
+  }
+  const r = await runElevatedPS(command);
+  return { ...r, direct: false };
+}
+
+/**
  * Sanitize server name for safe use in PowerShell commands.
  * Strips everything except alphanumeric, spaces, dashes, underscores, dots.
  */
@@ -201,15 +239,18 @@ async function ensureFirewallRules(serverName, ports) {
     return `New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Action Allow -Protocol ${spec.protocol} -LocalPort ${spec.port} -Profile Any -Enabled True -ErrorAction Stop`;
   });
 
-  const result = await runElevatedPS(commands.join('\r\n'));
+  const result = await runPrivilegedPS(commands.join('\r\n'));
 
   if (result.success) {
     for (const spec of toCreate) {
       created.push(spec.name);
-      logger.info({ rule: spec.name }, 'Firewall rule created');
+      logger.info({ rule: spec.name, direct: result.direct }, 'Firewall rule created');
     }
   } else {
     // Partial success possible — check which rules were actually created
+    const reason = result.direct
+      ? `direct creation failed${result.stderr ? `: ${result.stderr.trim()}` : ''}`
+      : 'elevation may have been declined';
     for (const spec of toCreate) {
       const safeName = spec.name.replace(/'/g, "''");
       const verify = await runPS(
@@ -217,9 +258,9 @@ async function ensureFirewallRules(serverName, ports) {
       );
       if (verify.success && verify.stdout.trim()) {
         created.push(spec.name);
-        logger.info({ rule: spec.name }, 'Firewall rule created');
+        logger.info({ rule: spec.name, direct: result.direct }, 'Firewall rule created');
       } else {
-        const msg = `Failed to create rule "${spec.name}" (elevation may have been declined)`;
+        const msg = `Failed to create rule "${spec.name}" (${reason})`;
         errors.push(msg);
         logger.warn({ rule: spec.name }, 'Failed to create firewall rule');
       }
@@ -239,11 +280,11 @@ async function removeFirewallRules(serverName) {
   const safeName = sanitizeName(serverName).replace(/'/g, "''");
   const command = `Remove-NetFirewallRule -DisplayName 'Citadel - ${safeName} - *' -ErrorAction SilentlyContinue`;
 
-  const result = await runElevatedPS(command);
+  const result = await runPrivilegedPS(command);
   if (result.success) {
-    logger.info({ serverName }, 'Firewall rules removed');
+    logger.info({ serverName, direct: result.direct }, 'Firewall rules removed');
   } else {
-    logger.warn({ serverName, exitCode: result.exitCode }, 'Failed to remove firewall rules (elevation may have been declined)');
+    logger.warn({ serverName, exitCode: result.exitCode }, 'Failed to remove firewall rules (elevation may have been declined or direct removal failed)');
   }
 }
 
@@ -272,13 +313,16 @@ async function ensurePanelFirewallRule(port = 3001) {
 
   // Create the rule (elevated)
   const command = `New-NetFirewallRule -DisplayName '${safeName}' -Direction Inbound -Action Allow -Protocol TCP -LocalPort ${port} -Profile Any -Enabled True -ErrorAction Stop`;
-  const result = await runElevatedPS(command);
+  const result = await runPrivilegedPS(command);
 
   if (result.success) {
     created.push(ruleName);
-    logger.info({ rule: ruleName }, 'Panel firewall rule created');
+    logger.info({ rule: ruleName, direct: result.direct }, 'Panel firewall rule created');
   } else {
-    const msg = `Failed to create rule "${ruleName}" (elevation may have been declined)`;
+    const reason = result.direct
+      ? `direct creation failed${result.stderr ? `: ${result.stderr.trim()}` : ''}`
+      : 'elevation may have been declined';
+    const msg = `Failed to create rule "${ruleName}" (${reason})`;
     errors.push(msg);
     logger.warn({ rule: ruleName }, 'Failed to create panel firewall rule');
   }
@@ -286,4 +330,14 @@ async function ensurePanelFirewallRule(port = 3001) {
   return { success: errors.length === 0, created, skipped, errors };
 }
 
-module.exports = { ensureFirewallRules, removeFirewallRules, ensurePanelFirewallRule, sanitizeName, buildRuleSpecs };
+module.exports = {
+  ensureFirewallRules,
+  removeFirewallRules,
+  ensurePanelFirewallRule,
+  sanitizeName,
+  buildRuleSpecs,
+  isServiceMode,
+  runPS,
+  runElevatedPS,
+  runPrivilegedPS,
+};

@@ -174,7 +174,12 @@ app.use('/api/', verifyCsrfToken);                 // Verify for state-changing 
 
 // Rate limiting
 app.use('/api/', apiLimiter);
-app.use('/api/auth/', authLimiter);
+// Scope the strict auth limiter to the LOGIN endpoint only. Applying it to the
+// whole /api/auth/* surface throttled the session check the dashboard fires on
+// every page load — a few reloads exhausted the budget and the panel logged
+// the user out (429 read as session-invalid) then blocked re-login. All other
+// /api/auth/* routes ride the general apiLimiter (600/min).
+app.use('/api/auth/login', authLimiter);
 app.use('/api/discord/', discordLimiter);
 
 // Health check endpoints (for load balancers / orchestrators / uptime monitors)

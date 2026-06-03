@@ -34,7 +34,9 @@ const ALLOWED_CONFIG_KEYS = new Set([
   // Missions + persistence
   'class Missions', 'template', 'difficulty', 'instanceId', 'storageAutoFix',
   'storeHouseStateDisabled', 'disablePersonalLight', 'disable3rdPerson', 'disableCrosshair',
-  'disableVoN', 'vonCodecQuality', 'useRespawnInventory',
+  'disableVoN', 'vonCodecQuality', 'useRespawnInventory', 'enableCfgGameplayFile',
+  'disableBaseDamage', 'disableContainerDamage', 'disableRespawnDialog',
+  'lootHistory', 'shotValidation', 'playerRestoreDelay', 'lightingConfig',
   // Economy tuning
   'enableMouseAndKeyboard', 'forceSameBuild', 'forceRHWatchingOnly',
   'serverFpsRating', 'dayTime', 'nightTime',
@@ -42,6 +44,9 @@ const ALLOWED_CONFIG_KEYS = new Set([
   'steamQueryPort', 'queryPort', 'port',
   // Anti-cheat paths
   'verifySignatures', 'serverPort',
+  // Network tuning (DayZ:Server_Configuration)
+  'maxPing', 'loginQueueConcurrentPlayers', 'loginQueueMaxPlayers',
+  'enablePerformanceLogging', 'performanceCheckType',
 ]);
 
 /**
@@ -127,13 +132,20 @@ function writeServerConfig(installDir, updates) {
     for (const [key, value] of Object.entries(safe)) {
       if (value === null || value === undefined) continue;
       const strValue = typeof value === 'string' ? `"${value}"` : String(value);
-      const regex = new RegExp(`^(\\s*${key}\\s*=\\s*).+?(\\s*;.*)$`, 'm');
+      // Match an existing assignment. The value is non-greedy and the trailing
+      // `;` is OPTIONAL (some cfgs omit it on the last line); we capture any
+      // inline comment so it's preserved rather than clobbered. Escape the key
+      // so a key containing regex metachars can't break the pattern.
+      const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`^(\\s*${safeKey}\\s*=\\s*)[^;\\r\\n/]*(;?)([ \\t]*(?://.*)?)$`, 'm');
       if (regex.test(content)) {
-        // Key exists in file — update in place (including clearing to empty)
-        content = content.replace(regex, `$1${strValue}$2`);
-      } else if (value !== '' && value !== 0 && value !== false) {
-        // Key doesn't exist yet — only append if value is meaningful
-        // (skip empty/zero/false to avoid cluttering cfg with defaults the user never set)
+        // Key exists in file — update in place. Preserve the original line's
+        // semicolon-presence and any trailing comment ($2/$3).
+        content = content.replace(regex, `$1${strValue}$2$3`);
+      } else {
+        // Key doesn't exist yet — append it. A value of 0/false/'' is a
+        // DELIBERATE setting the operator chose (e.g. disableVoN = 0), so it
+        // MUST be written, not skipped.
         appended.push(`${key} = ${strValue};`);
       }
     }
