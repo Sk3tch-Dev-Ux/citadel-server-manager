@@ -114,6 +114,116 @@ function findWorkshopContent(workshopId, serverInstallDir) {
   return null;
 }
 
+/**
+ * Recursively find the newest mtime (ms) under a directory tree.
+ * Returns 0 if the path doesn't exist or can't be walked. Used to detect
+ * whether SteamCMD actually wrote new bytes during an update.
+ */
+function newestMtimeMs(dir) {
+  let newest = 0;
+  try {
+    const stack = [dir];
+    while (stack.length) {
+      const cur = stack.pop();
+      let st;
+      try { st = fs.statSync(cur); } catch { continue; }
+      if (st.mtimeMs > newest) newest = st.mtimeMs;
+      if (st.isDirectory()) {
+        let kids = [];
+        try { kids = fs.readdirSync(cur); } catch { kids = []; }
+        for (const k of kids) stack.push(path.join(cur, k));
+      }
+    }
+  } catch (err) {
+    logger.debug({ err, dir }, 'newestMtimeMs walk failed');
+  }
+  return newest;
+}
+
+/**
+ * Capture a fingerprint of a workshop item's on-disk state BEFORE/AFTER a
+ * SteamCMD run so we can tell a *real* update from a false success.
+ *
+ * A genuine `+workshop_download_item ... validate` that fetches a new version
+ * advances either:
+ *   - the content tree's newest mtime (new/updated files written), or
+ *   - the per-app workshop manifest (`appworkshop_<appid>.acf`) which SteamCMD
+ *     rewrites with the new timeupdated/manifest build id on every real pull.
+ *
+ * We sample both. The manifest lives at
+ * <installDir>/steamapps/workshop/appworkshop_<appid>.acf (and possibly under
+ * the SteamCMD dir for the default install location), so we check the same set
+ * of base dirs that findWorkshopContent() searches.
+ *
+ * @returns {{ exists: boolean, contentMtime: number, manifestMtime: number, manifestSize: number }}
+ */
+function captureWorkshopState(workshopId, serverInstallDir) {
+  const appId = ctx.CONFIG.steam.appId;
+  const contentPath = findWorkshopContent(String(workshopId), serverInstallDir);
+  const contentMtime = contentPath ? newestMtimeMs(contentPath) : 0;
+
+  const cmdDir = ctx.steamCmdPath ? path.dirname(ctx.steamCmdPath) : '';
+  const manifestCandidates = [
+    serverInstallDir ? path.join(serverInstallDir, 'steamapps', 'workshop', `appworkshop_${appId}.acf`) : '',
+    path.join(ctx.CONFIG.dayz.installDir, 'steamapps', 'workshop', `appworkshop_${appId}.acf`),
+    cmdDir ? path.join(cmdDir, 'steamapps', 'workshop', `appworkshop_${appId}.acf`) : '',
+  ].filter(Boolean);
+
+  let manifestMtime = 0;
+  let manifestSize = 0;
+  for (const m of manifestCandidates) {
+    try {
+      const st = fs.statSync(m);
+      if (st.mtimeMs > manifestMtime) manifestMtime = st.mtimeMs;
+      // Size can change too when the manifest's timeupdated/build id advances.
+      manifestSize += st.size;
+    } catch { /* manifest may not exist yet — that's fine */ }
+  }
+
+  return {
+    exists: !!contentPath,
+    contentMtime,
+    manifestMtime,
+    manifestSize,
+  };
+}
+
+/**
+ * Decide whether a SteamCMD run produced a *real* update, given the output and
+ * before/after on-disk fingerprints.
+ *
+ * Returns { updated: boolean, reason: string }.
+ *
+ * Design decision (documented per task A): the dedicated Update button is only
+ * surfaced once polling has detected a newer Workshop time_updated, so by the
+ * time we run an update SteamCMD *should* have something new to fetch. If it
+ * fetches nothing — login timed out, the run stalled, or SteamCMD trusted a
+ * stale cached manifest and skipped the download — neither the explicit
+ * "Success. Downloaded item" marker appears NOR does any on-disk fingerprint
+ * advance. We treat that as a failure-to-update (not a benign no-op), because
+ * silently reporting success is exactly the bug that makes "@CitadelAdmin won't
+ * update". A force-update of a genuinely-current mod is not the surfaced path,
+ * so this is the correct trade-off.
+ */
+function classifyUpdateResult(output, before, after) {
+  if (output.includes('Success. Downloaded item')) {
+    return { updated: true, reason: 'success-marker' };
+  }
+  // New content appeared where there was none before.
+  if (after.exists && !before.exists) {
+    return { updated: true, reason: 'content-created' };
+  }
+  // Content bytes were rewritten (newer mtime than before the run).
+  if (after.contentMtime > before.contentMtime) {
+    return { updated: true, reason: 'content-mtime-advanced' };
+  }
+  // The per-app workshop manifest advanced (timeupdated/build id rewritten).
+  if (after.manifestMtime > before.manifestMtime || after.manifestSize !== before.manifestSize) {
+    return { updated: true, reason: 'manifest-advanced' };
+  }
+  return { updated: false, reason: 'no-change' };
+}
+
 async function _downloadWorkshopModImpl(workshopId, modName, serverId) {
   const cmdPath = await ensureSteamCMD();
   const appId = ctx.CONFIG.steam.appId;
@@ -134,6 +244,13 @@ async function _downloadWorkshopModImpl(workshopId, modName, serverId) {
   args.push('+workshop_download_item', appId, workshopId, 'validate', '+quit');
 
   if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status: 'downloading', progress: 0, message: `Logging into Steam as ${ctx.steamCredentials.username}...` });
+
+  // Fingerprint state before the run. For a download we accept either the
+  // success marker OR newly-appeared/advanced content — but NOT pre-existing,
+  // untouched content (that would mask a login-timeout false success the same
+  // way the update path did).
+  const dlSrvDir = ctx.servers.find(s => s.id === serverId)?.installDir;
+  const before = captureWorkshopState(workshopId, dlSrvDir);
 
   return new Promise((resolve, reject) => {
     const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
@@ -183,10 +300,21 @@ async function _downloadWorkshopModImpl(workshopId, modName, serverId) {
       clearTimeout(timeout);
       if (needsSteamGuard) { ctx.steamLoginValidated = false; return reject(new Error('Steam Guard code required.')); }
       if (output.includes('Invalid Password') || output.includes('Login Failure')) { ctx.steamLoginValidated = false; return reject(new Error('Invalid Steam credentials.')); }
-      const srvDir = ctx.servers.find(s => s.id === serverId)?.installDir;
-      const contentPath = findWorkshopContent(workshopId, srvDir);
-      if (contentPath) { ctx.steamLoginValidated = true; resolve(contentPath); }
-      else reject(new Error('Download failed — content not found.'));
+      const after = captureWorkshopState(workshopId, dlSrvDir);
+      const verdict = classifyUpdateResult(output, before, after);
+      const contentPath = findWorkshopContent(workshopId, dlSrvDir);
+      if (verdict.updated && contentPath) {
+        ctx.steamLoginValidated = true;
+        logger.info({ workshopId, reason: verdict.reason }, 'Workshop mod download verified');
+        return resolve(contentPath);
+      }
+      // Pre-existing but untouched content, or no content at all → not a real
+      // download. Surface a clear, retryable error (the retry wrapper will
+      // back off and try again on this transient/timeout case).
+      reject(new Error(
+        'SteamCMD did not fetch the mod (possible login timeout or stalled download). ' +
+        'Retrying may help; if it persists, clear steamapps/workshop/appworkshop_' + appId + '.acf to force a re-pull.'
+      ));
     });
     proc.on('error', (err) => { clearTimeout(timeout); reject(err); });
   });
@@ -395,6 +523,11 @@ async function _updateWorkshopModImpl(serverId, installDir, modId) {
 
   if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: `Updating mod ${modId} via SteamCMD...` });
 
+  // Fingerprint the on-disk state BEFORE the run so we can tell a real update
+  // from a false success (login timeout / stalled fetch / stale cached manifest).
+  const srvDirForState = srv ? srv.installDir : installDir;
+  const before = captureWorkshopState(modId, srvDirForState);
+
   return new Promise((resolve, reject) => {
     const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
     let output = '';
@@ -426,6 +559,7 @@ async function _updateWorkshopModImpl(serverId, installDir, modId) {
 
     proc.on('exit', () => {
       clearTimeout(timeout);
+      // ── Hard auth failures: never retry these (see updateWorkshopModWithRetry) ──
       if (output.includes('Invalid Password') || output.includes('Login Failure')) {
         ctx.steamLoginValidated = false;
         return reject(new Error('Invalid Steam credentials.'));
@@ -434,17 +568,41 @@ async function _updateWorkshopModImpl(serverId, installDir, modId) {
         ctx.steamLoginValidated = false;
         return reject(new Error('Steam Guard code required.'));
       }
-      if (output.includes('Success. Downloaded item')) {
+
+      // ── Real-vs-false update detection ──
+      // Compare the on-disk fingerprint captured before the run against now.
+      // A genuine update advances content mtime / manifest, or prints the
+      // explicit success marker. Anything else means SteamCMD fetched nothing.
+      const after = captureWorkshopState(modId, srvDirForState);
+      const verdict = classifyUpdateResult(output, before, after);
+      if (verdict.updated) {
         ctx.steamLoginValidated = true;
+        logger.info({ modId, reason: verdict.reason }, 'Workshop mod update verified');
         return resolve();
       }
-      // Check if workshop content exists
-      const contentPath = findWorkshopContent(String(modId), installDir);
-      if (contentPath) {
-        ctx.steamLoginValidated = true;
-        return resolve();
+
+      // Nothing was fetched. Distinguish SteamCMD's own "already up to date" /
+      // timeout phrasing for a clearer message, but still treat it as a
+      // failure-to-update (the Update button is only shown when a newer version
+      // was detected upstream — so "no new bytes" is wrong here).
+      logger.warn({ modId, before, after, steamcmdOutput: output.substring(0, 500) }, 'Workshop mod update did not fetch a new version');
+      const lower = output.toLowerCase();
+      if (/already up to date|no update available|nothing to do/.test(lower)) {
+        return reject(new Error(
+          'SteamCMD reported the item already up to date but a newer Workshop version was expected. ' +
+          'The cached manifest may be stale — clear steamapps/workshop/appworkshop_' + appId + '.acf to force a re-pull, then try again.'
+        ));
       }
-      reject(new Error(`Workshop mod update failed for item ${modId}`));
+      if (/timeout|timed out|connection|no subscription|failed to install/.test(lower)) {
+        return reject(new Error(
+          'SteamCMD did not fetch a new version (possible login timeout or connection issue). ' +
+          'Try again; if it persists, clear steamapps/workshop/appworkshop_' + appId + '.acf to force a re-pull.'
+        ));
+      }
+      reject(new Error(
+        'SteamCMD did not fetch a new version (possible login timeout or already-cached manifest). ' +
+        'Try again; if it persists, clear steamapps/workshop/appworkshop_' + appId + '.acf to force a re-pull.'
+      ));
     });
 
     proc.on('error', (err) => {
@@ -481,6 +639,43 @@ async function downloadWorkshopModWithRetry(workshopId, modName, serverId, maxRe
   throw lastError;
 }
 
+/**
+ * Wrapper around updateWorkshopMod with automatic retry on transient failures.
+ * Mirrors downloadWorkshopModWithRetry: up to 2 retries with 5s/15s delays.
+ *
+ * Does NOT retry on auth failures (guard / credential / password / rate limit)
+ * — those need user action. DOES retry on the "did not fetch a new version"
+ * false-success error and on timeouts / transient errors, which is exactly the
+ * login-timeout class of failure that root cause (A) now surfaces instead of
+ * silently reporting success.
+ *
+ * Calls the *locked* updateWorkshopMod per attempt so the single-flight
+ * withSteamLock mutex is released during the inter-retry backoff (consistent
+ * with how the download path does it) — we never sleep while holding the lock.
+ */
+async function updateWorkshopModWithRetry(serverId, installDir, modId, maxRetries = 2) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await updateWorkshopMod(serverId, installDir, modId);
+    } catch (err) {
+      lastError = err;
+      const msg = (err.message || '').toLowerCase();
+      // Don't retry auth failures — they require the user to re-enter creds/guard.
+      if (msg.includes('guard') || msg.includes('credential') || msg.includes('password') || msg.includes('rate limit')) {
+        throw err;
+      }
+      if (attempt < maxRetries) {
+        const delay = attempt === 0 ? 5000 : 15000;
+        logger.warn({ modId, serverId, attempt: attempt + 1, error: err.message }, `Mod update failed, retrying in ${delay / 1000}s...`);
+        if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: `Update failed — retrying (attempt ${attempt + 2}/${maxRetries + 1})...` });
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // ─── SteamCMD concurrency lock ──────────────────────────────
 // Every SteamCMD invocation is serialized through a single global mutex so two
 // processes never share the staging dir / auth-token cache at once. The retry
@@ -499,4 +694,4 @@ function updateWorkshopMod(serverId, installDir, modId) {
   return withSteamLock('updateWorkshopMod', () => _updateWorkshopModImpl(serverId, installDir, modId));
 }
 
-module.exports = { ensureSteamCMD, findWorkshopContent, downloadWorkshopMod: downloadWorkshopModWithRetry, validateSteamLogin, updateServerApp, updateWorkshopMod };
+module.exports = { ensureSteamCMD, findWorkshopContent, captureWorkshopState, classifyUpdateResult, downloadWorkshopMod: downloadWorkshopModWithRetry, validateSteamLogin, updateServerApp, updateWorkshopMod: updateWorkshopModWithRetry };

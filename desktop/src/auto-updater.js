@@ -40,6 +40,7 @@ const util = require('util');
 const fs = require('fs');
 const path = require('path');
 const desktopTelemetry = require('./desktop-telemetry');
+const { getInstallDir } = require('./install-paths');
 
 const execAsync = util.promisify(exec);
 
@@ -137,15 +138,26 @@ function warn(...args) {
 async function stopServiceGracefully({ timeoutMs = 20000 } = {}) {
   log('stopping CitadelServer before install');
 
-  // 1. Ask NSSM to stop the service. NSSM has its own graceful-shutdown
-  //    timeout configured in service-installer.js; the timeout here is just
-  //    for the exec() call returning, not for the service to actually stop.
+  // 1. Ask NSSM to stop the service. nssm.exe is NOT on PATH — it lives at
+  //    <install>/runtime/nssm.exe. Calling bare `nssm` fails with "'nssm' is
+  //    not recognized", so the service never stopped and the install ran
+  //    against locked files. Resolve the real path (fall back to bare `nssm`
+  //    only if the install dir can't be found). NSSM has its own graceful-
+  //    shutdown timeout configured in service-installer.js; the timeout here
+  //    is just for the exec() call returning, not for the service to stop.
+  let nssmCmd = 'nssm';
   try {
-    await execAsync(`nssm stop ${SERVICE_NAME}`, { timeout: timeoutMs, windowsHide: true });
+    const installDir = getInstallDir();
+    const nssmPath = installDir && path.join(installDir, 'runtime', 'nssm.exe');
+    if (nssmPath && fs.existsSync(nssmPath)) nssmCmd = `"${nssmPath}"`;
+  } catch { /* fall back to bare nssm */ }
+  try {
+    await execAsync(`${nssmCmd} stop ${SERVICE_NAME}`, { timeout: timeoutMs, windowsHide: true });
     log('nssm stop returned cleanly');
   } catch (err) {
     // Stop is allowed to "fail" if the service was already stopped, or if
-    // nssm.exe isn't on PATH (we'll fall through to PowerShell).
+    // nssm.exe isn't resolvable (we'll fall through to PowerShell + the
+    // node.exe-exit poll below).
     warn('nssm stop returned non-zero (may already be stopped):', err.message);
   }
 

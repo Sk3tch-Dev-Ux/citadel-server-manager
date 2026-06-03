@@ -12,9 +12,40 @@ const { addNotification, fireWebhooks } = require('../lib/notifications');
 const { auth, authForServer } = require('../middleware/auth');
 const { validate } = require('../lib/request-validator');
 const modCache = require('../lib/mod-cache');
-const { getPendingModUpdates, clearPendingModUpdate, checkModUpdatesNow } = require('../lib/polling');
+const polling = require('../lib/polling');
+const { getPendingModUpdates, clearPendingModUpdate, checkModUpdatesNow } = polling;
 const integrity = require('../lib/integrity-engine');
 const logger = require('../lib/logger');
+
+/**
+ * Fetch the remote Workshop `time_updated` for an item so the install route can
+ * version-invalidate a stale cache entry (root cause B). Returns null on any
+ * network / parse failure so callers fall back to TTL-only cache behaviour and
+ * never crash the install.
+ *
+ * Prefers polling.getWorkshopModVersion when exported (single source of truth);
+ * otherwise issues the identical GetPublishedFileDetails request inline. We do
+ * NOT throw — a null just means "couldn't determine remote version".
+ */
+async function fetchWorkshopTimeUpdated(workshopId) {
+  try {
+    if (typeof polling.getWorkshopModVersion === 'function') {
+      return await polling.getWorkshopModVersion(workshopId);
+    }
+    const resp = await fetch('https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `itemcount=1&publishedfileids[0]=${workshopId}`,
+      signal: AbortSignal.timeout(15_000),
+    });
+    const data = await resp.json();
+    const file = data?.response?.publishedfiledetails?.[0];
+    return file ? file.time_updated : null;
+  } catch (err) {
+    logger.debug({ err: err.message, workshopId }, 'Workshop time_updated lookup failed — falling back to TTL cache');
+    return null;
+  }
+}
 
 module.exports = function(app) {
   app.get('/api/servers/:id/mods', authForServer('mods.view'), (req, res) => {
@@ -40,16 +71,20 @@ module.exports = function(app) {
     res.json({ message: 'Download started', workshopId });
 
     try {
-      // Check mod cache first
-      let contentPath = modCache.getCached(String(workshopId));
+      // Check mod cache first — pass the remote Workshop time_updated so a newer
+      // version on Steam invalidates a stale cache entry (root cause B). A null
+      // (network fail) falls back to TTL-only behaviour and won't crash install.
+      const remoteTimeUpdated = await fetchWorkshopTimeUpdated(String(workshopId));
+      let contentPath = modCache.getCached(String(workshopId), remoteTimeUpdated);
       if (contentPath) {
         ctx.activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
         ctx.io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'installing', progress: 90, message: `Installing from cache...` });
       } else {
         ctx.activeInstalls[workshopId] = { status: 'downloading', progress: 0, name };
         contentPath = await downloadWorkshopMod(String(workshopId), name, srv.id);
-        // Store in cache for future use
-        modCache.storeInCache(String(workshopId), contentPath, name);
+        // Store in cache for future use, stamping the remote time_updated so a
+        // later install can detect when Steam has a newer version (root cause B).
+        modCache.storeInCache(String(workshopId), contentPath, name, remoteTimeUpdated);
         ctx.activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
       }
       const result = installModToServer(contentPath, name, String(workshopId), srv.installDir);

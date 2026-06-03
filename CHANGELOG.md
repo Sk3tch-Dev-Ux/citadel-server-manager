@@ -6,6 +6,36 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.22.2 — 2026-06-03
+
+Mod-update reliability and a fix for the self-update loop.
+
+### Fixed
+- **In-app / desktop auto-update loop.** electron-updater's silent install
+  spawns `<install>/desktop/resources/elevate.exe` to elevate the per-machine
+  NSIS install, but the build ran `electron-builder --dir`, which never emits
+  that helper — so `quitAndInstall` died with `spawn elevate.exe ENOENT`, the
+  app relaunched on the old version, and re-detected the same update forever.
+  The desktop build now runs the full nsis target (`--publish never`), which
+  includes `elevate.exe`, and the installer build hard-fails if it's missing.
+- **Service not stopped before self-update.** The desktop updater called bare
+  `nssm stop`, but nssm.exe lives at `<install>/runtime/nssm.exe` and isn't on
+  PATH, so the service kept files locked during install. It now resolves the
+  real nssm path from the install directory.
+- **Mods silently not updating.** Three causes: (1) `_updateWorkshopModImpl`
+  reported success whenever *any* existing content was found on disk, so a
+  SteamCMD login timeout or an already-cached manifest looked like a successful
+  update while nothing changed — it now compares a before/after fingerprint
+  (content mtime + `appworkshop_<appid>.acf` manifest) and the explicit
+  `Success. Downloaded item` marker, and reports an actionable error when
+  nothing was actually fetched; (2) the install path called `getCached()`
+  without the Workshop `time_updated`, so a newer version never invalidated the
+  cache — it's now passed through; (3) the update path had no retry, so transient
+  SteamCMD login timeouts weren't recovered — it now retries with backoff like
+  the download path (skipping auth failures).
+
+---
+
 ## v2.22.1 — 2026-06-03
 
 Live-operation fixes found while validating a real server install.

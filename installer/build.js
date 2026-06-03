@@ -501,10 +501,20 @@ async function main() {
       log('  Installing desktop/ dependencies (first run — downloads Electron ~150MB)...');
       run('npm install', { cwd: desktopSrcDir });
     }
-    log('  Running electron-builder --dir...');
-    run('npm run pack', { cwd: desktopSrcDir });
+    // Build the FULL nsis target (not --dir). electron-updater's silent
+    // self-update spawns <install>/desktop/resources/elevate.exe to trigger
+    // the per-machine UAC elevation; `--dir` never produces that helper, so
+    // quitAndInstall failed with "spawn elevate.exe ENOENT" and the app
+    // relaunched on the old version → perpetual "update available" loop.
+    // The full nsis build downloads the NSIS resources and lays elevate.exe
+    // into win-unpacked/resources/. `--publish never` stops electron-builder
+    // from pushing its own CitadelDesktop-*.exe to GitHub Releases in CI
+    // (we ship CitadelSetup via citadel.nsi, not electron-builder's installer).
+    log('  Running electron-builder (full nsis target, --publish never)...');
+    run('npm run build -- --publish never', { cwd: desktopSrcDir });
 
-    // electron-builder --dir produces dist/win-unpacked/
+    // The full build still produces dist/win-unpacked/ (plus an installer we
+    // ignore). win-unpacked now contains resources/elevate.exe.
     const unpackedDir = path.join(desktopSrcDir, 'dist', 'win-unpacked');
     if (!fs.existsSync(unpackedDir)) {
       throw new Error(`Electron output not found at ${unpackedDir}`);
@@ -513,6 +523,18 @@ async function main() {
     ensureDir(stagingDesktop);
     copyDir(unpackedDir, stagingDesktop);
     log(`  Desktop app staged at ${stagingDesktop}`);
+
+    // Hard gate: the in-app auto-updater is dead without elevate.exe. Fail the
+    // build loudly here rather than ship another silent self-update loop.
+    const elevateExe = path.join(stagingDesktop, 'resources', 'elevate.exe');
+    if (!fs.existsSync(elevateExe)) {
+      throw new Error(
+        'desktop/resources/elevate.exe missing after the electron-builder build. ' +
+        'The in-app auto-updater cannot elevate without it (spawn ENOENT → update loop). ' +
+        'Confirm the win target is "nsis" and the build was a full (non --dir) run.'
+      );
+    }
+    log('  Verified elevate.exe present for auto-updater elevation');
 
     // ─── Generate app-update.yml ─────────────────────────────
     // electron-updater reads this file at runtime to know which provider
