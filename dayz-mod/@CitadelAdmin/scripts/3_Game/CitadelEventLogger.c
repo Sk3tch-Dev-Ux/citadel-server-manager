@@ -26,6 +26,27 @@ class CitadelEventLogger
     static const int BATCH_SIZE = 20;
     static const float FLUSH_INTERVAL = 2.0;
 
+    // ─── Direct (no-agent) mode ─────────────────────────────
+    // When set (cloud.json present, see CitadelCloudClient), every logged event
+    // is ALSO mirrored into this buffer, which the cloud client drains and POSTs
+    // straight to the cloud over HTTP — no host-side agent. Capped so an offline
+    // cloud can't grow it unbounded (drop-oldest).
+    static bool s_DirectMode = false;
+    static ref array<string> s_DirectBuffer = new array<string>();
+    static const int DIRECT_BUFFER_CAP = 2000;
+
+    static void SetDirectMode(bool on) { s_DirectMode = on; }
+
+    // Returns the buffered event lines and clears the buffer.
+    static array<string> DrainDirectBuffer()
+    {
+        array<string> out = new array<string>();
+        for (int i = 0; i < s_DirectBuffer.Count(); i++)
+            out.Insert(s_DirectBuffer.Get(i));
+        s_DirectBuffer.Clear();
+        return out;
+    }
+
     // ─── Utility ─────────────────────────────────────────
 
     static string EscapeJson(string input)
@@ -90,6 +111,14 @@ class CitadelEventLogger
 
     protected static void AppendLine(string line)
     {
+        // Direct mode: mirror to the HTTP egress buffer (drop-oldest if full).
+        if (s_DirectMode)
+        {
+            if (s_DirectBuffer.Count() >= DIRECT_BUFFER_CAP)
+                s_DirectBuffer.Remove(0);
+            s_DirectBuffer.Insert(line);
+        }
+
         s_EventBuffer.Insert(line);
 
         // Warn if buffer is growing too large (indicates flush failures)

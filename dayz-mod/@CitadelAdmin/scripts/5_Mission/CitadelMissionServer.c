@@ -14,6 +14,7 @@ modded class MissionServer
     protected ref CitadelPlayerTracker m_CitPlayerTracker;
     protected ref CitadelMetricsTracker m_CitMetricsTracker;
     protected ref CitadelReporter m_CitReporter;
+    protected ref CitadelCloudClient m_CitCloudClient; // direct mode (G2) — no-op without cloud.json
 
     // Mission loaded tracking (for ProgressEvent detection)
     protected bool m_CitMissionLoaded = false;
@@ -46,6 +47,10 @@ modded class MissionServer
         m_CitPlayerTracker = new CitadelPlayerTracker();
         m_CitMetricsTracker = new CitadelMetricsTracker();
         m_CitReporter = new CitadelReporter();
+        // Direct-mode cloud client (G2): activates only if $profile:Citadel/cloud.json
+        // exists, else a no-op. Created after the runner so command-file execution is
+        // ready when the cloud starts handing back commands.
+        m_CitCloudClient = new CitadelCloudClient();
 
         // Init grid scan state
         m_ScanGridX = 0;

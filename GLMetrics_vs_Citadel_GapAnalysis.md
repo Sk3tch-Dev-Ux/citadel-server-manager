@@ -211,7 +211,7 @@ anti-cheat timing.**
 |---|-----|----------|--------|--------|-------|
 | G1 | Durable cloud delivery / replay | HIGH | Low–Med | IN PROGRESS | **Phase 1 implemented (PR3, 2026-06-02)** — durable per-server events cursor + replay-on-reconnect; needs live outage test. Phase 2 (exactly-once ack) deferred. See plan doc |
 | G3 | Live anti-cheat (periodic stats + alert pipeline) | HIGH | Low | IN PROGRESS | **G3a+G3b implemented (PR2, 2026-06-02)** — mod emits periodic stats + agent forwards; needs live smoke test. G3c (opt-in auto-kick) pending. See plan doc |
-| G2 | Bridge SPOF / mod self-sufficiency | HIGH | Med–High | IN PROGRESS | **Direct mod→cloud chosen (rented-host reach).** Cloud Phase 1 HTTP ingest built 2026-06-02 — see `GLMetrics_Gap_G2_ImplementationPlan.md`. Mod client (Phase 2, Enforce) next |
+| G2 | Bridge SPOF / mod self-sufficiency | HIGH | Med–High | IN PROGRESS | **Direct mod→cloud.** Phase 1 (cloud ingest) + Phase 2 (cloud translator + mod `CitadelCloudClient`) built 2026-06-02 — cloud type-checks; mod needs host validation. Phase 3 = onboarding. See `GLMetrics_Gap_G2_ImplementationPlan.md` |
 | G4 | Economy/loot/spawnable telemetry | MED | Med | OPEN | New premium analytics surface |
 | G5 | Mod tamper/repack guard | MED | Low–Med | OPEN | Licensing + brand protection |
 | G6 | Mod-layer secret/endpoint agility | LOW | n/a | OPEN | Only if G2c is pursued |

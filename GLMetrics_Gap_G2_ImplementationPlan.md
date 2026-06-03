@@ -79,12 +79,24 @@ POSTs results.
 > via Redis — same limitation the WS path already has. Phases 2–3 (mod client + onboarding) need a
 > real DayZ host to validate.
 
-### Phase 2 — Mod direct-mode client  `[mod, Enforce, not compilable here]`
-- [ ] `CitadelCloudClient.c` — read `cloud.json`; build `RestContext`; batch telemetry (mirror the
-      agent forwarder's message mapping); POST on cadence; parse `commands` from the response and
-      run them through `CitadelCommandRunner`; POST results.
-- [ ] Mode gate in `CitadelCore` init: direct mode iff `cloud.json` present.
-- [ ] Reuse the existing event/metrics/stats/hit serializers — same shapes the agent sends.
+### Phase 2 — Mod direct-mode client  `[mod, Enforce]` — ✅ WRITTEN 2026-06-02 (needs host validation)
+**Design refinement:** to minimise unverifiable Enforce, the **mod posts its RAW telemetry files**
+(already valid JSON) and the **cloud translates** (`mod-telemetry-translate.ts`, ported from the
+agent forwarder, **type-checked**). The mod does no per-topic serialization.
+- [x] **Cloud (verifiable):** `mod-telemetry-translate.ts` (events + metrics/positions/vehicles/
+      world snapshots → wire messages); `/ingest` now accepts the raw mod payload, translates, sinks,
+      returns queued commands; **API key in the body** (Enforce can't set headers) or Bearer. All
+      cloud packages type-check.
+- [x] **Mod:** `CitadelCloudClient.c` — reads `cloud.json`; `RestContext` POST to `/ingest` on a timer
+      with events (drained from a new `CitadelEventLogger` direct buffer) + snapshot files; parses
+      `commands` from the response and **writes them as `commands/<id>.cmd.json` so the existing
+      `CitadelCommandRunner` executes them unchanged** (all 40+ actions reused); posts each
+      `responses/<id>.res.json` back to `/commands/<id>/result`.
+- [x] Mode gate: `CitadelCloudClient` is a **no-op unless `cloud.json` exists**; wired into
+      `CitadelMissionServer.OnInit` next to the other subsystems. `CitadelEventLogger` gains a capped
+      direct-egress buffer (`SetDirectMode`/`DrainDirectBuffer`).
+- [ ] **Validate on a live rented host** (compile + a real POST round-trip + a command execute). The
+      `.c` can't compile outside the DayZ toolchain.
 
 ### Phase 3 — Onboarding + hardening
 - [ ] Dashboard: "Add server (no-agent / RCON+mod)" flow that issues a key and shows the
@@ -104,5 +116,10 @@ POSTs results.
 - 2026-06-02 — Plan drafted. Decisions D1–D6 proposed with recommendations.
 - 2026-06-02 — Decisions locked (D2 = command-in-response, D4 = auto + cloud guard, build Phase 1 now).
   **Phase 1 (cloud HTTP ingest) built + type-checks clean:** `plugin-http-queue.ts`,
-  `plugin-ingest.routes.ts`, `dispatchCommand` HTTP routing, `/plugin` scope in `app.ts`. Next:
-  Phase 2 mod `CitadelCloudClient` (Enforce) + Phase 3 onboarding.
+  `plugin-ingest.routes.ts`, `dispatchCommand` HTTP routing, `/plugin` scope in `app.ts`.
+- 2026-06-02 — **Phase 2 built.** Cloud (verifiable): `mod-telemetry-translate.ts` (raw mod → wire,
+  ported from the agent forwarder) + `/ingest` translates raw payloads + key-in-body auth — all cloud
+  packages type-check. Mod (Enforce, needs host validation): `CitadelCloudClient.c` (read cloud.json →
+  POST raw telemetry + bridge commands through the existing `CitadelCommandRunner` via `.cmd.json`/
+  `.res.json`), `CitadelEventLogger` direct buffer, wired into `MissionServer.OnInit`. Next: **Phase 3
+  onboarding** (issue key → cloud.json snippet, host docs, mod offline buffering) + live validation.

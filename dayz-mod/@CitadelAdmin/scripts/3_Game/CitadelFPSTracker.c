@@ -131,7 +131,13 @@ modded class DayZGame
                 }
             }
 
-            this.cit_ticks++;
+            // Count SIMULATION frames only. On an idle dedicated server OnUpdate
+            // is called uncapped (tens of thousands/sec), so counting every call
+            // reported a meaningless ~41k "FPS". doSim is true on actual sim ticks
+            // — counting those gives the real server FPS (~30-60) that fits the
+            // cloud's fps×100 smallint and matches what operators expect.
+            if (doSim)
+                this.cit_ticks++;
             if (this.cit_tpsTime + 1 < tickTime)
             {
                 this.cit_tpsTime = tickTime;
