@@ -329,9 +329,12 @@ class Forwarder {
         case 'playerStats':
           this._emitPlayerStats(ev);
           break;
+        case 'hit':
+          this._emitHit(ev);
+          break;
         default:
-          // Other event types (hit, baseBuilt, dynamicEvent, etc.) are out
-          // of scope for Phase 4 — left for a later pass.
+          // Other event types (baseBuilt, dynamicEvent, etc.) are out of
+          // scope for now — left for a later pass.
       }
     }
   }
@@ -451,6 +454,32 @@ class Forwarder {
         shots_hit_infected: _safeInt(ev.shots_hit_infected, 0),
         shots_hit_animal: _safeInt(ev.shots_hit_animal, 0),
         shots_hit_vehicle: _safeInt(ev.shots_hit_vehicle, 0),
+        distance_traveled: _safeNum(ev.distance_traveled, 0),
+        vehicle_distance: _safeNum(ev.vehicle_distance, 0),
+      },
+    });
+  }
+
+  // ─── player_hit (damage events → dmg dealt/received + timeline) ───────
+  //
+  // Mod's `hit` event writes the VICTIM as steamId/name plus the attacker,
+  // weapon/ammo/zone/damage. Cloud stores both sides so it can aggregate
+  // damage dealt (by attacker) and received (by victim) and show a damage
+  // timeline on the per-player map-travel view.
+  _emitHit(ev) {
+    if (!ev.steamId) return; // victim required
+    this._client?.send({
+      type: 'player_hit',
+      ts: _eventTs(ev),
+      data: {
+        victim_steam_id: String(ev.steamId),
+        victim_name: String(ev.name || ''),
+        attacker_steam_id: String(ev.attackerSteamId || ''),
+        attacker_name: String(ev.attackerName || ''),
+        weapon: String(ev.weapon || ''),
+        ammo: String(ev.ammo || ''),
+        zone: String(ev.zone || ''),
+        damage: _safeNum(ev.damage, 0),
       },
     });
   }

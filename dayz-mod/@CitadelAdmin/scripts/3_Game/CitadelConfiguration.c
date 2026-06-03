@@ -11,7 +11,9 @@ class CitadelConfiguration
 
     // Intervals (milliseconds)
     int pollIntervalMs = 500;
-    int playerUpdateIntervalMs = 5000;
+    // 3s (was 5s) so the live map + map-travel position trail are denser/smoother.
+    // Drives players.json (positions + health/survival), so don't go below ~2s.
+    int playerUpdateIntervalMs = 3000;
     int metricsUpdateIntervalMs = 15000;
     int reportingIntervalMs = 10000;
     int statsUpdateIntervalMs = 30000; // periodic per-player stats emit (live anti-cheat)

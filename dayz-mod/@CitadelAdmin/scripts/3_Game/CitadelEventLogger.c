@@ -308,6 +308,8 @@ class CitadelEventLogger
         l += "," + JNum("shots_hit_infected", s.shotsHitInfected.ToString());
         l += "," + JNum("shots_hit_animal", s.shotsHitAnimals.ToString());
         l += "," + JNum("shots_hit_vehicle", s.shotsHitVehicles.ToString());
+        l += "," + JNum("distance_traveled", s.distance.ToString());
+        l += "," + JNum("vehicle_distance", s.vehicleDistance.ToString());
         l += "," + JStr("timestamp", GetTimestamp()) + "}";
         AppendLine(l);
     }
