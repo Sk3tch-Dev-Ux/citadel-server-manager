@@ -40,11 +40,11 @@ class CitadelEventLogger
     // Returns the buffered event lines and clears the buffer.
     static array<string> DrainDirectBuffer()
     {
-        array<string> out = new array<string>();
+        array<string> result = new array<string>();
         for (int i = 0; i < s_DirectBuffer.Count(); i++)
-            out.Insert(s_DirectBuffer.Get(i));
+            result.Insert(s_DirectBuffer.Get(i));
         s_DirectBuffer.Clear();
-        return out;
+        return result;
     }
 
     // ─── Utility ─────────────────────────────────────────

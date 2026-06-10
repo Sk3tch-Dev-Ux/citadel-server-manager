@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Fixed
+- **@CitadelAdmin mod failed to compile at server boot** (`Expected name, not
+  a keyword 'out'`). The cloud direct-mode additions used `out` — a reserved
+  Enforce Script keyword — as a local variable name in
+  `CitadelEventLogger.DrainDirectBuffer()` and two `CitadelCloudClient`
+  helpers, so any server launched with the mod refused to start. Renamed to
+  `result` in all three places; PBO repacked and re-signed.
+
 ### Removed
 - **Repo tidy-up (no runtime impact).** Removed from the source tree (all
   recoverable from git history): the deprecated in-repo `discord-bot/` (the bot
