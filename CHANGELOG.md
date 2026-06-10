@@ -52,7 +52,10 @@ real-time bandwidth, and crash-proof async error handling.
   path-to-regexp ReDoS and socket.io-parser unbounded binary attachments);
   full test suite re-verified. Frontend: all high-severity advisories
   resolved. Root: `concurrently` bumped to v10 (dev-only) — zero remaining
-  advisories at root.
+  advisories at root. Desktop: Electron 34 → 42 and electron-builder 25 → 26
+  (clears 11 high-severity advisories in the Electron runtime and the `tar`
+  build chain; electron-updater bumped to 6.8.9) — zero remaining advisories
+  in the desktop tree. NSIS build and app launch re-verified on Electron 42.
 
 ---
 ## v2.22.2 — 2026-06-03
