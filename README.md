@@ -65,9 +65,9 @@ The Agent still exposes the `/api/discord/*` API surface that the bot calls into
 so a self-hosted citadel-bot (or the Cloud-hosted one) authenticates and operates
 against your local Agent as before. The Agent itself no longer launches the bot.
 
-> A deprecated in-Agent spawn path remains for one migration window only —
-> see [discord-bot/DEPRECATED.md](discord-bot/DEPRECATED.md) and the
-> `CITADEL_AGENT_SPAWN_BOT` flag below.
+> The bundled `discord-bot/` directory was removed from this repo after the
+> one-release migration window (v2.23.0). Run the bot from the citadel-bot
+> repo or use the Cloud-hosted one.
 
 ---
 
@@ -149,7 +149,7 @@ The Discord bot is a separate process that lives in its own repo / Citadel Cloud
 
 The Discord bot was extracted to the [citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot) repo and is hosted by [Citadel Cloud](https://citadels.cc/cloud). The Agent **does not** launch it. Self-hosters run citadel-bot independently and point it at this Agent via `DISCORD_BOT_API_KEY` (the shared secret the Agent issues for `/api/discord/*` calls).
 
-> **Legacy escape hatch (deprecated):** setting `CITADEL_AGENT_SPAWN_BOT=1` in `.env` restores the old behavior where the Agent spawns a bundled `discord-bot/` as a managed child process (auto-restart with 5s → 15s → 30s → 60s backoff). This only works for from-source installs that still have the `discord-bot/` folder — it is **not** bundled in the installer — and will be removed in a future release. See [discord-bot/DEPRECATED.md](discord-bot/DEPRECATED.md).
+> **Legacy escape hatch (removed):** the `CITADEL_AGENT_SPAWN_BOT=1` flag used to spawn a bundled `discord-bot/` as a managed child process. That directory was removed from the repo after v2.23.0, so the flag now logs a notice and skips — run [citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot) as its own process instead.
 
 ### Sidecar
 
@@ -277,7 +277,6 @@ Citadel/
 │       └── contexts/          # Auth, Socket, Toast providers
 ├── sidecar/                   # Node.js bridge to DayZ mod
 ├── dayz-mod/@CitadelAdmin/    # EnScript server-side mod
-├── discord-bot/               # DEPRECATED — bot moved to the citadel-bot repo (see discord-bot/DEPRECATED.md)
 ├── desktop/                   # Electron wrapper (packaged installer shell)
 ├── installer/                 # NSIS installer + build.js staging script
 ├── data/                      # JSON file persistence (runtime)

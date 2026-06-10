@@ -1,1 +1,0 @@
-{"server_id":"SERVER1","poll_interval_seconds":10,"commands_url":"https://example.com/api/dayz/commands","ack_url":"https://example.com/api/dayz/ack","api_key":"REPLACE_ME","command_logging_enabled":true,"player_events_enabled":true,"debug_logging_enabled":true}

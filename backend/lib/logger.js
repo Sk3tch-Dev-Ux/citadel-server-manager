@@ -74,10 +74,11 @@ const logger = pino({
 // secret. Callers that log raw URLs (request handlers, error middleware) must
 // pass them through this helper.
 //
-// Audit N3 stop-gap (2026-05-19): the DayZ mod's CommandRelay still sends
-// `?api_key=...&server_id=...` on every GET poll (Scripts/CommandRelay.c:1586)
-// pending the header-based auth migration. This helper closes the backend-log
-// half of that leak.
+// Audit N3 stop-gap (2026-05-19): the legacy CommandRelay DayZ mod still sends
+// `?api_key=...&server_id=...` on every GET poll (CommandRelay.c — removed from
+// this repo after v2.23.0, see git history for Scripts/) pending the
+// header-based auth migration. This helper closes the backend-log half of that
+// leak for installs still running that mod.
 const URL_REDACT_KEYS = new Set([
   'api_key', 'apiKey', 'token', 'jwt', 'password', 'secret',
 ]);

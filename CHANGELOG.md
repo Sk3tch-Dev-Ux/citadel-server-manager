@@ -6,6 +6,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## Unreleased
+
+### Removed
+- **Repo tidy-up (no runtime impact).** Removed from the source tree (all
+  recoverable from git history): the deprecated in-repo `discord-bot/` (the bot
+  lives in the standalone [citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot)
+  repo; the Agent's `/api/discord/*` surface is unchanged, and the legacy
+  `CITADEL_AGENT_SPAWN_BOT=1` flag now logs and skips), the legacy `Scripts/`
+  CommandRelay mod + PBO packer (superseded by the sidecar + @CitadelAdmin
+  bridge), the empty `@GameLabs/` placeholder, and the root-level planning /
+  gap-analysis documents and archives. README and CLAUDE.md updated to match.
+
+---
+
 ## v2.23.0 — 2026-06-10
 
 Public-launch hardening: HTTPS enforcement, a faster mod bridge, lower

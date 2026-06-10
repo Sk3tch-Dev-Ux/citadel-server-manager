@@ -73,9 +73,9 @@ backend → HTTP → sidecar (localhost:9100 + gamePort − 2302)
 - Logging is Pino (`backend/lib/logger.js`) with auto-redaction of sensitive field names — don't log credentials manually and don't bypass the logger with `console` (backend ESLint forbids it).
 - State-changing actions should be recorded via `backend/lib/audit.js` (`addAudit(...)`).
 
-### Discord bot is DEPRECATED here
+### Discord bot lives in a separate repo
 
-`discord-bot/` was extracted to the standalone `citadel-bot` repo (May 2026, local at `~/Documents/GitHub/citadel-bot/`) and is kept for one release only. The Agent no longer spawns it by default (`CITADEL_AGENT_SPAWN_BOT=1` restores legacy behavior). What remains in this repo is the API surface the bot calls: `backend/routes/discord.routes.js` (`/api/discord/action`, permission map in `ACTION_PERMISSIONS`) and `discord-user-roles.routes.js`. The README's Discord bot sections describe the legacy in-repo bot. Don't add new bot features under `discord-bot/`.
+The Discord bot was extracted to the standalone `citadel-bot` repo (May 2026, local at `~/Documents/GitHub/citadel-bot/`); the in-repo `discord-bot/` directory was removed after v2.23.0 (recover from git history if ever needed). What remains here is the API surface the bot calls: `backend/routes/discord.routes.js` (`/api/discord/action`, permission map in `ACTION_PERMISSIONS`), `discord-user-roles.routes.js`, and the built-in `discord-bot` role seed in `server.js`. The legacy `CITADEL_AGENT_SPAWN_BOT=1` escape hatch in `server.js` logs and skips when the bot directory is absent. Don't add bot features to this repo.
 
 ### Desktop app
 
@@ -89,7 +89,7 @@ backend → HTTP → sidecar (localhost:9100 + gamePort − 2302)
 
 ## Directory notes
 
-- `build/`, `data/` — runtime/build artifacts, not source. Never edit `build/staging/`.
-- `Scripts/` — legacy CommandRelay mod + PBO packer, not in the active build.
-- `@GameLabs/` — empty placeholder, unused.
-- `plans/`, `docs/`, `marketing/`, the `*_GapAnalysis.md` / `Architect_Ecosystem_DeepDive` files — planning/reference material, not build inputs.
+- `build/` — build artifacts, not source. Never edit `build/staging/`.
+- `data/` — runtime data (gitignored), with one exception: `data/expansion-docs/` is tracked reference content served by `backend/routes/expansion-docs.routes.js`.
+- `docs/`, `marketing/` — reference/marketing material, not build inputs.
+- Removed from the tree after v2.23.0 (retrieve from git history if needed): legacy `Scripts/` CommandRelay mod, `discord-bot/`, `@GameLabs/`, `plans/`, and the root-level gap-analysis/planning documents.
