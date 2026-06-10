@@ -53,8 +53,7 @@ data/.jwt-secret
 # TLS certificates
 /cert/
 
-# DayZ mod source scripts (proprietary — not distributed)
-/dayz-mod/
+# DayZ mod source is tracked (ships in every install as an extractable PBO)
 
 # Claude worktrees
 /.claude/
