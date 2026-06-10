@@ -80,7 +80,7 @@ async function collectMetrics(srv, state, pid) {
     state.players = players;
   }
   // Always emit — positions change even when count doesn't (needed for live map)
-  ctx.io.emit('players', { serverId: srv.id, players: state.players });
+  ctx.emitServer('players', { serverId: srv.id, players: state.players });
 
   // ─── Vehicle data ─────────────────────────────────────
   if (vehicles.length > 0) state.vehicles = vehicles;

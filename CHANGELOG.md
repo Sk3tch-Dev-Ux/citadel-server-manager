@@ -6,6 +6,55 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.23.0 — 2026-06-10
+
+Public-launch hardening: HTTPS enforcement, a faster mod bridge, lower
+real-time bandwidth, and crash-proof async error handling.
+
+### Added
+- **Enforce HTTPS for public deployments.** New `server.requireHttps`
+  config option (env `REQUIRE_HTTPS`) makes the agent refuse to start without
+  valid TLS certificates in `./cert`. Independently, binding to all interfaces
+  (`0.0.0.0` / `::`) over plaintext HTTP is now refused unless
+  `ALLOW_INSECURE_BIND=1` is set. Loopback HTTP (dev default, or behind a
+  local TLS-terminating proxy) is unaffected.
+- **`generate-cert.ps1` + `TLS_SETUP.md`.** Helper to generate a self-signed
+  certificate for local/LAN HTTPS, plus documentation for self-signed and
+  production (reverse-proxy / CA cert) setups.
+
+### Changed
+- **Mod bridge moved from polling to `fs.watch`.** `CitadelBridge` no longer
+  busy-polls: in-game commands resolve via a watch on the responses directory
+  (near-instant, was a 200ms poll floor) and the live data files (players,
+  metrics, vehicles, world events) are re-read on change with async I/O
+  instead of synchronous reads every 2s. A slow fallback interval remains as a
+  safety net. No change to the dashboard event contract.
+- **Socket.IO bandwidth.** Enabled per-message compression for larger frames
+  (player lists, metrics, log bursts). All server→client emits now route
+  through `ctx.emitServer()` / `ctx.emitGlobal()` — behaviour is unchanged
+  today, but this is the seam for scoping high-volume events to per-server
+  rooms.
+
+### Fixed
+- **Async route errors can no longer hang a request.** Added
+  `lib/async-routes.js`, which wraps every route handler/middleware so a
+  rejected promise is forwarded to the global error handler instead of
+  becoming an unhandled rejection. Added a `res.headersSent` guard so a late
+  error cannot double-send a response.
+
+### Security
+- **Removed shell string-interpolation in the backup disk-space check.**
+  `backup-engine` now uses `execFileSync` with a validated drive letter rather
+  than building a `powershell -Command` string, eliminating the last
+  shell-parsing surface in that path.
+- **Dependency vulnerability fixes (`npm audit`).** Backend: all
+  high-severity advisories resolved via semver-compatible updates (including
+  path-to-regexp ReDoS and socket.io-parser unbounded binary attachments);
+  full test suite re-verified. Frontend: all high-severity advisories
+  resolved. Root: `concurrently` bumped to v10 (dev-only) — zero remaining
+  advisories at root.
+
+---
 ## v2.22.2 — 2026-06-03
 
 Mod-update reliability and a fix for the self-update loop.

@@ -110,6 +110,10 @@ ctx.steamCredentials = {
 
 // ─── Express + HTTP(S) ───────────────────────────────────
 const app = express();
+// Funnel rejections from async route handlers/middleware to the global error
+// handler below, so an un-try/catch'd `async (req, res) =>` can never leave a
+// request hanging on an unhandled rejection. Must run before routes register.
+require('./lib/async-routes').installAsyncErrorHandling(app);
 let server, useHttps = false;
 try {
   const certPath = path.join(_root, 'cert');
@@ -124,7 +128,12 @@ try {
   server = http.createServer(app);
 }
 
-const io = new SocketIO(server, { cors: { origin: CONFIG.allowedOrigins, credentials: true } });
+const io = new SocketIO(server, {
+  cors: { origin: CONFIG.allowedOrigins, credentials: true },
+  // Compress larger frames (player lists, metrics samples, log bursts).
+  // threshold is in bytes — below it, compression CPU isn't worth the saving.
+  perMessageDeflate: { threshold: 1024 },
+});
 ctx.io = io;
 
 // ─── Middleware ───────────────────────────────────────────
@@ -447,6 +456,9 @@ app.get('*', (req, res) => {
 // ─── Error handler (must be after all routes) ────────────
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  // If a response was already sent (e.g. a handler threw after res.json),
+  // delegate to Express's default handler rather than double-sending.
+  if (res.headersSent) return next(err);
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Invalid JSON in request body' });
   }
@@ -473,6 +485,38 @@ const botManager = require('./lib/bot-manager');
 // Only start the server if not in test mode
 if (process.env.NODE_ENV !== 'test') {
   (async () => {
+    // ─── HTTPS enforcement (fail closed for public deployments) ───────────
+    // Plaintext HTTP leaks the HttpOnly auth cookie and all admin/RCON traffic to
+    // anyone on the path. Refuse to boot insecurely in two cases:
+    //   1. server.requireHttps is set — an explicit "public deployment" switch.
+    //   2. Bound to all interfaces (0.0.0.0 / ::) over HTTP — dashboard + cookies
+    //      exposed to the whole network. Opt out with ALLOW_INSECURE_BIND=1.
+    // Loopback HTTP (dev/default, or behind a local TLS-terminating proxy) is fine.
+    if (!useHttps) {
+      const host = CONFIG.bindHost;
+      const isAllInterfaces = host === '0.0.0.0' || host === '::';
+      const allowInsecureBind = process.env.ALLOW_INSECURE_BIND === '1';
+      let refusal = null;
+      if (CONFIG.requireHttps) {
+        refusal =
+          'server.requireHttps is enabled but no valid TLS certificate was loaded from ./cert ' +
+          '(expected key.pem + cert.pem). Refusing to start over plaintext HTTP. ' +
+          'Install valid certificates, or set server.requireHttps=false for local/dev use.';
+      } else if (isAllInterfaces && !allowInsecureBind) {
+        refusal =
+          `server.bindHost is "${host}" (all interfaces) with no TLS — this would serve the ` +
+          'dashboard and auth cookies unencrypted to the whole network. Refusing to start. ' +
+          'Provide TLS certs in ./cert, bind to 127.0.0.1 behind a TLS proxy, ' +
+          'or set ALLOW_INSECURE_BIND=1 if you accept the risk.';
+      }
+      if (refusal) {
+        logger.fatal(refusal);
+        // eslint-disable-next-line no-console
+        console.error(`FATAL: ${refusal}`);
+        serveStartupError(refusal);
+        return;
+      }
+    }
     await startup();
 
     // Start all polling loops (metrics, mod detection, leaderboard, steam updates, RCON)

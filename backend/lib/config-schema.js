@@ -13,6 +13,7 @@ const CONFIG_SCHEMA = {
     bindHost: { type: 'string', default: '127.0.0.1', envKey: 'BIND_HOST', description: 'Interface to bind to. Defaults to 127.0.0.1 (loopback) so the dashboard is only reachable from this machine. Set to 0.0.0.0 to allow LAN access, or to a specific NIC IP. Anything other than 127.0.0.1 logs a security warning at startup — remote access is intended to go through Citadel Cloud, not a directly exposed Agent.' },
     allowedOrigins: { type: 'array', default: ['http://localhost:3001', 'http://127.0.0.1:3001'], envKey: 'CORS_ORIGINS', description: 'Allowed CORS origins (comma-separated in env)' },
     trustedProxies: { type: 'string', default: '', envKey: 'TRUSTED_PROXIES', description: 'Trusted reverse-proxy IPs (comma-separated)' },
+    requireHttps: { type: 'boolean', default: false, envKey: 'REQUIRE_HTTPS', description: 'When true, the Agent refuses to start unless valid TLS certificates are present in ./cert (key.pem + cert.pem). Set this for any public/internet-facing deployment so the dashboard and auth cookies are never served over plaintext HTTP. Independently, binding to all interfaces (0.0.0.0 / ::) over HTTP is always refused unless ALLOW_INSECURE_BIND=1 is set.' },
   },
   auth: {
     jwtSecret: { type: 'string', default: null, sensitive: true, envKey: 'JWT_SECRET', description: 'JWT signing secret' },

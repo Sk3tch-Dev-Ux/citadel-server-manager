@@ -110,7 +110,7 @@ class RCONClient {
               } catch (err) { logger.debug({ err }, 'RCON ACK send failed'); }
               const fpsMatch = message.match(/Server\s*FPS:\s*(\d+(?:\.\d+)?)/i);
               if (fpsMatch) this.lastFPS = parseFloat(fpsMatch[1]);
-              try { if (ctx.io) ctx.io.emit('rconMessage', { serverId: this.serverId, timestamp: new Date().toISOString(), message }); } catch { /* ignore */ }
+              try { if (ctx.io) ctx.emitServer('rconMessage', { serverId: this.serverId, timestamp: new Date().toISOString(), message }); } catch { /* ignore */ }
             }
             break;
         }

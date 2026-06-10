@@ -243,7 +243,7 @@ async function _downloadWorkshopModImpl(workshopId, modName, serverId) {
   if (srv) args.push('+force_install_dir', srv.installDir);
   args.push('+workshop_download_item', appId, workshopId, 'validate', '+quit');
 
-  if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status: 'downloading', progress: 0, message: `Logging into Steam as ${ctx.steamCredentials.username}...` });
+  if (ctx.io) ctx.emitServer('modInstallProgress', { serverId, workshopId, status: 'downloading', progress: 0, message: `Logging into Steam as ${ctx.steamCredentials.username}...` });
 
   // Fingerprint state before the run. For a download we accept either the
   // success marker OR newly-appeared/advanced content — but NOT pre-existing,
@@ -256,7 +256,7 @@ async function _downloadWorkshopModImpl(workshopId, modName, serverId) {
     const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
     let output = ''; let needsSteamGuard = false;
     const emit = (status, progress, message) => {
-      if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status, progress, message });
+      if (ctx.io) ctx.emitServer('modInstallProgress', { serverId, workshopId, status, progress, message });
     };
     const handleData = (data) => {
       const text = data.toString(); output += text;
@@ -443,7 +443,7 @@ async function _updateServerAppImpl(serverId, installDir) {
   const args = ['+force_install_dir', resolvedDir, ...loginArgs];
   args.push('+app_update', appId, 'validate', '+quit');
 
-  if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: 'Updating game files via SteamCMD...' });
+  if (ctx.io) ctx.emitServer('updateProgress', { serverId, state: 'updating', message: 'Updating game files via SteamCMD...' });
 
   return new Promise((resolve, reject) => {
     const proc = spawn(cmdPath, args, { cwd: path.dirname(cmdPath) });
@@ -458,7 +458,7 @@ async function _updateServerAppImpl(serverId, installDir) {
         const pctMatch = trimmed.match(/(\d+\.?\d*)\s*%/);
         if (pctMatch) {
           const pct = parseFloat(pctMatch[1]);
-          if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', progress: pct, message: `Updating game... ${pct.toFixed(0)}%` });
+          if (ctx.io) ctx.emitServer('updateProgress', { serverId, state: 'updating', progress: pct, message: `Updating game... ${pct.toFixed(0)}%` });
         }
       }
     };
@@ -521,7 +521,7 @@ async function _updateWorkshopModImpl(serverId, installDir, modId) {
   if (srv) args.push('+force_install_dir', srv.installDir);
   args.push('+workshop_download_item', appId, String(modId), 'validate', '+quit');
 
-  if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: `Updating mod ${modId} via SteamCMD...` });
+  if (ctx.io) ctx.emitServer('updateProgress', { serverId, state: 'updating', message: `Updating mod ${modId} via SteamCMD...` });
 
   // Fingerprint the on-disk state BEFORE the run so we can tell a real update
   // from a false success (login timeout / stalled fetch / stale cached manifest).
@@ -544,7 +544,7 @@ async function _updateWorkshopModImpl(serverId, installDir, modId) {
         const pctMatch = trimmed.match(/(\d+\.?\d*)\s*%/);
         if (pctMatch) {
           const pct = parseFloat(pctMatch[1]);
-          if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', progress: pct, message: `Updating mod... ${pct.toFixed(0)}%` });
+          if (ctx.io) ctx.emitServer('updateProgress', { serverId, state: 'updating', progress: pct, message: `Updating mod... ${pct.toFixed(0)}%` });
         }
       }
     };
@@ -631,7 +631,7 @@ async function downloadWorkshopModWithRetry(workshopId, modName, serverId, maxRe
       if (attempt < maxRetries) {
         const delay = attempt === 0 ? 5000 : 15000;
         logger.warn({ workshopId, modName, attempt: attempt + 1, error: err.message }, `Mod download failed, retrying in ${delay / 1000}s...`);
-        if (ctx.io) ctx.io.emit('modInstallProgress', { serverId, workshopId, status: 'retrying', progress: 0, message: `Download failed — retrying (attempt ${attempt + 2}/${maxRetries + 1})...` });
+        if (ctx.io) ctx.emitServer('modInstallProgress', { serverId, workshopId, status: 'retrying', progress: 0, message: `Download failed — retrying (attempt ${attempt + 2}/${maxRetries + 1})...` });
         await new Promise(r => setTimeout(r, delay));
       }
     }
@@ -668,7 +668,7 @@ async function updateWorkshopModWithRetry(serverId, installDir, modId, maxRetrie
       if (attempt < maxRetries) {
         const delay = attempt === 0 ? 5000 : 15000;
         logger.warn({ modId, serverId, attempt: attempt + 1, error: err.message }, `Mod update failed, retrying in ${delay / 1000}s...`);
-        if (ctx.io) ctx.io.emit('updateProgress', { serverId, state: 'updating', message: `Update failed — retrying (attempt ${attempt + 2}/${maxRetries + 1})...` });
+        if (ctx.io) ctx.emitServer('updateProgress', { serverId, state: 'updating', message: `Update failed — retrying (attempt ${attempt + 2}/${maxRetries + 1})...` });
         await new Promise(r => setTimeout(r, delay));
       }
     }

@@ -102,8 +102,8 @@ async function handleCrash(srv, state) {
   state.process = null;
 
   // Emit status updates
-  ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
-  ctx.io.emit('players', { serverId: srv.id, players: [] });
+  ctx.emitServer('serverStatus', { serverId: srv.id, status: 'crashed' });
+  ctx.emitServer('players', { serverId: srv.id, players: [] });
 
   // Notifications and webhooks
   addNotification(srv.id, 'server.crashed', 'Server Crashed', `${srv.name} is no longer running`, 'error');

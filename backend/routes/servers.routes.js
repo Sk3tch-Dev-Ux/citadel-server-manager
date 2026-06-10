@@ -291,35 +291,35 @@ module.exports = function(app) {
         if (action === 'start') {
           if (state.status === 'running') { results.push({ id, success: true, message: 'Already running' }); continue; }
           state.status = 'starting';
-          ctx.io.emit('serverStatus', { serverId: id, status: 'starting' });
+          ctx.emitServer('serverStatus', { serverId: id, status: 'starting' });
           const { child, launchFailed } = spawnDayZServer(srv);
           if (child && child.pid) {
             state.pid = child.pid; state.process = child;
             const failReason = await launchFailed;
             if (failReason) {
               state.status = 'stopped'; state.pid = null; state.process = null;
-              ctx.io.emit('serverStatus', { serverId: id, status: 'stopped' });
+              ctx.emitServer('serverStatus', { serverId: id, status: 'stopped' });
               results.push({ id, success: false, error: failReason });
             } else {
               state.status = 'running'; state.startedAt = new Date().toISOString();
-              ctx.io.emit('serverStatus', { serverId: id, status: 'running' });
+              ctx.emitServer('serverStatus', { serverId: id, status: 'running' });
               startSidecar(srv);
               addAudit(req.user.id, req.user.username, 'server.start', `Batch started server: ${srv.name}`);
               results.push({ id, success: true, message: 'Started' });
             }
           } else {
             state.status = 'stopped';
-            ctx.io.emit('serverStatus', { serverId: id, status: 'stopped' });
+            ctx.emitServer('serverStatus', { serverId: id, status: 'stopped' });
             results.push({ id, success: false, error: 'Failed to start' });
           }
         } else if (action === 'stop') {
           if (state.status === 'stopped') { results.push({ id, success: true, message: 'Already stopped' }); continue; }
           state.status = 'stopping';
-          ctx.io.emit('serverStatus', { serverId: id, status: 'stopping' });
+          ctx.emitServer('serverStatus', { serverId: id, status: 'stopping' });
           stopSidecar(srv.id);
           if (state.pid) await killProcess(state.pid);
           state.status = 'stopped'; state.pid = null; state.startedAt = null;
-          ctx.io.emit('serverStatus', { serverId: id, status: 'stopped' });
+          ctx.emitServer('serverStatus', { serverId: id, status: 'stopped' });
           addAudit(req.user.id, req.user.username, 'server.stop', `Batch stopped server: ${srv.name}`);
           results.push({ id, success: true, message: 'Stopped' });
         } else if (action === 'restart') {

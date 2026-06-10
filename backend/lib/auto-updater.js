@@ -240,7 +240,7 @@ function ensureState(serverId) {
 function emitProgress(serverId, extra) {
   const us = ensureState(serverId);
   if (ctx.io) {
-    ctx.io.emit('updateProgress', {
+    ctx.emitServer('updateProgress', {
       serverId,
       state: us.state,
       countdown: us.countdown,
@@ -561,7 +561,7 @@ async function stopAndUpdate(serverId) {
   emitProgress(serverId);
   addLog(serverId, 'info', 'updates', 'Stopping server for update...');
   state.status = 'stopping';
-  if (ctx.io) ctx.io.emit('serverStatus', { serverId, status: 'stopping' });
+  if (ctx.io) ctx.emitServer('serverStatus', { serverId, status: 'stopping' });
 
   try {
     // Kick all connected players via RCON (skip if already kicked during countdown)
@@ -580,8 +580,8 @@ async function stopAndUpdate(serverId) {
     state.players = [];
     state.startedAt = null;
     state.status = 'stopped';
-    if (ctx.io) ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
-    if (ctx.io) ctx.io.emit('players', { serverId, players: [] });
+    if (ctx.io) ctx.emitServer('serverStatus', { serverId, status: 'stopped' });
+    if (ctx.io) ctx.emitServer('players', { serverId, players: [] });
 
     // Execute stopped lifecycle hooks
     await executeHooks(serverId, 'stopped').catch(() => {});
@@ -599,7 +599,7 @@ async function stopAndUpdate(serverId) {
     state.process = null;
     state.players = [];
     state.status = 'stopped';
-    if (ctx.io) ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
+    if (ctx.io) ctx.emitServer('serverStatus', { serverId, status: 'stopped' });
   }
 
   // Proceed to update phase
@@ -752,7 +752,7 @@ async function runStartPhase(serverId, preUpdateBackup = null) {
     }
 
     state.status = 'starting';
-    ctx.io.emit('serverStatus', { serverId, status: 'starting' });
+    ctx.emitServer('serverStatus', { serverId, status: 'starting' });
 
     const { child, launchFailed } = spawnDayZServer(srv);
     state.process = child;
@@ -795,7 +795,7 @@ async function runStartPhase(serverId, preUpdateBackup = null) {
       state.pid = child.pid;
       state.status = 'running';
       state.startedAt = new Date().toISOString();
-      ctx.io.emit('serverStatus', { serverId, status: 'running' });
+      ctx.emitServer('serverStatus', { serverId, status: 'running' });
 
       addLog(serverId, 'info', 'updates', `Server started after update (PID: ${child.pid})`);
       addNotification(serverId, 'server.restarted', 'Server Updated & Restarted', `${srv.name} updated and back online`, 'success');
@@ -847,7 +847,7 @@ async function runStartPhase(serverId, preUpdateBackup = null) {
     state.status = 'crashed';
     state.pid = null;
     state.process = null;
-    ctx.io.emit('serverStatus', { serverId, status: 'crashed' });
+    ctx.emitServer('serverStatus', { serverId, status: 'crashed' });
   }
 
   // Always return to idle regardless of outcome

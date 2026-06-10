@@ -142,7 +142,7 @@ module.exports = function(app) {
       // Remove from cached player list
       if (state) {
         state.players = state.players.filter(p => p.steamId !== steamId && p.id !== steamId);
-        require('../lib/context').io.emit('players', { serverId: req.params.id, players: state.players });
+        require('../lib/context').emitServer('players', { serverId: req.params.id, players: state.players });
       }
       addAudit(req.user.id, req.user.username, AUDIT_CODES[ActionType.KICK_PLAYER],
         `Kicked ${session.playerName || session.name}: ${kickReason}`);

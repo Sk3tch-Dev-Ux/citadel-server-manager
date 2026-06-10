@@ -22,7 +22,7 @@ function addLog(serverId, level, source, message) {
     ctx.serverStates[serverId].logs.unshift(entry);
     if (ctx.serverStates[serverId].logs.length > MAX_LOG_ENTRIES) ctx.serverStates[serverId].logs.pop();
   }
-  if (ctx.io) ctx.io.emit('log', { serverId, ...entry });
+  if (ctx.io) ctx.emitServer('log', { serverId, ...entry });
   return entry;
 }
 
@@ -58,7 +58,7 @@ function pushMetrics(serverId, cpu, ram, playerCount, fps, inGame = null) {
   };
   // Persist to the durable store (no-op if persistence is disabled).
   metricsStore.record(serverId, { cpu, ram, players: playerCount, fps, ...ingameSample });
-  if (ctx.io) ctx.io.emit('metrics', { serverId, cpu, ram, players: playerCount, fps, timestamp: now, ...ingameSample });
+  if (ctx.io) ctx.emitServer('metrics', { serverId, cpu, ram, players: playerCount, fps, timestamp: now, ...ingameSample });
 }
 
 module.exports = { addLog, addAudit, pushMetrics };

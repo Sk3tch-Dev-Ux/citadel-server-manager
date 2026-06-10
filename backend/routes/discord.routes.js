@@ -364,7 +364,7 @@ module.exports = function(app) {
           const kickRconId = kickPlayer?.rconSlot != null ? String(kickPlayer.rconSlot) : params?.playerId;
           await state.rcon.kick(kickRconId, kickReason);
           state.players = state.players.filter(p => p.id !== params?.playerId && p.steamId !== params?.playerId);
-          ctx.io.emit('players', { serverId: targetSrv.id, players: state.players });
+          ctx.emitServer('players', { serverId: targetSrv.id, players: state.players });
           addAudit(discordUserId, discordUser, 'player.kick', `Kicked ${kickPlayer?.name || params?.playerId}: ${kickReason}`);
           fireWebhooks('player.kick', { serverId: targetSrv.id, playerId: params?.playerId, reason: kickReason });
           return res.json({ message: 'Kicked' });
@@ -390,7 +390,7 @@ module.exports = function(app) {
             state.modList.push({ name: folderName, workshopId: String(workshopId), enabled: true, order: state.modList.length });
             updateLaunchParamsMods(targetSrv.id);
             ctx.activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
-            ctx.io.emit('modInstallProgress', { serverId: targetSrv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
+            ctx.emitServer('modInstallProgress', { serverId: targetSrv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
             addNotification(targetSrv.id, 'mod.installed', 'Mod Installed', `${name} installed via Discord`, 'success');
             fireWebhooks('mod.installed', { serverId: targetSrv.id, workshopId, name });
           })

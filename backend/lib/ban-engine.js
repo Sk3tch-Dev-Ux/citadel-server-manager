@@ -174,7 +174,7 @@ async function banPlayer(serverId, playerId, reason, expiration, adminUsername, 
   // 3. Remove from player list and notify frontend
   if (state?.players) {
     state.players = state.players.filter(p => p.id !== playerId && p.steamId !== playerId);
-    if (ctx.io) ctx.io.emit('players', { serverId, players: state.players });
+    if (ctx.io) ctx.emitServer('players', { serverId, players: state.players });
   }
 
   // 4. Contribute to the Trust Network — ONLY when the admin explicitly

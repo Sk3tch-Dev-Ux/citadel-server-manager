@@ -73,7 +73,7 @@ async function startServer(serverId, reason) {
   // same server now sees 'starting' and bails instead of both passing the
   // check and spawning two processes. (Race flagged by require-atomic-updates.)
   state.status = 'starting';
-  ctx.io.emit('serverStatus', { serverId, status: 'starting' });
+  ctx.emitServer('serverStatus', { serverId, status: 'starting' });
 
   // Check if process is already running externally
   const existingPid = await detectRunningProcess(srv.executable);
@@ -81,7 +81,7 @@ async function startServer(serverId, reason) {
     state.pid = existingPid;
     state.status = 'running';
     state.startedAt = new Date().toISOString();
-    ctx.io.emit('serverStatus', { serverId, status: 'running' });
+    ctx.emitServer('serverStatus', { serverId, status: 'running' });
     startSidecar(srv);
     try { require('./dzsa-publisher').start(srv); } catch { /* best effort */ }
     _syncServerData(serverId);
@@ -99,7 +99,7 @@ async function startServer(serverId, reason) {
       addLog(serverId, 'error', 'server', `Port conflict detected: ${details}`);
       // Release the 'starting' claim — we never spawned.
       state.status = 'stopped';
-      ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
+      ctx.emitServer('serverStatus', { serverId, status: 'stopped' });
       return { success: false, error: `Port conflict: ${details}` };
     }
   } catch (err) {
@@ -129,7 +129,7 @@ async function startServer(serverId, reason) {
     const preStartResult = await executeHooks(serverId, 'pre-start');
     if (!preStartResult.success) {
       state.status = 'stopped';
-      ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
+      ctx.emitServer('serverStatus', { serverId, status: 'stopped' });
       addLog(serverId, 'warn', 'server', `Start aborted by pre-start hook: ${preStartResult.hook}`);
       return { success: false, error: `Start aborted by pre-start hook: ${preStartResult.hook}` };
     }
@@ -149,7 +149,7 @@ async function startServer(serverId, reason) {
 
     if (!child.pid) {
       state.status = 'crashed';
-      ctx.io.emit('serverStatus', { serverId, status: 'crashed' });
+      ctx.emitServer('serverStatus', { serverId, status: 'crashed' });
       addLog(serverId, 'error', 'server', 'Spawn returned no PID');
       return { success: false, error: 'Failed to spawn process (no PID)' };
     }
@@ -177,7 +177,7 @@ async function startServer(serverId, reason) {
         addLog(serverId, 'error', 'server', `Launch failed: ${failReason}`);
         if (state.status === 'starting' || state.status === 'running') {
           state.status = 'crashed'; state.pid = null; state.process = null;
-          ctx.io.emit('serverStatus', { serverId, status: 'crashed' });
+          ctx.emitServer('serverStatus', { serverId, status: 'crashed' });
           addNotification(serverId, 'server.crashed', 'Start Failed', `${srv.name}: ${failReason}`, 'error');
         }
         return;
@@ -185,7 +185,7 @@ async function startServer(serverId, reason) {
       const alive = await detectProcessByPid(child.pid);
       if (alive) {
         state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString();
-        ctx.io.emit('serverStatus', { serverId, status: 'running' });
+        ctx.emitServer('serverStatus', { serverId, status: 'running' });
         addLog(serverId, 'info', 'server', `Server is now running (PID: ${child.pid})`);
         addNotification(serverId, 'server.started', 'Server Started', `${srv.name} is now running`, 'success');
         fireWebhooks('server.started', { serverId, serverName: srv.name });
@@ -194,7 +194,7 @@ async function startServer(serverId, reason) {
       } else if (state.status === 'starting') {
         addLog(serverId, 'error', 'server', `PID ${child.pid} not found after grace period`);
         state.status = 'crashed'; state.pid = null; state.process = null;
-        ctx.io.emit('serverStatus', { serverId, status: 'crashed' });
+        ctx.emitServer('serverStatus', { serverId, status: 'crashed' });
         addNotification(serverId, 'server.crashed', 'Start Failed', `${srv.name} process disappeared`, 'error');
       }
     });
@@ -202,7 +202,7 @@ async function startServer(serverId, reason) {
     return { success: true, message: 'Starting...' };
   } catch (err) {
     state.status = 'crashed';
-    ctx.io.emit('serverStatus', { serverId, status: 'crashed' });
+    ctx.emitServer('serverStatus', { serverId, status: 'crashed' });
     addLog(serverId, 'error', 'server', `Start failed: ${err.message}`);
     return { success: false, error: err.message };
   }
@@ -224,7 +224,7 @@ async function stopServer(serverId, reason) {
 
   state.status = 'stopping';
   state._stateTransitioning = true; // Prevent metrics polling during state change
-  ctx.io.emit('serverStatus', { serverId, status: 'stopping' });
+  ctx.emitServer('serverStatus', { serverId, status: 'stopping' });
   addLog(serverId, 'info', 'server', `Stop initiated: ${reason}`);
 
   try {
@@ -238,8 +238,8 @@ async function stopServer(serverId, reason) {
     stopTailing(serverId);
     state.status = 'stopped'; state.pid = null; state.process = null; state.players = []; state.startedAt = null;
     state._stateTransitioning = false;
-    ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
-    ctx.io.emit('players', { serverId, players: [] });
+    ctx.emitServer('serverStatus', { serverId, status: 'stopped' });
+    ctx.emitServer('players', { serverId, players: [] });
     addNotification(serverId, 'server.stopped', 'Server Stopped', `${srv.name} has been stopped`, 'info');
     fireWebhooks('server.stopped', { serverId, serverName: srv.name });
     sendDiscordWebhook(`🔴 **${srv.name}** stopped`);
@@ -251,7 +251,7 @@ async function stopServer(serverId, reason) {
     stopTailing(serverId);
     state.status = 'stopped'; state.pid = null;
     state._stateTransitioning = false;
-    ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
+    ctx.emitServer('serverStatus', { serverId, status: 'stopped' });
     return { success: true, message: 'Stopped (force)' };
   }
 }
@@ -283,7 +283,7 @@ async function restartServer(serverId, reason) {
 
   addLog(serverId, 'info', 'server', `Restart initiated: ${reason}`);
   state.status = 'stopping';
-  ctx.io.emit('serverStatus', { serverId, status: 'stopping' });
+  ctx.emitServer('serverStatus', { serverId, status: 'stopping' });
   stopSidecar(serverId);
   stopTailing(serverId);
 
@@ -319,7 +319,7 @@ async function restartServer(serverId, reason) {
       }
 
       state.status = 'starting';
-      ctx.io.emit('serverStatus', { serverId, status: 'starting' });
+      ctx.emitServer('serverStatus', { serverId, status: 'starting' });
 
       // Re-apply engine tuning before each spawn (idempotent; respects manual edits).
       try { require('./engine-tuner').applyEngineTuning(srv); } catch { /* best effort */ }
@@ -341,7 +341,7 @@ async function restartServer(serverId, reason) {
         state.pid = child.pid;
         state.status = 'running';
         state.startedAt = new Date().toISOString();
-        ctx.io.emit('serverStatus', { serverId, status: 'running' });
+        ctx.emitServer('serverStatus', { serverId, status: 'running' });
         addNotification(serverId, 'server.restarted', 'Server Restarted', `${srv.name} restarted (${reason})`, 'info');
         fireWebhooks('server.restarted', { serverId, serverName: srv.name, reason });
         sendDiscordWebhook(`🔄 **${srv.name}** restarted (${reason})`);
@@ -377,7 +377,7 @@ async function restartServer(serverId, reason) {
 
   if (!restartSuccess) {
     state.status = 'crashed';
-    ctx.io.emit('serverStatus', { serverId, status: 'crashed' });
+    ctx.emitServer('serverStatus', { serverId, status: 'crashed' });
     addNotification(serverId, 'server.crashed', 'Restart Failed', `${srv.name} failed to restart after ${MAX_RESTART_ATTEMPTS} attempts`, 'error');
     fireWebhooks('server.crashed', { serverId, serverName: srv.name, reason });
     sendDiscordWebhook(`💥 **${srv.name}** failed to restart after ${MAX_RESTART_ATTEMPTS} attempts`);

@@ -137,24 +137,24 @@ async function stopServerIfRunning(serverId, srv) {
   const state = ctx.serverStates[serverId];
   if (state && state.pid) {
     logger.info({ serverId }, 'Dangerzone: stopping server before operation');
-    ctx.io.emit('dangerzoneProgress', { serverId, status: 'stopping', message: 'Stopping server...' });
+    ctx.emitServer('dangerzoneProgress', { serverId, status: 'stopping', message: 'Stopping server...' });
     await killProcess(state.pid, srv.executable);
     state.status = 'stopped';
     state.pid = null;
     state.players = [];
     state.startedAt = null;
-    ctx.io.emit('serverStatus', { serverId, status: 'stopped' });
+    ctx.emitServer('serverStatus', { serverId, status: 'stopped' });
   }
 }
 
 async function createPreOpBackup(serverId) {
-  ctx.io.emit('dangerzoneProgress', { serverId, status: 'backing-up', message: 'Creating safety backup...' });
+  ctx.emitServer('dangerzoneProgress', { serverId, status: 'backing-up', message: 'Creating safety backup...' });
   const result = await createBackup(serverId, 'manual');
   if (result) {
     const sizeMB = (result.size / 1024 / 1024).toFixed(1);
-    ctx.io.emit('dangerzoneProgress', { serverId, status: 'backed-up', message: `Backup created: ${result.filename} (${sizeMB} MB)` });
+    ctx.emitServer('dangerzoneProgress', { serverId, status: 'backed-up', message: `Backup created: ${result.filename} (${sizeMB} MB)` });
   } else {
-    ctx.io.emit('dangerzoneProgress', { serverId, status: 'backup-warning', message: 'Backup could not be created (no configured paths or empty). Proceeding...' });
+    ctx.emitServer('dangerzoneProgress', { serverId, status: 'backup-warning', message: 'Backup could not be created (no configured paths or empty). Proceeding...' });
   }
   return result;
 }
@@ -260,7 +260,7 @@ module.exports = function (app) {
 
     addAudit(req.user.id, req.user.username, 'server.wipe', `Starting ${preset.name} on ${snapshotName}`);
     setDangerzoneActive(snapshotId, true);
-    ctx.io.emit('dangerzoneProgress', { serverId: snapshotId, status: 'starting', message: `Starting ${preset.name}...`, preset: presetId });
+    ctx.emitServer('dangerzoneProgress', { serverId: snapshotId, status: 'starting', message: `Starting ${preset.name}...`, preset: presetId });
     res.json({ message: `${preset.name} initiated` });
 
     // Run async — use snapshotId/snapshotName so audit + notifications stay
@@ -269,7 +269,7 @@ module.exports = function (app) {
       await stopServerIfRunning(snapshotId, srv);
       await createPreOpBackup(snapshotId);
 
-      ctx.io.emit('dangerzoneProgress', { serverId: snapshotId, status: 'wiping', message: `Wiping: ${preset.name}...` });
+      ctx.emitServer('dangerzoneProgress', { serverId: snapshotId, status: 'wiping', message: `Wiping: ${preset.name}...` });
 
       // Delete preset paths
       let deletedCount = 0;
@@ -309,13 +309,13 @@ module.exports = function (app) {
         logger.warn({ err: pvpErr.message, serverId: snapshotId }, 'Dangerzone: failed to reset pvp leaderboard');
       }
 
-      ctx.io.emit('dangerzoneProgress', { serverId: snapshotId, status: 'complete', message: `${preset.name} complete! ${deletedCount} item(s) removed.` });
+      ctx.emitServer('dangerzoneProgress', { serverId: snapshotId, status: 'complete', message: `${preset.name} complete! ${deletedCount} item(s) removed.` });
       addLog(snapshotId, 'info', 'dangerzone', `${preset.name} completed by ${req.user.username}`);
       addNotification(snapshotId, 'server.wipe', 'Server Wiped', `${snapshotName}: ${preset.name} completed`, 'danger');
       addAudit(req.user.id, req.user.username, 'server.wipe', `Completed ${preset.name} on ${snapshotName} (${deletedCount} items removed)`);
     } catch (err) {
       logger.error({ err, serverId: snapshotId }, 'Dangerzone: wipe failed');
-      ctx.io.emit('dangerzoneProgress', { serverId: snapshotId, status: 'error', message: `Wipe failed: ${err.message}` });
+      ctx.emitServer('dangerzoneProgress', { serverId: snapshotId, status: 'error', message: `Wipe failed: ${err.message}` });
       addAudit(req.user.id, req.user.username, 'server.wipe', `Wipe failed on ${snapshotName}: ${err.message}`);
     } finally {
       setDangerzoneActive(snapshotId, false);
@@ -635,7 +635,7 @@ module.exports = function (app) {
 
     addAudit(req.user.id, req.user.username, 'server.replicate', `Replicating ${components.join(', ')} from ${sourceSnapshotName} to ${targetSnapshotName}`);
     setDangerzoneActive(targetSnapshotId, true);
-    ctx.io.emit('dangerzoneProgress', { serverId: targetSnapshotId, status: 'starting', message: `Starting replication from ${sourceSnapshotName}...` });
+    ctx.emitServer('dangerzoneProgress', { serverId: targetSnapshotId, status: 'starting', message: `Starting replication from ${sourceSnapshotName}...` });
     res.json({ message: 'Replication initiated' });
 
     try {
@@ -647,7 +647,7 @@ module.exports = function (app) {
       let copiedCount = 0;
 
       for (const compId of components) {
-        ctx.io.emit('dangerzoneProgress', { serverId: targetSnapshotId, status: 'replicating', message: `Copying ${compId}...` });
+        ctx.emitServer('dangerzoneProgress', { serverId: targetSnapshotId, status: 'replicating', message: `Copying ${compId}...` });
 
         switch (compId) {
           case 'config': {
@@ -760,13 +760,13 @@ module.exports = function (app) {
         }
       }
 
-      ctx.io.emit('dangerzoneProgress', { serverId: targetSnapshotId, status: 'complete', message: `Replication complete! ${copiedCount} item(s) copied from ${sourceSnapshotName}.` });
+      ctx.emitServer('dangerzoneProgress', { serverId: targetSnapshotId, status: 'complete', message: `Replication complete! ${copiedCount} item(s) copied from ${sourceSnapshotName}.` });
       addLog(targetSnapshotId, 'info', 'dangerzone', `Replicated ${components.join(', ')} from ${sourceSnapshotName}`);
       addNotification(targetSnapshotId, 'server.replicate', 'Server Replicated', `${targetSnapshotName}: copied ${components.join(', ')} from ${sourceSnapshotName}`, 'info');
       addAudit(req.user.id, req.user.username, 'server.replicate', `Completed replication to ${targetSnapshotName} (${copiedCount} items)`);
     } catch (err) {
       logger.error({ err, serverId: targetSnapshotId }, 'Dangerzone: replicate failed');
-      ctx.io.emit('dangerzoneProgress', { serverId: targetSnapshotId, status: 'error', message: `Replication failed: ${err.message}` });
+      ctx.emitServer('dangerzoneProgress', { serverId: targetSnapshotId, status: 'error', message: `Replication failed: ${err.message}` });
       addAudit(req.user.id, req.user.username, 'server.replicate', `Replication failed on ${targetSnapshotName}: ${err.message}`);
     } finally {
       setDangerzoneActive(targetSnapshotId, false);

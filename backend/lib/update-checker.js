@@ -166,7 +166,7 @@ async function checkForUpdate() {
 
     // Emit via Socket.IO when status changes or update is available
     if (ctx.io && (previousStatus !== _state.status || hasUpdate)) {
-      ctx.io.emit('citadelUpdate', getState());
+      ctx.emitGlobal('citadelUpdate', getState());
     }
 
     if (hasUpdate) {
@@ -196,7 +196,7 @@ async function checkForUpdate() {
 function dismiss() {
   _state.dismissed = true;
   if (ctx.io) {
-    ctx.io.emit('citadelUpdate', getState());
+    ctx.emitGlobal('citadelUpdate', getState());
   }
 }
 

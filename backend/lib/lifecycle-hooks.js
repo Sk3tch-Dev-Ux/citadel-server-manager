@@ -242,7 +242,7 @@ async function executeHooks(serverId, event, extraEnv) {
 
         // Emit Socket.IO event for hook failure
         if (ctx.io) {
-          ctx.io.emit('hookResult', {
+          ctx.emitServer('hookResult', {
             serverId,
             event,
             hook: fileName,
@@ -274,7 +274,7 @@ async function executeHooks(serverId, event, extraEnv) {
         }
         // Emit result regardless
         if (ctx.io) {
-          ctx.io.emit('hookResult', {
+          ctx.emitServer('hookResult', {
             serverId,
             event,
             hook: fileName,

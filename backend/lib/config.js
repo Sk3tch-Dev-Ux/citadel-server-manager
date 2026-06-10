@@ -122,6 +122,7 @@ for (const w of warnings) {
 const CONFIG = {
   port: structured.server.port,
   bindHost: structured.server.bindHost,
+  requireHttps: structured.server.requireHttps,
   jwtSecret: structured.auth.jwtSecret,
   dataDir: path.resolve(ROOT, structured.directories.data),
   dayz: {

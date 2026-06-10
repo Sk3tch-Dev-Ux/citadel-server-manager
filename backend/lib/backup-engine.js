@@ -166,10 +166,19 @@ function createBackup(serverId, type) {
     // Check disk space before proceeding (require at least 500MB free)
     const MIN_FREE_BYTES = 500 * 1024 * 1024; // 500 MB
     try {
-      const { execSync } = require('child_process');
-      const drive = path.parse(srv.installDir).root.replace('\\', '');
-      const output = execSync(
-        `powershell -NoProfile -Command "(Get-PSDrive ${drive.replace(':', '')}).Free"`,
+      const { execFileSync } = require('child_process');
+      // path.parse().root yields e.g. "C:\\"; reduce to the bare drive letter.
+      const driveLetter = path.parse(srv.installDir).root.replace(/[:\\/]/g, '');
+      // Defense in depth: a PSDrive name is always a single letter here. Reject
+      // anything else rather than interpolate untrusted text into a shell. Using
+      // execFileSync (no shell) also removes the cmd.exe parsing layer that the
+      // old execSync template-literal call exposed.
+      if (!/^[A-Za-z]$/.test(driveLetter)) {
+        throw new Error(`Unexpected drive token "${driveLetter}" — skipping disk-space check`);
+      }
+      const output = execFileSync(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-Command', `(Get-PSDrive ${driveLetter}).Free`],
         { windowsHide: true, timeout: 5000 }
       ).toString().trim();
       const freeBytes = parseInt(output);
@@ -275,7 +284,7 @@ function createBackup(serverId, type) {
       addNotification(serverId, 'backup.created', 'Backup Created', `${srv.name}: ${filename} (${sizeMB} MB)`, 'info');
 
       if (ctx.io) {
-        ctx.io.emit('backupCreated', { serverId, filename, type, size, createdAt });
+        ctx.emitServer('backupCreated', { serverId, filename, type, size, createdAt });
       }
 
       logger.info({ serverId, filename, sizeMB }, 'Backup: completed successfully');
@@ -448,7 +457,7 @@ function restoreBackup(serverId, filename, type) {
 
       // Emit progress: starting
       if (ctx.io) {
-        ctx.io.emit('backupRestore', { serverId, status: 'starting', filename });
+        ctx.emitServer('backupRestore', { serverId, status: 'starting', filename });
       }
 
       logger.info({ serverId, filename }, 'Backup Restore: starting');
@@ -532,7 +541,7 @@ function restoreBackup(serverId, filename, type) {
       try { proc.kill(); } catch (_) { /* ignore */ }
       logger.error({ serverId }, 'Backup Restore: timed out after 10 minutes');
       if (ctx.io) {
-        ctx.io.emit('backupRestore', { serverId, status: 'error', filename, error: 'Restore timed out after 10 minutes' });
+        ctx.emitServer('backupRestore', { serverId, status: 'error', filename, error: 'Restore timed out after 10 minutes' });
       }
       resolve({ success: false, error: 'Restore timed out after 10 minutes' });
     }, 600_000); // 10 minute timeout for restore
@@ -545,7 +554,7 @@ function restoreBackup(serverId, filename, type) {
         logger.error({ serverId, code, stderr: stderr.slice(0, 500) }, 'Backup Restore: Expand-Archive failed');
         addLog(serverId, 'error', 'backup', `Restore failed for ${filename}: exit code ${code}`);
         if (ctx.io) {
-          ctx.io.emit('backupRestore', { serverId, status: 'error', filename, error: errMsg });
+          ctx.emitServer('backupRestore', { serverId, status: 'error', filename, error: errMsg });
         }
         resolve({ success: false, error: errMsg });
         return;
@@ -555,7 +564,7 @@ function restoreBackup(serverId, filename, type) {
       addNotification(serverId, 'backup.restored', 'Backup Restored', `${srv.name}: restored from ${filename}`, 'info');
 
       if (ctx.io) {
-        ctx.io.emit('backupRestore', { serverId, status: 'complete', filename });
+        ctx.emitServer('backupRestore', { serverId, status: 'complete', filename });
       }
 
       logger.info({ serverId, filename }, 'Backup Restore: completed successfully');
@@ -568,7 +577,7 @@ function restoreBackup(serverId, filename, type) {
       logger.error({ err, serverId }, 'Backup Restore: spawn error');
       addLog(serverId, 'error', 'backup', errMsg);
       if (ctx.io) {
-        ctx.io.emit('backupRestore', { serverId, status: 'error', filename, error: errMsg });
+        ctx.emitServer('backupRestore', { serverId, status: 'error', filename, error: errMsg });
       }
       resolve({ success: false, error: errMsg });
     });

@@ -14,6 +14,7 @@
  *   - responses/{id}.res.json  (mod writes, backend reads)
  */
 const fs = require('fs');
+const fsp = fs.promises;
 const path = require('path');
 const { EventEmitter } = require('events');
 const { v4: uuid } = require('uuid');
@@ -35,7 +36,11 @@ class CitadelBridge extends EventEmitter {
     super();
     this.serverId = server.id;
     this.server = server;
-    this._pollTimer = null;
+    this._dirWatcher = null;     // fs.watch on citadelDir (data files)
+    this._fallbackTimer = null;  // coarse safety-net poll (watch can miss events)
+    this._resWatcher = null;     // fs.watch on responsesDir (command responses)
+    this._resBackstop = null;    // backstop poll while commands are pending
+    this._pending = new Map();   // command id -> pending resolver entry
     this._polling = false;
 
     // Resolve the Citadel data directory
@@ -77,21 +82,50 @@ class CitadelBridge extends EventEmitter {
    * Start polling mod files for changes.
    * @param {number} intervalMs — poll interval (default 2000ms)
    */
-  startPolling(intervalMs = 2000) {
-    if (this._pollTimer) return;
+  startPolling(intervalMs = 5000) {
+    if (this._fallbackTimer || this._dirWatcher) return;
     this._polling = true;
-    logger.info({ serverId: this.serverId, dir: this.citadelDir }, 'CitadelBridge: starting file polling');
+    logger.info({ serverId: this.serverId, dir: this.citadelDir }, 'CitadelBridge: starting file watch + fallback poll');
 
-    // Immediate first poll
+    // Immediate first read so consumers have current state right away.
     this._poll();
 
-    this._pollTimer = setInterval(() => this._poll(), intervalMs);
+    // Primary path: watch the Citadel dir and re-read only the file that
+    // changed, instead of stat-ing every file on a fixed interval. fs.watch on
+    // Windows (ReadDirectoryChangesW) is reliable; the fallback interval below
+    // still runs (far slower than before) in case an event is ever coalesced
+    // or dropped.
+    try {
+      fs.mkdirSync(this.citadelDir, { recursive: true });
+      this._dirWatcher = fs.watch(this.citadelDir, (_evt, filename) => {
+        if (!filename) { this._poll(); return; }
+        const name = filename.toString();
+        for (const [key, fp] of Object.entries(this.files)) {
+          if (path.basename(fp) === name) {
+            if (key === 'events') this._pollEvents();
+            else this._pollFile(key, fp);
+            return;
+          }
+        }
+      });
+      this._dirWatcher.on('error', (err) => {
+        logger.debug({ err: err.message, serverId: this.serverId }, 'CitadelBridge: dir watcher error');
+      });
+    } catch (err) {
+      logger.debug({ err: err.message, serverId: this.serverId }, 'CitadelBridge: fs.watch unavailable — interval poll only');
+    }
+
+    this._fallbackTimer = setInterval(() => this._poll(), intervalMs);
   }
 
   stopPolling() {
-    if (this._pollTimer) {
-      clearInterval(this._pollTimer);
-      this._pollTimer = null;
+    if (this._dirWatcher) {
+      try { this._dirWatcher.close(); } catch { /* ok */ }
+      this._dirWatcher = null;
+    }
+    if (this._fallbackTimer) {
+      clearInterval(this._fallbackTimer);
+      this._fallbackTimer = null;
     }
     this._polling = false;
     logger.info({ serverId: this.serverId }, 'CitadelBridge: stopped polling');
@@ -122,13 +156,13 @@ class CitadelBridge extends EventEmitter {
    * Check a JSON file's mtime and re-parse if changed.
    * Emits an event when data changes.
    */
-  _pollFile(key, filePath) {
+  async _pollFile(key, filePath) {
     try {
-      const stat = fs.statSync(filePath);
+      const stat = await fsp.stat(filePath);
       const mtime = stat.mtimeMs;
       if (mtime === this._cache[key].mtime) return; // No change
 
-      const raw = fs.readFileSync(filePath, 'utf-8');
+      const raw = await fsp.readFile(filePath, 'utf-8');
       const data = JSON.parse(raw);
       this._cache[key].data = data;
       this._cache[key].mtime = mtime;
@@ -316,37 +350,47 @@ class CitadelBridge extends EventEmitter {
 
     logger.debug({ serverId: this.serverId, action, id }, 'CitadelBridge: command sent');
 
-    // Poll for response
+    // Wait for the response file. Resolved by fs.watch on the responses dir
+    // (near-instant) with a slower backstop poll in case an event is missed —
+    // replaces the old 200ms synchronous busy-poll.
     const resPath = path.join(this.responsesDir, `${id}.res.json`);
-    const startTime = Date.now();
 
     return new Promise((resolve, reject) => {
-      const check = () => {
-        if (Date.now() - startTime > timeoutMs) {
-          // Clean up command file if mod hasn't picked it up
-          try { fs.unlinkSync(cmdPath); } catch { /* ok */ }
-          return reject(new Error(`Command timed out after ${timeoutMs}ms (action: ${action})`));
-        }
+      const entry = { resPath, done: false, timer: null };
 
-        try {
-          if (fs.existsSync(resPath)) {
-            const raw = fs.readFileSync(resPath, 'utf-8');
-            const response = JSON.parse(raw);
-
-            // Clean up response file
-            try { fs.unlinkSync(resPath); } catch { /* ok */ }
-
-            logger.debug({ serverId: this.serverId, action, id, ok: response.ok }, 'CitadelBridge: command response');
-            return resolve(response);
-          }
-        } catch (err) {
-          logger.debug({ err: err.message }, 'CitadelBridge: error reading response');
-        }
-
-        setTimeout(check, 200); // Poll every 200ms
+      const finish = (fn, arg) => {
+        if (entry.done) return;
+        entry.done = true;
+        if (entry.timer) clearTimeout(entry.timer);
+        this._pending.delete(id);
+        this._maybeStopResWatcher();
+        fn(arg);
       };
 
-      check();
+      // Read + consume the response if present; no-op (ENOENT) if not yet written.
+      entry.tryResolve = async () => {
+        if (entry.done) return;
+        try {
+          const raw = await fsp.readFile(resPath, 'utf-8');
+          const response = JSON.parse(raw);
+          fsp.unlink(resPath).catch(() => {});
+          logger.debug({ serverId: this.serverId, action, id, ok: response.ok }, 'CitadelBridge: command response');
+          finish(resolve, response);
+        } catch (err) {
+          if (err.code !== 'ENOENT') {
+            logger.debug({ err: err.message }, 'CitadelBridge: error reading response');
+          }
+        }
+      };
+
+      entry.timer = setTimeout(() => {
+        fsp.unlink(cmdPath).catch(() => {}); // mod never picked it up
+        finish(reject, new Error(`Command timed out after ${timeoutMs}ms (action: ${action})`));
+      }, timeoutMs);
+
+      this._pending.set(id, entry);
+      this._ensureResWatcher();
+      entry.tryResolve(); // resolve immediately if the response already exists
     });
   }
 
@@ -368,6 +412,43 @@ class CitadelBridge extends EventEmitter {
     return results;
   }
 
+  // Lazily watch the responses dir while one or more commands are in flight.
+  _ensureResWatcher() {
+    if (this._resBackstop) return; // already armed
+    try {
+      fs.mkdirSync(this.responsesDir, { recursive: true });
+      this._resWatcher = fs.watch(this.responsesDir, (_evt, filename) => {
+        if (!filename) {
+          for (const e of this._pending.values()) e.tryResolve();
+          return;
+        }
+        const name = filename.toString();
+        for (const e of this._pending.values()) {
+          if (path.basename(e.resPath) === name) e.tryResolve();
+        }
+      });
+      this._resWatcher.on('error', () => { /* backstop poll still covers us */ });
+    } catch { /* fs.watch unavailable — backstop poll covers us */ }
+
+    // Backstop: catch any create event fs.watch coalesces/drops. Runs only
+    // while commands are pending, then is torn down by _maybeStopResWatcher.
+    this._resBackstop = setInterval(() => {
+      for (const e of this._pending.values()) e.tryResolve();
+    }, 500);
+  }
+
+  // Tear down the responses watcher once no commands are pending.
+  _maybeStopResWatcher() {
+    if (this._pending.size > 0) return;
+    if (this._resWatcher) {
+      try { this._resWatcher.close(); } catch { /* ok */ }
+      this._resWatcher = null;
+    }
+    if (this._resBackstop) {
+      clearInterval(this._resBackstop);
+      this._resBackstop = null;
+    }
+  }
   // ─── Status ──────────────────────────────────────────────
 
   /**

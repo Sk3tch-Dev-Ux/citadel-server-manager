@@ -120,7 +120,7 @@ function autoDetectMods(serverId) {
     const enabled = (activeMods.size === 0 && serverMods.size === 0) ? true : (activeMods.has(name) || serverMods.has(name));
     return { name, workshopId, enabled, order: index, type };
   });
-  if (ctx.io) ctx.io.emit('mods', { serverId, mods: state.modList });
+  if (ctx.io) ctx.emitServer('mods', { serverId, mods: state.modList });
 }
 
 /**
@@ -371,7 +371,7 @@ function reorderMods(serverId, orderedModNames) {
 
   state.modList = reordered;
   updateLaunchParamsMods(serverId);
-  if (ctx.io) ctx.io.emit('mods', { serverId, mods: state.modList });
+  if (ctx.io) ctx.emitServer('mods', { serverId, mods: state.modList });
   logger.info({ serverId, count: reordered.length }, 'Mods reordered');
 }
 
@@ -392,7 +392,7 @@ function setModType(serverId, modName, type) {
 
   mod.type = type;
   updateLaunchParamsMods(serverId);
-  if (ctx.io) ctx.io.emit('mods', { serverId, mods: state.modList });
+  if (ctx.io) ctx.emitServer('mods', { serverId, mods: state.modList });
   logger.info({ serverId, modName, type }, 'Mod type changed');
   return mod;
 }

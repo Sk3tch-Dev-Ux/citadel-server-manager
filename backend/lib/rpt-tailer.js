@@ -137,7 +137,7 @@ function startTailing(serverId) {
         }
 
         // Emit to frontend via dedicated event
-        if (ctx.io) ctx.io.emit('consoleLog', { serverId, ...entry });
+        if (ctx.io) ctx.emitServer('consoleLog', { serverId, ...entry });
       }
     } catch (err) {
       logger.debug({ err, serverId, consolePath }, 'Console tail read error');

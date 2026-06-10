@@ -181,9 +181,9 @@ function runSteamCMD(cmdPath, args, resolvedDir, srv, emitEvent = 'deployProgres
         const trimmed = line.trim();
         if (trimmed.match(/(\d+\.?\d*)\s*%/)) {
           const pct = parseFloat(trimmed.match(/(\d+\.?\d*)\s*%/)[1]);
-          ctx.io.emit(emitEvent, { serverId: srv.id, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
+          ctx.emitServer(emitEvent, { serverId: srv.id, status: 'downloading', progress: pct, message: `Downloading... ${pct.toFixed(0)}%` });
         } else if (trimmed.includes('Update state')) {
-          ctx.io.emit(emitEvent, { serverId: srv.id, status: 'downloading', message: trimmed });
+          ctx.emitServer(emitEvent, { serverId: srv.id, status: 'downloading', message: trimmed });
         }
       }
     });
@@ -253,7 +253,7 @@ module.exports = function(app) {
     deployLocks.set(deployKey, Date.now());
 
     addAudit(req.user.id, req.user.username, 'server.deploy', `Deploying ${name} to ${resolvedDir}`);
-    ctx.io.emit('deployProgress', { status: 'starting', message: 'Preparing deployment...' });
+    ctx.emitServer('deployProgress', { status: 'starting', message: 'Preparing deployment...' });
 
     const srv = {
       id: uuid(), name, installDir: resolvedDir,
@@ -275,7 +275,7 @@ module.exports = function(app) {
       if (!fs.existsSync(resolvedDir)) fs.mkdirSync(resolvedDir, { recursive: true });
 
       // Step 1: Self-update SteamCMD (prevents exit code 8 on stale installs)
-      ctx.io.emit('deployProgress', { serverId: srv.id, status: 'updating', message: 'Updating SteamCMD...' });
+      ctx.emitServer('deployProgress', { serverId: srv.id, status: 'updating', message: 'Updating SteamCMD...' });
       try {
         await new Promise((resolve, reject) => {
           const proc = spawn(cmdPath, ['+quit'], { cwd: path.dirname(cmdPath) });
@@ -295,7 +295,7 @@ module.exports = function(app) {
       let lastError;
       for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-          ctx.io.emit('deployProgress', {
+          ctx.emitServer('deployProgress', {
             serverId: srv.id, status: 'downloading',
             message: attempt === 1
               ? 'Downloading DayZ Server via SteamCMD...'
@@ -312,7 +312,7 @@ module.exports = function(app) {
             break;
           }
           if (attempt < MAX_RETRIES) {
-            ctx.io.emit('deployProgress', { serverId: srv.id, status: 'retrying', message: `Attempt ${attempt} failed: ${err.message}. Retrying in 5s...` });
+            ctx.emitServer('deployProgress', { serverId: srv.id, status: 'retrying', message: `Attempt ${attempt} failed: ${err.message}. Retrying in 5s...` });
             await new Promise(r => setTimeout(r, 5000));
           }
         }
@@ -340,9 +340,9 @@ module.exports = function(app) {
       srv.deploying = false;
       saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
       ctx.serverStates[srv.id].config = readServerConfig(resolvedDir);
-      ctx.io.emit('deployProgress', { serverId: srv.id, status: 'complete', message: 'Deployment complete!' });
+      ctx.emitServer('deployProgress', { serverId: srv.id, status: 'complete', message: 'Deployment complete!' });
     } catch (err) {
-      ctx.io.emit('deployProgress', { serverId: srv.id, status: 'error', message: err.message });
+      ctx.emitServer('deployProgress', { serverId: srv.id, status: 'error', message: err.message });
       srv.deploying = false; srv.deployError = err.message;
       saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
     }
@@ -363,13 +363,13 @@ module.exports = function(app) {
 
     const resolvedDir = path.resolve(srv.installDir);
     addAudit(req.user.id, req.user.username, 'server.rebuild', `Rebuilding ${srv.name} at ${resolvedDir}`);
-    ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'starting', message: 'Preparing to wipe and reinstall server...' });
+    ctx.emitServer('dangerzoneProgress', { serverId: srv.id, status: 'starting', message: 'Preparing to wipe and reinstall server...' });
     try {
       const state = ctx.serverStates[srv.id];
       if (state && state.pid) {
         await killProcess(state.pid, srv.executable);
         state.status = 'stopped'; state.pid = null; state.players = []; state.startedAt = null;
-        ctx.io.emit('serverStatus', { serverId: srv.id, status: 'stopped' });
+        ctx.emitServer('serverStatus', { serverId: srv.id, status: 'stopped' });
       }
       if (fs.existsSync(resolvedDir)) {
         const entries = fs.readdirSync(resolvedDir);
@@ -378,7 +378,7 @@ module.exports = function(app) {
           fs.rmSync(path.join(resolvedDir, entry), { recursive: true, force: true });
         }
       }
-      ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'wiping', message: 'Directory wiped. Reinstalling via SteamCMD...' });
+      ctx.emitServer('dangerzoneProgress', { serverId: srv.id, status: 'wiping', message: 'Directory wiped. Reinstalling via SteamCMD...' });
       const cmdPath = await ensureSteamCMD();
       const appId = srv.gameTitle === 'DayZ, PC (Experimental)' ? '1042420' : '223350';
 
@@ -391,7 +391,7 @@ module.exports = function(app) {
       let lastError;
       for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-          ctx.io.emit('dangerzoneProgress', {
+          ctx.emitServer('dangerzoneProgress', {
             serverId: srv.id, status: 'downloading',
             message: attempt === 1
               ? 'Downloading DayZ Server via SteamCMD...'
@@ -405,7 +405,7 @@ module.exports = function(app) {
           logger.warn({ attempt, error: err.message }, 'SteamCMD rebuild attempt failed');
           if (err.message.includes('credentials') || err.message.includes('Steam Guard') || err.message.includes('not own')) break;
           if (attempt < MAX_RETRIES) {
-            ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'retrying', message: `Attempt ${attempt} failed: ${err.message}. Retrying in 5s...` });
+            ctx.emitServer('dangerzoneProgress', { serverId: srv.id, status: 'retrying', message: `Attempt ${attempt} failed: ${err.message}. Retrying in 5s...` });
             await new Promise(r => setTimeout(r, 5000));
           }
         }
@@ -422,12 +422,12 @@ module.exports = function(app) {
       // installs a bare default that lacks steamQueryPort and other essentials
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
       fs.writeFileSync(cfgPath, buildServerDZCfg(srv.name, srv.maxPlayers, srv.map, srv.queryPort));
-      ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'complete', message: 'Rebuild complete!' });
+      ctx.emitServer('dangerzoneProgress', { serverId: srv.id, status: 'complete', message: 'Rebuild complete!' });
       addNotification(srv.id, 'server.rebuild', 'Server Rebuilt', `${srv.name} wiped and reinstalled`, 'danger');
       addAudit(req.user.id, req.user.username, 'server.rebuild', `Completed rebuild for ${srv.name}`);
       res.json({ message: 'Rebuild complete!' });
     } catch (err) {
-      ctx.io.emit('dangerzoneProgress', { serverId: srv.id, status: 'error', message: err.message });
+      ctx.emitServer('dangerzoneProgress', { serverId: srv.id, status: 'error', message: err.message });
       addAudit(req.user.id, req.user.username, 'server.rebuild', `Rebuild failed for ${srv.name}: ${err.message}`);
       safeError(err, req, res, { status: 500 });
     }

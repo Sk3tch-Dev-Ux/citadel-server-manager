@@ -235,7 +235,7 @@ function startMetricsPolling() {
           state.pid = pid;
           if (state.status !== 'running') {
             state.status = 'running'; state.startedAt = state.startedAt || new Date().toISOString();
-            ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+            ctx.emitServer('serverStatus', { serverId: srv.id, status: 'running' });
             startTailing(srv.id);
           }
           // Self-heal: if the sidecar or DZSA endpoint died while the game server
@@ -273,7 +273,7 @@ async function runStartupDetection() {
     if (pid && !claimedPids.has(pid)) {
       claimedPids.add(pid);
       state.pid = pid; state.status = 'running'; state.startedAt = new Date().toISOString();
-      ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+      ctx.emitServer('serverStatus', { serverId: srv.id, status: 'running' });
       addLog(srv.id, 'info', 'server', `Detected running process for ${srv.name} (PID: ${pid})`);
       applyProcessSettings(pid, srv);
       startSidecar(srv); // Ensure sidecar is running for live map
@@ -289,7 +289,7 @@ async function runStartupDetection() {
     if (srv.autoStart && state?.status !== 'running') {
       logger.info({ server: srv.name }, 'Auto-starting server');
       try {
-        state.status = 'starting'; ctx.io.emit('serverStatus', { serverId: srv.id, status: 'starting' });
+        state.status = 'starting'; ctx.emitServer('serverStatus', { serverId: srv.id, status: 'starting' });
         const { child, launchFailed } = spawnDayZServer(srv);
         state.process = child; state.pid = child.pid;
         startSidecar(srv); // Start sidecar alongside auto-started server
@@ -299,19 +299,19 @@ async function runStartupDetection() {
           if (failReason) {
             addLog(srv.id, 'error', 'server', `Auto-start failed: ${failReason}`);
             state.status = 'crashed'; state.pid = null; state.process = null;
-            ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+            ctx.emitServer('serverStatus', { serverId: srv.id, status: 'crashed' });
             return;
           }
           const alive = await detectProcessByPid(child.pid);
           if (alive) {
             state.pid = child.pid; state.status = 'running'; state.startedAt = new Date().toISOString();
-            ctx.io.emit('serverStatus', { serverId: srv.id, status: 'running' });
+            ctx.emitServer('serverStatus', { serverId: srv.id, status: 'running' });
             startTailing(srv.id);
             addLog(srv.id, 'info', 'server', 'Auto-start: server is now running');
           } else {
             addLog(srv.id, 'error', 'server', 'Auto-start: process disappeared after grace period');
             state.status = 'crashed'; state.pid = null; state.process = null;
-            ctx.io.emit('serverStatus', { serverId: srv.id, status: 'crashed' });
+            ctx.emitServer('serverStatus', { serverId: srv.id, status: 'crashed' });
           }
         });
       } catch (err) {
@@ -367,7 +367,7 @@ function startSteamUpdatePolling() {
             addLog(serverId, 'info', 'updates', `Workshop mod ${modInfo.name} update detected (${lastModVersions[workshopId]} -> ${remoteVersion})`);
             addNotification(serverId, 'mod.update', 'Mod Update Available', `Workshop mod ${modInfo.name} has a new version available.`, 'warning');
             fireWebhooks('mod.updated', { serverId, serverName: srv.name, modName: modInfo.name });
-            ctx.io.emit('modUpdate', { serverId, mod: modInfo.name, workshopId });
+            ctx.emitServer('modUpdate', { serverId, mod: modInfo.name, workshopId });
             if (srv.autoUpdateEnabled && srv.shutdownForModUpdates !== false) {
               triggerAutoUpdate(serverId, 'mod', { modId: workshopId, modName: modInfo.name });
             }
@@ -397,7 +397,7 @@ function startSteamUpdatePolling() {
           addLog(s.id, 'info', 'updates', `DayZ game build updated (${lastGameBuild} -> ${remoteBuild})`);
           addNotification(s.id, 'game.update', 'Game Update Available', `DayZ game build ${remoteBuild} is available.`, 'warning');
           fireWebhooks('title.updated', { serverId: s.id, serverName: s.name, build: remoteBuild });
-          ctx.io.emit('gameUpdate', { serverId: s.id, build: remoteBuild });
+          ctx.emitServer('gameUpdate', { serverId: s.id, build: remoteBuild });
           if (s.autoUpdateEnabled && s.shutdownForTitleUpdates !== false) {
             triggerAutoUpdate(s.id, 'game', { build: remoteBuild });
           }
@@ -469,7 +469,7 @@ async function startAllPolling() {
     if (state?.status === 'running') {
       fetchPlayers(srv.id).then(players => {
         state.players = players;
-        ctx.io.emit('players', { serverId: srv.id, players });
+        ctx.emitServer('players', { serverId: srv.id, players });
       }).catch(() => {});
     }
   }

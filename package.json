@@ -1,9 +1,9 @@
 {
   "name": "citadel",
-  "version": "2.22.2",
+  "version": "2.23.0",
   "private": true,
   "license": "UNLICENSED",
-  "description": "Citadel Agent \u2014 local DayZ server management for Windows. Pairs with Citadel Cloud for remote operations.",
+  "description": "Citadel Agent — local DayZ server management for Windows. Pairs with Citadel Cloud for remote operations.",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -31,6 +31,6 @@
     "build:desktop": "cd desktop && npm run build"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^10.0.3"
   }
 }

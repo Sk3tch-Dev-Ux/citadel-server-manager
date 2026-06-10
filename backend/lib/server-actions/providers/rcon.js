@@ -33,7 +33,7 @@ class RCONProvider extends BaseProvider {
     if (state.players) {
       state.players = state.players.filter(p => p.id !== playerId && p.steamId !== playerId);
       const srv = ctx.servers.find(s => s.id === serverId);
-      if (srv && ctx.io) ctx.io.emit('players', { serverId, players: state.players });
+      if (srv && ctx.io) ctx.emitServer('players', { serverId, players: state.players });
     }
     return result;
   }
@@ -52,7 +52,7 @@ class RCONProvider extends BaseProvider {
     if (state.players) {
       state.players = state.players.filter(p => p.id !== playerId && p.steamId !== playerId);
       const srv = ctx.servers.find(s => s.id === serverId);
-      if (srv && ctx.io) ctx.io.emit('players', { serverId, players: state.players });
+      if (srv && ctx.io) ctx.emitServer('players', { serverId, players: state.players });
     }
     return result;
   }

@@ -78,7 +78,7 @@ module.exports = function(app) {
       let contentPath = modCache.getCached(String(workshopId), remoteTimeUpdated);
       if (contentPath) {
         ctx.activeInstalls[workshopId] = { status: 'installing', progress: 90, name };
-        ctx.io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'installing', progress: 90, message: `Installing from cache...` });
+        ctx.emitServer('modInstallProgress', { serverId: srv.id, workshopId, status: 'installing', progress: 90, message: `Installing from cache...` });
       } else {
         ctx.activeInstalls[workshopId] = { status: 'downloading', progress: 0, name };
         contentPath = await downloadWorkshopMod(String(workshopId), name, srv.id);
@@ -94,15 +94,15 @@ module.exports = function(app) {
       // Snapshot the freshly-installed bytes as the trusted integrity baseline.
       integrity.snapshotMod(srv.id, result.safeName).catch(() => {});
       ctx.activeInstalls[workshopId] = { status: 'complete', progress: 100, name };
-      ctx.io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
-      ctx.io.emit('mods', { serverId: srv.id, mods: state.modList });
+      ctx.emitServer('modInstallProgress', { serverId: srv.id, workshopId, status: 'complete', progress: 100, message: `${name} installed!` });
+      ctx.emitServer('mods', { serverId: srv.id, mods: state.modList });
       addAudit(req.user.id, req.user.username, 'mod.install', `Installed ${name} on ${srv.name}`);
       addNotification(srv.id, 'mod.installed', 'Mod Installed', `${name} installed on ${srv.name}`, 'success');
       fireWebhooks('mod.installed', { serverId: srv.id, serverName: srv.name, modName: name, modId: String(workshopId) });
       setTimeout(() => delete ctx.activeInstalls[workshopId], 30000);
     } catch (err) {
       ctx.activeInstalls[workshopId] = { status: 'error', progress: 0, name, error: err.message };
-      ctx.io.emit('modInstallProgress', { serverId: srv.id, workshopId, status: 'error', progress: 0, message: err.message });
+      ctx.emitServer('modInstallProgress', { serverId: srv.id, workshopId, status: 'error', progress: 0, message: err.message });
       setTimeout(() => delete ctx.activeInstalls[workshopId], 60000);
     }
   });
@@ -119,7 +119,7 @@ module.exports = function(app) {
       state.modList = state.modList.filter(m => m.workshopId !== req.params.workshopId);
       integrity.forgetMod(srv.id, mod.name);
       updateLaunchParamsMods(srv.id);
-      ctx.io.emit('mods', { serverId: srv.id, mods: state.modList });
+      ctx.emitServer('mods', { serverId: srv.id, mods: state.modList });
       addAudit(req.user.id, req.user.username, 'mod.uninstall', `Uninstalled ${mod.name} from ${srv.name}`);
       addNotification(srv.id, 'mod.removed', 'Mod Uninstalled', `${mod.name} removed from ${srv.name}`, 'info');
       fireWebhooks('mod.removed', { serverId: srv.id, serverName: srv.name, modName: mod.name, modId: mod.workshopId });

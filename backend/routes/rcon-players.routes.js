@@ -79,7 +79,7 @@ module.exports = function(app) {
       return res.status(500).json({ error: `RCON kick failed: ${err.message}` });
     }
     state.players = (state.players || []).filter(p => p.id !== req.params.playerId && p.steamId !== req.params.playerId);
-    if (ctx.io) ctx.io.emit('players', { serverId: req.params.id, players: state.players });
+    if (ctx.io) ctx.emitServer('players', { serverId: req.params.id, players: state.players });
     addAudit(req.user.id, req.user.username, 'player.kick', `Kicked player ${player.name || req.params.playerId}`);
     addNotification(req.params.id, 'player.kick', 'Player Kicked', `Player ${player.name || req.params.playerId} was kicked`, 'warning');
     const kickSrv = ctx.servers.find(s => s.id === req.params.id);

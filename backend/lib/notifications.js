@@ -137,7 +137,7 @@ function addNotification(serverId, type, title, message, severity) {
   saveJSON(ctx.CONFIG.dataDir, 'notifications.json', ctx.notifications);
 
   // Emit via Socket.IO
-  if (ctx.io) ctx.io.emit('notification', n);
+  if (ctx.io) ctx.emitGlobal('notification', n);
 
   return n;
 }
