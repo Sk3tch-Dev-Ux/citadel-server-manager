@@ -109,7 +109,15 @@ class CitadelCloudClient
         // Mirror logged events into the HTTP egress buffer.
         CitadelEventLogger.SetDirectMode(true);
 
-        m_Ctx = GetRestApi().GetRestContext(m_Endpoint);
+        RestApi rest = GetRestApi();
+        if (!rest) rest = CreateRestApi();
+        if (!rest)
+        {
+            GetCitadel().GetLogger().Warn("RestApi unavailable — direct mode off");
+            m_Enabled = false;
+            return;
+        }
+        m_Ctx = rest.GetRestContext(m_Endpoint);
         m_Ctx.SetHeader("application/json");
         m_IngestCb = new CitadelCloudCallback(this);
         m_ResultCb = new CitadelCloudCallback(this);
@@ -224,8 +232,12 @@ class CitadelCloudClient
         bool ok = content.Contains("\"ok\":true") || content.Contains("\"ok\": true");
         string msg = ExtractJsonString(content, "error");
 
+        // Enforce Script has no ternary operator.
+        string okStr = "false";
+        if (ok) okStr = "true";
+
         string body = "{\"apiKey\":\"" + m_ApiKey + "\"";
-        body += ",\"success\":" + (ok ? "true" : "false");
+        body += ",\"success\":" + okStr;
         body += ",\"message\":\"" + CitadelEventLogger.EscapeJson(msg) + "\"}";
 
         m_Ctx.POST(m_ResultCb, "/commands/" + id + "/result", body);
