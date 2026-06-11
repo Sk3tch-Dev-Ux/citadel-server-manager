@@ -21,10 +21,12 @@
  *   wipe_ai        → world.wipeAI          {}
  *   wipe_vehicles  → world.wipeVehicles    {}
  *
- * Note on `ban`: matches the cloud-side alignment doc (§2). The durable
- * ban is propagated to the agent through `config_sync.bans`, not through
- * the outbound command. So `ban` here just kicks the player off the server
- * for immediate effect — the persistent ban list arrives via config-sync.
+ * Note on `ban`: handled by the agent's own ban engine (durable global ban
+ * + ban.txt sync + RCON kick with the configured ban message), NOT the mod
+ * IPC. The alignment doc (§2) envisioned durability arriving via
+ * `config_sync.bans`, but the cloud doesn't send that yet — and a kick-only
+ * ban let players rejoin immediately. When cloud config-sync bans land,
+ * the two mechanisms are idempotent (addBan dedupes by steamId).
  *
  * Failure modes that produce ok=false:
  *   - Unknown action → reply immediately, no mod IPC
@@ -34,6 +36,8 @@
  */
 const { getBridge } = require('../citadel-bridge');
 const { restartServer } = require('../server-lifecycle');
+const { banPlayer } = require('../ban-engine');
+const ctx = require('../context');
 const logger = require('../logger');
 
 const ACTION_MAP = Object.freeze({
@@ -112,6 +116,40 @@ async function handle({ localServerId, client, message }) {
     if (params[k] == null || params[k] === '') {
       reply(false, `Missing required param: ${k}`);
       return;
+    }
+  }
+
+  // `ban` — use the agent's full ban flow instead of the kick-only mod IPC:
+  // durable global ban + ban.txt sync (the engine then refuses the reconnect)
+  // + RCON kick showing the configured ban message (reason + appeal info) on
+  // the player's screen. Previously a cloud ban was just a kick, so the
+  // player saw no reason and could rejoin immediately.
+  if (action === 'ban') {
+    try {
+      await banPlayer(localServerId, String(params.steamId), String(params.reason || 'Banned via Citadel Cloud'), null, 'cloud');
+      reply(true, 'banned (durable) and kicked');
+    } catch (err) {
+      reply(false, `Ban failed: ${err.message}`);
+    }
+    return;
+  }
+
+  // `kick` — prefer BattlEye RCON: its kick displays the reason on the
+  // player's disconnect screen, which the mod's DisconnectPlayer cannot.
+  // Falls through to the mod IPC kick when RCON or the slot is unavailable.
+  if (action === 'kick') {
+    const state = ctx.serverStates[localServerId];
+    const target = state?.players?.find(p => p.steamId === params.steamId || p.id === params.steamId);
+    if (state?.rcon?.loggedIn && target?.rconSlot != null) {
+      try {
+        await state.rcon.kick(String(target.rconSlot), String(params.reason || 'Kicked by admin'));
+        state.players = state.players.filter(p => p.steamId !== params.steamId && p.id !== params.steamId);
+        if (ctx.io) ctx.emitServer('players', { serverId: localServerId, players: state.players });
+        reply(true, 'kicked (RCON, reason shown)');
+        return;
+      } catch (err) {
+        logger.warn({ err: err.message, localServerId }, 'cloud-bridge: RCON kick failed — falling back to mod IPC');
+      }
     }
   }
 

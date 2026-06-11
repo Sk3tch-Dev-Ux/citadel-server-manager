@@ -75,34 +75,13 @@ class CitadelMapMarkerManager
         if (!FileExist("$profile:Citadel"))
             MakeDirectory("$profile:Citadel");
 
+        // Ship an EMPTY marker list. Earlier builds seeded SeaChest/Barrel
+        // demo entries, which marked every loot barrel on the server and
+        // flooded the live map + world-events feed with storage containers.
+        // Operators opt in by adding entries to MapMarkers.json:
+        //   { "markers": [ { "className": "SeaChest", "icon": "chest", "displayName": "Sea Chest" } ] }
         CitadelMapMarkerConfig cfg = new CitadelMapMarkerConfig();
-
-        CitadelMapMarkerEntry e1 = new CitadelMapMarkerEntry();
-        e1.className = "SeaChest";
-        e1.icon = "chest";
-        e1.displayName = "Sea Chest";
-        cfg.markers.Insert(e1);
-
-        CitadelMapMarkerEntry e2 = new CitadelMapMarkerEntry();
-        e2.className = "Barrel_Green";
-        e2.icon = "barrel";
-        e2.displayName = "Barrel (Green)";
-        cfg.markers.Insert(e2);
-
-        CitadelMapMarkerEntry e3 = new CitadelMapMarkerEntry();
-        e3.className = "Barrel_Blue";
-        e3.icon = "barrel";
-        e3.displayName = "Barrel (Blue)";
-        cfg.markers.Insert(e3);
-
         JsonFileLoader<CitadelMapMarkerConfig>.JsonSaveFile(CONFIG_PATH, cfg);
-
-        // Also populate the in-memory lookup
-        for (int i = 0; i < cfg.markers.Count(); i++)
-        {
-            CitadelMapMarkerEntry entry = cfg.markers.Get(i);
-            m_ItemConfigs.Set(entry.className, entry);
-        }
     }
 
     // ─── Lookup ──────────────────────────────────────────
