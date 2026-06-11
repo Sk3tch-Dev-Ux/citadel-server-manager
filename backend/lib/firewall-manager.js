@@ -191,10 +191,13 @@ function buildRuleSpecs(serverName, ports) {
     });
   }
   if (ports.rconPort) {
+    // BattlEye RCon (BERCon) is a UDP protocol — earlier builds created this
+    // rule as TCP, which blocked external RCON tools (the agent itself
+    // connects over loopback and never noticed).
     rules.push({
-      name: `Citadel - ${serverName} - RCON (${ports.rconPort} TCP)`,
+      name: `Citadel - ${serverName} - RCON (${ports.rconPort} UDP)`,
       port: Number(ports.rconPort),
-      protocol: 'TCP',
+      protocol: 'UDP',
     });
   }
   return rules;
