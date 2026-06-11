@@ -20,8 +20,12 @@ const RANGES = {
 
 // Series tracked across both the live window and persisted history. The first
 // four are OS/basic signals; the rest are the @CitadelAdmin mod's in-game
-// telemetry (simulation tick time and world entity counts).
-const SERIES = ['cpu', 'ram', 'players', 'fps', 'tick_avg', 'entity_count', 'ai_count', 'vehicle_count'];
+// telemetry (simulation tick time, world entity counts, FPS window band, and
+// environment/weather). game_minute rides the socket but is not persisted, so
+// history rows fall back to 0 for it.
+const SERIES = ['cpu', 'ram', 'players', 'fps', 'tick_avg', 'entity_count', 'ai_count', 'vehicle_count',
+  'fps_min', 'fps_max', 'weather_rain', 'weather_fog', 'weather_clouds', 'weather_snow',
+  'wind_speed', 'game_hour', 'game_minute'];
 const emptySeries = () => SERIES.reduce((o, k) => ((o[k] = []), o), { timestamps: [] });
 const EMPTY = emptySeries();
 
@@ -118,10 +122,27 @@ export default function ServerMetricsPage({ serverId }) {
   const entityStats = calcStats(m.entity_count);
   const aiStats = calcStats(m.ai_count);
   const vehicleStats = calcStats(m.vehicle_count);
+  // Weather phenomena arrive as 0..1 fractions — display them as percentages.
+  const pct = (arr) => (arr || []).map((v) => (v || 0) * 100);
+  const rainPct = pct(m.weather_rain);
+  const fogPct = pct(m.weather_fog);
+  const cloudPct = pct(m.weather_clouds);
+  const snowPct = pct(m.weather_snow);
+  const rainStats = calcStats(rainPct);
+  const cloudStats = calcStats(cloudPct);
+  const windStats = calcStats(m.wind_speed);
   // The in-game section is only meaningful once the mod reports — detect any
   // non-zero entity/tick reading so we don't show an empty panel on servers
   // without @CitadelAdmin.
   const hasInGame = (m.entity_count || []).some((v) => v > 0) || (m.tick_avg || []).some((v) => v > 0);
+  // Environment needs the widened mod (v2.24+) — gate on any signal so older
+  // mods don't render an all-zero panel. game_hour counts as a signal (calm
+  // weather is all-zero, but the clock virtually never is).
+  const hasEnvironment = hasInGame && ['weather_rain', 'weather_fog', 'weather_clouds',
+    'weather_snow', 'wind_speed', 'game_hour'].some((k) => (m[k] || []).some((v) => v > 0));
+  const lastOf = (arr) => (arr && arr.length ? arr[arr.length - 1] : 0);
+  const gameClock = `${String(Math.round(lastOf(m.game_hour))).padStart(2, '0')}:${String(Math.round(lastOf(m.game_minute))).padStart(2, '0')}`;
+  const snowing = snowPct.some((v) => v > 0);
   const dataPoints = m.timestamps?.length || 0;
   const timeSpan = dataPoints > 1
     ? Math.round((new Date(m.timestamps[dataPoints - 1]) - new Date(m.timestamps[0])) / 60000)
@@ -181,8 +202,9 @@ export default function ServerMetricsPage({ serverId }) {
           <div className="grid grid-2">
             <MiniChart data={m.cpu || []} color="#6cb4f0" height={240} label="CPU %" />
             <MiniChart data={m.ram || []} color="#c49bff" height={240} label="RAM %" />
-            <MiniChart data={m.players || []} color="#5cb85c" height={240} label="Players" />
-            <MiniChart data={m.fps || []} color="#e5c07b" height={240} label="FPS" />
+            <MiniChart data={m.players || []} color="#5cb85c" height={240} label="Players" unit="" />
+            <MiniChart data={m.fps || []} color="#e5c07b" height={240} label="FPS (band: min/max within interval)" unit=""
+              bandMin={m.fps_min || []} bandMax={m.fps_max || []} />
           </div>
 
           {hasInGame && (
@@ -197,10 +219,35 @@ export default function ServerMetricsPage({ serverId }) {
                 <StatCard label="Vehicles" stats={vehicleStats} unit="" color="#9aa7ff" />
               </div>
               <div className="grid grid-2">
-                <MiniChart data={m.tick_avg || []} color="#ef7c8e" height={240} label="Tick Time (ms)" />
-                <MiniChart data={m.entity_count || []} color="#56c2c2" height={240} label="Entity Count" />
-                <MiniChart data={m.ai_count || []} color="#d98e4a" height={240} label="AI Count" />
-                <MiniChart data={m.vehicle_count || []} color="#9aa7ff" height={240} label="Vehicle Count" />
+                <MiniChart data={m.tick_avg || []} color="#ef7c8e" height={240} label="Tick Time (ms)" unit="ms" />
+                <MiniChart data={m.entity_count || []} color="#56c2c2" height={240} label="Entity Count" unit="" />
+                <MiniChart data={m.ai_count || []} color="#d98e4a" height={240} label="AI Count" unit="" />
+                <MiniChart data={m.vehicle_count || []} color="#9aa7ff" height={240} label="Vehicle Count" unit="" />
+              </div>
+            </>
+          )}
+
+          {hasEnvironment && (
+            <>
+              <div style={{ margin: '28px 0 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                Environment
+              </div>
+              <div className="grid grid-4" style={{ marginBottom: 20 }}>
+                <div className="card">
+                  <div className="card-header"><div className="card-title" style={{ color: '#e5c07b' }}>In-Game Time</div><span style={{ fontSize: 11, color: 'var(--text-muted)' }}>current</span></div>
+                  <div className="card-value" style={{ color: '#e5c07b' }}>{gameClock}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>server world clock</div>
+                </div>
+                <StatCard label="Rain" stats={rainStats} unit="%" color="#6cb4f0" />
+                <StatCard label="Cloud Cover" stats={cloudStats} unit="%" color="#9aa7ff" />
+                <StatCard label="Wind" stats={windStats} unit=" m/s" color="#56c2c2" />
+              </div>
+              <div className="grid grid-2">
+                <MiniChart data={rainPct} color="#6cb4f0" height={240} label="Rain %" />
+                <MiniChart data={fogPct} color="#c49bff" height={240} label="Fog %" />
+                <MiniChart data={cloudPct} color="#9aa7ff" height={240} label="Cloud Cover %" />
+                <MiniChart data={m.wind_speed || []} color="#56c2c2" height={240} label="Wind (m/s)" unit=" m/s" />
+                {snowing && <MiniChart data={snowPct} color="#dfe8f5" height={240} label="Snow %" />}
               </div>
             </>
           )}

@@ -55,6 +55,10 @@ function pushMetrics(serverId, cpu, ram, playerCount, fps, inGame = null) {
     tick_avg: g.tick_avg, tick_low: g.tick_low, tick_high: g.tick_high,
     ai_count: g.ai_count, active_ai: g.active_ai, animal_count: g.animal_count,
     vehicle_count: g.vehicle_count, entity_count: g.entity_count,
+    fps_min: g.fps_min, fps_max: g.fps_max,
+    weather_rain: g.weather_rain, weather_fog: g.weather_fog,
+    weather_clouds: g.weather_clouds, weather_snow: g.weather_snow,
+    wind_speed: g.wind_speed, game_hour: g.game_hour, game_minute: g.game_minute,
   };
   // Persist to the durable store (no-op if persistence is disabled).
   metricsStore.record(serverId, { cpu, ram, players: playerCount, fps, ...ingameSample });

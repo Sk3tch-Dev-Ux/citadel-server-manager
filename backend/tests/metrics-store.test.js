@@ -85,6 +85,30 @@ afterAll(() => store.close());
     expect(rows[0]).toMatchObject({ tick_avg: 0, ai_count: 0, entity_count: 0 });
   });
 
+  test('persists FPS window and environment telemetry', () => {
+    store.record('env', {
+      cpu: 5, ram: 6, players: 3, fps: 42,
+      fps_min: 28, fps_max: 55,
+      weather_rain: 0.4, weather_fog: 0.1, weather_clouds: 0.85, weather_snow: 0,
+      wind_speed: 6.2, game_hour: 21, game_minute: 30,
+      ts: 8500,
+    });
+    const rows = store.query('env', { since: 0 });
+    expect(rows[0]).toMatchObject({
+      fps_min: 28, fps_max: 55,
+      weather_rain: 0.4, weather_fog: 0.1, weather_clouds: 0.85, weather_snow: 0,
+      wind_speed: 6.2, game_hour: 21,
+    });
+    // game_minute rides the socket emit but is intentionally not persisted.
+    expect(rows[0].game_minute).toBeUndefined();
+  });
+
+  test('environment telemetry defaults to 0 for basic samples', () => {
+    store.record('env0', { cpu: 1, ram: 2, players: 0, fps: 60, ts: 9100 });
+    const rows = store.query('env0', { since: 0 });
+    expect(rows[0]).toMatchObject({ fps_min: 0, fps_max: 0, weather_rain: 0, wind_speed: 0, game_hour: 0 });
+  });
+
   test('downsampling averages in-game metrics too', () => {
     store.record('dg', { entity_count: 100, ts: 60_000 });
     store.record('dg', { entity_count: 200, ts: 90_000 });

@@ -42,6 +42,8 @@ class CitadelCore
     private float m_TickTimeAvg;
     private float m_TickTimeLow;
     private float m_TickTimeHigh;
+    private int m_FPSWindowMin;
+    private int m_FPSWindowMax;
 
     // Entity counts (incremented/decremented by hooks for efficiency)
     private int m_AICount;
@@ -74,6 +76,8 @@ class CitadelCore
         m_TickTimeAvg = 0;
         m_TickTimeLow = 0;
         m_TickTimeHigh = 0;
+        m_FPSWindowMin = 0;
+        m_FPSWindowMax = 0;
         m_AICount = 0;
         m_AnimalCount = 0;
         m_VehicleCount = 0;
@@ -218,6 +222,14 @@ class CitadelCore
 
     int GetTickCount() { return m_TickCount; }
     void SetTickCount(int count) { m_TickCount = count; }
+
+    int GetFPSWindowMin() { return m_FPSWindowMin; }
+    int GetFPSWindowMax() { return m_FPSWindowMax; }
+    void SetFPSWindow(int fpsMin, int fpsMax)
+    {
+        m_FPSWindowMin = fpsMin;
+        m_FPSWindowMax = fpsMax;
+    }
 
     void DebugTickTimes()
     {

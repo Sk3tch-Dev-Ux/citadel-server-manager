@@ -21,7 +21,7 @@ function resolveColor(cssColor) {
   return cssColor;
 }
 
-export default function MiniChart({ data, color = '#6cb4f0', height = 200, label }) {
+export default function MiniChart({ data, color = '#6cb4f0', height = 200, label, unit = '%', bandMin, bandMax }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -37,11 +37,16 @@ export default function MiniChart({ data, color = '#6cb4f0', height = 200, label
     // Resolve CSS variables to hex for canvas compatibility
     const resolvedColor = resolveColor(color);
 
-    const max = Math.max(...data, 1);
-    const points = data.map((v, i) => ({
-      x: (i / (data.length - 1 || 1)) * cw,
+    // Band series (e.g. FPS min/max within each sample interval) share the
+    // main series' scale so the envelope renders around the line.
+    const hasBand = bandMin?.length === data.length && bandMax?.length === data.length
+      && bandMax.some((v) => v > 0);
+    const max = Math.max(...data, ...(hasBand ? bandMax : []), 1);
+    const toPoint = (v, i, len) => ({
+      x: (i / (len - 1 || 1)) * cw,
       y: ch - (v / max) * (ch - 20) - 10,
-    }));
+    });
+    const points = data.map((v, i) => toPoint(v, i, data.length));
 
     // Grid lines
     ctx.strokeStyle = 'rgba(255,255,255,0.04)';
@@ -49,6 +54,18 @@ export default function MiniChart({ data, color = '#6cb4f0', height = 200, label
     for (let i = 0; i < 4; i++) {
       const y = (ch / 4) * i + 10;
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cw, y); ctx.stroke();
+    }
+
+    // Min/max envelope behind the main line
+    if (hasBand) {
+      const top = bandMax.map((v, i) => toPoint(v, i, bandMax.length));
+      const bottom = bandMin.map((v, i) => toPoint(v, i, bandMin.length));
+      ctx.beginPath();
+      top.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      for (let i = bottom.length - 1; i >= 0; i--) ctx.lineTo(bottom[i].x, bottom[i].y);
+      ctx.closePath();
+      ctx.fillStyle = resolvedColor + '22';
+      ctx.fill();
     }
 
     // Fill
@@ -75,10 +92,10 @@ export default function MiniChart({ data, color = '#6cb4f0', height = 200, label
       const last = data[data.length - 1];
       ctx.fillStyle = resolvedColor;
       ctx.font = 'bold 14px Outfit';
-      ctx.fillText(`${typeof last === 'number' ? last.toFixed(1) : last}%`, 8, 18);
+      ctx.fillText(`${typeof last === 'number' ? last.toFixed(1) : last}${unit}`, 8, 18);
       if (label) { ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '11px Outfit'; ctx.fillText(label, 8, 34); }
     }
-  }, [data, color, label]);
+  }, [data, color, label, unit, bandMin, bandMax]);
 
   return (
     <div className="chart-container" style={{ height }}>

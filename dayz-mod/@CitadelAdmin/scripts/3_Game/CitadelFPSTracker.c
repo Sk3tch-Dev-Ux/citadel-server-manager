@@ -20,6 +20,10 @@ modded class DayZGame
     int cit_ticks = 0;
     int cit_tpsTime = 0;
     int cit_ticksTotal = 0;
+    // Min/max of the 1s FPS samples since the last CitSetAllTickTimeValues()
+    // sync — i.e. over one metrics collection window. 0 means "no sample yet".
+    int cit_tpsWindowMin = 0;
+    int cit_tpsWindowMax = 0;
     float cit_lastTickTime = 0.0;
     float cit_tickTimeHigh = 0.0;
     float cit_tickTimeLow = 0.0;
@@ -43,6 +47,12 @@ modded class DayZGame
         {
             GetCitadel().SetTickTimes(this.CitGetAverageTickTime(), this.cit_tickTimeLow, this.cit_tickTimeHigh);
             GetCitadel().SetTickCount(this.cit_ticksTotal);
+            // Publish the FPS window, then open a fresh one. Only the metrics
+            // tracker calls this, so the window length equals the metrics
+            // collection interval.
+            GetCitadel().SetFPSWindow(this.cit_tpsWindowMin, this.cit_tpsWindowMax);
+            this.cit_tpsWindowMin = 0;
+            this.cit_tpsWindowMax = 0;
         }
     }
 
@@ -146,6 +156,10 @@ modded class DayZGame
                 // every reported FPS. (Real 30fps would show as 15.)
                 this.cit_tps = this.cit_ticks;
                 this.cit_ticks = 0;
+                if (this.cit_tpsWindowMin == 0 || this.cit_tps < this.cit_tpsWindowMin)
+                    this.cit_tpsWindowMin = this.cit_tps;
+                if (this.cit_tps > this.cit_tpsWindowMax)
+                    this.cit_tpsWindowMax = this.cit_tps;
                 if (GetCitadel()) GetCitadel().SetServerFPS(this.cit_tps);
             }
         }

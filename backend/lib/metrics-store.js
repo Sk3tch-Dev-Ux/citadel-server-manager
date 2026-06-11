@@ -58,6 +58,15 @@ const NUMERIC_COLUMNS = [
   { name: 'animal_count', kind: 'INTEGER', map: int },
   { name: 'vehicle_count', kind: 'INTEGER', map: int },
   { name: 'entity_count', kind: 'INTEGER', map: int },
+  // FPS window + environment telemetry from the mod (v2.24 metrics widening).
+  { name: 'fps_min', kind: 'REAL', map: num },
+  { name: 'fps_max', kind: 'REAL', map: num },
+  { name: 'weather_rain', kind: 'REAL', map: num },
+  { name: 'weather_fog', kind: 'REAL', map: num },
+  { name: 'weather_clouds', kind: 'REAL', map: num },
+  { name: 'weather_snow', kind: 'REAL', map: num },
+  { name: 'wind_speed', kind: 'REAL', map: num },
+  { name: 'game_hour', kind: 'INTEGER', map: int },
 ];
 const COLUMN_NAMES = NUMERIC_COLUMNS.map((c) => c.name);
 

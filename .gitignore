@@ -74,3 +74,6 @@ tools/license-private.pem
 # Never hand-edited; never the live feed (live feed = the GitHub Release
 # asset). Tracked copies have caused audit false-positives in the past.
 latest.yml
+
+# Third-party reference mods kept locally for study - never commit (GPL-3 source)
+/@MetricZ/

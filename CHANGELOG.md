@@ -8,6 +8,30 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Added
+- **Richer server telemetry from the @CitadelAdmin mod** (techniques adapted
+  from studying the MetricZ observability mod — no code shared). The mod's
+  `metrics.json` now also reports FPS window min/max over each collection
+  interval (so dips between 15s samples are no longer invisible), weather
+  (rain, fog, cloud cover, snowfall, wind speed), and the in-game clock.
+  The new fields flow through the sidecar into the dashboard metrics socket
+  and are persisted to `metrics.db` (schema migrates automatically) for
+  historical charts — e.g. correlating FPS dips with night time or weather.
+- **Server Metrics page: FPS band + Environment section.** The FPS chart now
+  renders a min/max envelope showing dips between 15s samples, and a new
+  Environment section (shown once the v2.24+ mod reports) adds in-game clock,
+  rain/fog/cloud/wind stat cards and charts — with a snow chart that appears
+  only when it's actually snowing. New columns are included in the CSV export,
+  and charts now show correct units (FPS and entity counts no longer display
+  as percentages).
+
+### Changed
+- **`metrics.json` is now written atomically and engine-serialized.** The mod
+  previously streamed hand-concatenated JSON straight into the final file, so
+  the sidecar or cloud client could read a torn, half-written snapshot. It now
+  serializes a DTO via `JsonFileLoader` to a `.tmp` file and copies it over
+  the destination in one engine call. PBO repacked and re-signed.
+
 ### Fixed
 - **Sidecar crash-loop on installed builds starved both dashboards of all
   in-game data** (players, FPS, entities, live map). The sidecar's logger

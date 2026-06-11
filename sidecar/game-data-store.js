@@ -41,6 +41,10 @@ function refreshMetrics() {
     // ~327). Clamp to 300: pinned-at-cap means healthy/idle; the value
     // becomes meaningful exactly when load pushes it below the cap.
     if (data.fps != null && data.fps > 300) data.fps = 300;
+    // fps_min/fps_max are raw 1s FPS samples over the collection window
+    // (not ×100) — clamp them for the same idle-server reason as fps.
+    if (data.fps_min != null && data.fps_min > 300) data.fps_min = 300;
+    if (data.fps_max != null && data.fps_max > 300) data.fps_max = 300;
 
     metrics = data;
     return metrics;
