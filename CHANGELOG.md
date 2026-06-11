@@ -6,9 +6,29 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## Unreleased
+## v2.24.0 — 2026-06-11
+
+In-game observability (FPS band, weather, world clock), durable cloud bans
+with visible kick reasons, ban management UI, and a night of pipeline
+hardening caught by live end-to-end testing before release.
 
 ### Added
+- **Ban management UI.** The Players page now has a Bans panel listing the
+  global ban database (player, Steam ID, reason, when, by whom) with one-click
+  **Unban** — the API existed since the global ban DB shipped, but there was
+  no way to unban from the dashboard at all.
+- **Cloud `unban` command.** Citadel Cloud's Live Ops can now unban a Steam ID
+  remotely; the agent resolves it against its ban database (the player is
+  typically offline) and re-syncs ban.txt + mod enforcement on every server.
+- **Cloud `ban` is now durable, and kicks show their reason.** A cloud ban
+  previously mapped to a kick only — the player saw no message and could
+  reconnect immediately. Bans now run the agent's full ban engine (global ban
+  DB, ban.txt sync, RCON kick with the configured appeal message), and cloud
+  kicks prefer BattlEye RCON so the reason appears on the player's disconnect
+  screen (mod IPC fallback when RCON is unavailable). Note: custom kick/ban
+  messages require RCON to be configured (BEServer_x64.cfg + the server's
+  RCON password in settings) — the engine's mod-side path can only show the
+  generic message.
 - **Richer server telemetry from the @CitadelAdmin mod** (techniques adapted
   from studying the MetricZ observability mod — no code shared). The mod's
   `metrics.json` now also reports FPS window min/max over each collection
@@ -52,6 +72,28 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `CitadelEventLogger.DrainDirectBuffer()` and two `CitadelCloudClient`
   helpers, so any server launched with the mod refused to start. Renamed to
   `result` in all three places; PBO repacked and re-signed.
+- **Sidecar crash-looped on servers without an API key.** Production mode
+  (now the default sidecar env) requires `SIDECAR_API_KEY`, but the backend
+  only passed one when the server already had `inHouseApiKey` configured —
+  locally created servers don't, so the sidecar exited at startup and was
+  respawned every 15s, blacking out all in-game telemetry. The backend now
+  generates and persists a per-server key on first sidecar start.
+- **Live metrics sections flickered every 10–15 seconds.** The live
+  dashboard re-fetches `GET /metrics` every 10s, but the endpoint's rolling
+  window only held cpu/ram/players/fps — the in-game series rode only the
+  socket events, so each poll wiped them until the next 15s tick. The full
+  sample is now kept in the rolling window.
+- **Every player-targeted Live Ops action failed with "Missing required
+  param: steamId".** The cloud sends snake_case command params
+  (`steam_id`); the agent required camelCase. The agent now normalizes both
+  conventions on receipt.
+- **Loot barrels and sea chests appeared as world events / map markers.**
+  The map-marker config shipped SeaChest/Barrel demo entries as its
+  defaults, marking every storage container on the server. Defaults are now
+  an empty opt-in list (existing `MapMarkers.json` files keep whatever the
+  operator configured).
+- **Auto-created RCON firewall rule used TCP** — BattlEye RCon is UDP. Only
+  affected external RCON tools; the agent connects over loopback.
 
 ### Removed
 - **Repo tidy-up (no runtime impact).** Removed from the source tree (all

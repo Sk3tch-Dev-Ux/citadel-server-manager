@@ -47,6 +47,30 @@ export default function PlayersPage({ serverId }) {
     API.get(`/api/servers/${serverId}/players`).then(d => setPlayers(Array.isArray(d) ? d : []));
   }, [serverId]);
 
+  // ─── Ban List (global — one database, applies to all servers) ──
+  const [bans, setBans] = useState([]);
+  const [bansOpen, setBansOpen] = useState(false);
+  const loadBans = () => API.get(`/api/servers/${serverId}/bans`)
+    .then(d => setBans(Array.isArray(d) ? d : []))
+    .catch(() => {});
+  useEffect(() => { loadBans(); }, [serverId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const unban = async (b) => {
+    const ok = await confirm({
+      title: `Unban ${b.playerName || b.steamId}`,
+      message: `Remove the ban for ${b.steamId}? They can reconnect immediately (ban.txt and the mod enforcement list update on all servers).`,
+      confirmLabel: 'Unban',
+    });
+    if (!ok) return;
+    try {
+      await API.del(`/api/servers/${serverId}/bans/${b.id}`);
+      window.addToast?.(`${b.playerName || b.steamId} unbanned`, 'success');
+      loadBans();
+    } catch (err) {
+      window.addToast?.(`Unban failed: ${err.message}`, 'error');
+    }
+  };
+
   useEffect(() => {
     const handler = (data) => {
       if (data.serverId === serverId) setPlayers(Array.isArray(data.players) ? data.players : []);
@@ -369,6 +393,49 @@ export default function PlayersPage({ serverId }) {
           </table>
         </div>
       )}
+
+      {/* ─── Ban List (global database) ───────────────────── */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div
+          className="card-header"
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => setBansOpen(o => !o)}
+        >
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ShieldBan size={16} /> Bans ({bans.length})
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            global — applies to all servers · click to {bansOpen ? 'hide' : 'show'}
+          </span>
+        </div>
+        {bansOpen && (bans.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px 0' }}>
+            No active bans.
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="mobile-card-table">
+              <thead>
+                <tr><th>Player</th><th>Steam ID</th><th>Reason</th><th>Banned</th><th>By</th><th style={{ width: 90 }} /></tr>
+              </thead>
+              <tbody>
+                {bans.map(b => (
+                  <tr key={b.id}>
+                    <td style={{ fontWeight: 600 }}>{b.playerName || '—'}</td>
+                    <td data-label="Steam ID" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{b.steamId}</td>
+                    <td data-label="Reason">{b.reason || '—'}</td>
+                    <td data-label="Banned">{b.bannedAt ? timeAgo(b.bannedAt) : '—'}</td>
+                    <td data-label="By">{b.bannedBy || '—'}</td>
+                    <td data-label="">
+                      <button className="btn btn-sm btn-secondary" onClick={() => unban(b)}>Unban</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
 
       {/* ─── Spawn Item Modal ──────────────────────────────── */}
       <Modal

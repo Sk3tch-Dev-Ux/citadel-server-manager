@@ -36,7 +36,7 @@
  */
 const { getBridge } = require('../citadel-bridge');
 const { restartServer } = require('../server-lifecycle');
-const { banPlayer } = require('../ban-engine');
+const { banPlayer, getBanBySteamId, removeBan } = require('../ban-engine');
 const ctx = require('../context');
 const logger = require('../logger');
 
@@ -101,6 +101,26 @@ async function handle({ localServerId, client, message }) {
     Promise.resolve(restartServer(localServerId, 'cloud-requested')).catch((err) => {
       logger.error({ err: err.message, localServerId }, 'cloud-bridge: cloud-requested restart failed');
     });
+    return;
+  }
+
+  // `unban` — remove the durable ban from the agent's global ban database.
+  // The target is typically OFFLINE, so resolve against the ban DB rather
+  // than the live player list. removeBan re-syncs ban.txt and the mod
+  // enforcement file on every server, so the player can reconnect at once.
+  if (action === 'unban') {
+    const steamId = String(params.steamId || '');
+    if (!steamId) {
+      reply(false, 'Missing required param: steamId');
+      return;
+    }
+    const ban = getBanBySteamId(steamId);
+    if (!ban) {
+      reply(false, `No active ban for ${steamId}`);
+      return;
+    }
+    removeBan(ban.id);
+    reply(true, `Unbanned ${ban.playerName || steamId}`);
     return;
   }
 
