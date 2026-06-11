@@ -9,9 +9,11 @@
  *   sidecarPort = 9100 + (gamePort - 2302)
  */
 const path = require('path');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 const logger = require('./logger');
 const ctx = require('./context');
+const { saveJSON } = require('./data-store');
 
 const { ROOT: PROJECT_ROOT, SIDECAR_ENTRY } = require('./paths');
 
@@ -67,10 +69,17 @@ function startSidecar(srv) {
     SIDECAR_PORT: String(sidecarPort),
   };
 
-  // Pass API key if configured
-  if (srv.inHouseApiKey) {
-    env.SIDECAR_API_KEY = srv.inHouseApiKey;
+  // The sidecar refuses to start in production without an API key (audit H9),
+  // and its error hint promises the backend manages the key per server. Honor
+  // that: generate + persist one the first time a server needs a sidecar.
+  // Without this, every server lacking inHouseApiKey crash-loops the sidecar
+  // (spawn → exit 1 → respawn every 15s) and all in-game telemetry goes dark.
+  if (!srv.inHouseApiKey) {
+    srv.inHouseApiKey = crypto.randomBytes(32).toString('hex');
+    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    logger.info({ server: srv.name }, 'Generated sidecar API key (none was configured)');
   }
+  env.SIDECAR_API_KEY = srv.inHouseApiKey;
 
   logger.info({ server: srv.name, port: sidecarPort, installDir: srv.installDir }, 'Starting sidecar');
 
