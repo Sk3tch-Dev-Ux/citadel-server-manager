@@ -230,15 +230,22 @@ class Forwarder {
   // ─── metrics ─────────────────────────────────────────────────────────
   //
   // Mod's metrics.json is already in cloud shape (fps as ×100 integer, all
-  // the named counts). Just pick the cloud-known fields and forward — the
-  // mod writes a few extras (tick_avg/low/high, event_count) we don't ship.
+  // the named counts). Pick the cloud-known fields and forward — the mod
+  // writes a few extras (tick_avg/low/high, event_count) we don't ship.
   _onMetrics(d) {
     if (!d || typeof d !== 'object') return;
+    // fps arrives ×100 from the mod and UNCAPPED — an idle sim loop spins at
+    // ~58k iterations/sec, so the raw value is in the millions. The sidecar
+    // clamps its own consumers at 300, but this path reads metrics.json
+    // directly; without the same cap the cloud's smallint guard pins the
+    // stored value at 327.67 and Live Ops reads a meaningless "328".
+    // fps_min/fps_max are raw FPS (not ×100) — same cap, unscaled.
+    const FPS_CAP = 300;
     const msg = {
       type: 'metrics',
       ts: Date.now(),
       data: {
-        fps:           _safeInt(d.fps, 0),
+        fps:           Math.min(_safeInt(d.fps, 0), FPS_CAP * 100),
         players:       _safeInt(d.players, 0),
         ai_count:      _safeInt(d.ai_count, 0),
         active_ai:     _safeInt(d.active_ai, 0),
@@ -246,6 +253,18 @@ class Forwarder {
         vehicle_count: _safeInt(d.vehicle_count, 0),
         entity_count:  _safeInt(d.entity_count, 0),
         uptime:        _safeInt(d.uptime, 0),
+        // @CitadelAdmin v2.24+ widening — FPS window + environment + in-game
+        // clock. The cloud persists these (migration 0027) and the Live Ops
+        // World card renders them; older mods simply send zeros.
+        fps_min:        Math.min(_safeInt(d.fps_min, 0), FPS_CAP),
+        fps_max:        Math.min(_safeInt(d.fps_max, 0), FPS_CAP),
+        weather_rain:   _safeNum(d.weather_rain, 0),
+        weather_fog:    _safeNum(d.weather_fog, 0),
+        weather_clouds: _safeNum(d.weather_clouds, 0),
+        weather_snow:   _safeNum(d.weather_snow, 0),
+        wind_speed:     _safeNum(d.wind_speed, 0),
+        game_hour:      _safeInt(d.game_hour, 0),
+        game_minute:    _safeInt(d.game_minute, 0),
       },
     };
     this._client?.send(msg);
