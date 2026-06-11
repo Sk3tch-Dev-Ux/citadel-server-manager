@@ -59,12 +59,20 @@ function scaffoldDeployment(installDir, map, opts = {}) {
     const filePath = path.join(installDir, file);
     if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, '');
   }
-  // Create BattlEye server config if it doesn't exist (required for DayZ anti-cheat)
-  const beCfgPath = path.join(installDir, 'profiles', 'BattlEye', 'beserver.cfg');
-  if (!fs.existsSync(beCfgPath)) {
-    const rconPort = opts.rconPort || 2305;
-    const rconPw = opts.rconPassword || '';
-    fs.writeFileSync(beCfgPath, `RConPassword ${rconPw}\nRConPort ${rconPort}\nRestrictRCon 0\n`);
+  // BattlEye RCON config. NOTE: the x64 server reads battleye\BEServer_x64.cfg
+  // in the install root — an earlier scaffold wrote profiles\BattlEye\
+  // beserver.cfg, a file DayZServer_x64 never reads (and with an empty
+  // password when none was supplied, which BattlEye treats as RCON-disabled).
+  // Only pre-seed when the operator provided a password at deploy time;
+  // otherwise ensureRconConfig() (server-lifecycle) generates one and writes
+  // the cfg on first start.
+  if (opts.rconPassword) {
+    const beDir = path.join(installDir, 'battleye');
+    if (!fs.existsSync(beDir)) fs.mkdirSync(beDir, { recursive: true });
+    const beCfgPath = path.join(beDir, 'BEServer_x64.cfg');
+    if (!fs.existsSync(beCfgPath)) {
+      fs.writeFileSync(beCfgPath, `RConPassword ${opts.rconPassword}\r\nRConPort ${opts.rconPort || 2305}\r\n`);
+    }
   }
 }
 

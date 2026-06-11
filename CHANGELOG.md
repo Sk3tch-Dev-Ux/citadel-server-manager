@@ -6,6 +6,28 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## Unreleased
+
+### Added
+- **RCON is now configured automatically for every server.** On server start
+  the agent ensures `battleye\BEServer_x64.cfg` exists and matches the
+  dashboard: a missing RCON password is generated (or adopted from an
+  operator-managed cfg) and persisted, drifted cfg files are updated with
+  operator lines preserved, and stale `beserver_x64_active_*.cfg` copies are
+  removed. This makes reason-visible kicks and ban messages work out of the
+  box — previously RCON required manual BattlEye config, and without it those
+  features silently degraded to the engine's generic text.
+
+### Fixed
+- **Deploy scaffold wrote the BattlEye config where the server never reads
+  it** (`profiles\BattlEye\beserver.cfg` — the x64 server reads
+  `battleye\BEServer_x64.cfg`), and wrote an empty `RConPassword` when none
+  was supplied, which BattlEye treats as RCON-disabled. The scaffold now
+  writes the correct path and only pre-seeds when a password was provided;
+  the start-time auto-config covers the rest.
+
+---
+
 ## v2.24.0 — 2026-06-11
 
 In-game observability (FPS band, weather, world clock), durable cloud bans

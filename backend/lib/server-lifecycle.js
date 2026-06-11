@@ -18,6 +18,7 @@ const { addNotification, sendDiscordWebhook, fireWebhooks } = require('./notific
 const { executeHooks } = require('./lifecycle-hooks');
 const { checkPortAvailability } = require('./port-checker');
 const { ensureFirewallRules } = require('./firewall-manager');
+const { ensureRconConfig } = require('./rcon-config');
 const { MAX_RESTART_ATTEMPTS, RESTART_BACKOFF_DELAYS_MS, RESTART_BACKOFF_COOLDOWN_MS } = require('./constants');
 const { stopTailing, startTailing } = require('./rpt-tailer');
 const { getNextBackoffDelay } = require('./backoff');
@@ -121,6 +122,27 @@ async function startServer(serverId, reason) {
     }
   } catch (err) {
     addLog(serverId, 'warn', 'server', `Firewall rule setup failed for ports ${fwPorts}: ${err.message}`);
+  }
+
+  // Ensure BattlEye RCON is configured (BEServer_x64.cfg + a password on the
+  // server record — generated and persisted when missing). Without it the
+  // RCON port never opens and reason-visible kicks / ban messages silently
+  // degrade to the engine's generic text. Must run before spawn: BattlEye
+  // reads the cfg at server boot.
+  try {
+    const rc = ensureRconConfig(srv);
+    if (rc.generatedPassword) addLog(serverId, 'info', 'server', 'Generated RCON password (none was configured)');
+    if (rc.adoptedPassword) addLog(serverId, 'info', 'server', 'Adopted RCON password from existing BEServer_x64.cfg');
+    if (rc.created) addLog(serverId, 'info', 'server', `BattlEye RCON config created (port ${rc.port})`);
+    else if (rc.updated) addLog(serverId, 'info', 'server', `BattlEye RCON config updated to match server settings (port ${rc.port})`);
+    // The RCON client is only created at state-init when a password already
+    // existed — create it now if the password just materialized.
+    if (srv.rconPassword && !state.rcon) {
+      const RCONClient = require('./rcon-client');
+      state.rcon = new RCONClient(srv.ip, srv.rconPort, srv.rconPassword, serverId);
+    }
+  } catch (err) {
+    addLog(serverId, 'warn', 'server', `RCON config setup failed (kick/ban messages degrade to generic text): ${err.message}`);
   }
 
   // (status was already set to 'starting' synchronously at the top)
