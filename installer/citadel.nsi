@@ -152,6 +152,19 @@ Section "Citadel Agent" SecMain
     Pop $0
   skipServiceStop:
 
+  ; ── Close the desktop app before file copy ──
+  ; Two reasons a Citadel.exe can be alive here: a manual installer run with
+  ; the app open, or (the v2.24.1 self-update bug) an old auto-updater whose
+  ; premature app.relaunch() respawned the app before this installer got to
+  ; copy files. Either way it holds locks on $INSTDIR\desktop\* and — because
+  ; that copy uses File /nonfatal — the desktop app silently stayed at the
+  ; old version while everything else updated. Kill it; the silent-mode
+  ; relaunch at the end of this section brings the NEW build back up.
+  DetailPrint "Closing Citadel desktop app if running..."
+  nsExec::ExecToLog 'taskkill /IM Citadel.exe /F'
+  Pop $0
+  Sleep 1000
+
   ; ── Copy Node.js runtime and NSSM service wrapper ──
   DetailPrint "Installing Node.js runtime and NSSM..."
   SetOutPath "$INSTDIR\runtime"
@@ -258,6 +271,18 @@ Section "Citadel Agent" SecMain
 
   ; ── Write uninstaller ──
   WriteUninstaller "$INSTDIR\Uninstall.exe"
+
+  ; ── Relaunch the desktop app after a silent self-update ──
+  ; The finish page (whose run-checkbox calls LaunchDashboard) is skipped
+  ; under /S, and the auto-updater no longer schedules app.relaunch()
+  ; pre-install (that relaunch raced this installer and locked the desktop
+  ; files). Launch via explorer.exe so the app runs de-elevated instead of
+  ; inheriting the installer's admin token.
+  IfSilent 0 skipSilentRelaunch
+  IfFileExists "$INSTDIR\desktop\Citadel.exe" 0 skipSilentRelaunch
+    DetailPrint "Relaunching Citadel desktop app..."
+    Exec 'explorer.exe "$INSTDIR\desktop\Citadel.exe"'
+  skipSilentRelaunch:
 
   DetailPrint "Installation complete!"
 SectionEnd

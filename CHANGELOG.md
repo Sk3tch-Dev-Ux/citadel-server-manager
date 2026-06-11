@@ -6,6 +6,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.24.2 — 2026-06-11
+
+### Fixed
+- **Self-update left the desktop app on the old version.** The auto-updater
+  scheduled `app.relaunch()` before invoking the installer — but Electron
+  relaunches the instant the app exits, i.e. *before* the elevated NSIS
+  installer copies files. The relaunched old build held
+  `<install>\desktop\*` locked, and because that copy step uses
+  `File /nonfatal`, the installer silently skipped the locked files: the
+  agent updated, the desktop app didn't, and the "update ready" banner
+  reappeared forever. Three-part fix: the installer now closes any running
+  `Citadel.exe` before copying (this also heals updates **from** older
+  versions, whose updater still relaunches early — the new installer is the
+  downloaded artifact), the installer relaunches the new desktop build at
+  the end of silent installs (de-elevated via explorer.exe), and the
+  premature `app.relaunch()` is removed for future versions.
+
+---
+
 ## v2.24.1 — 2026-06-11
 
 RCON out of the box: the agent now provisions BattlEye RCON automatically,

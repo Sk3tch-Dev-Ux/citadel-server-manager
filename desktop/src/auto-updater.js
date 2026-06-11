@@ -382,18 +382,15 @@ async function installNow() {
     warn('stopServiceGracefully threw unexpectedly:', err?.message);
   }
 
-  log('scheduling app.relaunch as a fallback in case NSIS skips LaunchDashboard');
-  try {
-    app.relaunch();
-  } catch (err) {
-    warn('app.relaunch failed:', err?.message);
-  }
-
+  // Deliberately NO app.relaunch() here. Electron relaunches the moment the
+  // app exits — i.e. BEFORE the elevated NSIS installer copies files — so the
+  // old build came back up, held $INSTDIR\desktop\* locked, and the desktop
+  // app silently stayed on the previous version while everything else
+  // updated (the v2.24.1 self-update bug). The installer now owns the
+  // relaunch: it taskkills any lingering Citadel.exe before copying and
+  // starts the NEW build at the end of its silent section.
   log('calling quitAndInstall(silent=true, forceRunAfter=true)');
   // isSilent=true → runs the NSIS /S switch → no UI, just elevation prompt
-  // isForceRunAfter=true → tells NSIS to launch the app after install. With
-  // /S the finish page is skipped so this flag's effect is best-effort —
-  // app.relaunch() above is the real safety net.
   autoUpdater.quitAndInstall(true, true);
   return { ok: true };
 }
