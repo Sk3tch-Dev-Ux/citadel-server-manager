@@ -6,7 +6,10 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## Unreleased
+## v2.24.1 — 2026-06-11
+
+RCON out of the box: the agent now provisions BattlEye RCON automatically,
+which is what makes reason-visible kicks and ban messages actually work.
 
 ### Added
 - **RCON is now configured automatically for every server.** On server start
