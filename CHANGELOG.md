@@ -9,6 +9,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## Unreleased
 
 ### Fixed
+- **Sidecar crash-loop on installed builds starved both dashboards of all
+  in-game data** (players, FPS, entities, live map). The sidecar's logger
+  requested the `pino-pretty` transport whenever `NODE_ENV` wasn't
+  `production` — but the agent spawns the sidecar without setting it, and
+  pino-pretty is a devDependency absent from installs, so the sidecar died at
+  require time and was respawned every 15s forever. The logger now falls back
+  to plain JSON when pino-pretty isn't resolvable, and `sidecar-manager`
+  defaults the sidecar env to production.
+- **Server FPS could overflow the cloud's fps×100 smallint.** Idle dedicated
+  servers run the sim loop uncapped (sub-millisecond tick averages), so the
+  derived FPS reached four digits (and the mod's raw counter reads in the
+  millions). The sidecar now clamps reported FPS to 300 — pinned-at-cap means
+  idle/healthy; the value becomes meaningful under load.
 - **@CitadelAdmin mod failed to compile at server boot** (`Expected name, not
   a keyword 'out'`). The cloud direct-mode additions used `out` — a reserved
   Enforce Script keyword — as a local variable name in

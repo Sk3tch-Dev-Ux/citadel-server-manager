@@ -36,6 +36,11 @@ function refreshMetrics() {
       // Fallback: mod sends fps * 100 for integer precision
       data.fps = +(data.fps / 100).toFixed(2);
     }
+    // Idle dedicated servers spin the sim loop uncapped (sub-ms tick_avg →
+    // four-digit "FPS"), and the cloud stores fps×100 in a smallint (max
+    // ~327). Clamp to 300: pinned-at-cap means healthy/idle; the value
+    // becomes meaningful exactly when load pushes it below the cap.
+    if (data.fps != null && data.fps > 300) data.fps = 300;
 
     metrics = data;
     return metrics;

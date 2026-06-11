@@ -59,6 +59,9 @@ function startSidecar(srv) {
 
   const env = {
     ...process.env,
+    // Default the sidecar to production logging — its pino-pretty transport
+    // is a devDependency and doesn't exist on installed builds.
+    NODE_ENV: process.env.NODE_ENV || 'production',
     DAYZ_INSTALL_DIR: srv.installDir,
     DAYZ_PROFILE_DIR: profileDir,
     SIDECAR_PORT: String(sidecarPort),
