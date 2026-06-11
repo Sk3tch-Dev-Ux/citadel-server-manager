@@ -47,9 +47,9 @@ function pushMetrics(serverId, cpu, ram, playerCount, fps, inGame = null) {
   const now = new Date().toISOString();
   const m = state.metricsHistory;
   m.cpu.push(cpu); m.ram.push(ram); m.players.push(playerCount); m.fps.push(fps); m.timestamps.push(now);
-  Object.keys(m).forEach(k => { if (m[k].length > METRICS_HISTORY_SIZE) m[k] = m[k].slice(-METRICS_HISTORY_SIZE); });
   // Pull the in-game telemetry the mod already produces (tick time, entity/AI
-  // counts). Safe when the sidecar isn't reporting — fields default to 0.
+  // counts, FPS window, weather/clock). Safe when the sidecar isn't reporting
+  // — fields default to 0.
   const g = inGame || {};
   const ingameSample = {
     tick_avg: g.tick_avg, tick_low: g.tick_low, tick_high: g.tick_high,
@@ -60,6 +60,15 @@ function pushMetrics(serverId, cpu, ram, playerCount, fps, inGame = null) {
     weather_clouds: g.weather_clouds, weather_snow: g.weather_snow,
     wind_speed: g.wind_speed, game_hour: g.game_hour, game_minute: g.game_minute,
   };
+  // Keep the in-game series in the rolling window too — GET /metrics serves
+  // metricsHistory, and the live dashboard re-fetches it every 10s. When these
+  // keys rode only the socket events, every poll wiped them and the In-Game /
+  // Environment sections flickered in and out on each 15s tick.
+  for (const k of Object.keys(ingameSample)) {
+    if (!m[k]) m[k] = [];
+    m[k].push(Number(ingameSample[k]) || 0);
+  }
+  Object.keys(m).forEach(k => { if (m[k].length > METRICS_HISTORY_SIZE) m[k] = m[k].slice(-METRICS_HISTORY_SIZE); });
   // Persist to the durable store (no-op if persistence is disabled).
   metricsStore.record(serverId, { cpu, ram, players: playerCount, fps, ...ingameSample });
   if (ctx.io) ctx.emitServer('metrics', { serverId, cpu, ram, players: playerCount, fps, timestamp: now, ...ingameSample });
