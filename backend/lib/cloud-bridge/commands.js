@@ -86,8 +86,10 @@ async function handle({ localServerId, client, message }) {
   }
 
   const reply = (success, msg) => {
+    logger.info({ localServerId, action, id, success, msg: String(msg || '') }, 'cloud-bridge: command result');
     client.send({ type: 'command_result', id, success, message: String(msg || '') });
   };
+  logger.info({ localServerId, action, id }, 'cloud-bridge: command received');
 
   // Server lifecycle — `restart` is not a mod IPC action; it drives the
   // agent's own process control. The cloud owns scheduling (its schedule
