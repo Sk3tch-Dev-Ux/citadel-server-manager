@@ -65,7 +65,16 @@ const ACTION_MAP = Object.freeze({
 async function handle({ localServerId, client, message }) {
   const id = String(message?.id || '');
   const action = String(message?.action || '');
-  const params = (message?.params && typeof message.params === 'object') ? message.params : {};
+  const params = (message?.params && typeof message.params === 'object') ? { ...message.params } : {};
+
+  // The cloud's wire convention is snake_case (its console, command validator,
+  // enforcement worker, and RCON copilot all send `steam_id`); the mod IPC
+  // vocabulary is camelCase. Normalize so neither side's convention breaks the
+  // other — without this, every player-targeted Live Ops action died here with
+  // "Missing required param: steamId".
+  if (params.steamId == null && params.steam_id != null) params.steamId = params.steam_id;
+  if (params.className == null && params.class_name != null) params.className = params.class_name;
+  if (params.text == null && params.message != null) params.text = params.message;
 
   if (!id) {
     logger.warn({ localServerId, action }, 'cloud-bridge: command missing id — cannot reply');
