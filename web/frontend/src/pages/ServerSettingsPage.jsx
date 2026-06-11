@@ -241,8 +241,8 @@ export default function ServerSettingsPage({ serverId }) {
         <div className="settings-row">
           <span className="settings-row-label">RCon Password</span>
           <div className="settings-row-value">
-            <input className="input" value={srv.rconPassword || ''} onChange={e => update('rconPassword', e.target.value)} />
-            <div className="settings-hint">{(srv.rconPassword || '').length}/255 characters &nbsp;&nbsp; battleye_rcon RCon</div>
+            <input className="input" value={srv.rconPassword || ''} onChange={e => update('rconPassword', e.target.value)} placeholder="Auto-generated on first start" />
+            <div className="settings-hint">{(srv.rconPassword || '').length}/255 characters &nbsp;&nbsp; Blank = auto-generated and written to BEServer_x64.cfg at server start; edits here sync to BattlEye on the next start</div>
           </div>
         </div>
         <div className="settings-row">

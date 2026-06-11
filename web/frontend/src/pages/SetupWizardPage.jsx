@@ -1043,7 +1043,10 @@ export default function SetupWizardPage() {
                     </div>
                     <div className="input-group">
                       <label className="input-label">RCON Password</label>
-                      <input className="input" type="password" value={rconPassword} onChange={e => setRconPassword(e.target.value)} placeholder="Optional" />
+                      <input className="input" type="password" value={rconPassword} onChange={e => setRconPassword(e.target.value)} placeholder="Leave blank to auto-generate" />
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                        Citadel configures BattlEye RCON automatically on first start — set a password only if you want a specific one (e.g. for external RCON tools).
+                      </div>
                     </div>
                   </div>
                 </div>
