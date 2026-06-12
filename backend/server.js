@@ -51,20 +51,21 @@ ctx.roles = loadJSON(CONFIG.dataDir, 'roles.json', [
   // could /restart, /rcon, /ban, etc. without a role check. We now gate
   // each action against this synthetic role's permissions.
   //
-  // Default permissions are '*' so existing deployments are unchanged on
-  // upgrade. Operators can narrow the role's permissions in the role
-  // editor (Settings → Users & Roles) without a code change. For example:
-  //
-  //   permissions: ['server.view','server.restart','players.view','players.kick','chat.send']
-  //
-  // …would let the Discord bot show status, run a restart, kick a player,
-  // and broadcast to chat — but block /rcon, /ban, world wipes, etc.
-  { id: 'discord-bot', name: 'Discord Bot', permissions: ['*'], color: '#5865F2', builtIn: true, description: 'Permissions granted to /api/discord/action calls. Narrow this role to limit what the bot can do.' },
+  // Audit P3 — least-privilege by default for FRESH installs. A single static
+  // bot key should not equal full admin out of the box. This default lets the
+  // bot show status, restart, kick, and broadcast — but NOT raw /rcon, /ban,
+  // world wipes, file edits, or deploys. Operators can broaden (or narrow) it
+  // in the role editor (Settings → Users & Roles) without a code change.
+  // (Existing installs are handled by the back-fill below, which stays '*' so
+  // upgrades don't suddenly break a bot that already relied on full access.)
+  { id: 'discord-bot', name: 'Discord Bot', permissions: ['server.view','server.restart','players.view','players.kick','chat.send'], color: '#5865F2', builtIn: true, description: 'Permissions granted to /api/discord/action calls. Broaden or narrow this role to control what the bot can do.' },
 ]);
 // Back-fill the discord-bot role for installs that pre-date this change.
 // The role being missing means the gate would always fail closed and the
-// bot would stop working entirely — match the safe behavior (initial '*')
-// so an upgrade is non-breaking.
+// bot would stop working entirely. These installs ran the bot with full
+// access before the gate existed, so we back-fill '*' to keep the upgrade
+// non-breaking — but log a warning so the operator knows to review/narrow it
+// (fresh installs now default to least-privilege; see the seed above).
 if (!ctx.roles.find(r => r.id === 'discord-bot')) {
   ctx.roles.push({
     id: 'discord-bot',
@@ -74,6 +75,7 @@ if (!ctx.roles.find(r => r.id === 'discord-bot')) {
     builtIn: true,
     description: 'Permissions granted to /api/discord/action calls. Narrow this role to limit what the bot can do.',
   });
+  logger.warn('Back-filled "discord-bot" role with full ("*") permissions for an existing install — review and narrow it in Settings → Users & Roles.');
   // Persist so the new role shows up in the role editor immediately.
   try {
     require('./lib/data-store').saveJSON(CONFIG.dataDir, 'roles.json', ctx.roles);
@@ -405,6 +407,20 @@ io.on('connection', (socket) => {
 
   logger.debug({ userId: socket.user?.id }, 'WebSocket client connected');
 
+  // ─── Per-server realtime scoping (Audit C1) ──────────────
+  // Join the socket to the rooms it is authorized to receive. getUserServerScope
+  // returns null for unrestricted/wildcard roles (join 'servers:all' so they
+  // also receive servers created later this session) or an array of allowed
+  // server ids (join only those 'server:<id>' rooms). A user whose role can't
+  // be resolved gets [] and joins nothing — fail closed. ctx.emitServer() emits
+  // to these rooms so out-of-scope clients never receive another server's data.
+  const _socketScope = require('./middleware/auth').getUserServerScope(socket.user?.id);
+  if (_socketScope === null) {
+    socket.join('servers:all');
+  } else {
+    for (const id of _socketScope) socket.join('server:' + id);
+  }
+
   // Fire session.begin webhook
   fireWebhooks('session.begin', {
     serverName: 'Citadel Agent',
@@ -415,6 +431,9 @@ io.on('connection', (socket) => {
   }).catch(err => logger.error({ err }, 'Failed to fire session.begin webhook'));
 
   for (const srv of ctx.servers) {
+    // Respect the caller's scope for the initial snapshot too — don't leak
+    // out-of-scope servers' status/players on connect.
+    if (_socketScope !== null && !_socketScope.includes(srv.id)) continue;
     const state = ctx.serverStates[srv.id];
     if (state) {
       socket.emit('serverStatus', { serverId: srv.id, status: state.status });

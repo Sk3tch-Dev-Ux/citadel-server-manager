@@ -118,6 +118,23 @@ class CloudWsClient extends EventEmitter {
   _connect() {
     if (this._stopped) return;
     const url = this._wsUrl();
+
+    // Security (Audit P3): never authenticate over a plaintext ws:// to a
+    // REMOTE host — the cloud API key would cross the wire unencrypted, and an
+    // http:// cloud URL silently becomes ws:// in _wsUrl(). Allow ws:// only to
+    // loopback (local cloud dev); require wss:// for anything else. We refuse
+    // rather than downgrade, and don't schedule a reconnect (it's a config
+    // error that needs the URL fixed, not a transient failure).
+    if (url.startsWith('ws://')) {
+      let host = '';
+      try { host = new URL(url).hostname; } catch { /* unparseable — treat as remote */ }
+      const isLoopback = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+      if (!isLoopback) {
+        logger.error({ url }, 'cloud-ws: refusing to connect over plaintext ws:// to a remote host — set the cloud URL to https:// (wss://). Not connecting.');
+        return;
+      }
+    }
+
     logger.info({ url }, 'cloud-ws: connecting');
 
     let ws;
