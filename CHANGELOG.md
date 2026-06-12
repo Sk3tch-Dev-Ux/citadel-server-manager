@@ -6,6 +6,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## v2.25.0 — 2026-06-11
+
+### Added
+- **Ban list sync to Citadel Cloud.** The agent now pushes its global ban
+  database to the cloud (on connect and, debounced, on every change) so the
+  new cloud Ban Manager can list bans and unban remotely. Snapshots are
+  capped at 2,000 entries per frame and field-truncated to stay within the
+  cloud's WS frame and database limits; larger lists log a truncation notice
+  (chunked transfer for huge imports is a planned follow-up).
+- **Cloud admin actions reach the mod correctly.** The cloud→agent command
+  bridge now translates the cloud's wire vocabulary to what the @CitadelAdmin
+  mod actually reads — `class_name`/`className` → `itemClass` for item spawns,
+  and weather `preset` (clear/overcast/rain/storm) → the mod's numeric
+  overcast/rain/fog — so teleport, spawn-item, set-time, and set-weather from
+  Live Ops work for any caller, not just the dashboard.
+
 ## v2.24.2 — 2026-06-11
 
 ### Fixed

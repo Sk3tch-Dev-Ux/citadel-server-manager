@@ -31,6 +31,22 @@ const EVENTS_TAIL_INTERVAL_MS = 1000;
 // Cap how far back a reconnect/restart will replay, so a very long outage
 // can't flood the cloud on reconnect. Older bytes are skipped (and logged).
 const MAX_REPLAY_BYTES = 8 * 1024 * 1024;
+// Debounce window for ban_list pushes — a bulk import mutates the ban DB N
+// times in a burst; one frame after the burst settles is enough (the frame
+// is a full snapshot, so only the last one matters).
+const BAN_PUSH_DEBOUNCE_MS = 1500;
+// Per-frame snapshot cap. MUST stay well under the cloud's 1 MiB WS frame
+// limit (config.pluginWs.maxPayloadBytes) AND its per-statement bind budget:
+// the cloud stores ~10 columns/row, and Postgres caps a statement at 65,535
+// bind params, so the whole snapshot must be < ~6,500 rows even before the
+// frame-size limit bites. 2,000 entries (~660 KB worst case at the truncated
+// field widths below) clears both with margin. A real bans.json is hundreds
+// of entries; servers importing larger lists are a chunked-protocol follow-up.
+const MAX_BAN_LIST_ENTRIES = 2000;
+// Wire-side field caps so a few pathological long reasons can't inflate the
+// frame past the size budget (the cloud re-truncates on store anyway).
+const BAN_WIRE_NAME_MAX = 100;
+const BAN_WIRE_REASON_MAX = 200;
 
 class Forwarder {
   /**
@@ -44,6 +60,8 @@ class Forwarder {
     this._rconTimer = null; // periodic RCon player (IP/ping) forward for cloud enforcement
     this._healthTimer = null; // periodic deep-health snapshot forward (agent_health)
     this._eventsTimer = null; // durable events.jsonl tailer (G1)
+    this._bansUnsub = null;   // ban-engine change subscription (ban_list push)
+    this._bansTimer = null;   // debounce timer for ban_list pushes
     this._cloudOffset = 0;    // byte offset through which events.jsonl is forwarded
     // sessionStarts is a per-Forwarder cache of when each steamId joined,
     // keyed by steamId. Lets us emit player_disconnect with `duration` even
@@ -110,6 +128,19 @@ class Forwarder {
     this._healthTimer = setInterval(() => { this._forwardAgentHealth(); }, 30_000);
     this._healthTimer.unref?.();
 
+    // Push the GLOBAL ban database (snapshot semantics) so the cloud Ban
+    // Manager can list bans: once on attach (covers reconnects and anything
+    // missed while offline), then on every ban-engine mutation, debounced so
+    // a bulk import sends one frame instead of N. The ban DB is agent-global,
+    // so each linked server's connection mirrors the same list — the cloud
+    // stores it per server.
+    this._forwardBanList();
+    try {
+      this._bansUnsub = require('../ban-engine').onBansChanged(() => this._scheduleBanListPush());
+    } catch (err) {
+      logger.warn({ err: err.message, localServerId: this.localServerId }, 'forwarder: ban-engine subscribe failed, ban_list push off');
+    }
+
     logger.debug({ localServerId: this.localServerId }, 'forwarder: attached');
   }
 
@@ -156,11 +187,58 @@ class Forwarder {
     }
   }
 
+  // ─── ban_list (Ban Manager snapshot) ──────────────────────────────────
+  //
+  // The cloud's `ban_list` frame is a full snapshot (`full: true`): the sink
+  // replaces everything it holds for this server, so dropping a debounced
+  // push while disconnected is safe — the next attach re-sends the world.
+  _scheduleBanListPush() {
+    // Trailing-edge debounce: a bulk import mutates the ban DB many times in a
+    // burst; reset the timer on each so exactly ONE full snapshot goes out
+    // after the burst settles (a leading-edge "ignore if pending" would fire
+    // mid-import and push a half-built — and repeatedly re-sent — list).
+    if (this._bansTimer) clearTimeout(this._bansTimer);
+    this._bansTimer = setTimeout(() => {
+      this._bansTimer = null;
+      this._forwardBanList();
+    }, BAN_PUSH_DEBOUNCE_MS);
+    this._bansTimer.unref?.();
+  }
+
+  _forwardBanList() {
+    if (!this._client) return;
+    try {
+      const all = require('../ban-engine').listBans();
+      if (all.length > MAX_BAN_LIST_ENTRIES) {
+        logger.warn({ localServerId: this.localServerId, total: all.length, sent: MAX_BAN_LIST_ENTRIES }, 'forwarder: ban list over cap, truncating push');
+      }
+      const bans = [];
+      for (const b of all.slice(0, MAX_BAN_LIST_ENTRIES)) {
+        if (!b?.id || !b?.steamId) continue;
+        bans.push({
+          id: String(b.id),
+          steam_id: String(b.steamId),
+          player_name: String(b.playerName || '').slice(0, BAN_WIRE_NAME_MAX),
+          reason: String(b.reason || '').slice(0, BAN_WIRE_REASON_MAX),
+          banned_at: _msOrUndefined(b.bannedAt),
+          expires_at: b.expiresAt ? _msOrUndefined(b.expiresAt) : null,
+          banned_by: String(b.bannedBy || '').slice(0, BAN_WIRE_NAME_MAX),
+          source: String(b.source || 'manual'),
+        });
+      }
+      this._client.send({ type: 'ban_list', ts: Date.now(), data: { full: true, bans } });
+    } catch (err) {
+      logger.debug({ err: err.message, localServerId: this.localServerId }, 'forwarder: ban_list forward failed');
+    }
+  }
+
   /** Tear down. Idempotent. */
   detach() {
     if (this._rconTimer) { clearInterval(this._rconTimer); this._rconTimer = null; }
     if (this._healthTimer) { clearInterval(this._healthTimer); this._healthTimer = null; }
     if (this._eventsTimer) { clearInterval(this._eventsTimer); this._eventsTimer = null; }
+    if (this._bansTimer) { clearTimeout(this._bansTimer); this._bansTimer = null; }
+    if (this._bansUnsub) { try { this._bansUnsub(); } catch { /* fine */ } this._bansUnsub = null; }
     if (!this._client || !this._bridge || !this._handlers) {
       this._client = null;
       this._bridge = null;
@@ -512,6 +590,17 @@ function _safeInt(v, fallback) {
 function _safeNum(v, fallback) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * Parse an ISO timestamp (the ban DB stores ISO strings) into epoch ms for
+ * the wire, or undefined when missing/malformed — the cloud treats an absent
+ * field as "unknown" and stores NULL, which is more honest than "now".
+ */
+function _msOrUndefined(iso) {
+  if (!iso) return undefined;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : undefined;
 }
 
 /**

@@ -31,6 +31,25 @@ function _persist() {
   saveJSON(ctx.CONFIG.dataDir, 'bans.json', ctx.banDatabase);
 }
 
+// ─── Change Notification ──────────────────────────────────
+// Fired after every ban-database mutation (add/remove/import). The
+// cloud-bridge forwarders subscribe to push a fresh ban_list snapshot up to
+// the cloud so the web console's Ban Manager stays in sync.
+
+const _changeListeners = new Set();
+
+/** Subscribe to ban-database mutations. Returns an unsubscribe function. */
+function onBansChanged(fn) {
+  _changeListeners.add(fn);
+  return () => _changeListeners.delete(fn);
+}
+
+function _notifyBansChanged() {
+  for (const fn of _changeListeners) {
+    try { fn(); } catch { /* a listener must never break a ban write */ }
+  }
+}
+
 // ─── Query ────────────────────────────────────────────────
 
 /** List all bans. */
@@ -82,6 +101,7 @@ function addBan({ steamId, playerName, reason, expiresAt, bannedBy, source }) {
     _writeBanToFile(srv, steamId);
     syncBansJsonToProfile(srv);
   }
+  _notifyBansChanged();
   return ban;
 }
 
@@ -99,6 +119,7 @@ function removeBan(banId) {
     _removeBanFromFile(srv, ban.steamId);
     syncBansJsonToProfile(srv);
   }
+  _notifyBansChanged();
   return ban;
 }
 
@@ -314,6 +335,7 @@ function importBans(bansArray, adminUsername) {
   for (const srv of ctx.servers) {
     syncAllBansToServer(srv.id);
   }
+  if (added > 0) _notifyBansChanged();
   return { added, skipped, errors, total: ctx.banDatabase.length };
 }
 
@@ -365,6 +387,6 @@ function _removeBanFromFile(srv, steamId) {
 
 module.exports = {
   listBans, getBanById, getBanBySteamId,
-  addBan, removeBan, banPlayer,
+  addBan, removeBan, banPlayer, onBansChanged,
   syncAllBansToServer, syncBansJsonToProfile, syncBansJsonToAllServers, importBans, exportBans,
 };

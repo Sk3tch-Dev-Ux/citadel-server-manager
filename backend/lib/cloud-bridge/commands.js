@@ -80,6 +80,24 @@ async function handle({ localServerId, client, message }) {
   if (params.className == null && params.class_name != null) params.className = params.class_name;
   if (params.text == null && params.message != null) params.text = params.message;
 
+  // Mod IPC vocabulary differs from the cloud wire vocabulary for two actions;
+  // own the translation HERE so any conforming caller (RCON copilot, schedule
+  // worker, future UI) only needs the documented wire params. The Live Ops UI
+  // currently also dual-sends these — harmless now that the agent maps them.
+  //  - spawn: the mod reads `itemClass`; the wire/console use class_name/className.
+  if (params.itemClass == null && params.className != null) params.itemClass = params.className;
+  //  - weather: the mod applies numeric overcast/rain/fog; the wire uses `preset`.
+  if (action === 'set_weather' && params.overcast == null && params.rain == null && params.fog == null) {
+    const WEATHER_PRESETS = {
+      clear:    { overcast: 0,    rain: 0,   fog: 0 },
+      overcast: { overcast: 0.75, rain: 0,   fog: 0.1 },
+      rain:     { overcast: 0.85, rain: 0.7, fog: 0.15 },
+      storm:    { overcast: 1,    rain: 1,   fog: 0.25 },
+    };
+    const mapped = WEATHER_PRESETS[String(params.preset || '').toLowerCase()];
+    if (mapped) Object.assign(params, mapped);
+  }
+
   if (!id) {
     logger.warn({ localServerId, action }, 'cloud-bridge: command missing id — cannot reply');
     return;
