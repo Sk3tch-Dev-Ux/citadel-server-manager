@@ -1,12 +1,12 @@
 ; ══════════════════════════════════════════════════════════════
-; Citadel Agent — NSIS Installer Script
+; Citadel Server Manager — NSIS Installer Script
 ;
 ; Produces a branded Windows installer that bundles Node.js runtime,
-; the Citadel Agent application, and all dependencies into a one-click setup.
+; the Citadel Server Manager application, and all dependencies into a one-click setup.
 ;
 ; Branding note: machine identifiers (install path, registry key, service
 ; name) intentionally keep the bare "Citadel" string so existing installs
-; upgrade in place. Only user-visible labels say "Citadel Agent".
+; upgrade in place. Only user-visible labels say "Citadel Server Manager".
 ;
 ; Build via:  node installer/build.js
 ; ══════════════════════════════════════════════════════════════
@@ -31,7 +31,7 @@
 !endif
 
 ; ─── Installer metadata ──────────────────────────────────
-Name "Citadel Agent"
+Name "Citadel Server Manager"
 OutFile "${OUTPUT_DIR}\CitadelSetup-${VERSION}.exe"
 InstallDir "C:\Citadel"
 InstallDirRegKey HKLM "Software\Citadel" "InstallDir"
@@ -41,10 +41,10 @@ ShowUnInstDetails show
 
 ; ─── Version info ─────────────────────────────────────────
 VIProductVersion "${VERSION}.0"
-VIAddVersionKey "ProductName" "Citadel Agent"
+VIAddVersionKey "ProductName" "Citadel Server Manager"
 VIAddVersionKey "CompanyName" "Citadel"
 VIAddVersionKey "LegalCopyright" "Copyright Citadel"
-VIAddVersionKey "FileDescription" "Citadel Agent — Local DayZ Server Manager Installer"
+VIAddVersionKey "FileDescription" "Citadel Server Manager — Local DayZ server management installer"
 VIAddVersionKey "FileVersion" "${VERSION}"
 VIAddVersionKey "ProductVersion" "${VERSION}"
 
@@ -61,7 +61,7 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_TEXT "Launch Citadel Agent"
+!define MUI_FINISHPAGE_RUN_TEXT "Launch Citadel Server Manager"
 !define MUI_FINISHPAGE_RUN_FUNCTION "LaunchDashboard"
 !insertmacro MUI_PAGE_FINISH
 
@@ -99,7 +99,7 @@ Function .onInit
     ; on existing install" check above already handles the common upgrade
     ; case; this is just defensive for fresh-install silent runs that
     ; happen while another service briefly holds the port.
-    MessageBox MB_ICONEXCLAMATION|MB_YESNO "Port 3001 is already in use on this machine.$\n$\nCitadel Agent uses port 3001 for its dashboard and API. Another application is currently listening on this port.$\n$\nRecommended: Cancel, stop the other service, and run the installer again.$\n$\nContinue anyway?" /SD IDYES IDYES continueInstall
+    MessageBox MB_ICONEXCLAMATION|MB_YESNO "Port 3001 is already in use on this machine.$\n$\nCitadel Server Manager uses port 3001 for its dashboard and API. Another application is currently listening on this port.$\n$\nRecommended: Cancel, stop the other service, and run the installer again.$\n$\nContinue anyway?" /SD IDYES IDYES continueInstall
     Abort "Installation cancelled — port 3001 is in use."
     continueInstall:
   ${EndIf}
@@ -120,11 +120,11 @@ FunctionEnd
 ;   by node.exe. The old service registration is removed + re-registered
 ;   to pick up the new paths (harmless even on identical paths).
 ; ═══════════════════════════════════════════════════════════
-Section "Citadel Agent" SecMain
+Section "Citadel Server Manager" SecMain
   SectionIn RO
 
   SetOutPath "$INSTDIR"
-  DetailPrint "Installing Citadel Agent v${VERSION}..."
+  DetailPrint "Installing Citadel Server Manager v${VERSION}..."
 
   ; ─────────────────────────────────────────────────────────
   ; P1.2 — Stop any running Citadel service BEFORE file overwrites.
@@ -213,7 +213,7 @@ Section "Citadel Agent" SecMain
   ; (e.g. their desktop browsing to http://<server-ip>:3001).
   ; Scope limited to private + domain profiles — public networks stay blocked.
   DetailPrint "Creating Windows Firewall rule for dashboard access..."
-  nsExec::ExecToLog 'netsh advfirewall firewall add rule name="Citadel Dashboard" dir=in action=allow protocol=TCP localport=3001 profile=private,domain description="Citadel Agent — dashboard + API"'
+  nsExec::ExecToLog 'netsh advfirewall firewall add rule name="Citadel Dashboard" dir=in action=allow protocol=TCP localport=3001 profile=private,domain description="Citadel Server Manager — dashboard + API"'
   Pop $0
 
   ; ── Start the service via NSSM ──
@@ -228,13 +228,13 @@ Section "Citadel Agent" SecMain
   ; to localhost:3001 from another machine on the LAN.
   CreateDirectory "$SMPROGRAMS\Citadel"
   ; Shortcut filenames intentionally stay "Citadel.lnk" so existing users'
-  ; Start Menu and taskbar pins keep working on upgrade. The Citadel Agent
+  ; Start Menu and taskbar pins keep working on upgrade. The Citadel Server Manager
   ; rebrand surfaces via the tooltips below and the Add/Remove Programs
   ; entry. A future cleanup pass can rename these once we're ready to break
   ; pinned shortcuts.
   CreateShortCut "$SMPROGRAMS\Citadel\Citadel.lnk" \
     "$INSTDIR\desktop\Citadel.exe" "" "$INSTDIR\desktop\Citadel.exe" 0 \
-    SW_SHOWNORMAL "" "Citadel Agent — Local DayZ Server Manager"
+    SW_SHOWNORMAL "" "Citadel Server Manager — Local DayZ server management"
   CreateShortCut "$SMPROGRAMS\Citadel\Dashboard (Browser).lnk" \
     "http://localhost:3001" "" "$INSTDIR\runtime\node.exe" 0
   CreateShortCut "$SMPROGRAMS\Citadel\Uninstall Citadel.lnk" \
@@ -243,11 +243,11 @@ Section "Citadel Agent" SecMain
   ; ── Desktop shortcut ──
   CreateShortCut "$DESKTOP\Citadel.lnk" \
     "$INSTDIR\desktop\Citadel.exe" "" "$INSTDIR\desktop\Citadel.exe" 0 \
-    SW_SHOWNORMAL "" "Citadel Agent — Local DayZ Server Manager"
+    SW_SHOWNORMAL "" "Citadel Server Manager — Local DayZ server management"
 
   ; ── Add/Remove Programs entry ──
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citadel" \
-    "DisplayName" "Citadel Agent — Local DayZ Server Manager"
+    "DisplayName" "Citadel Server Manager — Local DayZ server management"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citadel" \
     "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citadel" \
@@ -298,7 +298,7 @@ SectionEnd
 ; ═══════════════════════════════════════════════════════════
 Function .onInstSuccess
   IfSilent 0 notSilent
-    DetailPrint "Silent install complete — launching Citadel Agent..."
+    DetailPrint "Silent install complete — launching Citadel Server Manager..."
     ; Wait for the backend service to be ready before launching the app.
     ; Without this the desktop app's splash screen would sit on "connecting"
     ; for a long time on slower machines.
@@ -318,7 +318,7 @@ Function LaunchDashboard
   ; Wait for the backend API to be ready before launching anything —
   ; prevents "connection refused" on a fresh install where the service
   ; is still booting.
-  DetailPrint "Waiting for Citadel Agent API to respond..."
+  DetailPrint "Waiting for Citadel Server Manager API to respond..."
   nsExec::ExecToLog '"$INSTDIR\runtime\node.exe" "$INSTDIR\backend\lib\wait-for-ready.js"'
   Pop $0
 

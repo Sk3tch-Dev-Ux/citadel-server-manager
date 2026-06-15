@@ -2,7 +2,7 @@
   "name": "citadel-desktop",
   "version": "2.25.0",
   "private": true,
-  "description": "Citadel Agent \u2014 local DayZ server management for Windows. Install, configure, mod, and operate dedicated servers from one desktop app. Pairs with Citadel Cloud for remote control, automations, and the Trust Network ban database.",
+  "description": "Citadel Server Manager \u2014 local DayZ server management for Windows. Install, configure, mod, and operate dedicated servers from one desktop app. Pairs with Citadel Cloud for remote control, automations, and the Trust Network ban database.",
   "main": "src/main.js",
   "author": "Sk3tch Dev",
   "license": "UNLICENSED",
@@ -49,7 +49,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Citadel Agent"
+      "shortcutName": "Citadel Server Manager"
     },
     "publish": {
       "provider": "github",

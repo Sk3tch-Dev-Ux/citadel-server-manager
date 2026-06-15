@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Citadel DayZ Server Controller — Service Installer
+    Citadel Server Manager — Service Installer
 .DESCRIPTION
     Installs Citadel as a Windows service using NSSM.
     Run this script as Administrator after extracting the zip.
