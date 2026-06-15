@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import API from '../api';
+import Toggle from './ui/Toggle';
 import { Cloud, CloudOff, Link as LinkIcon, AlertTriangle, Loader, ExternalLink, Trash2 } from './Icon';
 
 /**
@@ -121,7 +122,7 @@ export default function CloudLinkCard({ serverId }) {
   }
 
   // ── Linked: show status + actions ──────────────────────────────────
-  return <LinkedView link={link} onReplace={() => setEditing(true)} onUnlink={handleUnlink} />;
+  return <LinkedView link={link} serverId={serverId} onReplace={() => setEditing(true)} onUnlink={handleUnlink} />;
 }
 
 // ─── Pairing form ──────────────────────────────────────────────────────
@@ -194,7 +195,7 @@ function PairingForm({
 
 // ─── Linked view ───────────────────────────────────────────────────────
 
-function LinkedView({ link, onReplace, onUnlink }) {
+function LinkedView({ link, serverId, onReplace, onUnlink }) {
   const status = link.lastStatus || 'unknown';
   const { icon, color, label } = statusVisuals(status);
 
@@ -245,6 +246,8 @@ function LinkedView({ link, onReplace, onUnlink }) {
         </div>
       )}
 
+      <PolicyControls serverId={serverId} policy={link.policy} />
+
       <div className="btn-group" style={{ gap: 8 }}>
         <button type="button" className="btn btn-secondary" onClick={onReplace}>
           <LinkIcon size={14} /> Replace credentials
@@ -252,6 +255,76 @@ function LinkedView({ link, onReplace, onUnlink }) {
         <button type="button" className="btn btn-danger" onClick={onUnlink} style={{ marginLeft: 'auto' }}>
           <Trash2 size={14} /> Unlink
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Privacy & safety toggles ──────────────────────────────────────────
+// Maps to PATCH /api/servers/:id/cloud-link/policy. Optimistic: flip the
+// switch immediately, revert + toast on failure. The 5s status poll keeps
+// these in sync if the policy changes elsewhere.
+
+function PolicyControls({ serverId, policy }) {
+  const [forwardPII, setForwardPII] = useState(policy?.forwardPlayerPII !== false);
+  const [allowWipe, setAllowWipe] = useState(!!policy?.allowRemoteWipe);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!policy) return;
+    setForwardPII(policy.forwardPlayerPII !== false);
+    setAllowWipe(!!policy.allowRemoteWipe);
+    // Sync on the primitive policy values, not the (always-new) object identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [policy?.forwardPlayerPII, policy?.allowRemoteWipe]);
+
+  const save = async (patch, apply, revert) => {
+    apply();
+    setSaving(true);
+    try {
+      const res = await API.patch(`/api/servers/${serverId}/cloud-link/policy`, patch);
+      if (res?.error) throw new Error(res.message || res.error);
+    } catch (err) {
+      revert();
+      window.addToast?.(`Couldn't update policy: ${err.message}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', marginTop: 4, paddingTop: 12, marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10 }}>
+        Privacy &amp; safety
+      </div>
+
+      <PolicyRow
+        title="Forward player IP & GUID to Cloud"
+        desc="Needed for Cloud VPN/Geo checks and cross-server identity. Turn off to keep player IPs on this machine — those Cloud features then simply skip."
+        checked={forwardPII}
+        disabled={saving}
+        onChange={(v) => save({ forwardPlayerPII: v }, () => setForwardPII(v), () => setForwardPII(!v))}
+      />
+      <PolicyRow
+        title="Allow remote world-wipe"
+        desc="Let Cloud wipe AI / vehicles on this server. Off by default so a leaked Cloud key can't wipe your world. Restart and player moderation are always allowed."
+        checked={allowWipe}
+        disabled={saving}
+        onChange={(v) => save({ allowRemoteWipe: v }, () => setAllowWipe(v), () => setAllowWipe(!v))}
+      />
+    </div>
+  );
+}
+
+function PolicyRow({ title, desc, checked, disabled, onChange }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{title}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{desc}</div>
+      </div>
+      <div style={{ paddingTop: 2 }}>
+        <Toggle checked={checked} onChange={(v) => !disabled && onChange(v)} />
       </div>
     </div>
   );

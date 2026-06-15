@@ -6,6 +6,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Cloud link privacy & safety controls.** Each cloud-linked server now has
+  two operator toggles on its Cloud card:
+  - *Forward player IP & GUID to Cloud* (on by default) — turn it off to keep
+    player IPs/GUIDs on your machine; Cloud's VPN/Geo checks then simply skip.
+  - *Allow remote world-wipe* (off by default) — Cloud can only wipe AI/
+    vehicles on a server you've explicitly opted in, so a leaked Cloud key
+    can't wipe your world. Restart and player moderation are unaffected.
+  The settings survive a re-pair and the choice is recorded in the audit log.
+
+### Security
+- Cloud-issued world-wipe commands are now denied by default (opt-in per
+  server) as defense-in-depth against a replayed or compromised cloud key.
+
 ## v2.25.0 — 2026-06-11
 
 ### Added

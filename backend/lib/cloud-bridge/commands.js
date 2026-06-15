@@ -40,6 +40,7 @@ const { banPlayer, getBanBySteamId, removeBan } = require('../ban-engine');
 const ctx = require('../context');
 const logger = require('../logger');
 const { addAudit } = require('../audit');
+const storage = require('./storage');
 
 const ACTION_MAP = Object.freeze({
   kick:          { mod: 'player.kick',         requires: ['steamId'] },
@@ -120,6 +121,15 @@ async function handle({ localServerId, client, message }) {
     client.send({ type: 'command_result', id, success, message: String(msg || '') });
   };
   logger.info({ localServerId, action, id }, 'cloud-bridge: command received');
+
+  // Defense-in-depth (WS3): world WIPE commands only run if the operator has
+  // explicitly opted this server in. Off by default, so a replayed or
+  // compromised cloud key can't clear a server's AI/vehicles. The denial is
+  // still audited (reply() writes the trail) so the attempt is recorded.
+  if ((action === 'wipe_ai' || action === 'wipe_vehicles') && !storage.getPolicy(localServerId).allowRemoteWipe) {
+    reply(false, 'Remote world-wipe is disabled for this server. Enable "Allow remote wipe" in Citadel → Cloud link settings to permit it.');
+    return;
+  }
 
   // Server lifecycle — `restart` is not a mod IPC action; it drives the
   // agent's own process control. The cloud owns scheduling (its schedule

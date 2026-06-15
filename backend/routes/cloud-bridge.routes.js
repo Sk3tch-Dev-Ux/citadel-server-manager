@@ -100,6 +100,32 @@ function registerCloudBridgeRoutes(app) {
     res.json({ ok: true, link: storage.getPublic(req.params.id) });
   });
 
+  // ── Update link policy (privacy + safety toggles) ─────────────────────
+  // PATCH body may carry either/both booleans:
+  //   forwardPlayerPII — forward player IP + GUID to the cloud (default true)
+  //   allowRemoteWipe  — permit cloud-issued world wipes here (default false)
+  // Same permission as other link mutations. 404 when the server has no link.
+  app.patch('/api/servers/:id/cloud-link/policy', authForServer('server.settings'), (req, res) => {
+    const srv = ctx.servers.find((s) => s.id === req.params.id);
+    if (!srv) return res.status(404).json({ error: 'Server not found' });
+
+    const body = req.body || {};
+    const patch = {};
+    if (typeof body.forwardPlayerPII === 'boolean') patch.forwardPlayerPII = body.forwardPlayerPII;
+    if (typeof body.allowRemoteWipe === 'boolean') patch.allowRemoteWipe = body.allowRemoteWipe;
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ error: 'NO_VALID_FIELDS', message: 'Provide forwardPlayerPII and/or allowRemoteWipe as booleans.' });
+    }
+
+    if (!storage.setPolicy(req.params.id, patch)) {
+      return res.status(404).json({ error: 'NOT_LINKED', message: 'This server is not linked to Citadel Cloud.' });
+    }
+
+    addAudit(req.user.id, req.user.username, 'cloud.policy',
+      `Updated cloud policy for ${srv.name}: ${Object.entries(patch).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+    res.json({ ok: true, link: storage.getPublic(req.params.id) });
+  });
+
   // ── Unlink ────────────────────────────────────────────────────────────
   app.delete('/api/servers/:id/cloud-link', authForServer('server.settings'), (req, res) => {
     const srv = ctx.servers.find((s) => s.id === req.params.id);
