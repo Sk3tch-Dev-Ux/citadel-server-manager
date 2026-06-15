@@ -24,8 +24,11 @@ const path = require('path');
 const fs = require('fs');
 
 // ─── Constants ──────────────────────────────────────────
+// NOTE: SERVICE_NAME is the Windows service control identity and is an upgrade
+// anchor — it must stay 'CitadelServer' across the rebrand or existing installs
+// orphan their service. Only the human-readable DISPLAY name is rebranded.
 const SERVICE_NAME = 'CitadelServer';
-const SERVICE_DISPLAY = 'Citadel DayZ Server Controller';
+const SERVICE_DISPLAY = 'Citadel Server Manager';
 const SERVICE_DESCRIPTION = 'Citadel — All-In-One DayZ server management platform with web UI, Discord bot, and live map.';
 
 // Resolve absolute paths so the service always finds the right files.

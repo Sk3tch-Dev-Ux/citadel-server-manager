@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Citadel Agent** (`citadel` in package.json) — local DayZ dedicated-server management for Windows. Node/Express backend + React dashboard + per-server Node sidecar + DayZ EnScript mod, shipped as an NSIS installer that registers a Windows Service. Pairs with **Citadel Cloud** (separate product at citadels.cc; sibling repo at `~/OneDrive/Documents/GitHub/citadel-cloud`) for remote operations — the cloud↔agent wire protocol is reconciled in that repo's `CITADEL_AGENT_ALIGNMENT.md`. Windows-only by nature (DayZ dedicated server is Windows-only); firewall/service features need Administrator.
+**Citadel Agent** (`citadel` in package.json) — local DayZ dedicated-server management for Windows. Node/Express backend + React dashboard + per-server Node sidecar + DayZ EnScript mod, shipped as an NSIS installer that registers a Windows Service. Pairs with **Citadel Cloud** (separate product at citadels.cc; sibling repo at `~/Documents/GitHub/citadel-cloud`) for remote operations — the cloud↔agent wire protocol is reconciled in that repo's `CITADEL_AGENT_ALIGNMENT.md`. Windows-only by nature (DayZ dedicated server is Windows-only); firewall/service features need Administrator.
 
 ## Commands
 

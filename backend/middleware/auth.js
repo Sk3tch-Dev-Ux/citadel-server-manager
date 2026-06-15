@@ -31,6 +31,21 @@ function extractToken(req) {
   return null;
 }
 
+/**
+ * Returns true if `role` satisfies `requiredPermission`.
+ * Accepts either a single permission string or an array of permissions
+ * (treated as "any-of" — the role needs at least one). The '*' wildcard
+ * always satisfies. Passing an array used to silently fail because
+ * Array.prototype.includes did a strict-equality scan for the array
+ * object itself, so array-form callers only passed for literal '*' roles.
+ */
+function roleHasPermission(role, requiredPermission) {
+  if (!requiredPermission) return true;
+  if (role.permissions.includes('*')) return true;
+  const needed = Array.isArray(requiredPermission) ? requiredPermission : [requiredPermission];
+  return needed.some(p => role.permissions.includes(p));
+}
+
 function auth(requiredPermission) {
   return (req, res, next) => {
     const token = extractToken(req);
@@ -57,7 +72,7 @@ function auth(requiredPermission) {
       if (requiredPermission) {
         const role = ctx.roles.find(r => r.id === user.role);
         if (!role) return res.status(403).json({ error: 'Role not found' });
-        if (!role.permissions.includes('*') && !role.permissions.includes(requiredPermission)) {
+        if (!roleHasPermission(role, requiredPermission)) {
           return res.status(403).json({ error: 'Insufficient permissions' });
         }
       }
@@ -102,9 +117,9 @@ function authForServer(requiredPermission) {
       const role = ctx.roles.find(r => r.id === user.role);
       if (!role) return res.status(403).json({ error: 'Role not found' });
 
-      // Check permission
+      // Check permission (supports a single string or an "any-of" array)
       const isWildcard = role.permissions.includes('*');
-      if (requiredPermission && !isWildcard && !role.permissions.includes(requiredPermission)) {
+      if (!roleHasPermission(role, requiredPermission)) {
         return res.status(403).json({ error: 'Insufficient permissions' });
       }
 
@@ -146,3 +161,5 @@ module.exports = auth;
 module.exports.auth = auth;
 module.exports.authForServer = authForServer;
 module.exports.getUserServerScope = getUserServerScope;
+// Exported for unit testing the any-of permission contract (Audit C3 regression).
+module.exports.roleHasPermission = roleHasPermission;

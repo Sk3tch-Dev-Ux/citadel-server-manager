@@ -177,9 +177,16 @@ class Forwarder {
     try {
       const map = await fetchRCONPlayerData(this.localServerId);
       if (!map || map.size === 0) return;
+      // Privacy (WS3): IP + BattlEye GUID are personal data. Forward them only
+      // when the operator hasn't opted out for this server; otherwise ship just
+      // name + ping so the live player list still works without PII leaving the
+      // box. The cloud's IP-based features (VPN/Geo) fail open when IP is absent.
+      const sendPII = storage.getPolicy(this.localServerId).forwardPlayerPII;
       const players = [];
       for (const [name, info] of map) {
-        players.push({ name, ip: info.ip, ping: Number(info.ping) || 0, guid: info.guid });
+        const entry = { name, ping: Number(info.ping) || 0 };
+        if (sendPII) { entry.ip = info.ip; entry.guid = info.guid; }
+        players.push(entry);
       }
       this._client?.send({ type: 'rcon_players', ts: Date.now(), data: { players } });
     } catch (err) {

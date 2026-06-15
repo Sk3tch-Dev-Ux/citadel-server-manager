@@ -139,7 +139,13 @@ module.exports = function(app) {
   });
 
   app.get('/api/servers', auth(), (req, res) => {
-    const result = ctx.servers.map(s => {
+    // Scope the inventory to the caller's role.serverScope. getUserServerScope
+    // returns null for wildcard/unrestricted roles (see all servers), otherwise
+    // an array of allowed server ids. Without this, a scope-limited role could
+    // enumerate every server's install path / IP / ports via the list.
+    const scope = auth.getUserServerScope(req.user.id);
+    const visible = scope === null ? ctx.servers : ctx.servers.filter(s => scope.includes(s.id));
+    const result = visible.map(s => {
       const state = ctx.serverStates[s.id] || {};
       return {
         ...publicServerView(s),
@@ -193,7 +199,7 @@ module.exports = function(app) {
     res.json(publicServerView(srv));
   });
 
-  app.patch('/api/servers/:id', auth('server.deploy'), (req, res) => {
+  app.patch('/api/servers/:id', auth.authForServer('server.deploy'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const allowed = ['name','installDir','executable','launchParams','launchParamsList','ip','gamePort','queryPort','rconPort','rconPassword','maxPlayers','map','gameTitle','profileDir','networkInterface','autoStart','cpuAffinity','priorityLevel','processIntegrityChecks','integrityCheckMods','startGracePeriod','healthMonitoring','healthMinFPS','healthMaxRAM','healthAction','shutdownForModUpdates','shutdownForTitleUpdates','ignoreModUpdates','notifications','cftoolsServerApiId','cftoolsBanlistId','inHouseApiUrl','inHouseApiKey','autoUpdateEnabled','updateCountdownSeconds','updateWarningIntervals','engineAutoTune','dzsaPublish'];
@@ -236,7 +242,7 @@ module.exports = function(app) {
   });
 
   // ─── DZSA Launcher publishing status ───────────────────────────
-  app.get('/api/servers/:id/dzsa', auth('server.view'), (req, res) => {
+  app.get('/api/servers/:id/dzsa', auth.authForServer('server.view'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const dzsa = require('../lib/dzsa-publisher');
@@ -251,7 +257,7 @@ module.exports = function(app) {
 
   // ─── Engine auto-tuning (dayzsetting.xml job system) ───────────
   // Preview the values Citadel would write for this host's CPU.
-  app.get('/api/servers/:id/engine-tuning', auth('server.deploy'), (req, res) => {
+  app.get('/api/servers/:id/engine-tuning', auth.authForServer('server.deploy'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const tuner = require('../lib/engine-tuner');
@@ -262,7 +268,7 @@ module.exports = function(app) {
   });
 
   // Apply the tuning to dayzsetting.xml now (also runs automatically on start).
-  app.post('/api/servers/:id/engine-tuning/apply', auth('server.deploy'), (req, res) => {
+  app.post('/api/servers/:id/engine-tuning/apply', auth.authForServer('server.deploy'), (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     const result = require('../lib/engine-tuner').applyEngineTuning(srv);
@@ -278,6 +284,17 @@ module.exports = function(app) {
     }
     if (!['start', 'stop', 'restart'].includes(action)) {
       return res.status(400).json({ error: 'action must be start, stop, or restart' });
+    }
+
+    // serverIds come from the body, so authForServer (which keys off req.params.id)
+    // can't scope this route. Enforce role.serverScope inline: a scope-limited role
+    // gets a 403 for any id it can't access, matching the per-server REST guards.
+    const scope = auth.getUserServerScope(req.user.id);
+    if (scope !== null) {
+      const outOfScope = serverIds.filter(id => !scope.includes(id));
+      if (outOfScope.length > 0) {
+        return res.status(403).json({ error: 'Access denied: no access to one or more servers', servers: outOfScope });
+      }
     }
 
     const results = [];
@@ -335,7 +352,7 @@ module.exports = function(app) {
     res.json({ results });
   });
 
-  app.delete('/api/servers/:id', auth('server.deploy'), (req, res) => {
+  app.delete('/api/servers/:id', auth.authForServer('server.deploy'), (req, res) => {
     const idx = ctx.servers.findIndex(s => s.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Server not found' });
     const name = ctx.servers[idx].name;

@@ -107,7 +107,7 @@ jobs:
             Download and run the new `CitadelSetup-*.exe`. The installer preserves your existing `data/` and `.env` automatically.
 
             ### Uninstalling
-            Windows Settings → Apps → **Citadel DayZ Server Controller** → Uninstall.
+            Windows Settings → Apps → **Citadel Server Manager** → Uninstall.
             You'll be prompted to keep or delete your server configs.
 
             ### What's Included

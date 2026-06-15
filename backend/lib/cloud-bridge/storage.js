@@ -75,6 +75,8 @@ function getPublic(localServerId) {
     lastStatus: link.lastStatus,
     lastStatusAt: link.lastStatusAt,
     lastError: link.lastError || null,
+    // Operator policy (privacy + safety) so the UI can render the toggles.
+    policy: _policyOf(link),
   };
 }
 
@@ -140,6 +142,11 @@ function setLink(localServerId, { cloudServerId, apiKey, name }) {
     lastStatusAt: now,
     lastError: null,
     ...(preservedOffset !== undefined ? { cloudAckedOffset: preservedOffset } : {}),
+    // Preserve operator privacy/safety policy across a re-pair (even to a
+    // different cloud id). Re-pasting a key to fix an auth issue must NOT
+    // silently flip a PII opt-out back on or re-enable remote wipe.
+    ...(typeof prev?.forwardPlayerPII === 'boolean' ? { forwardPlayerPII: prev.forwardPlayerPII } : {}),
+    ...(typeof prev?.allowRemoteWipe === 'boolean' ? { allowRemoteWipe: prev.allowRemoteWipe } : {}),
   };
   // If the cloud identity changed, drop any not-yet-flushed offset so the stale
   // cursor can't be resurrected via getAckedOffset()'s pending-first lookup.
@@ -177,6 +184,56 @@ function updateStatus(localServerId, status, error) {
   link.lastStatusAt = new Date().toISOString();
   link.lastError = error || null;
   _writeRaw(state);
+}
+
+// ─── Per-link operator policy (privacy + safety) ──────────────────────────
+//
+// Two operator-controlled switches the server owner has a right to set,
+// resolved against safe defaults so a link created before these existed
+// behaves predictably:
+//
+//   forwardPlayerPII (default TRUE)  — forward player IP addresses + BattlEye
+//     GUIDs to the cloud. On by default because cloud VPN/Geo enforcement and
+//     cross-server identity rely on them, but a privacy-conscious operator can
+//     turn it OFF; the cloud degrades gracefully (those features fail open).
+//
+//   allowRemoteWipe (default FALSE)  — permit cloud-issued WORLD WIPE commands
+//     (wipe_ai / wipe_vehicles) to execute here. Off by default as a
+//     defense-in-depth rail: even a replayed or compromised cloud key can't
+//     wipe a server's AI/vehicles unless the operator explicitly opted in.
+//     Restart and player moderation are intentionally NOT gated — cloud
+//     scheduling relies on restart and moderation is the point of remote admin.
+const POLICY_DEFAULTS = Object.freeze({ forwardPlayerPII: true, allowRemoteWipe: false });
+
+function _policyOf(link) {
+  return {
+    forwardPlayerPII: typeof link?.forwardPlayerPII === 'boolean' ? link.forwardPlayerPII : POLICY_DEFAULTS.forwardPlayerPII,
+    allowRemoteWipe: typeof link?.allowRemoteWipe === 'boolean' ? link.allowRemoteWipe : POLICY_DEFAULTS.allowRemoteWipe,
+  };
+}
+
+/**
+ * Resolve the effective policy for a server (defaults applied). Safe to call
+ * for an unlinked server — returns the defaults. Hot path (called per
+ * telemetry tick and per inbound command), so it does a single file read.
+ */
+function getPolicy(localServerId) {
+  return _policyOf(_readRaw().links[localServerId]);
+}
+
+/**
+ * Update one or both policy flags for a link. Ignores keys that aren't
+ * booleans so a partial PATCH only touches what it sets. Returns false when
+ * there is no link to update.
+ */
+function setPolicy(localServerId, partial) {
+  const state = _readRaw();
+  const link = state.links[localServerId];
+  if (!link) return false;
+  if (typeof partial?.forwardPlayerPII === 'boolean') link.forwardPlayerPII = partial.forwardPlayerPII;
+  if (typeof partial?.allowRemoteWipe === 'boolean') link.allowRemoteWipe = partial.allowRemoteWipe;
+  _writeRaw(state);
+  return true;
 }
 
 // ─── Durable telemetry cursor (G1) ───────────────────────────────────────
@@ -233,6 +290,8 @@ module.exports = {
   setLink,
   removeLink,
   updateStatus,
+  getPolicy,
+  setPolicy,
   setAckedOffset,
   getAckedOffset,
   flushAckedOffsets,

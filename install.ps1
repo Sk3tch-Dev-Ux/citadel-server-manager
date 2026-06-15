@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Citadel DayZ Server Controller — Service Installer
+    Citadel Server Manager — Service Installer
 .DESCRIPTION
     Installs Citadel as a Windows service using NSSM.
     Run this script as Administrator after extracting the zip.
@@ -19,8 +19,8 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -InstallDir `"$InstallDir`""
     exit
 }
-$ServiceName = "CitadelServer"
-$ServiceDisplay = "Citadel DayZ Server Controller"
+$ServiceName = "CitadelServer"  # service control identity — upgrade anchor, do not rename
+$ServiceDisplay = "Citadel Server Manager"
 
 try {
     Write-Host ""

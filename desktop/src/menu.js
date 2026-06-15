@@ -16,7 +16,7 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }
       submenu: [
         { label: 'Reload Dashboard', accelerator: 'CmdOrCtrl+R', click: reload },
         { type: 'separator' },
-        { label: 'Quit Citadel Agent', accelerator: 'CmdOrCtrl+Q', click: quit },
+        { label: 'Quit Citadel Server Manager', accelerator: 'CmdOrCtrl+Q', click: quit },
       ],
     },
     {
@@ -45,13 +45,13 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }
         { type: 'separator' },
         { label: 'Report an Issue', click: () => openExternal('https://github.com/Sk3tch-Dev-Ux/DayzServerController/issues') },
         {
-          label: 'About Citadel Agent',
+          label: 'About Citadel Server Manager',
           click: () => {
             const win = getMainWindow && getMainWindow();
             dialog.showMessageBox(win, {
               type: 'info',
-              title: 'About Citadel Agent',
-              message: `Citadel Agent v${app.getVersion()}`,
+              title: 'About Citadel Server Manager',
+              message: `Citadel Server Manager v${app.getVersion()}`,
               detail: `Local DayZ server management for Windows.\nPairs with Citadel Cloud for remote control and automations.\n\nElectron: ${process.versions.electron}\nNode: ${process.versions.node}\nChromium: ${process.versions.chrome}\n\nhttps://citadels.cc`,
               buttons: ['OK'],
             });
