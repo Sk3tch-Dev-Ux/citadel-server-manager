@@ -7,6 +7,62 @@
 
 ---
 
+## ✅ Session progress — 2026-06-15 (overnight, autonomous)
+
+All work below is committed on branch `claude/release-hardening-2026-06-15` in
+**both** repos (nothing pushed). Gates run on the real Windows box.
+
+**WS0 — Verify (DONE).** Ran every gate. Agent: **416 backend tests pass / 0
+fail**, lint 0 errors, frontend builds. Cloud: **type-check 5/5 workspaces, lint
+clean**. Fixed along the way:
+- A stale security test that still asserted the old insecure discord-bot `['*']`
+  default — rewritten to guard the least-privilege seed (was the 1 failing test).
+- Cloud `@citadel/api` imported `@citadel/shared` as runtime values across 18
+  files but never declared the dependency (worked only by hoisting) — declared
+  it. Also diagnosed/repaired a broken Windows workspace symlink for `shared`.
+
+**WS0b — Regression tests (DONE, agent side).** Added `tests/authz-regression.test.js`
+(11 tests) locking in C1 (socket room scoping), C3 (any-of permission arrays),
+C4 (server-scope resolver). C2/C5 are cloud-side where the repo has *no test
+runner by policy* — covered by type-check + the audit's inspection.
+
+**WS2 — Two-agent architecture (DONE, docs).** Named the `DayzServerController`
+cloud-bridge as the authoritative `/ws/plugin` client; demoted `packages/plugin`
+/`CitadelAgent.exe` to the standalone path with a status README + an
+authoritative-client banner in `CITADEL_AGENT_ALIGNMENT.md` + a CLAUDE.md
+correction. (Cross-repo protocol drift-check left as a noted follow-up.)
+
+**WS3 — SaaS-hardening tail (DONE).** Shipped the two operator controls the
+audit deferred, plus tests + a UI:
+- **Remote-wipe gate** — cloud `wipe_ai`/`wipe_vehicles` denied unless the
+  operator opts the server in (default off); restart/moderation unaffected.
+- **PII opt-out** — player IP+GUID forwarding is now operator-toggleable
+  (default on); both flags persist across a re-pair and are audited.
+- New `PATCH /api/servers/:id/cloud-link/policy` + a Privacy & safety toggle
+  section on the Cloud card. Tests: `cloud-link-policy.test.js`,
+  `cloud-remote-wipe-gate.test.js`.
+- **CC3** — fixed the last plaintext reset-token writer (a recovery-script bug
+  where created users' set-password links never resolved). Column DROP migration
+  remains a follow-up (not run blind without a test DB).
+
+**WS1a — Safe visible rebrand (DONE).** Every operator-visible "Citadel Agent"
+→ "Citadel Server Manager": dashboard (setup wizard, server hub, tab title),
+desktop app (window/tray/menu/About/notifications), and the Windows service
+*display* name. Machine anchors (service control name `CitadelServer`,
+`C:\Citadel`, registry, `productName`/exe name, `CitadelSetup-*.exe`, GitHub
+repo + auto-update feed, `FIXED_SALT`) deliberately left stable.
+
+### Still open (need things this environment can't provide)
+- **WS1b** — installer/desktop-packaging + GitHub-repo rename + auto-update
+  re-point. Needs an NSIS/electron-builder build + an in-place-upgrade test.
+- **WS4** — Stripe-live + license round-trip on a clean machine.
+- **WS5** — code signing (cert), onboarding pass, cloud DB backup/restore drill.
+- **CC3 column DROP** + the cross-repo protocol drift-check (tracked above).
+- Frontend: `FilesPage` bundles to ~3.7 MB (the 3.7k-LOC ExpansionEditor) — a
+  `React.lazy` route split is a clear, isolated win but wants a live-UI smoke test.
+
+---
+
 ## 0. Verdict
 
 Citadel is **not a build-from-scratch effort — it is a verify-harden-rebrand-and-ship effort.** Both products are architecturally mature:
