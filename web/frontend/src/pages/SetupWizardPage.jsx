@@ -391,7 +391,7 @@ export default function SetupWizardPage() {
               <div style={{ marginBottom: 16 }}>
                 <img src="/citadel-logo.svg" alt="Citadel" style={{ width: 56, height: 56, margin: '0 auto' }} />
               </div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Welcome to Citadel Agent</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Welcome to Citadel Server Manager</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
                 Local DayZ server management for Windows. Let&apos;s get you set up in just a
                 few steps — admin account, network, SteamCMD, and your first server.
@@ -657,7 +657,7 @@ export default function SetupWizardPage() {
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>Automatically configure Windows Firewall</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                    Opens ports for the Citadel Agent dashboard and your DayZ servers so they&apos;re reachable from the internet.
+                    Opens ports for the Citadel Server Manager dashboard and your DayZ servers so they&apos;re reachable from the internet.
                   </div>
                 </div>
               </div>
@@ -1124,7 +1124,7 @@ export default function SetupWizardPage() {
               </div>
               <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>You&apos;re All Set!</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
-                Your Citadel Agent is ready. Here&apos;s a summary of your setup:
+                Your Citadel Server Manager is ready. Here&apos;s a summary of your setup:
               </p>
 
               {/* Setup summary */}

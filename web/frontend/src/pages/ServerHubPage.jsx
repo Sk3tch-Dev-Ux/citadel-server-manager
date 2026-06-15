@@ -83,7 +83,7 @@ export default function ServerHubPage() {
         borderRadius: 6,
         flexWrap: 'wrap',
       }}>
-        <span>Servers managed by this Citadel Agent.</span>
+        <span>Servers managed by this copy of Citadel Server Manager.</span>
         <a
           href="https://citadels.cc/cloud"
           target="_blank"

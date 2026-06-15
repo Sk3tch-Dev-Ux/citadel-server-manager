@@ -19,8 +19,8 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -InstallDir `"$InstallDir`""
     exit
 }
-$ServiceName = "CitadelServer"
-$ServiceDisplay = "Citadel DayZ Server Controller"
+$ServiceName = "CitadelServer"  # service control identity — upgrade anchor, do not rename
+$ServiceDisplay = "Citadel Server Manager"
 
 try {
     Write-Host ""
