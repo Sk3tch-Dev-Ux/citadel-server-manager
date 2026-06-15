@@ -52,14 +52,31 @@ desktop app (window/tray/menu/About/notifications), and the Windows service
 `C:\Citadel`, registry, `productName`/exe name, `CitadelSetup-*.exe`, GitHub
 repo + auto-update feed, `FIXED_SALT`) deliberately left stable.
 
-### Still open (need things this environment can't provide)
-- **WS1b** — installer/desktop-packaging + GitHub-repo rename + auto-update
-  re-point. Needs an NSIS/electron-builder build + an in-place-upgrade test.
-- **WS4** — Stripe-live + license round-trip on a clean machine.
-- **WS5** — code signing (cert), onboarding pass, cloud DB backup/restore drill.
-- **CC3 column DROP** + the cross-repo protocol drift-check (tracked above).
-- Frontend: `FilesPage` bundles to ~3.7 MB (the 3.7k-LOC ExpansionEditor) — a
-  `React.lazy` route split is a clear, isolated win but wants a live-UI smoke test.
+### Session 3 (2026-06-15, cont.) — roadmap items completed
+- **FilesPage perf split — DONE.** Monaco lazy-loaded; initial chunk 3.78 MB → 15.9 KB.
+- **WS1b installer rebrand — SCAFFOLDED.** All visible installer/packaging labels
+  renamed; anchors kept stable; `WS1B_REBRAND_RUNBOOK.md` covers build-test + the
+  repo-rename procedure. (Repo rename itself = your action.)
+- **CC3 — DONE.** Plaintext `password_reset_token` column dropped (migration 0032);
+  redaction destructure cleaned; type-check green.
+- **WS4 — DONE (prep).** Audited the licensing path (clean — no CC1-style leak) and
+  shipped `npm run preflight:billing` to validate live Stripe + license config.
+- **WS5 — DONE (prep).** Fixed a code-signing **password leak** into CI logs;
+  confirmed signing infra + `SIGNING.md` are ready (cert + 2 secrets to go).
+  Reworked `backup-db.sh`/`restore-db.sh` for Coolify (they were broken — pointed
+  at a removed container) + `DB_BACKUP_RUNBOOK.md` with a monthly restore drill.
+
+### Still open (need YOUR action / a real environment)
+- **GitHub repo rename + auto-update feed re-point** — the one irreversible step;
+  exact procedure in `WS1B_REBRAND_RUNBOOK.md` (do not apply the ref edits before
+  renaming, or live auto-updaters break).
+- **Installer build-test** (`node installer/build.js`) — fresh install + in-place
+  upgrade per the runbook. **FilesPage editor smoke-test** (open/edit/Ctrl+S).
+- **WS4 live test** — run `preflight:billing` with live keys, then one real
+  checkout → webhook → license activation on a clean machine.
+- **WS5** — acquire an OV/EV code-signing cert + set the 2 GitHub secrets; enable
+  Coolify scheduled backups to R2/B2 + run the first restore drill.
+- Cross-repo protocol drift-check (tracked above).
 
 ---
 
