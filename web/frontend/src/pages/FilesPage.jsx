@@ -4,49 +4,62 @@ import { formatBytes } from '../utils';
 import { Folder, FolderOpen, FileCode, FileCog, FileJson, FileText, Zap, Globe, File, Save, RefreshCw, ChevronDown, ChevronRight, Loader, Plus, X } from '../components/Icon';
 import { getTemplates } from '../utils/expansionDocsCache';
 
-// ─── Monaco — bundled locally (no CDN dependency) ────────────────────
+// ─── Monaco — bundled locally, loaded on demand ──────────────────────
 //
-// Previously loaded via AMD from cdnjs, which broke when corporate/home
-// firewalls blocked cdnjs.cloudflare.com. This app is local-first — the
-// editor has no business depending on the internet.
+// Monaco (the VS Code editor) is ~3.7 MB. It used to be imported at module
+// scope, so the whole editor + its language workers downloaded the instant the
+// Files page opened — even just to browse the file tree. It's now imported
+// dynamically on first file-open via loadMonaco(), so the Files route's initial
+// chunk is a few KB and the heavy editor chunk only loads when a file is
+// actually edited. Still bundled locally (no CDN) — corporate/home firewalls
+// block cdnjs, and this app is local-first.
 //
-// The `?worker` imports are a Vite-native way to ship Monaco's web workers
-// as bundled JS files. `self.MonacoEnvironment` tells Monaco where to find
-// them (per-language workers + a generic fallback).
-import * as monaco from 'monaco-editor';
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
-import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
-import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+// The `?worker` imports are Vite's way to ship Monaco's web workers as bundled
+// files; they're loaded alongside the editor so self.MonacoEnvironment.getWorker
+// (which Monaco calls synchronously) can construct them immediately.
+let _monaco = null;
+let _monacoPromise = null;
 
-// Do this once — repeated assignment is harmless but noisy if lazy-loaded
-// more than once. Guard with a truthy check on self.MonacoEnvironment.
-if (!self.MonacoEnvironment) {
-  self.MonacoEnvironment = {
-    getWorker(_moduleId, label) {
-      if (label === 'json') return new jsonWorker();
-      if (label === 'css' || label === 'scss' || label === 'less') return new cssWorker();
-      if (label === 'html' || label === 'handlebars' || label === 'razor') return new htmlWorker();
-      if (label === 'typescript' || label === 'javascript') return new tsWorker();
-      return new editorWorker();
-    },
-  };
+function loadMonaco() {
+  if (_monaco) return Promise.resolve(_monaco);
+  if (_monacoPromise) return _monacoPromise;
+  _monacoPromise = (async () => {
+    const [monaco, editorWorker, jsonWorker, cssWorker, htmlWorker, tsWorker] = await Promise.all([
+      import('monaco-editor'),
+      import('monaco-editor/esm/vs/editor/editor.worker?worker'),
+      import('monaco-editor/esm/vs/language/json/json.worker?worker'),
+      import('monaco-editor/esm/vs/language/css/css.worker?worker'),
+      import('monaco-editor/esm/vs/language/html/html.worker?worker'),
+      import('monaco-editor/esm/vs/language/typescript/ts.worker?worker'),
+    ]);
+    if (!self.MonacoEnvironment) {
+      self.MonacoEnvironment = {
+        getWorker(_moduleId, label) {
+          if (label === 'json') return new jsonWorker.default();
+          if (label === 'css' || label === 'scss' || label === 'less') return new cssWorker.default();
+          if (label === 'html' || label === 'handlebars' || label === 'razor') return new htmlWorker.default();
+          if (label === 'typescript' || label === 'javascript') return new tsWorker.default();
+          return new editorWorker.default();
+        },
+      };
+    }
+    // Define the Citadel dark theme once (Monaco dedupes, but keep it one-shot).
+    monaco.editor.defineTheme('dayz-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#1b1e24',
+        'editor.lineHighlightBackground': '#252830',
+        'editorLineNumber.foreground': '#5a6170',
+        'editorLineNumber.activeForeground': '#c6c6c6',
+      },
+    });
+    _monaco = monaco;
+    return monaco;
+  })();
+  return _monacoPromise;
 }
-
-// Define the Citadel dark theme once, module-scoped. Safe to call multiple
-// times (Monaco dedupes) but this way it's a one-shot cost.
-monaco.editor.defineTheme('dayz-dark', {
-  base: 'vs-dark',
-  inherit: true,
-  rules: [],
-  colors: {
-    'editor.background': '#1b1e24',
-    'editor.lineHighlightBackground': '#252830',
-    'editorLineNumber.foreground': '#5a6170',
-    'editorLineNumber.activeForeground': '#c6c6c6',
-  },
-});
 
 export default function FilesPage({ serverId }) {
 
@@ -197,9 +210,10 @@ export default function FilesPage({ serverId }) {
   }, [loadDir]);
 
   // -- Monaco editor lifecycle --
-  // Monaco is imported at module load (see top of file), so it's always
-  // ready by the time this effect runs. No more polling, no more load
-  // failure — the editor is part of the bundle.
+  // Monaco is now loaded on demand (see loadMonaco at top of file), so this
+  // effect is async: it ensures the editor module is downloaded before
+  // creating/attaching. The `cancelled` guard drops the work if the active tab
+  // changes (or the component unmounts) before the chunk resolves.
   useEffect(() => {
     if (!containerRef.current) return;
     const tab = tabs.find(t => t.path === activeTab);
@@ -207,38 +221,52 @@ export default function FilesPage({ serverId }) {
       if (editorRef.current) editorRef.current.setModel(null);
       return;
     }
-    if (!editorRef.current) {
-      editorRef.current = monaco.editor.create(containerRef.current, {
-        theme: 'dayz-dark', automaticLayout: true,
-        minimap: { enabled: true, scale: 1 }, fontSize: 14,
-        fontFamily: "'JetBrains Mono', monospace", fontLigatures: true,
-        lineNumbers: 'on', renderWhitespace: 'selection',
-        bracketPairColorization: { enabled: true }, smoothScrolling: true,
-        cursorBlinking: 'smooth', cursorSmoothCaretAnimation: 'on',
-        padding: { top: 8 }, scrollBeyondLastLine: false,
-        wordWrap: 'off', tabSize: 2,
-        suggest: { showWords: false }, quickSuggestions: false,
-      });
-      editorRef.current.addCommand(
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
-        () => saveFile()
-      );
-      editorRef.current.onDidChangeCursorPosition((e) => {
-        setCursorPos({ line: e.position.lineNumber, col: e.position.column });
-      });
-    }
-    const uri = monaco.Uri.parse('inmemory://model/' + tab.path);
-    let model = monaco.editor.getModel(uri);
-    if (!model) {
-      model = monaco.editor.createModel(tab.content || '', tab.language, uri);
-      const disposable = model.onDidChangeContent(() => {
-        const val = model.getValue();
-        setTabs(prev => prev.map(t => t.path === tab.path ? { ...t, content: val } : t));
-      });
-      modelsRef.current[tab.path] = { model, disposable, savedContent: tab.originalContent };
-    }
-    editorRef.current.setModel(model);
-    editorRef.current.focus();
+
+    let cancelled = false;
+    loadMonaco().then((monaco) => {
+      if (cancelled || !containerRef.current) return;
+      if (!editorRef.current) {
+        editorRef.current = monaco.editor.create(containerRef.current, {
+          theme: 'dayz-dark', automaticLayout: true,
+          minimap: { enabled: true, scale: 1 }, fontSize: 14,
+          fontFamily: "'JetBrains Mono', monospace", fontLigatures: true,
+          lineNumbers: 'on', renderWhitespace: 'selection',
+          bracketPairColorization: { enabled: true }, smoothScrolling: true,
+          cursorBlinking: 'smooth', cursorSmoothCaretAnimation: 'on',
+          padding: { top: 8 }, scrollBeyondLastLine: false,
+          wordWrap: 'off', tabSize: 2,
+          suggest: { showWords: false }, quickSuggestions: false,
+        });
+        editorRef.current.addCommand(
+          monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
+          () => saveFile()
+        );
+        editorRef.current.onDidChangeCursorPosition((e) => {
+          setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+        });
+      }
+      const uri = monaco.Uri.parse('inmemory://model/' + tab.path);
+      let model = monaco.editor.getModel(uri);
+      if (!model) {
+        model = monaco.editor.createModel(tab.content || '', tab.language, uri);
+        const disposable = model.onDidChangeContent(() => {
+          const val = model.getValue();
+          setTabs(prev => prev.map(t => t.path === tab.path ? { ...t, content: val } : t));
+        });
+        modelsRef.current[tab.path] = { model, disposable, savedContent: tab.originalContent };
+      }
+      editorRef.current.setModel(model);
+      editorRef.current.focus();
+    }).catch((err) => {
+      if (!cancelled) window.addToast?.('Failed to load the code editor: ' + (err?.message || err), 'error');
+    });
+
+    return () => { cancelled = true; };
+    // Intentionally keyed on activeTab + tabs.length only: depending on the full
+    // `tabs` array or `saveFile` would re-run (and re-focus/re-model) the editor
+    // on every keystroke. saveFile reads live state via refs, so the stale
+    // closure is fine.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, tabs.length]);
 
   // Cleanup on unmount
