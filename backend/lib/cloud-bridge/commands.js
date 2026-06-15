@@ -39,6 +39,7 @@ const { restartServer } = require('../server-lifecycle');
 const { banPlayer, getBanBySteamId, removeBan } = require('../ban-engine');
 const ctx = require('../context');
 const logger = require('../logger');
+const { addAudit } = require('../audit');
 
 const ACTION_MAP = Object.freeze({
   kick:          { mod: 'player.kick',         requires: ['steamId'] },
@@ -105,6 +106,17 @@ async function handle({ localServerId, client, message }) {
 
   const reply = (success, msg) => {
     logger.info({ localServerId, action, id, success, msg: String(msg || '') }, 'cloud-bridge: command result');
+    // Audit C6 — every cloud-issued command (kick/ban/kill/teleport/spawn/wipe/
+    // restart/unban/...) lands in the durable audit trail, matching the local
+    // command paths. Without this, remote destructive actions had no record
+    // beyond the rolling Pino log. Actor is the cloud link, not a local user.
+    try {
+      const target = params.steamId ? ` target=${params.steamId}` : '';
+      addAudit('cloud', 'Citadel Cloud', `cloud.${action || 'command'}`,
+        `Remote ${action || 'command'} on server ${localServerId}${target} — ${success ? 'ok' : 'failed'}: ${String(msg || '')}`);
+    } catch (err) {
+      logger.warn({ err: err.message, localServerId, action, id }, 'cloud-bridge: failed to write command audit');
+    }
     client.send({ type: 'command_result', id, success, message: String(msg || '') });
   };
   logger.info({ localServerId, action, id }, 'cloud-bridge: command received');

@@ -275,9 +275,12 @@ describe('API: Rate Limiting', () => {
 });
 
 // Audit H6 Layer 1: every Discord-bot call now passes through the
-// 'discord-bot' role's permission gate before being dispatched. Default
-// role grants '*' so existing deployments keep working; narrowing the
-// role makes denied actions return 403 with a useful error.
+// 'discord-bot' role's permission gate before being dispatched. Audit P3
+// then narrowed the FRESH-install default from '*' to a least-privilege set
+// (server.view, server.restart, players.view, players.kick, chat.send), so a
+// single static bot key is no longer equivalent to full admin. Read actions
+// stay allowed (they only need server.view); narrowing further makes denied
+// actions return 403 with a useful error.
 describe('API: Discord bot role gate', () => {
   const ctx = require('./lib/context');
 
@@ -285,19 +288,21 @@ describe('API: Discord bot role gate', () => {
     process.env.DISCORD_BOT_API_KEY = process.env.DISCORD_BOT_API_KEY || 'test-discord-key';
   });
 
-  it('should default-allow read actions when role has [*]', async () => {
-    // Ensure role is at default (* permissions). The boot-time back-fill
-    // in server.js inserts this role with '*' on cold start.
+  it('should ship a least-privilege default role (no wildcard) that still allows read actions', async () => {
+    // Audit P3 regression guard: fresh installs must NOT seed the bot with '*'.
+    // The role still includes the baseline 'server.view' so read-only actions
+    // (like 'servers') answer without a 403.
     const role = ctx.roles.find(r => r.id === 'discord-bot');
     expect(role).toBeDefined();
-    expect(role.permissions).toContain('*');
+    expect(role.permissions).not.toContain('*');
+    expect(role.permissions).toContain('server.view');
 
     const res = await request(app)
       .post('/api/discord/action')
       .set('Authorization', `Bearer ${process.env.DISCORD_BOT_API_KEY}`)
       .send({ action: 'servers' });
     // 200 (servers list) or 500-from-internal-state — but NOT 403.
-    // We just want to prove the gate didn't reject.
+    // We just want to prove the gate didn't reject a permitted read action.
     expect(res.status).not.toBe(403);
   });
 
