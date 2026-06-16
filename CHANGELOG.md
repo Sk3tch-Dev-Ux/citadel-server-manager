@@ -22,6 +22,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Cloud-issued world-wipe commands are now denied by default (opt-in per
   server) as defense-in-depth against a replayed or compromised cloud key.
 
+### Internal
+- **Playwright E2E harness.** Added `@playwright/test` as a dev dependency with
+  a root `playwright.config.js` and an initial `e2e/smoke.spec.js` (app-shell +
+  login-surface smoke tests) — the frontend previously had no automated tests.
+  Run with `npm run test:e2e` (setup: `npm install && npx playwright install`).
+- **Design skill toolchain.** Added `setup-skills.ps1` to install the shared
+  AI design/UX skills (impeccable, ui-ux-pro-max, taste-skill, huashu-design)
+  globally and the graphify code-graph tool, for dashboard UI work.
+
 ## v2.25.0 — 2026-06-11
 
 ### Added

@@ -13,6 +13,9 @@
     "start": "node backend/lib/setup.js && node -e \"if(!require('fs').existsSync('web/dist/index.html')){process.exit(1)}\" || (cd web/frontend && npm run build && cd ../..) && node backend/server.js",
     "dev": "node backend/lib/setup.js && concurrently \"node backend/server.js\" \"cd web/frontend && npx vite --host 127.0.0.1\"",
     "test": "cd backend && npm test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
     "lint": "cd backend && npm run lint && cd ../web/frontend && npm run lint",
     "lint:backend": "cd backend && npm run lint",
     "lint:frontend": "cd web/frontend && npm run lint",
@@ -31,6 +34,7 @@
     "build:desktop": "cd desktop && npm run build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "concurrently": "^10.0.3"
   }
 }
