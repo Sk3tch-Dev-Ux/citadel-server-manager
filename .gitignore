@@ -37,6 +37,12 @@ Desktop.ini
 # Frontend build output
 web/dist/
 
+# Playwright E2E artifacts (config + tests in e2e/ ARE tracked)
+test-results/
+playwright-report/
+playwright/.cache/
+/blob-report/
+
 # VitePress docs build
 docs/.vitepress/dist/
 docs/.vitepress/cache/
