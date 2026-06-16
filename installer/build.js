@@ -102,8 +102,11 @@ function log(msg) {
 }
 
 function run(cmd, opts = {}) {
-  log(`> ${cmd}`);
-  execSync(cmd, { stdio: 'inherit', cwd: ROOT, ...opts });
+  // opts.display lets a caller log a REDACTED form of the command (e.g. to keep
+  // a signing password out of CI logs) while still executing the real one.
+  const { display, ...execOpts } = opts;
+  log(`> ${display || cmd}`);
+  execSync(cmd, { stdio: 'inherit', cwd: ROOT, ...execOpts });
 }
 
 function ensureDir(dir) {
@@ -677,10 +680,13 @@ function signInstallerIfConfigured(installerPath) {
   // /f /p  — pfx + password
   // signtool will exit non-zero on any failure (bad password, expired cert,
   // network error contacting the timestamp server, etc.) — `run` throws.
-  run(
-    `signtool sign /tr "${timestampUrl}" /td sha256 /fd sha256 /f "${pfx}" /p "${password}" "${installerPath}"`,
-    { cwd: ROOT, stdio: 'inherit' }
-  );
+  const signCmd = `signtool sign /tr "${timestampUrl}" /td sha256 /fd sha256 /f "${pfx}" /p "${password}" "${installerPath}"`;
+  run(signCmd, {
+    cwd: ROOT,
+    stdio: 'inherit',
+    // Never log the real /p "<password>" — redact it for the build/CI log.
+    display: signCmd.replace(`/p "${password}"`, '/p "***"'),
+  });
   // Re-verify the signature just landed correctly. If signtool reported
   // success but the file isn't actually signed (rare driver glitch),
   // this catches it before we publish a "signed" release that isn't.
