@@ -96,6 +96,12 @@ module.exports = {
   /** SteamCMD game update timeout (ms) — 60 minutes */
   STEAMCMD_UPDATE_TIMEOUT_MS: 60 * 60 * 1000,
 
+  /** InHouse sidecar admin-action request timeout (ms). The InHouse provider
+   *  funnels ~120 admin methods through a single _request(); without a bound,
+   *  one unreachable/hung sidecar wedges every admin call indefinitely. Matches
+   *  the sidecar player-data fetch budget. */
+  INHOUSE_REQUEST_TIMEOUT_MS: 8_000,
+
   // ─── Graceful Shutdown ──────────────────────────────────
   /** Force-exit timeout after graceful shutdown begins (ms) */
   SHUTDOWN_FORCE_TIMEOUT_MS: 5_000,
