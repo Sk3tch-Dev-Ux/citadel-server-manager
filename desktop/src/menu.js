@@ -43,7 +43,7 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog, 
         // one sentence instead of explaining where the file lives.
         { label: 'Show Update Log', click: () => showUpdateLog && showUpdateLog() },
         { type: 'separator' },
-        { label: 'Report an Issue', click: () => openExternal('https://github.com/Sk3tch-Dev-Ux/DayzServerController/issues') },
+        { label: 'Report an Issue', click: () => openExternal('https://github.com/Sk3tch-Dev-Ux/citadel-server-manager/issues') },
         {
           label: 'About Citadel Server Manager',
           click: () => {

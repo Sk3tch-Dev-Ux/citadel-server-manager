@@ -4,7 +4,7 @@ const { isAllowedDownloadUrl, installerFilename } = require('../lib/agent-update
 
 describe('isAllowedDownloadUrl', () => {
   test('allows this repo’s release assets / cloud downloads over https', () => {
-    expect(isAllowedDownloadUrl('https://github.com/Sk3tch-Dev-Ux/DayzServerController/releases/download/v2.21.6/CitadelSetup-2.21.6.exe')).toBe(true);
+    expect(isAllowedDownloadUrl('https://github.com/Sk3tch-Dev-Ux/citadel-server-manager/releases/download/v2.21.6/CitadelSetup-2.21.6.exe')).toBe(true);
     expect(isAllowedDownloadUrl('https://objects.githubusercontent.com/github-production-release-asset/CitadelSetup.exe')).toBe(true);
     expect(isAllowedDownloadUrl('https://citadels.cc/downloads/CitadelSetup-2.21.6.exe')).toBe(true);
   });
@@ -13,11 +13,11 @@ describe('isAllowedDownloadUrl', () => {
     // Right host, wrong repo — the previous "any github.com" rule allowed this.
     expect(isAllowedDownloadUrl('https://github.com/attacker/evil/releases/download/v1/CitadelSetup.exe')).toBe(false);
     // Our repo but not a release-download asset.
-    expect(isAllowedDownloadUrl('https://github.com/Sk3tch-Dev-Ux/DayzServerController/blob/main/x.exe')).toBe(false);
+    expect(isAllowedDownloadUrl('https://github.com/Sk3tch-Dev-Ux/citadel-server-manager/blob/main/x.exe')).toBe(false);
     // Cloud host but not the downloads path.
     expect(isAllowedDownloadUrl('https://citadels.cc/x.exe')).toBe(false);
     // Non-.exe asset.
-    expect(isAllowedDownloadUrl('https://github.com/Sk3tch-Dev-Ux/DayzServerController/releases/download/v1/notes.txt')).toBe(false);
+    expect(isAllowedDownloadUrl('https://github.com/Sk3tch-Dev-Ux/citadel-server-manager/releases/download/v1/notes.txt')).toBe(false);
   });
 
   test('accepts the cloud’s extension-less installer path (the real /downloads/latest shape)', () => {

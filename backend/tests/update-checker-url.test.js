@@ -15,7 +15,7 @@ describe('update-checker resolveDownloadUrl', () => {
   });
 
   test('passes an absolute https URL through unchanged', () => {
-    const abs = 'https://github.com/Sk3tch-Dev-Ux/DayzServerController/releases/download/v2.21.9/CitadelSetup-2.21.9.exe';
+    const abs = 'https://github.com/Sk3tch-Dev-Ux/citadel-server-manager/releases/download/v2.21.9/CitadelSetup-2.21.9.exe';
     expect(resolveDownloadUrl(abs)).toBe(abs);
   });
 
