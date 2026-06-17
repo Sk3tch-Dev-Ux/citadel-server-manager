@@ -11,6 +11,7 @@
  *   await provider.healPlayer(serverId, session);
  */
 const ctx = require('../context');
+const logger = require('../logger');
 const InHouseProvider = require('./providers/inhouse');
 const RCONProvider = require('./providers/rcon');
 const { ActionType, ACTION_LABELS } = require('./types');
@@ -48,7 +49,23 @@ function getProviderForAction(serverId, actionType) {
   }
 
   const label = ACTION_LABELS[actionType] || actionType;
-  throw new Error(`No provider available for "${label}". Ensure InHouse API or RCON is configured.`);
+
+  // FRAG-5: before failing, capture WHY each provider was skipped — was it
+  // unavailable for this server (not configured / offline) or available but
+  // lacking this action? This turns an opaque "No provider available" into an
+  // actionable diagnostic (e.g. "RCON is up but can't spawn items").
+  const diagnostics = PROVIDERS.map((provider) => {
+    let available = false;
+    let supportsAction = false;
+    try { available = provider.isAvailable(serverId); } catch { /* treat as unavailable */ }
+    try { supportsAction = provider.getCapabilities().has(actionType); } catch { /* treat as unsupported */ }
+    return { name: provider.name, available, supportsAction };
+  });
+  logger.warn({ serverId, action: actionType, label, providers: diagnostics }, 'No provider available for action');
+
+  const err = new Error(`No provider available for "${label}". Ensure InHouse API or RCON is configured.`);
+  err.code = 'NO_PROVIDER';
+  throw err;
 }
 
 /**
