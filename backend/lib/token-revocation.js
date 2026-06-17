@@ -14,6 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
+const { TOKEN_REVOCATION_TTL_MS } = require('./constants');
 
 /**
  * Canonical revocation reason codes. Use these (rather than ad-hoc strings)
@@ -91,9 +92,19 @@ loadFromDisk();
  */
 function revokeUserTokens(userId, reason = 'manual') {
   logger.info({ userId, reason }, 'Revoking all tokens for user');
-  // Mark all tokens issued before now as revoked
-  // New tokens will have a newer iat (issued-at) time
-  revokedTokens.set(`user:${userId}:*`, { expiresAt: Date.now() + 30 * 60 * 1000, reason });
+  // Mark all tokens issued before now as revoked.
+  // New tokens will have a newer iat (issued-at) time.
+  //
+  // The entry's expiresAt does double duty: it is both the cutoff this
+  // revocation enforces (isTokenRevoked treats any token with iat < expiresAt
+  // as revoked) AND the entry's own cleanup TTL. Login JWTs carry no jti, so
+  // this user-wide branch is the ONLY revocation that applies to them — the
+  // entry must therefore outlive the longest-lived login token (its full TTL
+  // plus a clock-skew buffer). The old 30-minute window let an 8h login token
+  // survive an admin password-reset/change once 30 minutes had elapsed,
+  // because the entry was garbage-collected out from under the still-valid
+  // token.
+  revokedTokens.set(`user:${userId}:*`, { expiresAt: Date.now() + TOKEN_REVOCATION_TTL_MS, reason });
   persistToDisk();
 }
 
