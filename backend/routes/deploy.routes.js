@@ -356,7 +356,7 @@ module.exports = function(app) {
     }
   });
 
-  app.post('/api/servers/:id/rebuild', auth('server.rebuild'), async (req, res) => {
+  app.post('/api/servers/:id/rebuild', auth.authForServer('server.rebuild'), async (req, res) => {
     const srv = ctx.servers.find(s => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
 
