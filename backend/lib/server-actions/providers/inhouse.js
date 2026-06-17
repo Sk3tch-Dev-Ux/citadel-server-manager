@@ -36,6 +36,22 @@ const BaseProvider = require('./base');
 const ctx = require('../../context');
 const logger = require('../../logger');
 const { INHOUSE_CAPABILITIES, ActionType } = require('../types');
+const { INHOUSE_REQUEST_TIMEOUT_MS } = require('../../constants');
+
+/**
+ * Typed error for an unreachable / unresponsive sidecar. Carries the intended
+ * HTTP mapping so safeError() surfaces it as a 504 'Sidecar unreachable' at the
+ * central error chokepoint without every route special-casing it.
+ */
+class SidecarUnreachableError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'SidecarUnreachableError';
+    this.expose = true;
+    this.statusCode = 504;
+    this.clientMessage = 'Sidecar unreachable';
+  }
+}
 
 // ─── Vehicle URL slug mapping ───────────────────────────
 const VEHICLE_SLUGS = Object.freeze({
@@ -88,14 +104,30 @@ class InHouseProvider extends BaseProvider {
       headers['Authorization'] = `Bearer ${srv.inHouseApiKey}`;
     }
 
-    const opts = { method, headers };
+    // Bound every sidecar call. This single _request() funnels ~120 admin
+    // methods; without a timeout one hung/unreachable sidecar wedges every
+    // admin action indefinitely. Mirrors player-data.js's SIDECAR fetch budget.
+    const opts = { method, headers, signal: AbortSignal.timeout(INHOUSE_REQUEST_TIMEOUT_MS) };
     if (body && method !== 'GET') {
       opts.body = JSON.stringify(body);
     }
 
     logger.debug({ provider: 'InHouse', method, url }, 'Sidecar API request');
 
-    const res = await fetch(url, opts);
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (err) {
+      // AbortSignal.timeout() aborts with a TimeoutError (a DOMException whose
+      // name is 'TimeoutError'); older runtimes surface 'AbortError'. Either
+      // way the sidecar didn't answer in time — rethrow a typed error so the
+      // route maps it to 504 'Sidecar unreachable'.
+      if (err && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+        logger.error({ provider: 'InHouse', url, timeoutMs: INHOUSE_REQUEST_TIMEOUT_MS }, 'Sidecar API request timed out');
+        throw new SidecarUnreachableError(`InHouse API: sidecar did not respond within ${INHOUSE_REQUEST_TIMEOUT_MS}ms`);
+      }
+      throw err;
+    }
     const json = await res.json().catch(() => ({}));
 
     if (!res.ok || json.ok === false) {
@@ -695,3 +727,4 @@ class InHouseProvider extends BaseProvider {
 }
 
 module.exports = InHouseProvider;
+module.exports.SidecarUnreachableError = SidecarUnreachableError;

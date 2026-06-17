@@ -151,17 +151,17 @@
         <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
         <path d="M12 9v4"/><path d="M12 17h.01"/>
       </svg>
-      <h3>Citadel Agent service isn't responding</h3>
-      <p>Citadel Agent runs as a Windows service in the background. It looks like the service isn't up right now.</p>
+      <h3>Citadel Server Manager service isn't responding</h3>
+      <p>Citadel Server Manager runs as a Windows service in the background. It looks like the service isn't up right now.</p>
       <p style="color: var(--fg-dim); margin-top: 18px;"><strong style="color: var(--fg)">Try this, in order:</strong></p>
       <ol>
         <li>Wait a few more seconds and click <strong>Retry</strong> below — services sometimes take 10&ndash;20 seconds to start.</li>
-        <li>Restart your PC. Citadel Agent will auto-start at boot.</li>
+        <li>Restart your PC. Citadel Server Manager will auto-start at boot.</li>
         <li>Still stuck? Email <a href="mailto:support@citadels.cc" style="color: var(--brand-b);">support@citadels.cc</a> with the log file from <code>C:\Citadel\data\service.log</code>.</li>
       </ol>
       <button class="retry" onclick="location.reload()">Retry Connection</button>
       <p style="margin-top: 14px; font-size: 11px; color: var(--fg-dim);">
-        Advanced: open <code>services.msc</code>, find <strong>Citadel DayZ Server Controller</strong>, right-click &rarr; Start.
+        Advanced: open <code>services.msc</code>, find <strong>Citadel Server Manager</strong>, right-click &rarr; Start.
       </p>
     </div>
   </div>

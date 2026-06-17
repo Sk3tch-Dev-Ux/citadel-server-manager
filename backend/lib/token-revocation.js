@@ -14,6 +14,15 @@
 const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
+const ctx = require('./context');
+const dataStore = require('./data-store');
+const { TOKEN_REVOCATION_TTL_MS } = require('./constants');
+
+// On-disk filename, persisted via data-store.saveJSON so it inherits the
+// atomic temp-file+rename, the M16 symlink guard, the 0o600 mode (it's in
+// data-store's SENSITIVE_FILES), and the FRAG-4 force-flush (revocations are
+// security-critical — they must be durable before the request returns).
+const REVOCATION_FILENAME = 'token-revocations.json';
 
 /**
  * Canonical revocation reason codes. Use these (rather than ad-hoc strings)
@@ -36,13 +45,22 @@ const REVOCATION_REASONS = Object.freeze({
  */
 const revokedTokens = new Map(); // Map of jti => expiryTime
 
-const PERSIST_FILE = path.join(process.cwd(), 'data', 'token-revocations.json');
+/**
+ * Resolve the data directory at call time. Prefer the configured dataDir
+ * (ctx.CONFIG is set in server.js before middleware/auth — and hence this
+ * module — is first required), and fall back to <cwd>/data so the module is
+ * still usable in isolation (e.g. a unit test that doesn't boot the server).
+ */
+function getDataDir() {
+  return (ctx.CONFIG && ctx.CONFIG.dataDir) || path.join(process.cwd(), 'data');
+}
 
 /** Load persisted revocations from disk on startup */
 function loadFromDisk() {
   try {
-    if (fs.existsSync(PERSIST_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(PERSIST_FILE, 'utf8'));
+    const persistFile = path.join(getDataDir(), REVOCATION_FILENAME);
+    if (fs.existsSync(persistFile)) {
+      const raw = JSON.parse(fs.readFileSync(persistFile, 'utf8'));
       const now = Date.now();
       let loaded = 0;
       for (const [key, entry] of Object.entries(raw)) {
@@ -61,22 +79,26 @@ function loadFromDisk() {
   }
 }
 
-/** Persist current revocations to disk (debounced) */
-let _persistTimer = null;
+/**
+ * Persist current revocations to disk.
+ *
+ * Routed through data-store.saveJSON (instead of a raw fs.writeFileSync) so it
+ * inherits the atomic temp-file+rename, the M16 symlink-refusal guard, the
+ * 0o600 mode, and — because 'token-revocations.json' is a SENSITIVE_FILE —
+ * the FRAG-4 force-flush: the revocation is durable on disk before the call
+ * returns, so a revocation can't be lost in a debounce window if the process
+ * is killed right after.
+ */
 function persistToDisk() {
-  // Debounce: only write once per second even if multiple revocations happen rapidly
-  if (_persistTimer) return;
-  _persistTimer = setTimeout(() => {
-    _persistTimer = null;
-    try {
-      const dir = path.dirname(PERSIST_FILE);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      const data = Object.fromEntries(revokedTokens);
-      fs.writeFileSync(PERSIST_FILE, JSON.stringify(data), 'utf8');
-    } catch (err) {
-      logger.warn({ err: err.message }, 'Failed to persist token revocations to disk');
-    }
-  }, 1000);
+  try {
+    const data = Object.fromEntries(revokedTokens);
+    // saveJSON returns a Promise that rejects on write failure; the failure is
+    // already logged + routed to the onWriteError hook inside data-store, so
+    // just suppress the rejection here to avoid an unhandledRejection.
+    Promise.resolve(dataStore.saveJSON(getDataDir(), REVOCATION_FILENAME, data)).catch(() => {});
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Failed to persist token revocations to disk');
+  }
 }
 
 // Load on module init
@@ -91,9 +113,19 @@ loadFromDisk();
  */
 function revokeUserTokens(userId, reason = 'manual') {
   logger.info({ userId, reason }, 'Revoking all tokens for user');
-  // Mark all tokens issued before now as revoked
-  // New tokens will have a newer iat (issued-at) time
-  revokedTokens.set(`user:${userId}:*`, { expiresAt: Date.now() + 30 * 60 * 1000, reason });
+  // Mark all tokens issued before now as revoked.
+  // New tokens will have a newer iat (issued-at) time.
+  //
+  // The entry's expiresAt does double duty: it is both the cutoff this
+  // revocation enforces (isTokenRevoked treats any token with iat < expiresAt
+  // as revoked) AND the entry's own cleanup TTL. Login JWTs carry no jti, so
+  // this user-wide branch is the ONLY revocation that applies to them — the
+  // entry must therefore outlive the longest-lived login token (its full TTL
+  // plus a clock-skew buffer). The old 30-minute window let an 8h login token
+  // survive an admin password-reset/change once 30 minutes had elapsed,
+  // because the entry was garbage-collected out from under the still-valid
+  // token.
+  revokedTokens.set(`user:${userId}:*`, { expiresAt: Date.now() + TOKEN_REVOCATION_TTL_MS, reason });
   persistToDisk();
 }
 

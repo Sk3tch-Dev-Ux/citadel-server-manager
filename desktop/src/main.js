@@ -69,13 +69,32 @@ function createWindow() {
     }
   });
 
+  // Single source of truth for "may this URL load inside the privileged
+  // window?" — the dashboard origin plus the internal about:/devtools:
+  // schemes. Shared by the new-window handler and the will-navigate guard
+  // below so they can't drift apart.
+  const isInternal = (url) =>
+    url.startsWith(BACKEND_URL) || url.startsWith('about:') || url.startsWith('devtools://');
+
   // External links open in the default browser, not inside the app.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (!url.startsWith(BACKEND_URL) && !url.startsWith('about:') && !url.startsWith('devtools://')) {
+    if (!isInternal(url)) {
       shell.openExternal(url);
       return { action: 'deny' };
     }
     return { action: 'allow' };
+  });
+
+  // Top-level navigations (a link that replaces the current page, a redirect,
+  // window.location =) bypass setWindowOpenHandler. Without this guard a
+  // compromised or mistaken in-page link could navigate the privileged
+  // (BrowserWindow) context to an arbitrary external origin. Keep navigation
+  // inside the dashboard origin; send anything external to the default browser.
+  mainWindow.webContents.on('will-navigate', (e, url) => {
+    if (!isInternal(url)) {
+      e.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   // Intercept window close — hide to tray instead of quitting.
@@ -112,6 +131,7 @@ app.whenReady().then(() => {
 
   buildMenu({
     openExternal: (url) => shell.openExternal(url),
+    getMainWindow: () => mainWindow,
     quit: () => {
       app.isQuiting = true;
       app.quit();

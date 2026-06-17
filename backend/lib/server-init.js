@@ -10,7 +10,7 @@ const bcrypt = require('@node-rs/bcrypt');
 const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');
-const { loadJSON, saveJSON, cleanupStaleTempFiles } = require('./data-store');
+const { loadJSON, saveJSON, cleanupStaleTempFiles, setOnWriteError } = require('./data-store');
 const { readServerConfig } = require('./dayz-config');
 const { autoDetectMods } = require('./mod-manager');
 const { getSidecarPort } = require('./sidecar-manager');
@@ -170,6 +170,30 @@ async function startup() {
   }
 
   cleanupStaleTempFiles(ctx.CONFIG.dataDir);
+
+  // FRAG-4: surface a persistence failure beyond the data-store's own log line.
+  // data-store already logs failed_persist at error level + rejects the write
+  // Promise; this hook raises a system notification so an admin sees that a
+  // durable write (config, audit, revocation, etc.) didn't land. Lazy-require
+  // notifications to avoid an init-order cycle, and stay best-effort.
+  let _inWriteErrorHook = false;
+  setOnWriteError(({ filename, error }) => {
+    // addNotification persists notifications.json, which can itself fail and
+    // re-enter this hook. Guard against an infinite loop on a broken disk.
+    if (_inWriteErrorHook || filename === 'notifications.json') return;
+    _inWriteErrorHook = true;
+    try {
+      const { addNotification } = require('./notifications');
+      addNotification(
+        null,
+        'persist_failed',
+        'Failed to save data to disk',
+        `Could not persist ${filename}: ${error && error.message}. Check disk space and permissions on the data directory.`,
+        'error',
+      );
+    } catch { /* notification is best-effort — the data-store log is the source of truth */ }
+    finally { _inWriteErrorHook = false; }
+  });
 
   // Open the durable metrics store (no-op if better-sqlite3 is unavailable) and
   // run retention maintenance hourly. Hourly (not daily) matters because the

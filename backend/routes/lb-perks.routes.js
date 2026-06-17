@@ -38,6 +38,15 @@ module.exports = function (app) {
         return res.status(404).json({ error: 'Server not found' });
       }
 
+      // This route keys off :serverId, not :id, so authForServer (which scopes
+      // on req.params.id) can't enforce server scope here. Check role.serverScope
+      // inline — a scope-limited role gets a 403 for any server it can't access,
+      // matching the per-server REST guards (pattern from servers.routes.js).
+      const scope = auth.getUserServerScope(req.user.id);
+      if (scope !== null && !scope.includes(req.params.serverId)) {
+        return res.status(403).json({ error: 'Access denied: no access to this server' });
+      }
+
       const detection = detectLBMaster(server);
       if (!detection.installed) {
         return res.json({ installed: false, hasAdvancedGroups: false, prefixGroups: [] });
@@ -64,6 +73,15 @@ module.exports = function (app) {
       const server = ctx.servers.find(s => s.id === req.params.serverId);
       if (!server) {
         return res.status(404).json({ error: 'Server not found' });
+      }
+
+      // This route keys off :serverId, not :id, so authForServer (which scopes
+      // on req.params.id) can't enforce server scope here. Check role.serverScope
+      // inline — a scope-limited role gets a 403 for any server it can't access,
+      // matching the per-server REST guards (pattern from servers.routes.js).
+      const scope = auth.getUserServerScope(req.user.id);
+      if (scope !== null && !scope.includes(req.params.serverId)) {
+        return res.status(403).json({ error: 'Access denied: no access to this server' });
       }
 
       const detection = detectLBMaster(server);

@@ -13,6 +13,7 @@ const { addAudit } = require('../lib/audit');
 const logger = require('../lib/logger');
 const { loadJSON, saveJSON } = require('../lib/data-store');
 const { fail2ban, recordLoginFailure, recordLoginSuccess } = require('../middleware/rate-limit');
+const { JWT_LOGIN_TTL_MS } = require('../lib/constants');
 
 const MAX_ATTEMPTS = 5;
 const LOCK_TIME = 10 * 60 * 1000; // 10 minutes
@@ -145,7 +146,7 @@ module.exports = function(app) {
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role, mustChangePassword: !!user.mustChangePassword },
       ctx.CONFIG.jwtSecret,
-      { expiresIn: '8h' }  // Shorter token lifetime for security
+      { expiresIn: Math.floor(JWT_LOGIN_TTL_MS / 1000) }  // 8h — shared with the revocation TTL so they can't drift
     );
     addAudit(user.id, user.username, 'login', 'User logged in');
 
@@ -160,7 +161,7 @@ module.exports = function(app) {
     // 8 hours matches the JWT lifetime above. Path '/' so it attaches
     // to both /api/* (REST) and /socket.io/* (WebSocket upgrade).
     res.cookie('auth-token', token, {
-      maxAge: 8 * 60 * 60 * 1000,
+      maxAge: JWT_LOGIN_TTL_MS,
       path: '/',
     });
 

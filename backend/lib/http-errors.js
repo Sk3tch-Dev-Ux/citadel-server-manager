@@ -31,6 +31,24 @@ const DEFAULT_MESSAGES = {
 };
 
 function safeError(err, req, res, opts = {}) {
+  // Operational errors (those thrown with `expose: true`) carry their own
+  // intended HTTP status + safe client message. Honour them at this central
+  // chokepoint so the dozens of provider-backed routes that pass a generic
+  // `{ status: 500 }` still surface a typed upstream failure (e.g. a sidecar
+  // timeout → 504 'Sidecar unreachable') without each call site special-casing
+  // it. An explicit opts.status/clientMessage from the caller still wins.
+  if (err && err.expose === true) {
+    // A deliberately-chosen non-500 status from the caller (e.g. 504 on the
+    // citadel bridge route) still wins; the generic 500 fallback does not.
+    const callerChoseStatus = opts.status !== undefined && opts.status !== 500;
+    if (!callerChoseStatus && typeof err.statusCode === 'number') {
+      opts = { ...opts, status: err.statusCode };
+    }
+    if (opts.clientMessage === undefined && typeof err.clientMessage === 'string') {
+      opts = { ...opts, clientMessage: err.clientMessage };
+    }
+  }
+
   const { status = 500, clientMessage, code, suggestion } = opts;
 
   logger.error({

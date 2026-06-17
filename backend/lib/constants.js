@@ -64,6 +64,22 @@ module.exports = {
   /** Max delivery records per webhook */
   MAX_WEBHOOK_DELIVERIES: 50,
 
+  // ─── Authentication / Tokens ────────────────────────────
+  /** Lifetime of a login JWT (ms) — 8h. Drives both the jwt `expiresIn`
+   *  and the auth-token cookie maxAge so they can never drift apart. */
+  JWT_LOGIN_TTL_MS: 8 * 60 * 60 * 1000,
+
+  /** Clock-skew safety buffer added on top of JWT_LOGIN_TTL_MS when sizing a
+   *  user-wide token revocation window (ms) — 5 min. */
+  JWT_CLOCK_SKEW_BUFFER_MS: 5 * 60 * 1000,
+
+  /** How long a user-wide revocation entry must live (ms). Login tokens carry
+   *  NO jti, so the user-wide branch in isTokenRevoked() is the only revocation
+   *  that applies to them — it must outlive the longest-lived login token (its
+   *  full TTL) plus a clock-skew buffer, or an admin password-reset / change
+   *  stops invalidating sessions partway through the token's life. */
+  TOKEN_REVOCATION_TTL_MS: 8 * 60 * 60 * 1000 + 5 * 60 * 1000,
+
   // ─── Timeouts ───────────────────────────────────────────
   /** Default timeout for lifecycle hook execution (ms) */
   HOOK_TIMEOUT_MS: 30_000,
@@ -79,6 +95,12 @@ module.exports = {
 
   /** SteamCMD game update timeout (ms) — 60 minutes */
   STEAMCMD_UPDATE_TIMEOUT_MS: 60 * 60 * 1000,
+
+  /** InHouse sidecar admin-action request timeout (ms). The InHouse provider
+   *  funnels ~120 admin methods through a single _request(); without a bound,
+   *  one unreachable/hung sidecar wedges every admin call indefinitely. Matches
+   *  the sidecar player-data fetch budget. */
+  INHOUSE_REQUEST_TIMEOUT_MS: 8_000,
 
   // ─── Graceful Shutdown ──────────────────────────────────
   /** Force-exit timeout after graceful shutdown begins (ms) */
