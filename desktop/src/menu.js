@@ -9,7 +9,7 @@
 const { Menu, dialog, app } = require('electron');
 const autoUpdaterModule = require('./auto-updater');
 
-function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog }) {
+function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog, getMainWindow }) {
   const template = [
     {
       label: '&File',
