@@ -40,7 +40,19 @@ ctx.isServiceMode = isServiceMode;
 ctx.CONFIG = CONFIG;
 
 // ─── Load persistent data ────────────────────────────────
-ctx.servers = loadJSON(CONFIG.dataDir, 'servers.json', []);
+const { loadServers, saveServers } = require('./lib/servers-store');
+const _serversLoad = loadServers(CONFIG.dataDir);
+ctx.servers = _serversLoad.servers;
+// One-time migration: encrypt any legacy plaintext rconPassword/inHouseApiKey
+// (older installs stored them in the clear). Idempotent on subsequent boots.
+if (_serversLoad.migrated) {
+  try {
+    saveServers(CONFIG.dataDir, ctx.servers);
+    logger.info('Encrypted legacy server credentials (rconPassword/inHouseApiKey) at rest');
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Failed to persist server-credential encryption migration');
+  }
+}
 ctx.users = loadJSON(CONFIG.dataDir, 'users.json', []);
 ctx.roles = loadJSON(CONFIG.dataDir, 'roles.json', [
   { id: 'admin', name: 'Admin', permissions: ['*'], color: '#ff3b3b', builtIn: true },

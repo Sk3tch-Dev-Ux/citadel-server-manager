@@ -7,7 +7,7 @@ const path = require('path');
 const logger = require('./logger');
 const ctx = require('./context');
 const { copyDirSync } = require('./helpers');
-const { saveJSON } = require('./data-store');
+const { saveServers } = require('./servers-store');
 
 /**
  * Sanitize mod folder names on disk — rename any @-prefixed directory that
@@ -329,7 +329,7 @@ function updateLaunchParamsMods(serverId) {
     }
 
     srv.launchParams = params;
-    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    saveServers(ctx.CONFIG.dataDir, ctx.servers);
   } catch (err) {
     logger.error({ err, serverId }, 'Failed to update launch params mods');
   }

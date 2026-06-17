@@ -13,7 +13,7 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 const logger = require('./logger');
 const ctx = require('./context');
-const { saveJSON } = require('./data-store');
+const { saveServers } = require('./servers-store');
 
 const { ROOT: PROJECT_ROOT, SIDECAR_ENTRY } = require('./paths');
 
@@ -76,7 +76,7 @@ function startSidecar(srv) {
   // (spawn → exit 1 → respawn every 15s) and all in-game telemetry goes dark.
   if (!srv.inHouseApiKey) {
     srv.inHouseApiKey = crypto.randomBytes(32).toString('hex');
-    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    saveServers(ctx.CONFIG.dataDir, ctx.servers);
     logger.info({ server: srv.name }, 'Generated sidecar API key (none was configured)');
   }
   env.SIDECAR_API_KEY = srv.inHouseApiKey;
