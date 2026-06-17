@@ -54,7 +54,7 @@
     "publish": {
       "provider": "github",
       "owner": "Sk3tch-Dev-Ux",
-      "repo": "DayzServerController"
+      "repo": "citadel-server-manager"
     }
   }
 }

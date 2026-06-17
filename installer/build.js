@@ -559,7 +559,7 @@ async function main() {
     const appUpdateYml =
       'provider: github\n' +
       'owner: Sk3tch-Dev-Ux\n' +
-      'repo: DayzServerController\n' +
+      'repo: citadel-server-manager\n' +
       'updaterCacheDirName: citadel-updater\n';
     fs.writeFileSync(path.join(resourcesDir, 'app-update.yml'), appUpdateYml, 'utf-8');
     log('  Wrote app-update.yml for electron-updater');

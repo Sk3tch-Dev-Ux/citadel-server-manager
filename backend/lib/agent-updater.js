@@ -28,7 +28,7 @@ const MIN_INSTALLER_BYTES = 1_000_000;   // 1 MB — guards against truncated/er
 const MAX_INSTALLER_BYTES = 500_000_000; // 500 MB ceiling
 
 // Only this repo's release assets are accepted — not "any github.com path".
-const RELEASE_PATH_PREFIX = '/Sk3tch-Dev-Ux/DayzServerController/releases/download/';
+const RELEASE_PATH_PREFIX = '/Sk3tch-Dev-Ux/citadel-server-manager/releases/download/';
 // If set, a signed installer's certificate subject must contain this string for
 // a SILENT install to be allowed (e.g. the code-signing CN once releases are
 // signed). Unset → silent requires a Valid signature of any publisher.

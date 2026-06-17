@@ -46,7 +46,7 @@ const execAsync = util.promisify(exec);
 
 // GitHub repo that hosts the releases. Public repo — no token required.
 const FEED_OWNER = 'Sk3tch-Dev-Ux';
-const FEED_REPO = 'DayzServerController';
+const FEED_REPO = 'citadel-server-manager';
 
 // Periodic check interval (6 hours). We also check once ~10 s after launch.
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
