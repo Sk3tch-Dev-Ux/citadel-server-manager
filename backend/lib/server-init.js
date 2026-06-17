@@ -11,6 +11,7 @@ const { v4: uuid } = require('uuid');
 const logger = require('./logger');
 const ctx = require('./context');
 const { loadJSON, saveJSON, cleanupStaleTempFiles, setOnWriteError } = require('./data-store');
+const { saveServers } = require('./servers-store');
 const { readServerConfig } = require('./dayz-config');
 const { autoDetectMods } = require('./mod-manager');
 const { getSidecarPort } = require('./sidecar-manager');
@@ -78,7 +79,7 @@ function migrateDefaultServer() {
     createdAt: new Date().toISOString(),
   };
   ctx.servers.push(defaultServer);
-  saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+  saveServers(ctx.CONFIG.dataDir, ctx.servers);
   logger.info({ name: defaultServer.name }, 'Created default server from .env config');
 }
 
@@ -119,7 +120,7 @@ function migrateInHouseApiUrl() {
     }
   }
   if (changed) {
-    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    saveServers(ctx.CONFIG.dataDir, ctx.servers);
   }
 }
 
@@ -138,7 +139,7 @@ function migrateNotificationFields() {
     }
   }
   if (changed) {
-    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    saveServers(ctx.CONFIG.dataDir, ctx.servers);
   }
 }
 

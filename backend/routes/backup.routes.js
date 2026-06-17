@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const ctx = require('../lib/context');
 const { saveJSON } = require('../lib/data-store');
+const { saveServers, decryptInPlace } = require('../lib/servers-store');
 const { addAudit } = require('../lib/audit');
 const auth = require('../middleware/auth');
 const { authForServer } = require('../middleware/auth');
@@ -48,7 +49,7 @@ module.exports = function (app) {
       return res.status(400).json({ error: 'Each entry must be a valid object' });
     }
     switch (type) {
-      case 'servers': ctx.servers = data; saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers); break;
+      case 'servers': ctx.servers = decryptInPlace(data); saveServers(ctx.CONFIG.dataDir, ctx.servers); break;
       case 'users': ctx.users = data; saveJSON(ctx.CONFIG.dataDir, 'users.json', ctx.users.map(u => ({ ...u }))); break;
       case 'roles': ctx.roles = data; saveJSON(ctx.CONFIG.dataDir, 'roles.json', ctx.roles); break;
       case 'webhooks': ctx.webhooks = data; saveJSON(ctx.CONFIG.dataDir, 'webhooks.json', ctx.webhooks); break;

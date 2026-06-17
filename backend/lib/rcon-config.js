@@ -26,7 +26,7 @@ const path = require('path');
 const crypto = require('crypto');
 const logger = require('./logger');
 const ctx = require('./context');
-const { saveJSON } = require('./data-store');
+const { saveServers } = require('./servers-store');
 
 const CFG_NAME = 'BEServer_x64.cfg';
 
@@ -87,7 +87,7 @@ function ensureRconConfig(srv) {
         srv.rconPassword = crypto.randomBytes(10).toString('hex'); // 20 alnum chars
         result.generatedPassword = true;
       }
-      saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+      saveServers(ctx.CONFIG.dataDir, ctx.servers);
     }
 
     const inSync = existing

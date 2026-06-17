@@ -24,7 +24,7 @@ const { spawn } = require('child_process');
 const { v4: uuid } = require('uuid');
 const logger = require('../lib/logger');
 const ctx = require('../lib/context');
-const { saveJSON } = require('../lib/data-store');
+const { saveServers } = require('../lib/servers-store');
 const { ensureSteamCMD } = require('../lib/steamcmd');
 const { readServerConfig } = require('../lib/dayz-config');
 const { killProcess } = require('../lib/process-manager');
@@ -273,7 +273,7 @@ module.exports = function(app) {
       gameTitle: gameTitle || 'DayZ, PC', profileDir: 'profiles', createdAt: new Date().toISOString(), deploying: true,
     };
     ctx.servers.push(srv);
-    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    saveServers(ctx.CONFIG.dataDir, ctx.servers);
     initServerState(srv.id);
     res.json({ message: 'Deployment started', server: srv });
 
@@ -346,13 +346,13 @@ module.exports = function(app) {
       const cfgPath = path.join(resolvedDir, 'serverDZ.cfg');
       fs.writeFileSync(cfgPath, buildServerDZCfg(name, maxPlayers, map, srv.queryPort));
       srv.deploying = false;
-      saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+      saveServers(ctx.CONFIG.dataDir, ctx.servers);
       ctx.serverStates[srv.id].config = readServerConfig(resolvedDir);
       ctx.emitServer('deployProgress', { serverId: srv.id, status: 'complete', message: 'Deployment complete!' });
     } catch (err) {
       ctx.emitServer('deployProgress', { serverId: srv.id, status: 'error', message: err.message });
       srv.deploying = false; srv.deployError = err.message;
-      saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+      saveServers(ctx.CONFIG.dataDir, ctx.servers);
     }
   });
 

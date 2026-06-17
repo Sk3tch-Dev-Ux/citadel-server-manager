@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuid } = require('uuid');
 const ctx = require('../lib/context');
-const { saveJSON } = require('../lib/data-store');
+const { saveServers } = require('../lib/servers-store');
 const { addAudit } = require('../lib/audit');
 const { initServerState } = require('../lib/server-init');
 const { readServerConfig } = require('../lib/dayz-config');
@@ -191,7 +191,7 @@ module.exports = function(app) {
       gameTitle: gameTitle || 'DayZ, PC', profileDir: 'profiles', createdAt: new Date().toISOString(),
     };
     ctx.servers.push(srv);
-    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    saveServers(ctx.CONFIG.dataDir, ctx.servers);
     initServerState(srv.id);
     // Auto-apply firewall rules for the new server's ports
     ensureFirewallRules(srv.name, { gamePort: srv.gamePort, queryPort: srv.queryPort, rconPort: srv.rconPort }).catch(() => {});
@@ -226,7 +226,7 @@ module.exports = function(app) {
     for (const key of allowed) { if (req.body[key] !== undefined) srv[key] = req.body[key]; }
     // Clean up legacy field if canonical name is now set
     if (srv.ignoreModUpdates !== undefined) delete srv.ignoreServerModUpdates;
-    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    saveServers(ctx.CONFIG.dataDir, ctx.servers);
     // Reconcile the DZSA endpoint if the toggle changed and the server is up.
     if (req.body.dzsaPublish !== undefined && (srv.dzsaPublish === true) !== dzsaWas) {
       const running = ctx.serverStates[srv.id]?.status === 'running';
@@ -367,7 +367,7 @@ module.exports = function(app) {
     }
     delete ctx.serverStates[req.params.id];
     ctx.servers.splice(idx, 1);
-    saveJSON(ctx.CONFIG.dataDir, 'servers.json', ctx.servers);
+    saveServers(ctx.CONFIG.dataDir, ctx.servers);
     // Clean up firewall rules for deleted server
     removeFirewallRules(name).catch(() => {});
     addAudit(req.user.id, req.user.username, 'server.delete', `Deleted server: ${name}`);

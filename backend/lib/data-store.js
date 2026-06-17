@@ -33,10 +33,10 @@ const SENSITIVE_FILES = new Set([
   // which never existed — so the revocation file was written 0o644
   // (world-readable on POSIX). Use the correct name.
   'token-revocations.json',
-  // servers.json holds RCON passwords + the sidecar in-house API key in
-  // plaintext. Lock it down to the running user (0o600). Encrypting those
-  // fields at rest (via credential-encryption) is a follow-up — see
-  // SERVERS-AT-REST notes — but at minimum the file must not be world-readable.
+  // servers.json holds RCON passwords + the sidecar in-house API key. Those
+  // two fields are now encrypted at rest (AES-256-GCM via lib/servers-store,
+  // which wraps load/save of this file); the 0o600 mode here is defense in
+  // depth on top so the file isn't world-readable even before decryption.
   'servers.json',
   '.jwt-secret',
 ]);
