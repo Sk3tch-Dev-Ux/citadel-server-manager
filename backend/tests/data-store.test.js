@@ -117,3 +117,44 @@ describe('saveJSON debounced atomic write', () => {
     expect(fs.readFileSync(target, 'utf8')).toBe('ORIGINAL');
   });
 });
+
+// FRAG-4 — saveJSON returns a Promise that settles on the real write outcome,
+// reports failures through the onWriteError hook, and force-flushes critical
+// files synchronously so they're durable before the caller continues.
+describe('saveJSON write-outcome Promise (FRAG-4)', () => {
+  const { setOnWriteError } = require('../lib/data-store');
+
+  afterEach(() => setOnWriteError(null));
+
+  test('returned Promise resolves once a debounced write lands on disk', async () => {
+    const f = fname();
+    const p = saveJSON(dir, f, { ok: true });
+    expect(typeof p.then).toBe('function');
+    // Not yet written (still debounced) — the Promise is pending.
+    expect(fs.existsSync(path.join(dir, f))).toBe(false);
+    await p; // resolves only after the atomic write completes
+    expect(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))).toEqual({ ok: true });
+  });
+
+  test('critical files (audit.json) are written synchronously, before the next line', () => {
+    // audit.json is force-flushed: the bytes are on disk the instant saveJSON returns,
+    // with no debounce window — so a crash right after a 200 can't lose the row.
+    saveJSON(dir, 'audit.json', [{ action: 'test.event' }]);
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'audit.json'), 'utf8'))).toEqual([{ action: 'test.event' }]);
+  });
+
+  test('a failed critical write rejects the Promise AND fires the onWriteError hook', async () => {
+    let captured = null;
+    setOnWriteError((info) => { captured = info; });
+    // Point the dataDir at a path whose parent is a file, so writeFileSync fails.
+    const notADir = path.join(dir, 'blocker');
+    fs.writeFileSync(notADir, 'x');
+    const badDir = path.join(notADir, 'sub'); // ENOTDIR on write
+    await expect(saveJSON(badDir, 'audit.json', [{ a: 1 }])).rejects.toBeTruthy();
+    expect(captured).toBeTruthy();
+    expect(captured.filename).toBe('audit.json');
+    // Node system errors carry a `code`; just assert we got an error-shaped object.
+    expect(captured.error).toBeTruthy();
+    expect(typeof captured.error.message).toBe('string');
+  });
+});
