@@ -64,7 +64,7 @@ export default function CitadelLicensePage() {
       if (res.error) {
         // Map server-side error codes to UX-friendly messages. The most
         // common one for a brand-new prospect is SUBSCRIPTION_INACTIVE
-        // (their email exists but no Paddle subscription) — point them at
+        // (their email exists but no active subscription) — point them at
         // the marketing/pricing page.
         if (res.error === 'SUBSCRIPTION_INACTIVE' || res.message?.includes('SUBSCRIPTION_INACTIVE')) {
           setError({
@@ -108,7 +108,7 @@ export default function CitadelLicensePage() {
   }
 
   async function handleDeactivate() {
-    if (!confirm('Deactivate this machine?\n\nThis frees one of your device slots on your Citadel account. Citadel will enter read-only mode on THIS machine after the offline grace window until you re-activate. Your Citadel and Cloud subscriptions on Paddle are NOT canceled — only this machine\'s activation.')) return;
+    if (!confirm('Deactivate this machine?\n\nThis frees one of your device slots on your Citadel account. Citadel will enter read-only mode on THIS machine after the offline grace window until you re-activate. Your Citadel and Cloud subscriptions are NOT canceled — only this machine\'s activation.')) return;
     setDeactivating(true);
     try {
       await API.del('/api/citadel-license/deactivate');
@@ -429,7 +429,7 @@ function ActivatedCard({ status, onDeactivate, deactivating }) {
       <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600 }}>This machine</h3>
       <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-muted)' }}>
         Deactivate to free a device slot on your account. You can always re-activate this
-        or another machine with the same credentials. Your subscriptions on Paddle are
+        or another machine with the same credentials. Your subscriptions are
         not canceled — only this machine&apos;s activation.
       </p>
       <button

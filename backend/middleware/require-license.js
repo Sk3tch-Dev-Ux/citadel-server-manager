@@ -19,7 +19,7 @@
  *   - requireLicense({ feature: 'cloud' }) requires both isUsable() AND
  *     the cloud entitlement on the JWT.
  *   - Adding a new feature (Phase 4+) requires:
- *       (1) The corresponding subscription on Paddle.
+ *       (1) The corresponding subscription in Stripe.
  *       (2) The webhook handler writes to a new column on `users`.
  *       (3) `computeEntitlements` in citadel-cloud/lib/license.ts adds the
  *           feature key when the column says active.

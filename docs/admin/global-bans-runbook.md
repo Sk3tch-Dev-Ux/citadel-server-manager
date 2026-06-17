@@ -141,7 +141,8 @@ E.g. running multiple Citadel Cloud accounts to self-vouch their bans.
 - Hard to detect automatically; usually surfaces via appeals where the
   appellant points it out.
 - Investigation: look at submission timing patterns, IP address overlap
-  in `last_ip_address` on `devices`, billing/Paddle account similarity.
+  in `last_ip_address` on `devices`, billing/Stripe customer similarity
+  (e.g. shared `stripe_customer_id`, card fingerprint, or billing email).
 - Action: lock all involved accounts, refund recent payments, notify
   affected appellants.
 

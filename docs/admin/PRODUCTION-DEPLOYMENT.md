@@ -22,7 +22,7 @@ soak time at each gate.
       Production credentials available but **don't apply migrations to
       prod yet** — staging first.
 - [ ] You have admin access to:
-  - Paddle merchant dashboard (production)
+  - Stripe Dashboard (production / live mode)
   - The citadels.cc deployment surface (Vercel, Fly, whichever)
   - The citadels.cc database (psql or equivalent)
   - GitHub Releases for Sk3tch-Dev-Ux/DayzServerController
@@ -135,58 +135,76 @@ This will inspect the schema files and produce two migrations:
 
 ---
 
-## 3. Configure Paddle (sandbox first)
+## 3. Configure Stripe (test mode first)
 
-The Cloud add-on product needs to exist in Paddle before any of the
-checkout flows work end-to-end.
+The Cloud add-on product needs to exist in Stripe before any of the
+checkout flows work end-to-end. Citadel billing runs entirely on Stripe.
 
-### 3.1 Sandbox first
-- [ ] In Paddle sandbox: create a new "Citadel Cloud" product at
-      $10/month with a 7-day trial period. Save the price ID.
-- [ ] Verify the product appears in `/v1/products` API response from
-      Paddle.
+### 3.1 Test mode first
+- [ ] In the Stripe Dashboard (test mode): create a recurring "Citadel
+      Cloud" product at $10/month. Save the price ID (`price_...`).
+      The base Citadel products (monthly/yearly) should already exist
+      from the initial Stripe setup — confirm their price IDs too.
+- [ ] Confirm the price shows as **Active** under Products in the dashboard.
 
 ### 3.2 Wire env vars
 On staging Citadels.cc:
 
 | Name | Value |
 |---|---|
-| `PADDLE_PRICE_CLOUD_MONTHLY` | The price ID from sandbox |
-| `NEXT_PUBLIC_PADDLE_PRICE_CLOUD_MONTHLY` | Same value (browser-side) |
+| `STRIPE_SECRET_KEY` | Test secret key (`sk_test_...`) from dashboard.stripe.com/apikeys |
+| `STRIPE_PRICE_CLOUD_MONTHLY` | The Cloud price ID from test mode |
+| `NEXT_PUBLIC_STRIPE_PRICE_CLOUD_MONTHLY` | Same value (browser-side, for display) |
+| `STRIPE_CLOUD_TRIAL_DAYS` | `7` (default; applied per checkout session) |
+| `STRIPE_TAX_ENABLED` | `0` until tax registrations are filed and confirmed |
 
-Restart citadels.cc.
+Then create the webhook endpoint and capture its signing secret:
 
-### 3.3 Test Paddle webhook routing
-This is the single highest-risk integration. **Do not skip.**
+```sh
+npm run setup:stripe-webhook --workspace=@citadel/api -- \
+  --url https://staging.citadels.cc/webhooks/stripe
+```
 
-- [ ] Create a test Paddle customer that has only the Citadel sub.
-      Trigger a `subscription.created` event in the sandbox dashboard.
-      Verify in Postgres:
+Set the value it prints as `STRIPE_WEBHOOK_SECRET` (`whsec_...`; Stripe
+only reveals it once at creation). Restart citadels.cc.
+
+### 3.3 Test Stripe webhook routing
+This is the single highest-risk integration. **Do not skip.** The handler
+lives in `packages/api/src/routes/stripe-webhook.routes.ts` (mounted at
+`POST /webhooks/stripe`) and routes subscription-lifecycle events to the
+product-specific columns by matching the subscription's price against
+`STRIPE_PRICE_CITADEL_*` vs `STRIPE_PRICE_CLOUD_*`.
+
+- [ ] Create a test customer subscribed only to the Citadel base product
+      (use the test card `4242 4242 4242 4242` through Checkout, or drive
+      it with `stripe trigger` from the Stripe CLI). After
+      `customer.subscription.created` lands, verify in Postgres:
       ```sql
       SELECT email, subscription_status, cloud_subscription_status
       FROM users WHERE email = 'test@example.com';
       ```
       Expected: `subscription_status = 'active'`, `cloud_subscription_status = NULL`.
-- [ ] Now subscribe the same customer to Cloud. Trigger another
-      `subscription.created`. Verify:
+- [ ] Now subscribe the same customer to Cloud. After the second
+      `customer.subscription.created`, verify:
       ```sql
       SELECT subscription_status, cloud_subscription_status FROM users WHERE ...;
       ```
-      Expected: BOTH columns are `'active'` (or `'trialing'` for Cloud).
-- [ ] Cancel the Cloud sub in the sandbox dashboard. Wait for the
-      `subscription.canceled` webhook. Verify:
+      Expected: BOTH columns `'active'` (or `'trialing'` for Cloud while
+      the 7-day trial runs).
+- [ ] Cancel the Cloud sub in the dashboard. Wait for the
+      `customer.subscription.deleted` webhook. Verify:
       Expected: `cloud_subscription_status = 'canceled'`,
       `subscription_status = 'active'` (untouched).
 - [ ] Cancel the Citadel sub. Verify: `subscription_status = 'canceled'`,
       `cloud_subscription_status = 'canceled'` (from the previous step,
       unchanged by this event).
 
-If any of these fail, the routing logic in `paddle-webhook.routes.ts`
+If any of these fail, the routing logic in `stripe-webhook.routes.ts`
 is wrong and needs fixing before going further.
 
 ### Verify
-- [ ] `webhook_events` table has all four events with `outcome='ok'`.
-- [ ] No "subscription event for unknown priceId" warnings in the API logs.
+- [ ] `webhook_events` table has all the events with `outcome='ok'`.
+- [ ] No "subscription event for unknown price" warnings in the API logs.
 
 ---
 
@@ -209,12 +227,16 @@ implicitly by the citadel-cloud smoke test.)
 
 ## 5. Promote citadel-cloud to production
 
-### 5.1 Production Paddle product
-- [ ] Repeat step 3.1 in Paddle production (not sandbox). Get the
-      production price ID.
+### 5.1 Production Stripe product
+- [ ] Repeat step 3.1 in Stripe **live mode** (not test). Get the live
+      Cloud price ID.
 - [ ] Production env vars on citadels.cc:
-  - `PADDLE_PRICE_CLOUD_MONTHLY` → production price ID
-  - `NEXT_PUBLIC_PADDLE_PRICE_CLOUD_MONTHLY` → same
+  - `STRIPE_SECRET_KEY` → live secret key (`sk_live_...`)
+  - `STRIPE_PRICE_CLOUD_MONTHLY` → live Cloud price ID
+  - `NEXT_PUBLIC_STRIPE_PRICE_CLOUD_MONTHLY` → same
+  - `STRIPE_WEBHOOK_SECRET` → from a live-mode `setup:stripe-webhook` run
+    pointed at `https://citadels.cc/webhooks/stripe`
+  - `STRIPE_TAX_ENABLED=1` once tax registrations are filed (leave `0` otherwise)
   - All `CLOUD_BANS_*` vars (or accept defaults).
 
 ### 5.2 Production migration
@@ -325,14 +347,14 @@ Ideally Kurt himself or a trusted community admin.
 - [ ] `electron-updater` will downgrade users on next check. (Note:
       downgrade UX is rough — only do this if v2.8 has a critical bug.)
 
-### Paddle
-- [ ] Cancel any test customers' Cloud subscriptions in Paddle if
-      they need refunding.
+### Stripe
+- [ ] Cancel any test customers' Cloud subscriptions in the Stripe
+      Dashboard if they need refunding.
 - [ ] Manually update Postgres if subscriptions got into a bad state:
       ```sql
       UPDATE users SET cloud_subscription_status = NULL,
                        cloud_subscription_renews_at = NULL,
-                       paddle_cloud_subscription_id = NULL
+                       stripe_cloud_subscription_id = NULL
       WHERE email = 'test@...';
       ```
 
