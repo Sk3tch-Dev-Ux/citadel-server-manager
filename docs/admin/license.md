@@ -25,8 +25,9 @@ The local backend's `requireLicense({ feature: 'cloud' })` middleware
 gates Cloud-only routes; the React `<LicenseGate feature="cloud">`
 component does the same on the dashboard. Subscription state lives on
 the `users` table in two parallel column groups (`subscription_*` for
-Citadel, `cloud_subscription_*` for Cloud) populated by the Paddle
-webhook handler routing on `price_id`.
+Citadel, `cloud_subscription_*` for Cloud) populated by the Stripe
+webhook handler (`stripe-webhook.routes.ts`), which routes each
+subscription to the right column group by its price.
 
 ---
 
@@ -85,7 +86,7 @@ From the dashboard: **Citadel Cloud** → **Deactivate this machine**. This:
    device as `revoked = true` in the citadels.cc database.
 2. Clears the local `data/license.json` and wipes the cloud-bans cache.
 3. Status returns to `unactivated`. The customer's Citadel subscription
-   is unchanged on Paddle — they just need to re-activate this machine
+   is unchanged — they just need to re-activate this machine
    (or another) to use it again.
 
 A user can also revoke a device from https://citadels.cc/account if they
@@ -99,8 +100,8 @@ will be prompted to sign in again.
 ## Migration: existing customers
 
 The licensing system has been live since before Citadel Cloud existed —
-existing customers already hold a Citadel subscription on Paddle. The
-Phase 3 changes are additive:
+existing customers already hold an active Citadel subscription on Stripe.
+The Phase 3 changes are additive:
 
 - A new column group (`cloud_subscription_*`) was added to the `users`
   table. Existing rows have NULLs there, which means no Cloud entitlement.
@@ -108,13 +109,13 @@ Phase 3 changes are additive:
   Pre-Phase-3 tokens lacked this field; the `_hydrateEntitlementsForLegacy`
   helper in `lib/license.ts` infers it from the existing status fields, so
   cached tokens keep working until they naturally rotate.
-- Customers who want Cloud subscribe to the second Paddle product. The
+- Customers who want Cloud subscribe to the second product in Stripe. The
   webhook routes the event to `cloud_subscription_*` and the next
   `/verify` call signs a token with the new entitlements.
 
-If you've ever taken payment for Citadel Cloud outside Paddle (e.g. a
-manual comp), update the user's `cloud_subscription_status` directly in
-SQL:
+If you've ever taken payment for Citadel Cloud outside the normal Stripe
+flow (e.g. a manual comp), update the user's `cloud_subscription_status`
+directly in SQL:
 
 ```sql
 UPDATE users
@@ -128,21 +129,22 @@ Their next license `/verify` call will return a token with
 `entitlements: ['citadel', 'cloud']` and Cloud features will light up.
 
 Edge case: if at some point you (Kurt) directly took payment for a Citadel
-Pro license outside Paddle (e.g. a one-off Discord arrangement, an early
-supporter grant, a comp), there is no token to migrate from. Process for
-giving them cloud access:
+Pro license outside the normal Stripe flow (e.g. a one-off Discord
+arrangement, an early supporter grant, a comp), there is no token to
+migrate from. Process for giving them cloud access:
 
 1. Create a citadels.cc account on their behalf (or have them sign up).
-2. In Paddle admin, manually mark the user as having an active
-   subscription, OR run a one-off SQL update on the `users` table on
+2. In the Stripe Dashboard, create or comp a subscription for the
+   customer, OR run a one-off SQL update on the `users` table on
    citadels.cc to set `subscription_status = 'active'` and a far-future
    `subscription_renews_at`.
 3. Send the user their credentials. They sign in from the Citadel
    dashboard normally.
-4. Document the comp in your records — Paddle won't show it as revenue.
+4. Document the comp in your records — a SQL-only comp won't show in
+   Stripe as revenue.
 
-Future paid customers acquired via Paddle don't need any of this — the
-Paddle webhook on citadels.cc creates the user and activates them
+Future paid customers acquired via Stripe don't need any of this — the
+Stripe webhook on citadels.cc creates the user and activates them
 automatically.
 
 ---
@@ -265,8 +267,8 @@ All require `license.manage` permission.
 2. If they're in `grace` indefinitely (more than 6h offline despite being
    online), check the `lastError` field in the status response.
 3. Common causes: expired token (need to re-activate), revoked device
-   (admin revoked from citadels.cc/account — re-activate), Paddle
-   subscription canceled.
+   (admin revoked from citadels.cc/account — re-activate), subscription
+   canceled in Stripe.
 
 **"I want to see who has activated."**
 - citadels.cc admin → `/api/v1/admin/users` (see citadel-cloud

@@ -13,11 +13,11 @@ loop works end-to-end against live infrastructure.
   - The new `telemetry_events` table (run `npx drizzle-kit generate` in
     `packages/api/`, commit, then `drizzle-kit migrate` in production).
   - The `telemetryRoutes` registered (already wired in `app.ts`).
-- A Paddle test product configured (D4 confirmed: working test product
-  exists).
-- A test citadels.cc account NOT subscribed to Paddle (for the
+- A Stripe test product configured (the Cloud add-on price created in
+  test mode; base Citadel prices already exist).
+- A test citadels.cc account NOT subscribed (for the
   `SUBSCRIPTION_INACTIVE` scenario).
-- A second test account WITH an active Paddle test subscription.
+- A second test account WITH an active Stripe test subscription.
 
 ---
 
@@ -39,7 +39,7 @@ and points at the right place.
 
 1. [ ] Sign in to Citadel dashboard, navigate to `/citadel-license`.
 2. [ ] Click "Sign in" and enter the credentials of a citadels.cc account
-       with NO active Paddle subscription. Submit.
+       with NO active subscription. Submit.
 3. [ ] Confirm:
    - The form shows the friendly `no-subscription` error: bordered in the
      accent color (not red), text reads "No active Citadel Cloud
@@ -53,7 +53,7 @@ and points at the right place.
 ## Scenario 2 — Activation with an active subscription (the canonical path)
 
 1. [ ] On the same `/citadel-license` page, sign in with the credentials
-       of the OTHER test account (the one with a Paddle test subscription).
+       of the OTHER test account (the one with a Stripe test subscription).
 2. [ ] Confirm:
    - Toast appears: "Citadel Cloud activated on this machine."
    - Status flips to `active`. The subscription card shows the right
@@ -74,7 +74,8 @@ and points at the right place.
 
 ## Scenario 4 — Lapse on subscription cancel
 
-1. [ ] In Paddle test admin, cancel the test subscription.
+1. [ ] In the Stripe Dashboard (test mode), cancel the test subscription
+       (fires `customer.subscription.deleted`).
 2. [ ] Trigger a refresh manually: dashboard `/citadel-license` → click
        "Refresh", OR `POST /api/citadel-license/refresh`.
 3. [ ] Confirm:
@@ -85,15 +86,15 @@ and points at the right place.
    - `license.isUsable()` returns false (verify by hitting any future
      `requireLicense`-gated route — should 402; in Phase 2 nothing is
      gated yet, so this is a future-test).
-4. [ ] Re-activate the Paddle subscription. Click "Refresh". Status
-       returns to `active`.
+4. [ ] Re-subscribe the test customer in Stripe (test mode). Click
+       "Refresh". Status returns to `active`.
 
 ## Scenario 5 — Deactivate from the desktop
 
 1. [ ] On `/citadel-license`, click "Deactivate this machine".
 2. [ ] Confirm the prompt clarifies that this only revokes THIS machine's
-       activation; the customer's Citadel and Cloud subscriptions on
-       Paddle are unaffected.
+       activation; the customer's Citadel and Cloud subscriptions are
+       unaffected.
 3. [ ] Confirm `data/license.json` is gone.
 4. [ ] Confirm `data/cloud-bans-cache.json` is gone (Phase 3 — license
        deactivation triggers Cloud cache wipe via `onLicenseDeactivated`).
@@ -131,7 +132,7 @@ and points at the right place.
        `active`.
 5. [ ] (Optional, slow) Set `CITADEL_LICENSE_GRACE_DAYS=0.001` (~90s).
        Stay offline past that window. Status should transition to
-       `expired`. Reconnect → returns to `active` (or `lapsed` if Paddle
+       `expired`. Reconnect → returns to `active` (or `lapsed` if the
        subscription has been canceled in the meantime).
 
 ## Scenario 8 — Telemetry ingest, paid path
@@ -215,7 +216,7 @@ banner returns (sessionStorage cleared).
 
 ## Cleanup
 
-- [ ] Restore Paddle test subscription state.
+- [ ] Restore Stripe test subscription state.
 - [ ] Delete test telemetry events:
       ```sql
       DELETE FROM telemetry_events WHERE machine_id_hash = '<your test hash>';
