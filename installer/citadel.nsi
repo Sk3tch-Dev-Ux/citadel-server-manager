@@ -116,6 +116,12 @@ FunctionEnd
 ;     - .env           (user-customized env vars like CITADEL_LICENSE_API)
 ;     - users.json / role defs (if present at install root)
 ;
+;   The user's .env survives untouched because the installer never stages a
+;   .env: the build (installer/build.js STAGE_FILES) copies only .env.example
+;   into the staging app dir, so the `File /r` below lays down .env.example and
+;   leaves an existing .env in place. (There is deliberately no .env backup/
+;   restore step — there is nothing to restore from.)
+;
 ;   The service is stopped BEFORE copying files so code files aren't locked
 ;   by node.exe. The old service registration is removed + re-registered
 ;   to pick up the new paths (harmless even on identical paths).
@@ -181,14 +187,11 @@ Section "Citadel Server Manager" SecMain
   SetOutPath "$INSTDIR\desktop"
   File /nonfatal /r "${STAGING_DIR}\desktop\*.*"
 
-  ; ── Restore user .env if we backed one up ──
-  ; The File /r above may have overwritten .env with the fresh .env.example.
-  ; Put the user's version back.
-  ${If} ${FileExists} "$INSTDIR\.env.upgrade-backup"
-    DetailPrint "Restoring your existing .env (user-customized env vars preserved)..."
-    CopyFiles /SILENT "$INSTDIR\.env.upgrade-backup" "$INSTDIR\.env"
-    Delete "$INSTDIR\.env.upgrade-backup"
-  ${EndIf}
+  ; NOTE: there is no .env restore step here. The staged app dir contains
+  ; .env.example, NOT .env (see installer/build.js STAGE_FILES), so the
+  ; `File /r` above never overwrites a user's existing .env — it survives in
+  ; place. A previous .env.upgrade-backup restore block was dead code (nothing
+  ; ever wrote that backup file) and has been removed.
 
   ; ── Create data directory (preserves contents on upgrade) ──
   CreateDirectory "$INSTDIR\data"
