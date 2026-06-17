@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Citadel Agent** (`citadel` in package.json) — local DayZ dedicated-server management for Windows. Node/Express backend + React dashboard + per-server Node sidecar + DayZ EnScript mod, shipped as an NSIS installer that registers a Windows Service. Pairs with **Citadel Cloud** (separate product at citadels.cc; sibling repo at `~/Documents/GitHub/citadel-cloud`) for remote operations — the cloud↔agent wire protocol is reconciled in that repo's `CITADEL_AGENT_ALIGNMENT.md`. Windows-only by nature (DayZ dedicated server is Windows-only); firewall/service features need Administrator.
+**Citadel Server Manager** (formerly "Citadel Agent"; `citadel` in package.json — the npm name is intentionally unchanged) — local DayZ dedicated-server management for Windows. The GitHub repo is **`citadel-server-manager`** (renamed 2026-06 from `DayzServerController`; the local working folder is still `DayzServerController`). Node/Express backend + React dashboard + per-server Node sidecar + DayZ EnScript mod, shipped as an NSIS installer that registers a Windows Service. Pairs with **Citadel Cloud** (separate product at citadels.cc; sibling repo at `~/Documents/GitHub/citadel-cloud`) for remote operations — the cloud↔agent wire protocol is reconciled in that repo's `CITADEL_AGENT_ALIGNMENT.md`. Windows-only by nature (DayZ dedicated server is Windows-only); firewall/service features need Administrator.
 
 ## Commands
 
@@ -48,7 +48,8 @@ Frontend has no tests — lint only.
 
 `backend/lib/data-store.js` is the only persistence layer:
 - `loadJSON()` — sync, startup only. `saveJSON()` — debounced (~300ms), writes to a temp file then atomically renames; refuses symlink targets; flushes the queue on shutdown.
-- Sensitive files (`users.json`, `webhooks.json`, `audit.json`) are written mode `0o600`.
+- Sensitive files (`users.json`, `webhooks.json`, `audit.json`, `servers.json`, `token-revocations.json`, …) are written mode `0o600`.
+- `servers.json` is loaded/saved through `backend/lib/servers-store.js`, which encrypts `rconPassword` + `inHouseApiKey` **at rest** (AES-256-GCM `ENC:` prefix via `lib/credential-encryption`). In-memory `ctx.servers` always stays **plaintext** — decrypt on load, encrypt a clone on save. Preserve that invariant: mutate `ctx.servers` directly and persist via `servers-store`'s `saveServers`, never raw `saveJSON` for `servers.json`.
 - Metrics optionally go to `data/metrics.db` (better-sqlite3). Everything else is JSON in `data/`.
 
 ### Sidecar + @CitadelAdmin mod: file-based IPC
