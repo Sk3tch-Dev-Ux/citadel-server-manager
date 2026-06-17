@@ -160,4 +160,82 @@ describe('Server-scope authorization regressions', () => {
       expect(denial.details.reason).toBe('server-scope-denied');
     });
   });
+
+  // PVP-SCOPE — POST /api/servers/:id/pvp/reset used auth(['admin','owner','*']),
+  // which checks the any-of permission but NOT the role's serverScope, so a
+  // scope-limited admin could wipe the PvP leaderboard of ANY server. The route
+  // now uses authForServer(['admin','owner','*']). This drives the middleware
+  // with the route's *exact* any-of permission array (the describe.each battery
+  // above only covers single-string permissions).
+  describe('PVP-SCOPE — authForServer([admin,owner,*]) enforces serverScope on pvp/reset', () => {
+    const PVP_PERM = ['admin', 'owner', '*'];
+
+    function runPvpReset({ token, serverId }) {
+      return new Promise((resolve) => {
+        const req = {
+          headers: { authorization: `Bearer ${token}` },
+          cookies: {},
+          params: { id: serverId },
+          originalUrl: `/api/servers/${serverId}/pvp/reset`,
+          method: 'POST',
+          path: `/api/servers/${serverId}/pvp/reset`,
+        };
+        let settled = false;
+        const finish = (payload) => { if (!settled) { settled = true; resolve(payload); } };
+        const res = {
+          statusCode: 200,
+          status(code) { this.statusCode = code; return this; },
+          json(body) { finish({ status: this.statusCode, body, nextCalled: false }); return this; },
+        };
+        const next = () => finish({ status: 200, body: null, nextCalled: true });
+        auth.authForServer(PVP_PERM)(req, res, next);
+      });
+    }
+
+    test('scope-limited admin is DENIED (403) resetting PvP on a server outside its scope', async () => {
+      ctx.users = [{ id: 'pvp-scoped', username: 'pvp-scoped', role: 'pvp-scoped' }];
+      ctx.roles = [{ id: 'pvp-scoped', permissions: ['admin'], serverScope: ['srv-A'] }];
+
+      const token = mintToken(ctx.users[0]);
+      const result = await runPvpReset({ token, serverId: 'srv-B' });
+
+      expect(result.nextCalled).toBe(false);
+      expect(result.status).toBe(403);
+      expect(result.body.error).toMatch(/no access to this server/i);
+    });
+
+    test('scope-limited admin is ALLOWED resetting PvP on a server inside its scope', async () => {
+      ctx.users = [{ id: 'pvp-scoped', username: 'pvp-scoped', role: 'pvp-scoped' }];
+      ctx.roles = [{ id: 'pvp-scoped', permissions: ['admin'], serverScope: ['srv-A'] }];
+
+      const token = mintToken(ctx.users[0]);
+      const result = await runPvpReset({ token, serverId: 'srv-A' });
+
+      expect(result.nextCalled).toBe(true);
+      expect(result.status).toBe(200);
+    });
+
+    test('wildcard (*) role bypasses scope on any server', async () => {
+      ctx.users = [{ id: 'pvp-root', username: 'pvp-root', role: 'pvp-root' }];
+      ctx.roles = [{ id: 'pvp-root', permissions: ['*'] }];
+
+      const token = mintToken(ctx.users[0]);
+      const result = await runPvpReset({ token, serverId: 'srv-B' });
+
+      expect(result.nextCalled).toBe(true);
+      expect(result.status).toBe(200);
+    });
+
+    test('a role lacking admin/owner/* is DENIED (403) for insufficient permissions', async () => {
+      ctx.users = [{ id: 'pvp-mod', username: 'pvp-mod', role: 'pvp-mod' }];
+      ctx.roles = [{ id: 'pvp-mod', permissions: ['priority.manage'], serverScope: ['srv-A'] }];
+
+      const token = mintToken(ctx.users[0]);
+      const result = await runPvpReset({ token, serverId: 'srv-A' });
+
+      expect(result.nextCalled).toBe(false);
+      expect(result.status).toBe(403);
+      expect(result.body.error).toMatch(/insufficient permissions/i);
+    });
+  });
 });

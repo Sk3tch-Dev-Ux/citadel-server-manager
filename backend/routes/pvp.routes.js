@@ -13,7 +13,7 @@
 const ctx = require('../lib/context');
 const pvpStats = require('../lib/pvp-stats');
 const { getBridge } = require('../lib/citadel-bridge');
-const { authForServer, auth } = require('../middleware/auth');
+const { authForServer } = require('../middleware/auth');
 const { addAudit } = require('../lib/audit');
 const { safeError } = require('../lib/http-errors');
 
@@ -88,7 +88,7 @@ module.exports = function (app) {
     }
   });
 
-  app.post('/api/servers/:id/pvp/reset', auth(['admin', 'owner', '*']), (req, res) => {
+  app.post('/api/servers/:id/pvp/reset', authForServer(['admin', 'owner', '*']), (req, res) => {
     const srv = ctx.servers.find((s) => s.id === req.params.id);
     if (!srv) return res.status(404).json({ error: 'Server not found' });
     try {
