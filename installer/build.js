@@ -55,7 +55,12 @@ const NSSM_URLS = [
 // string) makes the build emit a loud warning but still succeed — that
 // keeps existing CI pipelines green on the first commit, with a clear
 // signal to fill it in. Once set, a mismatch is fatal.
-const NSSM_SHA256 = process.env.NSSM_SHA256 || '';
+//
+// Pinned 2026-06 to the verified digest of the official nssm-2.24.zip
+// (size 351793). Cross-verified three ways: nssm.cc /release/ and /ci/ are
+// byte-identical, and 26 independent package manifests (Chocolatey, Scoop,
+// Chef, Bazel, …) pin this same SHA256. Rotate only when bumping NSSM_VERSION.
+const NSSM_SHA256 = process.env.NSSM_SHA256 || '727d1e42275c605e0f04aba98095c38a8e1e46def453cdffce42869428aa6743';
 
 const pkg = require(path.join(ROOT, 'package.json'));
 const VERSION = pkg.version || '2.0.0';
