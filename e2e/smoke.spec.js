@@ -28,6 +28,12 @@ test('app shell loads without console errors', async ({ page }) => {
 test('unauthenticated visit reaches a login surface', async ({ page }) => {
   await page.goto('/');
 
+  // Wait for the SPA to actually mount before polling. On a cold CI dev server
+  // the first paint, the unauth API check (proxied to a backend that may still
+  // be starting on the shared runner), and the login render can lag well past
+  // the old 15s budget — that was the sole flaky failure greening this job.
+  await expect(page.locator('#root')).toBeAttached();
+
   // Tolerant check: a password field, a "sign in"/"log in" control, or a
   // redirect to a /login route — whichever the build presents.
   const passwordField = page.locator('input[type="password"]');
@@ -39,6 +45,6 @@ test('unauthenticated visit reaches a login surface', async ({ page }) => {
       if (await passwordField.count()) return true;
       if (await loginText.count()) return true;
       return false;
-    }, { timeout: 15_000, message: 'expected a login surface for an unauthenticated user' })
+    }, { timeout: 45_000, message: 'expected a login surface for an unauthenticated user' })
     .toBe(true);
 });
