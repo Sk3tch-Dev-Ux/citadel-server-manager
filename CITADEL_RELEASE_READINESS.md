@@ -85,7 +85,7 @@ repo + auto-update feed, `FIXED_SALT`) deliberately left stable.
 Citadel is **not a build-from-scratch effort — it is a verify-harden-rebrand-and-ship effort.** Both products are architecturally mature:
 
 - **Agent (`DayzServerController` v2.25.0):** Node/Express + Socket.IO backend (~49 route modules), React/Vite dashboard, per-server Node sidecar, `@CitadelAdmin` EnScript mod, Electron desktop wrapper, NSIS installer registering a Windows Service (NSSM), HTTPS enforcement, RBAC with live token revocation, atomic symlink-safe JSON persistence, encrypted-at-rest credentials, BattlEye RCON auto-provisioning, firewall + backup management.
-- **Cloud (`citadel-cloud`):** Fastify 5 + Next.js 15 + Postgres/TimescaleDB (Drizzle) + Redis, Stripe (live) with Paddle legacy-migration path, 2FA, fail2ban, the `/ws/plugin` telemetry protocol, Cloud Bans reputation system, marketplace. Deployed via Coolify.
+- **Cloud (`citadel-cloud`):** Fastify 5 + Next.js 15 + Postgres/TimescaleDB (Drizzle) + Redis, Stripe (sole processor — Paddle removed in PR #58), 2FA, fail2ban, the `/ws/plugin` telemetry protocol, Cloud Bans reputation system, marketplace. Deployed via Coolify.
 
 The previously-documented critical security findings across both repos are **largely resolved in code**. What stands between today and a confident commercial launch is: **(1) runtime-verify the fixes that were never run, (2) execute the rebrand safely, (3) resolve one architecture ambiguity, (4) close a short tail of SaaS-hardening items, (5) productization polish (code signing, onboarding, observability, docs).**
 
@@ -101,12 +101,12 @@ The previously-documented critical security findings across both repos are **lar
 |---|---|---|---|
 | CC1 — Cloud Bans gated on wrong subscription column (revenue leak) | Critical | **FIXED** | `cloud-bans.routes.ts:79-81` now gates `cloudSubscriptionStatus`, 402 `CLOUD_SUBSCRIPTION_INACTIVE` |
 | CC2 — Login/activate timing user-enumeration | Critical | **FIXED** | `auth.routes.ts:105-110`, `license.routes.ts:78-83` — constant-time `DUMMY_PASSWORD_HASH` |
-| CC3 — Password-reset token stored unhashed | Critical | **PARTIAL** | Live flow uses `passwordResetTokenHash` (`auth.routes.ts:434-440`); deprecated plaintext col remains (`users.ts:14`) + one CLI writer (`scripts/recover-missing-user.ts:74`). No live request path reads it. |
+| CC3 — Password-reset token stored unhashed | Critical | **FIXED** | Live flow uses `passwordResetTokenHash` (`auth.routes.ts:434-440`); plaintext col dropped via migration 0032; `scripts/recover-missing-user.ts` deleted (PR #58). No live path reads or writes the plaintext col. |
 | CC4 — No rate-limit on `/license/activate` | Critical | **FIXED** | `license.routes.ts:70` `assertNotLocked` before lookup; Redis fail2ban |
 | CC5 — Admin role trusted from JWT | High | **FIXED** | `admin.routes.ts:83,92` — role re-fetched from DB every request |
 | CC6 — CORS wildcard allowed in prod | Low | **FIXED** | `config.ts:70-75` — boot guard refuses `CORS_ORIGINS=*` in production |
 
-> **Net: 5/6 fixed, 1 partial.** CC3's only remaining action is finishing the deprecation cycle (drop the plaintext column + stop the CLI script writing it). Not launch-blocking, but should be scheduled.
+> **Net: 6/6 fixed.** CC3 fully resolved — plaintext column dropped (migration 0032) and `recover-missing-user.ts` deleted (PR #58).
 
 ### Agent + Cloud — `AUDIT_2026-06.md` findings C1–C6
 
@@ -198,13 +198,13 @@ Two tracks, run in order:
 From `AUDIT_2026-06.md §8 "not yet done"` + CC3:
 - **Destructive remote-action allow-list (Agent):** operator opt-in gate before cloud-issued `wipe`/`restart` execute (`cloud-bridge/commands.js`). Defense-in-depth if a cloud key is replayed.
 - **Cloud-telemetry PII opt-out (Agent):** player IPs/GUIDs are forwarded every 30s (`forwarders.js:176`) with no local toggle. Add an opt-out surface — important for the privacy policy and EU customers.
-- **CC3 cleanup (Cloud):** drop the deprecated plaintext `passwordResetToken` column; stop `scripts/recover-missing-user.ts:74` writing it.
+- **CC3 (Cloud):** DONE — plaintext `passwordResetToken` column dropped (migration 0032); `scripts/recover-missing-user.ts` deleted (PR #58).
 - **Least-privilege follow-through:** confirm the `discord-bot` seed ships least-privilege (done for fresh installs; legacy back-fill still `['*']` with a warning — schedule the back-fill tightening).
 - **Production TLS scheme enforcement:** done on the WS client (rejects non-loopback `ws://`); confirm the agent panel fails loud (not silent HTTP downgrade) when prod TLS certs are unreadable (`server.js:108`).
 
 ### WS4 — Monetization & licensing readiness  ·  **HIGH · Effort M**
 
-The plumbing exists (Stripe live + Paddle migration, RS256 license JWTs, device cap, entitlements). Before charging money, verify end-to-end:
+The plumbing exists (Stripe live — sole processor, Paddle removed in PR #58 — RS256 license JWTs, device cap, entitlements). Before charging money, verify end-to-end:
 - Stripe **live** keys + webhook secret set on the live deploy; `STRIPE_PRICE_*` (Citadel monthly/yearly, Cloud monthly/yearly) populated; `STRIPE_TAX_ENABLED` decision once registrations are filed.
 - License activation → desktop verification round-trip on a clean machine (24h license JWT, 4h for Cloud entitlement, 7-day offline grace, 2-device cap).
 - Cloud entitlement gate confirmed (CC1 fixed) so Cloud Bans / Cloud console actually require the paid add-on.
@@ -245,7 +245,7 @@ WS5 docs/observability/DR run in parallel throughout.
 - [ ] Fresh install **and** in-place upgrade from `C:\Citadel` both succeed; no orphaned service
 - [ ] Agent + desktop auto-update pull from the renamed repo (old repo redirect verified)
 - [ ] `packages/plugin` status decided (demoted/retired); alignment doc re-headed
-- [ ] CC3 plaintext column dropped; destructive-action allow-list + PII opt-out shipped
+- [x] CC3 plaintext column dropped (migration 0032) + `recover-missing-user.ts` deleted (PR #58); destructive-action allow-list + PII opt-out shipped
 - [ ] Stripe live + webhooks verified; license activation round-trip on a clean machine; Cloud entitlement gate confirmed
 - [ ] Installer code-signed; SmartScreen clean
 - [ ] Non-technical onboarding pass completed; privacy/"data leaving the box" doc published
