@@ -10,7 +10,7 @@
  *
  * Note: License activation is NOT exposed here. The React dashboard talks
  * to the backend's REST API (/api/citadel-license/*) directly, which calls
- * citadels.cc. The desktop wrapper is intentionally thin.
+ * api.citadel-hub.com. The desktop wrapper is intentionally thin.
  */
 const { contextBridge, ipcRenderer } = require('electron');
 

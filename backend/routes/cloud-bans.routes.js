@@ -4,7 +4,7 @@
  *   GET  /api/cloud-bans/status — cache stats + enforcement counts
  *
  * The Trust Network (shared cheater-ban database) is owned by Citadel Cloud
- * at citadels.cc/cloud. The Local Agent's only responsibility is downloading
+ * at citadel-hub.com/cloud. The Local Agent's only responsibility is downloading
  * the synced ban list and writing it to each server's ban.txt. The management
  * surface (submitting bans, browsing the global DB, false-positive workflows)
  * lives in Citadel Cloud, not here.
@@ -16,7 +16,7 @@
  *
  * The /status endpoint exists so the License banner can show "X bans applied"
  * and the local Bans page can render a one-line status with a deep-link to
- * citadels.cc/cloud for management.
+ * citadel-hub.com/cloud for management.
  */
 const cloudBans = require('../lib/cloud-bans');
 const { auth } = require('../middleware/auth');

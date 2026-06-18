@@ -160,7 +160,7 @@ CONFIG.allowedOrigins = structured.server.allowedOrigins;
 
 // ─── Bind-host safety check ────────────────────────────────
 // The Local Citadel Agent is meant to listen on loopback only. Remote access
-// is supposed to go through Citadel Cloud (citadels.cc), not a directly
+// is supposed to go through Citadel Cloud (citadel-hub.com), not a directly
 // exposed Agent. Warn loudly when the operator overrides this — '0.0.0.0' or
 // '::' exposes the dashboard to anyone who can reach the host's IP.
 {

@@ -200,7 +200,7 @@ export default function ServerSettingsPage({ serverId }) {
         </button>
       </div>
 
-      {/* Citadel Cloud pairing — pasted Server ID + API key from citadels.cc */}
+      {/* Citadel Cloud pairing — pasted Server ID + API key from citadel-hub.com */}
       <CloudLinkCard serverId={serverId} />
 
       <Accordion title="Process" icon="" defaultOpen={true}>

@@ -1,6 +1,6 @@
 /**
  * Citadel license endpoints — consumed by the dashboard to activate/manage
- * this installation's subscription link to citadels.cc.
+ * this installation's subscription link to citadel-hub.com.
  *
  *   GET    /api/citadel-license/status            — current license state (auth)
  *   POST   /api/citadel-license/activate          — body: { email, password, name? }
@@ -59,7 +59,7 @@ function registerCitadelLicenseRoutes(app) {
     } catch (err) {
       // Don't forward upstream 401s verbatim — the dashboard's global 401
       // handler interprets that as "your Agent session expired" and logs
-      // the admin out. A 401 here means "the citadels.cc credentials you
+      // the admin out. A 401 here means "the citadel-hub.com credentials you
       // typed are wrong", which is a body-level error, not a session one.
       // Same logic for 403 (e.g. account locked / device cap hit upstream).
       const upstream = err.status || 500;

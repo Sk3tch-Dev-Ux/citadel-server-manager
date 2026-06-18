@@ -57,9 +57,9 @@ function _agentVersion() {
 function _cloudUrl() {
   // Same env var as the license client uses, so a dev pointed at a local
   // citadel-cloud instance picks both up consistently.
-  // CITADEL_LICENSE_API is the REST base ('https://api.citadels.cc'); the
+  // CITADEL_LICENSE_API is the REST base ('https://api.citadel-hub.com'); the
   // WS path is the same host, so we reuse it.
-  return process.env.CITADEL_LICENSE_API || 'https://api.citadels.cc';
+  return process.env.CITADEL_LICENSE_API || 'https://api.citadel-hub.com';
 }
 
 function _isRunning(localServerId) {

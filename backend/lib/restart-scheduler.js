@@ -561,7 +561,7 @@ function getStatus(serverId) {
  * schedule and calls /api/server-control/restart on the Agent when a
  * window fires. The in-Agent cron loop is no longer started, so any
  * schedules sitting in data/restart-schedules.json are inert until you
- * migrate them to citadels.cc/cloud.
+ * migrate them to citadel-hub.com/cloud.
  *
  * This function is kept callable so we don't have to surgically remove
  * the call site, and so future versions can either delete this lib or
@@ -570,7 +570,7 @@ function getStatus(serverId) {
 function initialize() {
   // Intentionally no-op. Don't call load() — we don't want to silently
   // re-activate stale schedules if someone re-enables the routes.
-  logger.info('Restart scheduler is disabled — Cloud now owns this. See citadels.cc/cloud.');
+  logger.info('Restart scheduler is disabled — Cloud now owns this. See citadel-hub.com/cloud.');
 }
 
 /**

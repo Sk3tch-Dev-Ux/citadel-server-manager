@@ -13,7 +13,7 @@ subscribe to independently:
 
 - **Citadel** — $14.99/month (or $149.99/year). The local app license.
   Required to use the desktop + backend at all. Activation against
-  citadels.cc validates an active Citadel subscription; without it, the
+  citadel-hub.com validates an active Citadel subscription; without it, the
   app enters grace then read-only.
 - **Citadel Cloud** — +$10/month add-on on top of Citadel. Optional
   second subscription that unlocks cloud-only features (Global Ban
@@ -39,7 +39,7 @@ When the backend boots, `backend/lib/license/index.js` does this:
 2. Verifies the token signature locally using an embedded RS256 public key
    (`backend/lib/license/public-key.js`).
 3. Schedules a background refresh every 6 hours that calls
-   `GET https://citadels.cc/api/v1/license/verify` and updates the cache.
+   `GET https://api.citadel-hub.com/api/v1/license/verify` and updates the cache.
 
 States the license module exposes:
 
@@ -61,7 +61,7 @@ The grace window length is controlled by `CITADEL_LICENSE_GRACE_DAYS`
 
 1. Open the dashboard, click **Citadel Cloud** in the sidebar (or browse to
    `/citadel-license`). Requires the `license.manage` permission.
-2. Enter the email and password for an active citadels.cc account.
+2. Enter the email and password for an active citadel-hub.com account.
 3. The local backend POSTs to `/api/v1/license/activate` and stores the
    returned token in `data/license.json`.
 4. Status flips to `active`. The dashboard banner disappears.
@@ -69,10 +69,10 @@ The grace window length is controlled by `CITADEL_LICENSE_GRACE_DAYS`
 Failure modes:
 
 - **No active subscription** → `402 SUBSCRIPTION_INACTIVE`. The activation
-  page surfaces a friendly message pointing at https://citadels.cc/cloud.
+  page surfaces a friendly message pointing at https://citadel-hub.com/cloud.
 - **Device limit reached** → `409 CONFLICT` with details. User must
   deactivate one of their existing devices from
-  https://citadels.cc/account.
+  https://app.citadel-hub.com/account.
 - **Invalid credentials** → `401 UNAUTHORIZED`. Standard "wrong email or
   password" UX.
 
@@ -83,13 +83,13 @@ Failure modes:
 From the dashboard: **Citadel Cloud** → **Deactivate this machine**. This:
 
 1. Calls `DELETE /api/v1/license/deactivate` server-side, which marks the
-   device as `revoked = true` in the citadels.cc database.
+   device as `revoked = true` in the citadel-hub.com database.
 2. Clears the local `data/license.json` and wipes the cloud-bans cache.
 3. Status returns to `unactivated`. The customer's Citadel subscription
    is unchanged — they just need to re-activate this machine
    (or another) to use it again.
 
-A user can also revoke a device from https://citadels.cc/account if they
+A user can also revoke a device from https://app.citadel-hub.com/account if they
 no longer have access to that machine (lost laptop, sold a PC, etc.). The
 next time the revoked machine tries to verify, it'll receive a `403
 FORBIDDEN`, the local state will reset to `unactivated`, and the user
@@ -133,10 +133,10 @@ Pro license outside the normal Stripe flow (e.g. a one-off Discord
 arrangement, an early supporter grant, a comp), there is no token to
 migrate from. Process for giving them cloud access:
 
-1. Create a citadels.cc account on their behalf (or have them sign up).
+1. Create a citadel-hub.com account on their behalf (or have them sign up).
 2. In the Stripe Dashboard, create or comp a subscription for the
    customer, OR run a one-off SQL update on the `users` table on
-   citadels.cc to set `subscription_status = 'active'` and a far-future
+   citadel-hub.com to set `subscription_status = 'active'` and a far-future
    `subscription_renews_at`.
 3. Send the user their credentials. They sign in from the Citadel
    dashboard normally.
@@ -144,14 +144,14 @@ migrate from. Process for giving them cloud access:
    Stripe as revenue.
 
 Future paid customers acquired via Stripe don't need any of this — the
-Stripe webhook on citadels.cc creates the user and activates them
+Stripe webhook on citadel-hub.com creates the user and activates them
 automatically.
 
 ---
 
 ## Telemetry
 
-Citadel sends a small set of diagnostic events to citadels.cc so we can
+Citadel sends a small set of diagnostic events to citadel-hub.com so we can
 catch bugs in update flows and license activation across the install base.
 
 **Default: enabled.** Disclosure and toggle are at `/citadel-license` →
@@ -222,7 +222,7 @@ The toggle is also surfaced in the dashboard's Citadel Cloud page.
 
 ---
 
-## Endpoints (this Citadel install → citadels.cc)
+## Endpoints (this Citadel install → citadel-hub.com)
 
 | Method | URL                                      | Purpose                       |
 |--------|------------------------------------------|-------------------------------|
@@ -232,7 +232,7 @@ The toggle is also surfaced in the dashboard's Citadel Cloud page.
 | POST   | `/api/v1/telemetry/events`               | Submit diagnostic events      |
 
 The base URL is overridable via `CITADEL_LICENSE_API` /
-`CITADEL_TELEMETRY_API` for local development against a dev citadels.cc.
+`CITADEL_TELEMETRY_API` for local development against a dev citadel-hub.com.
 
 ---
 
@@ -241,7 +241,7 @@ The base URL is overridable via `CITADEL_LICENSE_API` /
 | Method | URL                                                | Purpose                        |
 |--------|----------------------------------------------------|--------------------------------|
 | GET    | `/api/citadel-license/status`                      | Current license state          |
-| POST   | `/api/citadel-license/activate`                    | Sign in (proxies to citadels.cc) |
+| POST   | `/api/citadel-license/activate`                    | Sign in (proxies to citadel-hub.com) |
 | POST   | `/api/citadel-license/refresh`                     | Force a verify call            |
 | DELETE | `/api/citadel-license/deactivate`                  | Revoke this machine's slot     |
 | GET    | `/api/citadel-license/telemetry-state`             | Current telemetry config       |
@@ -256,27 +256,27 @@ All require `license.manage` permission.
 **"A customer says cloud features stopped working."**
 1. Have them open `/citadel-license`. Check the status banner.
 2. If `grace` or `past_due` — they're on a network or billing issue, not
-   a Citadel bug. Direct them to https://citadels.cc/account.
+   a Citadel bug. Direct them to https://app.citadel-hub.com/account.
 3. If `lapsed` or `expired` — same.
 4. If `active` and they still report breakage, the issue is downstream of
    licensing. Ask for the dashboard's `/api/citadel-license/status` JSON
    and check the `claims.exp` (token expiry) and `lastVerifiedAt`.
 
 **"A customer's license refresh keeps failing."**
-1. Have them check internet connectivity to citadels.cc.
+1. Have them check internet connectivity to citadel-hub.com.
 2. If they're in `grace` indefinitely (more than 6h offline despite being
    online), check the `lastError` field in the status response.
 3. Common causes: expired token (need to re-activate), revoked device
-   (admin revoked from citadels.cc/account — re-activate), subscription
+   (admin revoked from app.citadel-hub.com/account — re-activate), subscription
    canceled in Stripe.
 
 **"I want to see who has activated."**
-- citadels.cc admin → `/api/v1/admin/users` (see citadel-cloud
+- citadel-hub.com admin → `/api/v1/admin/users` (see citadel-cloud
   `admin.routes.ts`). Filter by `subscription_status = 'active'`.
 - For per-device: query `devices` table directly.
 
 **"I want to see telemetry data."**
-- citadels.cc DB:
+- citadel-hub.com DB:
   ```sql
   SELECT event, count(*), max(received_at)
   FROM telemetry_events

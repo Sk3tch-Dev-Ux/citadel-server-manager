@@ -85,7 +85,7 @@ export default function ServerHubPage() {
       }}>
         <span>Servers managed by this copy of Citadel Server Manager.</span>
         <a
-          href="https://citadels.cc/cloud"
+          href="https://citadel-hub.com/cloud"
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: 'var(--accent)', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}

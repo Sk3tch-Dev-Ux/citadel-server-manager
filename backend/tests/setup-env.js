@@ -16,3 +16,12 @@ const path = require('path');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'citadel-test-data-'));
 process.env.CITADEL_DATA_DIR = dir; // consumed by lib/config-schema → config.js
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+
+// At-rest credential encryption (servers-store → credential-encryption) needs a
+// key. Set a deterministic test key so the encrypt path — exercised by
+// ensureRconConfig's save and any test that persists a server — works in EVERY
+// test, regardless of whether lib/config loaded/persisted a JWT_SECRET first.
+// (Tests that don't require lib/config otherwise have neither key and the
+// encrypt throws, e.g. rcon-config.test.js's generate path.)
+process.env.CREDENTIAL_ENCRYPTION_KEY =
+  process.env.CREDENTIAL_ENCRYPTION_KEY || 'test-credential-encryption-key-not-for-production';

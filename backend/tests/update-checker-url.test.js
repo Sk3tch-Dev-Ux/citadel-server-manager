@@ -11,7 +11,7 @@ const { resolveDownloadUrl } = require('../lib/update-checker');
 describe('update-checker resolveDownloadUrl', () => {
   test('resolves the cloud relative path against the API base', () => {
     expect(resolveDownloadUrl('/downloads/installer'))
-      .toBe('https://api.citadels.cc/downloads/installer');
+      .toBe('https://api.citadel-hub.com/downloads/installer');
   });
 
   test('passes an absolute https URL through unchanged', () => {
@@ -20,8 +20,8 @@ describe('update-checker resolveDownloadUrl', () => {
   });
 
   test('falls back to the default installer path on empty input', () => {
-    expect(resolveDownloadUrl(null)).toBe('https://api.citadels.cc/downloads/installer');
-    expect(resolveDownloadUrl('')).toBe('https://api.citadels.cc/downloads/installer');
+    expect(resolveDownloadUrl(null)).toBe('https://api.citadel-hub.com/downloads/installer');
+    expect(resolveDownloadUrl('')).toBe('https://api.citadel-hub.com/downloads/installer');
   });
 
   test('honors CITADEL_LICENSE_API override for the base', () => {

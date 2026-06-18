@@ -33,10 +33,10 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog, 
     {
       label: '&Help',
       submenu: [
-        { label: 'Documentation', click: () => openExternal('https://citadels.cc/docs') },
-        { label: 'Manage Subscription (citadels.cc)', click: () => openExternal('https://citadels.cc/account') },
-        { label: 'Citadel Cloud (remote control + automations)', click: () => openExternal('https://citadels.cc/cloud') },
-        { label: 'Discord', click: () => openExternal('https://citadels.cc/discord') },
+        { label: 'Documentation', click: () => openExternal('https://citadel-hub.com/docs') },
+        { label: 'Manage Subscription (citadel-hub.com)', click: () => openExternal('https://app.citadel-hub.com/account') },
+        { label: 'Citadel Cloud (remote control + automations)', click: () => openExternal('https://citadel-hub.com/cloud') },
+        { label: 'Discord', click: () => openExternal('https://citadel-hub.com/discord') },
         { type: 'separator' },
         // P1.5 — surfaces %APPDATA%/Citadel/update.log in the user's default
         // text editor. Lets us tell a customer "send me your update log" in
@@ -52,7 +52,7 @@ function buildMenu({ openExternal, quit, reload, toggleDevTools, showUpdateLog, 
               type: 'info',
               title: 'About Citadel Server Manager',
               message: `Citadel Server Manager v${app.getVersion()}`,
-              detail: `Local DayZ server management for Windows.\nPairs with Citadel Cloud for remote control and automations.\n\nElectron: ${process.versions.electron}\nNode: ${process.versions.node}\nChromium: ${process.versions.chrome}\n\nhttps://citadels.cc`,
+              detail: `Local DayZ server management for Windows.\nPairs with Citadel Cloud for remote control and automations.\n\nElectron: ${process.versions.electron}\nNode: ${process.versions.node}\nChromium: ${process.versions.chrome}\n\nhttps://citadel-hub.com`,
               buttons: ['OK'],
             });
           },

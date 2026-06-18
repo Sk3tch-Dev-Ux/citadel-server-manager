@@ -85,14 +85,14 @@ export default function SystemDashboardPage() {
         </div>
         <div className="system-host-badges">
           {cloudStatus?.connected ? (
-            <span className="cloud-badge connected" title="Citadel is talking to the citadels.cc subscription service (licence check-in)">
+            <span className="cloud-badge connected" title="Citadel is talking to the citadel-hub.com subscription service (licence check-in)">
               <Wifi size={12} /> Cloud Connected
             </span>
           ) : (
             <Link
               to="/citadel-license"
               className="cloud-badge disconnected"
-              title="Citadel can't reach citadels.cc right now. Click to check your licence + network settings."
+              title="Citadel can't reach citadel-hub.com right now. Click to check your licence + network settings."
               style={{ textDecoration: 'none' }}
             >
               <WifiOff size={12} /> Cloud Offline

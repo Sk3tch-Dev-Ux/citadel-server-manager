@@ -33,7 +33,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -keyout cert/key.pem -out cert/cert.pe
 
 ## Public / production deployments
 
-Citadel's intended remote-access path is **Citadel Cloud** (citadels.cc), not a directly internet-exposed Agent. If you do expose the Agent directly, do **not** ship a self-signed cert. Two supported options:
+Citadel's intended remote-access path is **Citadel Cloud** (citadel-hub.com), not a directly internet-exposed Agent. If you do expose the Agent directly, do **not** ship a self-signed cert. Two supported options:
 
 1. **Reverse proxy terminates TLS (recommended).** Run the Agent on loopback (`bindHost=127.0.0.1`, plain HTTP — allowed) and put nginx/Caddy/IIS in front with a real certificate (e.g. Let's Encrypt via Caddy or certbot). The proxy handles HTTPS and forwards to `http://127.0.0.1:3001`. Set `TRUSTED_PROXIES` to the proxy IP and add the public origin to `CORS_ORIGINS`.
 

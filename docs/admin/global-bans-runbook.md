@@ -45,13 +45,13 @@ to handle the edge cases and the appeals.
 Recommended cadence: 5 minutes/day during early growth, scale up if appeals
 volume grows.
 
-1. **Open the moderation queue:** `https://citadels.cc/admin/cloud-bans/queue`
+1. **Open the moderation queue:** `https://app.citadel-hub.com/admin/cloud-bans/queue`
    - Look at "pending review" bans. These are bans that hit threshold but
      also crossed the 50-vouch high-impact line. They DON'T auto-propagate
      until you approve.
    - Look at the open-appeals count. Process anything older than 5 days.
 2. **Review any auto-locked customers:**
-   `https://citadels.cc/admin/cloud-bans/customers?weightLocked=true`
+   `https://app.citadel-hub.com/admin/cloud-bans/customers?weightLocked=true`
    - These are customers whose overturn rate exceeded 30%. Investigate
      before reinstating.
 3. **Optional weekly:** Sample 5 random recent community bans, spot-check
@@ -262,13 +262,13 @@ address):
 
 ## Incident response
 
-### "Citadels.cc API is down — customers can't sync"
+### "citadel-hub.com API is down — customers can't sync"
 
 - Customers' local cached community ban lists keep working. They lose
   the *new* protection until we're back, but their existing protection
   is fine.
 - Investigate: standard Postgres / Fastify / Redis health.
-- Communicate: Discord + a status banner on citadels.cc.
+- Communicate: Discord + a status banner on citadel-hub.com.
 - After recovery: customers will pull all changes since `cursor` on next
   hourly sync. No customer action required.
 

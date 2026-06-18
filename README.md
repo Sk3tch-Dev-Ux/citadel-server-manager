@@ -4,7 +4,7 @@ The local DayZ server management app for Windows. Install, configure, mod, and o
 
 **Citadel Agent** (this repo) handles everything that touches the server's actual files and process: SteamCMD installs, mod management, `serverDZ.cfg`, mission and profile folders, launch parameters, backups, RPT/crash logs, and start/stop/restart controls.
 
-**Citadel Cloud** (separate, optional, at [citadels.cc](https://citadels.cc/cloud)) is the remote layer that pairs with the Agent: scheduled restarts, automated messages, multi-server fleet view, the Trust Network ban database, alerts, and Discord bot — anything that needs centralized infrastructure or has to keep running when the owner's PC is asleep.
+**Citadel Cloud** (separate, optional, at [citadel-hub.com](https://citadel-hub.com/cloud)) is the remote layer that pairs with the Agent: scheduled restarts, automated messages, multi-server fleet view, the Trust Network ban database, alerts, and Discord bot — anything that needs centralized infrastructure or has to keep running when the owner's PC is asleep.
 
 ![Status](https://img.shields.io/badge/status-production-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
@@ -42,8 +42,8 @@ The local DayZ server management app for Windows. Install, configure, mod, and o
 - **Firewall management** — Automatic Windows Firewall rule creation for server ports (elevated)
 - **Windows Service** — Install Citadel Agent as a Windows Service for auto-start on boot
 - **First-run setup wizard** — Guided 6-step setup (welcome, admin account, network, SteamCMD, first server, completion). License activation happens afterward from the License page.
-- **License activation** — Activate your subscription from the setup wizard or License page (verifies against [citadels.cc](https://citadels.cc/account))
-- **Citadel Cloud pairing (optional)** — Connect to [Citadel Cloud](https://citadels.cc/cloud) to add remote control, automations (scheduled restarts/messages), the Trust Network shared-ban database, alerts, and the Citadel Discord bot. Everything in the feature list above runs locally without it.
+- **License activation** — Activate your subscription from the setup wizard or License page (verifies against [citadel-hub.com](https://app.citadel-hub.com/account))
+- **Citadel Cloud pairing (optional)** — Connect to [Citadel Cloud](https://citadel-hub.com/cloud) to add remote control, automations (scheduled restarts/messages), the Trust Network shared-ban database, alerts, and the Citadel Discord bot. Everything in the feature list above runs locally without it.
 
 ### In-Game Admin Mod (@CitadelAdmin)
 - **Player actions** — Heal, kill, teleport, spawn items, strip gear, explode, unstuck, freeze, message, teleport to player
@@ -58,7 +58,7 @@ The local DayZ server management app for Windows. Install, configure, mod, and o
 The Citadel Discord bot — interactive control panel, slash commands, live feeds,
 and Discord-driven admin actions — was extracted out of the Agent in the v2.19.0
 product split. It now lives in the separate **[citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot)**
-repo and is hosted by [Citadel Cloud](https://citadels.cc/cloud), so its uptime
+repo and is hosted by [Citadel Cloud](https://citadel-hub.com/cloud), so its uptime
 no longer depends on the owner's home PC.
 
 The Agent still exposes the `/api/discord/*` API surface that the bot calls into,
@@ -90,7 +90,7 @@ against your local Agent as before. The Agent itself no longer launches the bot.
 
 ### Option A: Installer (Recommended)
 
-Download the latest installer from [GitHub Releases](https://github.com/Sk3tch-Dev-Ux/DayzServerController/releases):
+Download the latest installer from [GitHub Releases](https://github.com/Sk3tch-Dev-Ux/citadel-server-manager/releases):
 
 1. Download `CitadelSetup-x.x.x.exe` from the latest release
 2. Run the installer (requires Administrator)
@@ -101,8 +101,8 @@ The installer bundles everything (Node.js runtime, backend, frontend) and regist
 ### Option B: From Source
 
 ```bash
-git clone https://github.com/Sk3tch-Dev-Ux/DayzServerController.git
-cd DayzServerController
+git clone https://github.com/Sk3tch-Dev-Ux/citadel-server-manager.git
+cd citadel-server-manager
 npm install
 npm start
 ```
@@ -120,7 +120,7 @@ On first launch, navigate to **http://localhost:3001** — you'll be redirected 
 5. **First Server** — Add your first DayZ server (install directory, ports, RCON) or skip
 6. **Complete** — Summary of everything configured
 
-After setup, log in with the credentials you created. License activation is **not** part of the wizard — activate your subscription afterward from the **License page** (email + password against [citadels.cc](https://citadels.cc/account)), and connect to Citadel Cloud whenever you like from the dashboard.
+After setup, log in with the credentials you created. License activation is **not** part of the wizard — activate your subscription afterward from the **License page** (email + password against [citadel-hub.com](https://app.citadel-hub.com/account)), and connect to Citadel Cloud whenever you like from the dashboard.
 
 ### Development Mode
 
@@ -147,7 +147,7 @@ The Discord bot is a separate process that lives in its own repo / Citadel Cloud
 
 ### Discord Bot
 
-The Discord bot was extracted to the [citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot) repo and is hosted by [Citadel Cloud](https://citadels.cc/cloud). The Agent **does not** launch it. Self-hosters run citadel-bot independently and point it at this Agent via `DISCORD_BOT_API_KEY` (the shared secret the Agent issues for `/api/discord/*` calls).
+The Discord bot was extracted to the [citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot) repo and is hosted by [Citadel Cloud](https://citadel-hub.com/cloud). The Agent **does not** launch it. Self-hosters run citadel-bot independently and point it at this Agent via `DISCORD_BOT_API_KEY` (the shared secret the Agent issues for `/api/discord/*` calls).
 
 > **Legacy escape hatch (removed):** the `CITADEL_AGENT_SPAWN_BOT=1` flag used to spawn a bundled `discord-bot/` as a managed child process. That directory was removed from the repo after v2.23.0, so the flag now logs a notice and skips — run [citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot) as its own process instead.
 
@@ -374,9 +374,9 @@ pm2 startup
 
 The Discord bot is no longer part of the Agent. It lives in the
 **[citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot)** repo and is
-hosted by [Citadel Cloud](https://citadels.cc/cloud).
+hosted by [Citadel Cloud](https://citadel-hub.com/cloud).
 
-- **Cloud-hosted:** connect your Discord from [citadels.cc/cloud](https://citadels.cc/cloud) — no token wrangling, and it stays online when your PC is asleep.
+- **Cloud-hosted:** connect your Discord from [citadel-hub.com/cloud](https://citadel-hub.com/cloud) — no token wrangling, and it stays online when your PC is asleep.
 - **Self-hosted:** clone [citadel-bot](https://github.com/Sk3tch-Dev-Ux/citadel-bot) and follow its README to create the Discord application, set the token, and invite it. Point it at this Agent's API and the `DISCORD_BOT_API_KEY` the Agent issues; the bot calls into the Agent's `/api/discord/*` surface to drive RCON, player actions, mod management, and live feeds.
 
 The full slash-command reference (`/panel`, `/status`, `/players`, `/rcon`, `/restart`, the admin player actions, etc.) is documented in the citadel-bot repo, which owns that code.

@@ -16,7 +16,7 @@ import {
 
 /**
  * Citadel Cloud activation page — where the server admin links this
- * installation to their citadels.cc account.
+ * installation to their citadel-hub.com account.
  *
  * Citadel is a paid product ($14.99/month) — activation requires an active
  * Citadel subscription. This page also surfaces the optional Citadel Cloud
@@ -272,10 +272,10 @@ function ActivationForm({
         {needsActivation ? 'Sign in to Citadel Cloud' : 'Re-activate Citadel Cloud'}
       </h2>
       <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)' }}>
-        Sign in with your <strong>citadels.cc</strong> account. This machine will take one of your activated device slots.
+        Sign in with your <strong>citadel-hub.com</strong> account. This machine will take one of your activated device slots.
         {' '}
         <a
-          href="https://citadels.cc/cloud"
+          href="https://citadel-hub.com/cloud"
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: 'var(--accent)', textDecoration: 'none' }}
@@ -338,7 +338,7 @@ function ActivationForm({
           style={{ width: '100%' }}
         />
         <span style={{ display: 'block', marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>
-          Shown in your citadels.cc device list so you can tell machines apart.
+          Shown in your citadel-hub.com device list so you can tell machines apart.
         </span>
       </label>
 
@@ -365,17 +365,17 @@ function ActivationForm({
                 You need an active Citadel subscription to activate this machine. Sign up or
                 manage your account at{' '}
                 <a
-                  href="https://citadels.cc/account"
+                  href="https://app.citadel-hub.com/account"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'var(--accent)', fontWeight: 500 }}
                 >
-                  citadels.cc/account
+                  app.citadel-hub.com/account
                 </a>
                 . Once you have a Citadel subscription, sign in here. The Citadel Cloud add-on
                 (Global Ban DB, etc.) is a separate $10/month subscription —{' '}
                 <a
-                  href="https://citadels.cc/cloud"
+                  href="https://citadel-hub.com/cloud"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'var(--accent)', fontWeight: 500 }}
@@ -403,12 +403,12 @@ function ActivationForm({
           {activating ? <><Loader size={14} className="spin" /> Activating…</> : 'Sign in'}
         </button>
         <a
-          href="https://citadels.cc/account"
+          href="https://app.citadel-hub.com/account"
           target="_blank"
           rel="noopener noreferrer"
           style={{ fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none' }}
         >
-          Manage devices on citadels.cc →
+          Manage devices on citadel-hub.com →
         </a>
       </div>
     </form>
@@ -525,7 +525,7 @@ function TelemetryCard() {
           </div>
 
           <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55 }}>
-            Citadel sends a small set of diagnostic events to <strong>citadels.cc</strong> so we can
+            Citadel sends a small set of diagnostic events to <strong>api.citadel-hub.com</strong> so we can
             spot bugs in update flows and license activations across the install base. No PII.
             No DayZ data, server names, mod lists, or player info — ever.
             {' '}
@@ -608,21 +608,21 @@ function InfoBox() {
       and the cloud features pause.
       Manage subscriptions, devices, and billing at{' '}
       <a
-        href="https://citadels.cc/account"
+        href="https://app.citadel-hub.com/account"
         target="_blank"
         rel="noopener noreferrer"
         style={{ color: 'var(--accent)' }}
       >
-        citadels.cc/account
+        app.citadel-hub.com/account
       </a>
       , or learn more at{' '}
       <a
-        href="https://citadels.cc/cloud"
+        href="https://citadel-hub.com/cloud"
         target="_blank"
         rel="noopener noreferrer"
         style={{ color: 'var(--accent)' }}
       >
-        citadels.cc/cloud
+        citadel-hub.com/cloud
       </a>
       .
     </div>

@@ -130,3 +130,136 @@ describe('Forwarder hit → player_hit', () => {
     expect(sent).toHaveLength(0);
   });
 });
+
+describe('Forwarder filterAction → filter_action', () => {
+  test('maps a chat-filter line to the filter_action contract', () => {
+    const { f, sent } = makeForwarder();
+    f._onEvents([{
+      type: 'filterAction',
+      filterType: 'chat',
+      steamId: '76561198000000001',
+      name: 'Spammer',
+      pattern: 'badword',
+      original: 'this is a badword msg',
+      action: 'block',
+      timestamp: '2026-06-02T12:00:00Z',
+    }]);
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].type).toBe('filter_action');
+    expect(sent[0].ts).toBe(Date.parse('2026-06-02T12:00:00Z'));
+    expect(sent[0].data).toEqual({
+      filter_type: 'chat',
+      steam_id: '76561198000000001',
+      player_name: 'Spammer',
+      matched_pattern: 'badword',
+      original_text: 'this is a badword msg',
+      action_taken: 'block',
+    });
+  });
+
+  test('coerces an unexpected filterType to chat and forwards', () => {
+    const { f, sent } = makeForwarder();
+    f._onEvents([{ type: 'filterAction', filterType: 'name', steamId: 's1', name: 'N', pattern: 'p', original: 'o', action: 'kick' }]);
+    expect(sent[0].data.filter_type).toBe('name');
+    f._onEvents([{ type: 'filterAction', filterType: 'weird', steamId: 's2', action: 'warn' }]);
+    expect(sent[1].data.filter_type).toBe('chat');
+  });
+
+  test('drops a filterAction with no steamId', () => {
+    const { f, sent } = makeForwarder();
+    f._onEvents([{ type: 'filterAction', filterType: 'chat', action: 'block' }]);
+    expect(sent).toHaveLength(0);
+  });
+});
+
+describe('Forwarder dynamicEvent → event', () => {
+  test('forwards a spawn and infers the helicrash event_type', () => {
+    const { f, sent } = makeForwarder();
+    f._onEvents([{
+      type: 'dynamicEvent',
+      action: 'spawn',
+      className: 'Land_Wreck_Mi8',
+      displayName: 'Mi8 Crash',
+      position: { x: 7500, y: 300, z: 8200 },
+      timestamp: '2026-06-02T12:00:00Z',
+    }]);
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].type).toBe('event');
+    expect(sent[0].data).toEqual({
+      event_type: 'helicrash',
+      position: { x: 7500, y: 300, z: 8200 },
+      ttl: 0,
+    });
+  });
+
+  test('classifies contamination and falls back to custom', () => {
+    const { f, sent } = makeForwarder();
+    f._onEvents([{ type: 'dynamicEvent', action: 'spawn', displayName: 'Contaminated Zone' }]);
+    f._onEvents([{ type: 'dynamicEvent', action: 'spawn', displayName: 'Military Convoy' }]);
+    f._onEvents([{ type: 'dynamicEvent', action: 'spawn', displayName: 'Police Wreck' }]);
+    expect(sent.map((m) => m.data.event_type)).toEqual(['contamination', 'custom', 'custom']);
+  });
+
+  test('does not forward a despawn (no cloud event representation)', () => {
+    const { f, sent } = makeForwarder();
+    f._onEvents([{ type: 'dynamicEvent', action: 'despawn', className: 'X', displayName: 'X' }]);
+    expect(sent).toHaveLength(0);
+  });
+});
+
+describe('Forwarder vehicles snapshot → vehicles', () => {
+  test('wraps the mod vehicles.json array into the cloud vehicles frame', () => {
+    const { f, sent } = makeForwarder();
+    // Shape matches CitadelReporter.ReportVehicles output.
+    f._onVehicles([{
+      id: 'veh-123',
+      className: 'OffroadHatchback',
+      type: 'car',
+      icon: 'car',
+      position: { x: 7500.5, y: 320, z: 8123.25 },
+      health: 850,
+      maxHealth: 1000,
+    }]);
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].type).toBe('vehicles');
+    expect(sent[0].data).toEqual({
+      vehicles: [{
+        id: 'veh-123',
+        className: 'OffroadHatchback',
+        type: 'car',
+        icon: 'car',
+        position: { x: 7500.5, y: 320, z: 8123.25 },
+        health: 850,
+        maxHealth: 1000,
+      }],
+    });
+  });
+
+  test('coerces missing fields and drops entries with no id', () => {
+    const { f, sent } = makeForwarder();
+    f._onVehicles([
+      { id: 'v1' },                       // sparse → coerced to safe defaults
+      { className: 'NoId', type: 'boat' }, // no id → dropped
+    ]);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].data.vehicles).toEqual([{
+      id: 'v1',
+      className: '',
+      type: '',
+      icon: '',
+      position: { x: 0, y: 0, z: 0 },
+      health: 0,
+      maxHealth: 0,
+    }]);
+  });
+
+  test('skips an empty snapshot (no wasted frame)', () => {
+    const { f, sent } = makeForwarder();
+    f._onVehicles([]);
+    f._onVehicles([{ className: 'NoId' }]); // all dropped → still empty
+    expect(sent).toHaveLength(0);
+  });
+});

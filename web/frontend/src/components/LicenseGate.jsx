@@ -18,7 +18,7 @@
  *   - Requires both Citadel sub AND the Citadel Cloud add-on entitlement.
  *   - Used for the few local features that pair with Citadel Cloud
  *     (e.g. the Trust Network sync banner on the Bans page). Most
- *     Cloud-add-on features live remotely at citadels.cc/cloud, not here.
+ *     Cloud-add-on features live remotely at citadel-hub.com/cloud, not here.
  *
  * The backend's require-license middleware (backend/middleware/require-license.js)
  * is the *server-side* equivalent. Apply both for defense in depth.
@@ -110,16 +110,16 @@ function UpgradeCard({ feature, featureName, description, status, reason }) {
       <p style={{ margin: '0 0 22px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.55 }}>
         {description || (
           lapsed
-            ? 'Your Citadel subscription is no longer active. Renew on citadels.cc to restore this feature.'
+            ? 'Your Citadel subscription is no longer active. Renew on citadel-hub.com to restore this feature.'
             : isFeatureUpsell
               ? 'Citadel Cloud is a $10/month add-on on top of your Citadel subscription. It unlocks remote management, automated restarts and messages, the Trust Network ban database, multi-server fleet view, and the Citadel Discord bot.'
-              : 'You need an active Citadel subscription to use this. Sign up on citadels.cc.'
+              : 'You need an active Citadel subscription to use this. Sign up on citadel-hub.com.'
         )}
       </p>
 
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <a
-          href={isFeatureUpsell ? 'https://citadels.cc/cloud' : 'https://citadels.cc/account'}
+          href={isFeatureUpsell ? 'https://citadel-hub.com/cloud' : 'https://app.citadel-hub.com/account'}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary"

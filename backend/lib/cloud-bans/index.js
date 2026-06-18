@@ -3,11 +3,11 @@
  *
  * Lifecycle:
  *   - At boot, server.js calls `startBackgroundSync()` which kicks off
- *     an initial pull from citadels.cc, reconciles the cache against
+ *     an initial pull from citadel-hub.com, reconciles the cache against
  *     each server's ban.txt, and schedules periodic syncs.
  *   - Whenever a customer bans a player via the existing /api/bans/* flow,
  *     a hook in bans.routes.js calls `submitFromLocalBan()` which forwards
- *     the ban to citadels.cc on a fire-and-forget basis (paying customers
+ *     the ban to citadel-hub.com on a fire-and-forget basis (paying customers
  *     only; trial users opt-in).
  *   - Whenever a customer removes a ban locally, `unenrollFromLocalBan()`
  *     is called to revoke their submission.
@@ -201,7 +201,7 @@ function onLicenseDeactivated() {
 }
 
 // Manual-sync trigger was removed when the management UI moved to Citadel
-// Cloud (citadels.cc/cloud). The background sync loop above is the only
+// Cloud (citadel-hub.com/cloud). The background sync loop above is the only
 // caller of pullSync(); customers who want to force a refresh do it from
 // the Cloud dashboard now.
 

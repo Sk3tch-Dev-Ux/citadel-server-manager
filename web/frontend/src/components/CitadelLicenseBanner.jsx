@@ -29,7 +29,7 @@ import { AlertTriangle, Lock, Sparkles, X } from './Icon';
 
 const SESSION_DISMISS_KEY = 'citadel:license-banner-dismissed';
 const POLL_INTERVAL_MS = 5 * 60 * 1000;
-const LEARN_MORE_URL = 'https://citadels.cc/cloud';
+const LEARN_MORE_URL = 'https://citadel-hub.com/cloud';
 
 export default function CitadelLicenseBanner() {
   const [status, setStatus] = useState(null);
@@ -314,7 +314,7 @@ const variants = {
     icon: AlertTriangle,
     tone: 'warning',
     text: 'Your Citadel subscription payment is past due. Update your payment method to avoid interruption.',
-    primary: { to: 'https://citadels.cc/account', label: 'Open account', external: true },
+    primary: { to: 'https://app.citadel-hub.com/account', label: 'Open account', external: true },
   },
 
   // Sticky — non-dismissable. The customer's Citadel base subscription has
@@ -325,7 +325,7 @@ const variants = {
     icon: Lock,
     tone: 'danger',
     text: 'Citadel subscription is no longer active. Renew billing to restore the Agent.',
-    primary: { to: 'https://citadels.cc/account', label: 'Manage subscription', external: true },
+    primary: { to: 'https://app.citadel-hub.com/account', label: 'Manage subscription', external: true },
   },
 
   // Base-sub grace period exceeded. Same recovery path as `grace` but the

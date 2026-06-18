@@ -69,7 +69,7 @@ function registerCloudBridgeRoutes(app) {
     if (!UUID_RE.test(cloudServerId)) {
       return res.status(400).json({
         error: 'INVALID_SERVER_ID',
-        message: 'Server ID must be a UUID from citadels.cc/account.',
+        message: 'Server ID must be a UUID from app.citadel-hub.com/account.',
       });
     }
     if (apiKey.length < API_KEY_MIN || apiKey.length > API_KEY_MAX) {

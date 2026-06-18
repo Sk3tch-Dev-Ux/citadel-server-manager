@@ -57,13 +57,13 @@ browser. Same JSON format.
 
 Two URLs in `embeds.json` you should swap before sending:
 
-- `https://citadels.cc/citadel-logo.png` — your brand logo (used for
+- `https://citadel-hub.com/citadel-logo.png` — your brand logo (used for
   webhook avatar, author icon, and embed thumbnail)
-- `https://citadels.cc/og-banner.png` — a wide marketing banner image
+- `https://citadel-hub.com/og-banner.png` — a wide marketing banner image
   shown at the bottom of the final embed (1200×630 OG-image style works
   well — same image as your Open Graph tag if you have one)
 - `https://discord.gg/citadel` — your Discord invite. Replace with your
-  actual permanent invite, or set up `https://citadels.cc/discord` as a
+  actual permanent invite, or set up `https://citadel-hub.com/discord` as a
   redirect to a never-expiring invite (recommended — survives
   re-invitation).
 

@@ -4,6 +4,14 @@
 parts that require an installer/desktop **build** to verify, plus the GitHub
 repo rename that must be coordinated so deployed auto-updaters don't break.
 
+> **STATUS (2026-06-17).** Step 1 installer labels ✅ and Step 2a/2b/2c repo
+> rename + feed re-point ✅ are **merged** (PRs #18–21); the repo is now
+> `Sk3tch-Dev-Ux/citadel-server-manager`. The **domain consolidation to
+> citadel-hub.com** (new — Step 4 below) is **code-complete** and folds into the
+> same release. What's left is *runtime verification on a real box*: the Step 1
+> installer build-test, the Step 2d auto-update end-to-end check, and the Step 4
+> deploy cutover. Nothing here is a code task anymore — it's build + deploy.
+
 **What's already done (committed on `claude/release-hardening-2026-06-15`):**
 - All in-app visible strings (dashboard, desktop window/tray/menu/About, service
   display name) → "Citadel Server Manager" (WS1a).
@@ -52,7 +60,14 @@ Then on a throwaway VM / spare box:
 
 ---
 
-## Step 2 — GitHub repo rename + auto-update re-point (DO TOGETHER, ONE RELEASE)
+## Step 2 — GitHub repo rename + auto-update re-point ✅ DONE (PRs #18–21)
+
+> All ref edits below were applied and the repo was renamed to
+> `citadel-server-manager` (the 2a table is kept for the historical record and
+> as the template if a future rename is ever needed). **The one remaining item
+> is 2d — verify auto-update end-to-end from a previous release** once a new
+> build is published. Stale `…/DayzServerController` links in README, docs, and
+> the cloud marketing site were swept to the new name on 2026-06-17.
 
 ⚠️ **Do not apply these edits before renaming the repo** — every deployed agent
 & desktop polls the *current* repo for updates; flipping the refs early points
@@ -97,3 +112,45 @@ If you ever want `CitadelServer`→`CitadelServerManager` (service) or a new
 install dir, that's a migrating installer (stop+remove old service, register
 new; detect old `C:\Citadel`, move `data/`+`.env`). It's a separate, higher-risk
 project — the labels above already give users the full rebrand without it.
+
+---
+
+## Step 4 — Domain consolidation to citadel-hub.com (code DONE — deploy cutover)
+
+The canonical scheme (owner-confirmed 2026-06-17) is:
+
+| Surface | Host |
+|---|---|
+| Marketing (`/`, `/cloud`, `/mods`, `/pricing`, `/docs`, `/appeal`) | `citadel-hub.com` |
+| App (`/dashboard`, `/account`, `/auth`, `/admin`, `/cloud/console`) | `app.citadel-hub.com` |
+| API / WebSocket / Stripe webhook / `.well-known` | `api.citadel-hub.com` |
+
+**Code is complete** across both repos (agent runtime API/WS defaults, the
+auto-update download allowlist, the `@CitadelAdmin` mod endpoint, desktop +
+frontend UI, cloud error strings/SEO/CSP/scripts, `.env*.example`,
+`docker-compose.coolify.yml` Traefik rules, and all docs). **Deliberately left
+on `citadels.cc`:** the JWT `issuer` (pinned in `license/verifier.js` — opaque,
+breaking to change) and the Resend email senders (DNS-bound). Both are owner A/B
+decisions, not oversights.
+
+**Transition safety (already baked in):** the agent's download allowlist
+(`agent-updater.js`) and the Coolify Traefik host rules accept BOTH the new and
+legacy hosts, so already-deployed agents keep updating until they roll forward.
+
+**Cutover order (do NOT reorder — a new agent build must not ship before the API
+answers at the new host):**
+1. Point DNS + Traefik at `citadel-hub.com` / `app.` / `api.`; keep the legacy
+   `citadels.cc` / `cloud.citadel-hub.com` routes live in parallel.
+2. Set Coolify env: `API_PUBLIC_URL`, `NEXT_PUBLIC_API_URL` → `https://api.citadel-hub.com`,
+   `NEXT_PUBLIC_WS_URL` → `wss://api.citadel-hub.com`, `FRONTEND_URL` →
+   `https://citadel-hub.com`, `CORS_ORIGINS` → `https://citadel-hub.com,https://app.citadel-hub.com`.
+   Redeploy web (its CSP now only allows `api.citadel-hub.com`).
+3. **Then** publish the new agent/desktop release (its defaults now resolve to
+   `api.citadel-hub.com`); `api.citadels.cc` must keep serving for un-updated installs.
+4. Once traffic drains, optionally set `CANONICAL_WEB_HOST=citadel-hub.com` to
+   301 the legacy web hosts.
+
+> Open design note: `FRONTEND_URL` is a single value but feeds both marketing
+> (`/trust`) and app (`/account` checkout-return) links. With the app on its own
+> subdomain it may need splitting into a marketing base + an app base — decide
+> before relying on checkout-return URLs landing on the right host.

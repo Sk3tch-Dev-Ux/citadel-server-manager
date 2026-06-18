@@ -7,6 +7,9 @@ describe('isAllowedDownloadUrl', () => {
     expect(isAllowedDownloadUrl('https://github.com/Sk3tch-Dev-Ux/citadel-server-manager/releases/download/v2.21.6/CitadelSetup-2.21.6.exe')).toBe(true);
     expect(isAllowedDownloadUrl('https://objects.githubusercontent.com/github-production-release-asset/CitadelSetup.exe')).toBe(true);
     expect(isAllowedDownloadUrl('https://citadels.cc/downloads/CitadelSetup-2.21.6.exe')).toBe(true);
+    // citadel-hub.com is the new canonical host; citadels.cc stays allowed through the cutover.
+    expect(isAllowedDownloadUrl('https://citadel-hub.com/downloads/CitadelSetup-2.21.6.exe')).toBe(true);
+    expect(isAllowedDownloadUrl('https://api.citadel-hub.com/downloads/installer')).toBe(true);
   });
 
   test('rejects other github repos and non-release paths (tightened allowlist)', () => {
@@ -36,6 +39,7 @@ describe('isAllowedDownloadUrl', () => {
     expect(isAllowedDownloadUrl('http://citadels.cc/downloads/x.exe')).toBe(false); // not https
     expect(isAllowedDownloadUrl('https://evil.com/x.exe')).toBe(false);
     expect(isAllowedDownloadUrl('https://citadels.cc.evil.com/downloads/x.exe')).toBe(false);
+    expect(isAllowedDownloadUrl('https://citadel-hub.com.evil.com/downloads/x.exe')).toBe(false);
     expect(isAllowedDownloadUrl('https://169.254.169.254/latest/meta-data')).toBe(false);
     expect(isAllowedDownloadUrl('file:///etc/passwd')).toBe(false);
     expect(isAllowedDownloadUrl('not a url')).toBe(false);

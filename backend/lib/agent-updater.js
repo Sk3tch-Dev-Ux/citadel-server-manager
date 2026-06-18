@@ -11,7 +11,7 @@
  * file replacement + service restart instead of hand-rolled swap logic.
  *
  * Safety rails:
- *   - Only downloads from the trusted release hosts (citadels.cc / GitHub).
+ *   - Only downloads from the trusted release hosts (citadel-hub.com / citadels.cc / GitHub). Both Citadel hosts are accepted during the citadels.cc → citadel-hub.com cutover so un-updated agents and new ones both work.
  *   - Only accepts a .exe asset and a sane size.
  *   - Launches the installer *interactively* by default (operator stays in the
  *     loop through UAC); silent apply is opt-in.
@@ -62,6 +62,9 @@ function isAllowedDownloadUrl(url) {
     if (host.endsWith('.githubusercontent.com')) return isExe;
     // Citadel Cloud: scope to the /downloads/ path; the endpoint streams the
     // signed installer from an extension-less URL, so don't require `.exe` here.
+    // Both Citadel-owned hosts are trusted during the citadels.cc → citadel-hub.com
+    // migration (keep citadels.cc so already-deployed agents keep updating).
+    if (host === 'citadel-hub.com' || host.endsWith('.citadel-hub.com')) return p.startsWith('/downloads/');
     if (host === 'citadels.cc' || host.endsWith('.citadels.cc')) return p.startsWith('/downloads/');
     return false;
   } catch {
