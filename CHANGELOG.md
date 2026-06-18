@@ -8,7 +8,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## v2.26.0 — 2026-06-17
+
 ### Added
+- **Domain consolidation to citadel-hub.com.** The agent's cloud endpoints
+  (license, Cloud Bans, update-check, telemetry, and the cloud-bridge
+  WebSocket) now target `api.citadel-hub.com`, matching the platform's move to
+  `citadel-hub.com` (site) + `app.citadel-hub.com` (console). The auto-update
+  download allowlist accepts **both** the new and legacy `citadels.cc` hosts
+  during the transition, so already-deployed installs keep updating. (License
+  JWT issuer and outbound email sender intentionally remain `citadels.cc`.)
 - **Cloud telemetry: filter actions, world events & vehicle snapshots.** The
   cloud-bridge now forwards three telemetry streams the cloud persists but the
   agent was silently dropping. `filterAction` (chat/name filter hits) maps to
