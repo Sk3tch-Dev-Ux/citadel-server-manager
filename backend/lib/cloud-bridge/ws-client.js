@@ -1,7 +1,7 @@
 /**
  * Citadel Cloud WS client — opens a single WebSocket to
  * `wss://<cloudUrl>/ws/plugin`, authenticates with the Server ID + API key
- * the operator pasted from citadels.cc, and stays connected.
+ * the operator pasted from citadel-hub.com, and stays connected.
  *
  * Ported from citadel-cloud/packages/plugin/src/ws-client.ts (TypeScript ESM)
  * to CommonJS. The protocol surface mirrors that file 1:1 so future cloud-
@@ -49,7 +49,7 @@ const MAX_RECONNECT_MS = 30_000;
 class CloudWsClient extends EventEmitter {
   /**
    * @param {object} cfg
-   * @param {string} cfg.cloudUrl        e.g. 'https://api.citadels.cc' (we'll ws-ify it)
+   * @param {string} cfg.cloudUrl        e.g. 'https://api.citadel-hub.com' (we'll ws-ify it)
    * @param {string} cfg.apiKey          raw API key from /api/v1/plugin-servers
    * @param {string} cfg.pluginVersion   short string, e.g. '2.19.0'
    * @param {string} cfg.gameVersion     e.g. '1.27'
@@ -111,7 +111,7 @@ class CloudWsClient extends EventEmitter {
   _wsUrl() {
     // Cloud config matches packages/plugin/src/config.ts wsUrl():
     // strip trailing slash, swap http→ws, append `/ws/plugin`.
-    const base = (this.cfg.cloudUrl || 'https://api.citadels.cc').replace(/\/$/, '');
+    const base = (this.cfg.cloudUrl || 'https://api.citadel-hub.com').replace(/\/$/, '');
     return base.replace(/^http/, 'ws') + '/ws/plugin';
   }
 
@@ -224,7 +224,7 @@ class CloudWsClient extends EventEmitter {
       case 'auth_error': {
         this._authed = false;
         // The cloud sends the actionable, customer-facing sentence in `message`
-        // (e.g. "API key has been revoked. Visit citadels.cc/account..."); read
+        // (e.g. "API key has been revoked. Visit app.citadel-hub.com/account..."); read
         // it first, keeping `reason` as a forward-compat fallback. Surfacing
         // this string in the status lets the operator self-serve instead of
         // seeing a generic 'unknown'.

@@ -5,7 +5,7 @@
  * Windows process.
  *
  * Activates only when `$profile:Citadel/cloud.json` exists:
- *     { "endpoint": "https://api.citadels.cc/api/v1/plugin",
+ *     { "endpoint": "https://api.citadel-hub.com/api/v1/plugin",
  *       "apiKey":   "<key from the cloud dashboard>",
  *       "postIntervalMs": 3000 }
  * No cloud.json → this is a no-op and the mod stays in file-IPC/agent mode.

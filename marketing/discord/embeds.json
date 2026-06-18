@@ -1,18 +1,18 @@
 {
   "username": "Citadel",
-  "avatar_url": "https://citadels.cc/citadel-logo.png",
+  "avatar_url": "https://citadel-hub.com/citadel-logo.png",
   "embeds": [
     {
       "color": 8147437,
       "author": {
         "name": "Citadel · All-In-One DayZ Server Tool",
-        "icon_url": "https://citadels.cc/citadel-logo.png",
-        "url": "https://citadels.cc"
+        "icon_url": "https://citadel-hub.com/citadel-logo.png",
+        "url": "https://citadel-hub.com"
       },
       "title": "Run your DayZ server like a pro.",
       "description": "Citadel is a desktop control center built for people who actually run servers — not a SaaS panel that breaks every time the host has a bad day.\n\nIt runs **on your machine**, talks directly to your server, and ships with the tools you used to need five different apps for. Stop tab-juggling. Start managing.\n\nMade by an admin, for admins. Every feature in here exists because *we* needed it first.",
       "thumbnail": {
-        "url": "https://citadels.cc/citadel-logo.png"
+        "url": "https://citadel-hub.com/citadel-logo.png"
       },
       "fields": [
         {
@@ -32,7 +32,7 @@
         }
       ],
       "footer": {
-        "text": "1 of 5  ·  citadels.cc"
+        "text": "1 of 5  ·  citadel-hub.com"
       }
     },
     {
@@ -132,7 +132,7 @@
         },
         {
           "name": "🌐  Website & Docs",
-          "value": "Download, sign up, read the docs. **[citadels.cc →](https://citadels.cc)**\nFree 7-day trial on Citadel Cloud.",
+          "value": "Download, sign up, read the docs. **[citadel-hub.com →](https://citadel-hub.com)**\nFree 7-day trial on Citadel Cloud.",
           "inline": true
         },
         {
@@ -147,10 +147,10 @@
         }
       ],
       "image": {
-        "url": "https://citadels.cc/og-banner.png"
+        "url": "https://citadel-hub.com/og-banner.png"
       },
       "footer": {
-        "text": "5 of 5  ·  citadels.cc  ·  discord.gg/citadel"
+        "text": "5 of 5  ·  citadel-hub.com  ·  discord.gg/citadel"
       }
     }
   ]

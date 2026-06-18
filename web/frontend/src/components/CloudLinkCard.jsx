@@ -5,7 +5,7 @@ import { Cloud, CloudOff, Link as LinkIcon, AlertTriangle, Loader, ExternalLink,
 
 /**
  * Citadel Cloud pairing card — per-DayZ-server pasting of the Server ID +
- * API key the operator generated at citadels.cc/account. Owned by the
+ * API key the operator generated at app.citadel-hub.com/account. Owned by the
  * Citadel Cloud Account page; this card just opens the WS by handing the
  * credentials to the backend's cloud-bridge supervisor.
  *
@@ -57,7 +57,7 @@ export default function CloudLinkCard({ serverId }) {
 
     const sid = cloudServerId.trim();
     const key = apiKey.trim();
-    if (!UUID_RE.test(sid)) { setError('Server ID must look like the UUID shown after creating the server on citadels.cc.'); return; }
+    if (!UUID_RE.test(sid)) { setError('Server ID must look like the UUID shown after creating the server on citadel-hub.com.'); return; }
     if (key.length < KEY_MIN || key.length > KEY_MAX) { setError(`API key looks wrong — expected ${KEY_MIN}-${KEY_MAX} characters.`); return; }
 
     setSubmitting(true);
@@ -146,8 +146,8 @@ function PairingForm({
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
         Pair this DayZ server with Citadel Cloud so it shows up in the live ops console. Get the Server ID + API key from{' '}
-        <a href="https://citadels.cc/account" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
-          citadels.cc/account → Plugin servers → Add server <ExternalLink size={10} style={{ verticalAlign: 'middle' }} />
+        <a href="https://app.citadel-hub.com/account" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
+          app.citadel-hub.com/account → Plugin servers → Add server <ExternalLink size={10} style={{ verticalAlign: 'middle' }} />
         </a>.
       </div>
 
@@ -160,13 +160,13 @@ function PairingForm({
         <label className="input-label">API Key</label>
         <input className="input" type="password" value={apiKey} onChange={(e) => onChangeApiKey(e.target.value)} placeholder="Paste the key from the reveal modal" autoComplete="off" />
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-          The key is stored encrypted locally and never sent anywhere except citadels.cc.
+          The key is stored encrypted locally and never sent anywhere except citadel-hub.com.
         </div>
       </div>
 
       <div className="input-group">
         <label className="input-label">Label <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>(optional)</span></label>
-        <input className="input" value={name} onChange={(e) => onChangeName(e.target.value)} placeholder="Same name you gave it on citadels.cc" maxLength={100} />
+        <input className="input" value={name} onChange={(e) => onChangeName(e.target.value)} placeholder="Same name you gave it on citadel-hub.com" maxLength={100} />
       </div>
 
       {error && (
@@ -242,7 +242,7 @@ function LinkedView({ link, serverId, onReplace, onUnlink }) {
           borderRadius: 6, padding: '8px 12px', marginBottom: 12, color: 'var(--text-primary)',
         }}>
           <AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: 4, color: 'var(--danger)' }} />
-          Cloud refused the API key. The key may have been rotated on citadels.cc — paste the new one to repair the link.
+          Cloud refused the API key. The key may have been rotated on citadel-hub.com — paste the new one to repair the link.
         </div>
       )}
 

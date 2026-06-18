@@ -1166,7 +1166,7 @@ export default function SetupWizardPage() {
                   <span style={{ color: 'var(--text-muted)' }}>
                     Optional: pair with{' '}
                     <a
-                      href="https://citadels.cc/cloud"
+                      href="https://citadel-hub.com/cloud"
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ color: 'var(--accent)' }}

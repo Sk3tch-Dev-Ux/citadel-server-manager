@@ -1,5 +1,5 @@
 /**
- * Citadel telemetry — diagnostic events posted to citadels.cc.
+ * Citadel telemetry — diagnostic events posted to api.citadel-hub.com.
  *
  * Why this exists:
  *   On 2026-04-27 we shipped an auto-update that broke relaunch on Windows.
@@ -69,12 +69,12 @@ const DEFAULT_ENABLED = true; // D-telemetry: opt-out
 
 function apiBase() {
   // Default to the api. host — the Fastify API serves /api/v1/telemetry/events
-  // there. The apex citadels.cc is the marketing Next.js site with no /api
+  // there. The apex citadel-hub.com is the marketing Next.js site with no /api
   // routes, so defaulting to it makes every POST 404 (and 4xx batches are
   // dropped permanently). Matches the license/cloud-bans/update-checker base.
   return (process.env.CITADEL_TELEMETRY_API
        || process.env.CITADEL_LICENSE_API
-       || 'https://api.citadels.cc').replace(/\/$/, '');
+       || 'https://api.citadel-hub.com').replace(/\/$/, '');
 }
 
 // ─── Allowed events + payload shapes ───────────────────────────
@@ -215,7 +215,7 @@ function report(event, payload = {}) {
   flush().catch(() => {});
 }
 
-// ─── flush() — POST buffered events to citadels.cc ─────────────
+// ─── flush() — POST buffered events to api.citadel-hub.com ─────────────
 
 let _flushInProgress = false;
 let _backgroundTimer = null;
@@ -227,7 +227,7 @@ let _backgroundTimer = null;
  * success.
  *
  * Called at the top of every flush() so desktop events get buffered
- * before we send the batch to citadels.cc.
+ * before we send the batch to api.citadel-hub.com.
  */
 function drainDesktopEvents() {
   let raw;

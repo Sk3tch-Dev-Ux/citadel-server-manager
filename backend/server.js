@@ -234,7 +234,7 @@ require('./routes/files.routes')(app);
 require('./routes/users.routes')(app);
 require('./routes/roles.routes')(app);
 require('./routes/audit.routes')(app);
-// Webhook config UI + CRUD moved to Citadel Cloud (citadels.cc/cloud).
+// Webhook config UI + CRUD moved to Citadel Cloud (citadel-hub.com/cloud).
 // fireWebhooks() in lib/notifications.js is now an internal-only event
 // emitter — the outbound HTTP delivery layer was removed when the
 // management surface went away. See lib/notifications.js for the stub.
@@ -265,7 +265,7 @@ require('./routes/expansion-trader.routes')(app);
 require('./routes/expansion-loadouts.routes')(app);
 require('./routes/compat.routes')(app);
 require('./routes/lb-perks.routes')(app);
-// Restart scheduling moved to Citadel Cloud (citadels.cc/cloud). The Agent
+// Restart scheduling moved to Citadel Cloud (citadel-hub.com/cloud). The Agent
 // still exposes /api/server-control/restart for Cloud to call when a
 // schedule fires; nothing in the Agent owns the schedule any more.
 require('./routes/system.routes')(app);
@@ -570,20 +570,20 @@ if (process.env.NODE_ENV !== 'test') {
     }
 
     // Start telemetry flush loop (P2.3a) — diagnostic events buffered to
-    // data/telemetry-queue.json get POSTed to citadels.cc every 30s when
+    // data/telemetry-queue.json get POSTed to api.citadel-hub.com every 30s when
     // enabled. No-op when telemetry is disabled in data/telemetry.json.
     try { require('./lib/telemetry').startBackgroundFlush(); } catch (err) {
       logger.error({ err }, 'Failed to start telemetry flush loop');
     }
 
     // Start Cloud Bans sync loop (P3.6) — pulls the community ban list
-    // from citadels.cc hourly when an active Citadel Cloud subscription
+    // from api.citadel-hub.com hourly when an active Citadel Cloud subscription
     // is present. No-op for free / unactivated installs.
     try { require('./lib/cloud-bans').startBackgroundSync(); } catch (err) {
       logger.error({ err }, 'Failed to start cloud-bans sync loop');
     }
 
-    // Start Citadel self-update checker (polls citadels.cc for new versions)
+    // Start Citadel self-update checker (polls api.citadel-hub.com for new versions)
     try { require('./lib/update-checker').startUpdateChecker(); } catch (err) {
       logger.error({ err }, 'Failed to start update checker');
     }

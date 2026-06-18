@@ -10,7 +10,7 @@ soak time at each gate.
 
 **Touched repos:**
 - `DayzServerController` (this repo) — desktop + local backend
-- `citadel-cloud` — Citadels.cc Next.js + Fastify API + Postgres
+- `citadel-cloud` — citadel-hub.com Next.js + Fastify API + Postgres
 
 ---
 
@@ -18,14 +18,14 @@ soak time at each gate.
 
 - [ ] Both repos clean: `git status` shows nothing uncommitted (commit
       everything in this branch first).
-- [ ] Citadels.cc staging Postgres reachable from your dev machine.
+- [ ] citadel-hub.com staging Postgres reachable from your dev machine.
       Production credentials available but **don't apply migrations to
       prod yet** — staging first.
 - [ ] You have admin access to:
   - Stripe Dashboard (production / live mode)
-  - The citadels.cc deployment surface (Vercel, Fly, whichever)
-  - The citadels.cc database (psql or equivalent)
-  - GitHub Releases for Sk3tch-Dev-Ux/DayzServerController
+  - The citadel-hub.com deployment surface (Vercel, Fly, whichever)
+  - The citadel-hub.com database (psql or equivalent)
+  - GitHub Releases for Sk3tch-Dev-Ux/citadel-server-manager
   - Discord (for the v2.7.0 → v2.7.x heads-up post)
 
 ---
@@ -78,13 +78,13 @@ double-frustrate customers.
 
 ---
 
-## 2. Phase 2/3 — Citadels.cc backend prep (staging)
+## 2. Phase 2/3 — citadel-hub.com backend prep (staging)
 
-We deploy citadels.cc *before* the desktop side because the desktop
+We deploy citadel-hub.com *before* the desktop side because the desktop
 needs the new endpoints to talk to.
 
 ### 2.1 Environment variables (staging)
-On the staging Citadels.cc deployment, add the following env vars. None
+On the staging citadel-hub.com deployment, add the following env vars. None
 of these existed before Phase 2/3.
 
 | Name | Value | Purpose |
@@ -125,11 +125,11 @@ This will inspect the schema files and produce two migrations:
 
 ### 2.4 Deploy citadel-cloud to staging
 - [ ] Standard deploy of the Fastify API + Next.js web.
-- [ ] Confirm `https://staging.citadels.cc/api/v1/cloud-bans/stats`
+- [ ] Confirm `https://staging.citadel-hub.com/api/v1/cloud-bans/stats`
       returns `{ activeBans: 0, ... }` (the public endpoint, no auth).
 
 ### Verify
-- [ ] `curl -i https://staging.citadels.cc/api/v1/cloud-bans/stats` → 200.
+- [ ] `curl -i https://staging.citadel-hub.com/api/v1/cloud-bans/stats` → 200.
 - [ ] Postgres shows the new tables. `SELECT count(*) FROM community_bans` → 0.
 - [ ] No error spam in the API logs.
 
@@ -148,7 +148,7 @@ checkout flows work end-to-end. Citadel billing runs entirely on Stripe.
 - [ ] Confirm the price shows as **Active** under Products in the dashboard.
 
 ### 3.2 Wire env vars
-On staging Citadels.cc:
+On staging citadel-hub.com:
 
 | Name | Value |
 |---|---|
@@ -162,11 +162,11 @@ Then create the webhook endpoint and capture its signing secret:
 
 ```sh
 npm run setup:stripe-webhook --workspace=@citadel/api -- \
-  --url https://staging.citadels.cc/webhooks/stripe
+  --url https://staging.citadel-hub.com/webhooks/stripe
 ```
 
 Set the value it prints as `STRIPE_WEBHOOK_SECRET` (`whsec_...`; Stripe
-only reveals it once at creation). Restart citadels.cc.
+only reveals it once at creation). Restart citadel-hub.com.
 
 ### 3.3 Test Stripe webhook routing
 This is the single highest-risk integration. **Do not skip.** The handler
@@ -230,24 +230,24 @@ implicitly by the citadel-cloud smoke test.)
 ### 5.1 Production Stripe product
 - [ ] Repeat step 3.1 in Stripe **live mode** (not test). Get the live
       Cloud price ID.
-- [ ] Production env vars on citadels.cc:
+- [ ] Production env vars on citadel-hub.com:
   - `STRIPE_SECRET_KEY` → live secret key (`sk_live_...`)
   - `STRIPE_PRICE_CLOUD_MONTHLY` → live Cloud price ID
   - `NEXT_PUBLIC_STRIPE_PRICE_CLOUD_MONTHLY` → same
   - `STRIPE_WEBHOOK_SECRET` → from a live-mode `setup:stripe-webhook` run
-    pointed at `https://citadels.cc/webhooks/stripe`
+    pointed at `https://api.citadel-hub.com/webhooks/stripe`
   - `STRIPE_TAX_ENABLED=1` once tax registrations are filed (leave `0` otherwise)
   - All `CLOUD_BANS_*` vars (or accept defaults).
 
 ### 5.2 Production migration
-- [ ] Take a Postgres backup of citadels.cc production. **Critical.**
+- [ ] Take a Postgres backup of citadel-hub.com production. **Critical.**
 - [ ] `npx drizzle-kit migrate` against production DATABASE_URL.
 - [ ] Confirm migrations applied: `\dt` shows the new tables, `\d users`
       shows the new columns.
 
 ### 5.3 Production deploy
 - [ ] Deploy the citadel-cloud branch to production.
-- [ ] Smoke check: `https://citadels.cc/cloud` loads, `/api/v1/cloud-bans/stats` returns 200.
+- [ ] Smoke check: `https://citadel-hub.com/cloud` loads, `/api/v1/cloud-bans/stats` returns 200.
 - [ ] Smoke check: `/account` for an existing customer renders without
       errors (the new Cloud section appears even though they don't have
       Cloud yet — should say "Not subscribed").
@@ -285,7 +285,7 @@ version that uses the new endpoints.
 - [ ] Build via `npm run build:installer`. Sanity-check the resulting
       installer on a Windows VM.
 - [ ] Run scenario 1 (happy-path activation) of the smoke test against
-      production citadels.cc with a real test account.
+      production citadel-hub.com with a real test account.
 
 ### 6.3 Tag and release
 - [ ] `git tag v2.8.0 && git push origin v2.8.0`.
@@ -302,7 +302,7 @@ version that uses the new endpoints.
 
 ### Verify
 - [ ] At least one customer reports a clean v2.7.1 → v2.8.0 update.
-- [ ] Telemetry events start appearing on citadels.cc:
+- [ ] Telemetry events start appearing on citadel-hub.com:
       ```sql
       SELECT event, count(*) FROM telemetry_events
       WHERE received_at > NOW() - INTERVAL '6 hours'
@@ -315,7 +315,7 @@ version that uses the new endpoints.
 
 Ideally Kurt himself or a trusted community admin.
 
-- [ ] Sign up for Citadel Cloud via `https://citadels.cc/cloud`.
+- [ ] Sign up for Citadel Cloud via `https://citadel-hub.com/cloud`.
 - [ ] Activate on a test machine.
 - [ ] Submit at least one community ban (use a real cheater SteamID
       from your existing local bans — they're public, no PII concern).
@@ -328,14 +328,14 @@ Ideally Kurt himself or a trusted community admin.
 
 ### Verify
 - [ ] One end-to-end paying customer flow completed.
-- [ ] No errors in citadels.cc logs from this customer's traffic.
+- [ ] No errors in citadel-hub.com logs from this customer's traffic.
 - [ ] Audit log has clean entries: `select`, `submit`, `threshold-met`.
 
 ---
 
 ## 8. Rollback plan (if anything goes wrong)
 
-### Citadels.cc backend
+### citadel-hub.com backend
 - [ ] `git revert` the deploy commit.
 - [ ] Redeploy the previous version. The new tables stay in the DB but
       the old code doesn't touch them; safe to leave.

@@ -73,7 +73,7 @@ export default function CitadelUpdateBanner() {
   if (dismissed || state.dismissed) return null;
 
   const sizeStr = state.size ? ` (${fmtSize(state.size)})` : '';
-  const downloadHref = state.downloadUrl || 'https://api.citadels.cc/downloads/installer';
+  const downloadHref = state.downloadUrl || 'https://api.citadel-hub.com/downloads/installer';
 
   return (
     <div

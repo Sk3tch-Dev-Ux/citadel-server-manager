@@ -1,7 +1,7 @@
 /**
  * Citadel Self-Update Checker
  *
- * Polls the Citadel Cloud API (api.citadels.cc) for the latest release version,
+ * Polls the Citadel Cloud API (api.citadel-hub.com) for the latest release version,
  * compares against the local package.json version, and notifies connected
  * clients via Socket.IO when an update is available.
  *
@@ -13,7 +13,7 @@
  *   - Exposes getState() for the REST API route
  *
  * No auto-download or auto-install — this is a notification-only system.
- * The user downloads the new installer from the dashboard or citadels.cc.
+ * The user downloads the new installer from the dashboard or citadel-hub.com.
  */
 const logger = require('./logger');
 const ctx = require('./context');
@@ -25,7 +25,7 @@ const CHECK_INTERVAL_MS = Number(process.env.CITADEL_UPDATE_CHECK_INTERVAL_MS ||
 const API_TIMEOUT_MS = 15_000;
 
 // Citadel Cloud API base (same as license client)
-const DEFAULT_API_BASE = 'https://api.citadels.cc';
+const DEFAULT_API_BASE = 'https://api.citadel-hub.com';
 function apiBase() {
   return (process.env.CITADEL_LICENSE_API || DEFAULT_API_BASE).replace(/\/$/, '');
 }

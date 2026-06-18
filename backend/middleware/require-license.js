@@ -6,7 +6,7 @@
  *   const requireLicense = require('../middleware/require-license');
  *
  *   // Routes that pair with the Citadel Cloud add-on (rare in the Agent —
- *   // most Cloud-add-on features live at citadels.cc/cloud, not here):
+ *   // most Cloud-add-on features live at citadel-hub.com/cloud, not here):
  *   app.get('/api/some-cloud-paired-route', auth(['admin']), requireLicense({ feature: 'cloud' }), handler);
  *
  *   // Citadel-only features (the local app license itself — rare since
@@ -30,7 +30,7 @@
  *   {
  *     error: 'SUBSCRIPTION_INACTIVE' | 'FEATURE_NOT_ENTITLED',
  *     message: '...',
- *     upgradeUrl: 'https://citadels.cc/cloud',
+ *     upgradeUrl: 'https://citadel-hub.com/cloud',
  *     feature: 'cloud',
  *     status: <current Citadel sub state>
  *   }
@@ -38,7 +38,7 @@
 const license = require('../lib/license');
 
 const UPGRADE_URLS = {
-  cloud: 'https://citadels.cc/cloud',
+  cloud: 'https://citadel-hub.com/cloud',
 };
 
 /**
@@ -52,7 +52,7 @@ function requireLicense({ feature, featureName } = {}) {
       return res.status(402).json({
         error: 'SUBSCRIPTION_INACTIVE',
         message: 'Your Citadel subscription is not active. Renew to continue.',
-        upgradeUrl: 'https://citadels.cc/account',
+        upgradeUrl: 'https://app.citadel-hub.com/account',
         feature: feature ?? null,
         status: license.getState().status,
       });
@@ -64,7 +64,7 @@ function requireLicense({ feature, featureName } = {}) {
         message: featureName
           ? `${featureName} requires an active Citadel Cloud subscription on top of your Citadel plan.`
           : `This feature requires the Citadel Cloud add-on on top of your Citadel plan.`,
-        upgradeUrl: UPGRADE_URLS[feature] || 'https://citadels.cc/cloud',
+        upgradeUrl: UPGRADE_URLS[feature] || 'https://citadel-hub.com/cloud',
         feature,
         status: license.getState().status,
         entitlements: license.getEntitlements(),
