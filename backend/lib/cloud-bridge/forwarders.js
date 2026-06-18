@@ -93,9 +93,11 @@ class Forwarder {
     const handlers = {
       metrics: (data) => this._onMetrics(data),
       players: (players) => this._onPlayers(players),
+      vehicles: (vehicles) => this._onVehicles(vehicles),
     };
     bridge.on('metrics', handlers.metrics);
     bridge.on('players', handlers.players);
+    bridge.on('vehicles', handlers.vehicles);
     this._handlers = handlers;
 
     // Bridge polling reference-counts via addSubscriber. Without this the
@@ -253,9 +255,10 @@ class Forwarder {
       this._sessionStarts.clear();
       return;
     }
-    const { metrics, players } = this._handlers;
+    const { metrics, players, vehicles } = this._handlers;
     try { this._bridge.off('metrics', metrics); } catch { /* fine */ }
     try { this._bridge.off('players', players); } catch { /* fine */ }
+    try { this._bridge.off('vehicles', vehicles); } catch { /* fine */ }
     try { this._bridge.removeSubscriber(); } catch { /* fine */ }
     this._client = null;
     this._bridge = null;
@@ -385,6 +388,37 @@ class Forwarder {
     });
   }
 
+  // ─── vehicles (live map vehicle layer) ───────────────────────────────
+  //
+  // The mod's CitadelReporter.ReportVehicles writes vehicles.json (gated on
+  // the server's trackVehicles config) in the cloud's exact shape; the bridge
+  // emits the parsed array on every rewrite (~every reporting interval). We
+  // wrap it into the cloud's `vehicles` SNAPSHOT frame — a full picture of all
+  // tracked vehicles, which the cloud upserts by (server, vehicleId). Skip an
+  // empty batch: the cloud sink no-ops on it anyway, so it's a wasted frame.
+  _onVehicles(vehicles) {
+    if (!Array.isArray(vehicles) || vehicles.length === 0) return;
+    const batch = [];
+    for (const v of vehicles) {
+      if (!v || v.id == null || v.id === '') continue;
+      batch.push({
+        id: String(v.id),
+        className: String(v.className || ''),
+        type: String(v.type || ''),
+        icon: String(v.icon || ''),
+        position: _posOrZero(v.position),
+        health: _safeNum(v.health, 0),
+        maxHealth: _safeNum(v.maxHealth, 0),
+      });
+    }
+    if (batch.length === 0) return;
+    this._client?.send({
+      type: 'vehicles',
+      ts: Date.now(),
+      data: { vehicles: batch },
+    });
+  }
+
   // ─── connect / disconnect ────────────────────────────────────────────
   //
   // Mod logs three event variants in events.jsonl that touch sessions:
@@ -436,9 +470,18 @@ class Forwarder {
         case 'hit':
           this._emitHit(ev);
           break;
+        case 'filterAction':
+          this._emitFilterAction(ev);
+          break;
+        case 'dynamicEvent':
+          this._emitWorldEvent(ev);
+          break;
         default:
-          // Other event types (baseBuilt, dynamicEvent, etc.) are out of
-          // scope for now — left for a later pass.
+          // Remaining mod event types (baseBuilt, baseDestroyed, vehicleEnter/
+          // Exit, speedFlag, respawn, adminAction, session) have no cloud wire
+          // type yet — left for a later pass. (The cloud `vehicles` SNAPSHOT is
+          // NOT one of these — it's sourced from vehicles.json via the bridge's
+          // 'vehicles' event and emitted by _onVehicles, not events.jsonl.)
       }
     }
   }
@@ -587,6 +630,52 @@ class Forwarder {
       },
     });
   }
+
+  // ─── filter_action (chat/name filter enforcement) ────────────────────
+  //
+  // Mod's `filterAction` line (LogFilterAction): filterType ('chat'|'name'),
+  // steamId, name, pattern, original, action. Maps 1:1 onto the cloud's
+  // `filter_action` frame, which the cloud persists AND fires as an
+  // 'enforcement' webhook event — so dropping these (the prior behaviour)
+  // silently disabled the cloud's filter telemetry and webhooks.
+  _emitFilterAction(ev) {
+    if (!ev.steamId) return;
+    const filterType = ev.filterType === 'name' ? 'name' : 'chat';
+    this._client?.send({
+      type: 'filter_action',
+      ts: _eventTs(ev),
+      data: {
+        filter_type: filterType,
+        steam_id: String(ev.steamId),
+        player_name: String(ev.name || ''),
+        matched_pattern: String(ev.pattern || ''),
+        original_text: String(ev.original || ''),
+        action_taken: String(ev.action || ''),
+      },
+    });
+  }
+
+  // ─── event (dynamic world events) ────────────────────────────────────
+  //
+  // Mod's `dynamicEvent` line (LogDynamicEvent): action ('spawn'|'despawn'),
+  // className, displayName, position. The cloud's `event` frame models a
+  // spawn-with-lifetime ({event_type, position, ttl}), so we forward only
+  // SPAWNS — `despawn` has no cloud representation. Two lossy points owed to
+  // a mod-side follow-up: the mod emits no lifetime, so ttl ships as 0
+  // (unknown); and the event_type enum is inferred from the className/
+  // displayName rather than sent explicitly.
+  _emitWorldEvent(ev) {
+    if (String(ev.action || '') !== 'spawn') return; // despawn: no cloud type
+    this._client?.send({
+      type: 'event',
+      ts: _eventTs(ev),
+      data: {
+        event_type: _classifyWorldEvent(ev.className, ev.displayName),
+        position: _posOrZero(ev.position),
+        ttl: 0, // mod emits no lifetime; cloud stores ttlSec=0 (unknown)
+      },
+    });
+  }
 }
 
 function _safeInt(v, fallback) {
@@ -660,6 +749,23 @@ function _normalizeDeathType(deathType, cause) {
   if (blob.includes('animal') || blob.includes('wolf') || blob.includes('bear')) return 'animal';
   if (blob.includes('environment') || blob.includes('starvation') || blob.includes('dehydr') || blob.includes('hypotherm') || blob.includes('hyperthermia') || blob.includes('disease') || blob.includes('blood')) return 'environment';
   return 'unknown';
+}
+
+/**
+ * Infer the cloud's `event_type` enum (helicrash | airdrop | contamination |
+ * horde | custom) from the mod's free-form className + displayName. The mod
+ * doesn't send a category, so this is a best-effort bucketing; anything we
+ * can't confidently place falls to 'custom'. Note 'wreck' alone is NOT a
+ * helicrash tell — the mod uses it for police-car wrecks too — so heli
+ * detection keys on the specific airframe/crash terms.
+ */
+function _classifyWorldEvent(className, displayName) {
+  const blob = (String(className || '') + ' ' + String(displayName || '')).toLowerCase();
+  if (blob.includes('uh1y') || blob.includes('mi8') || blob.includes('heli') || blob.includes('crash')) return 'helicrash';
+  if (blob.includes('contaminat') || blob.includes('toxic') || blob.includes('gas')) return 'contamination';
+  if (blob.includes('airdrop') || blob.includes('supply')) return 'airdrop';
+  if (blob.includes('horde') || blob.includes('infected')) return 'horde';
+  return 'custom';
 }
 
 /**

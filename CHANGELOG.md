@@ -9,6 +9,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Cloud telemetry: filter actions, world events & vehicle snapshots.** The
+  cloud-bridge now forwards three telemetry streams the cloud persists but the
+  agent was silently dropping. `filterAction` (chat/name filter hits) maps to
+  the cloud's `filter_action` frame, so the cloud's enforcement log and
+  per-event webhooks finally fire. `dynamicEvent` spawns (helicrashes,
+  contaminated zones, convoys, …) map to the cloud's `event` frame with a
+  best-effort `event_type` classification (two limitations owed to a mod-side
+  follow-up: `despawn` has no cloud representation, so only spawns forward, and
+  the mod emits no event lifetime so `ttl` ships as 0). The mod's existing
+  `vehicles.json` snapshot (already written by `CitadelReporter`, already
+  watched by the bridge) is now forwarded as the cloud's `vehicles` frame, so
+  the Live Ops map vehicle layer finally has a data source from the desktop
+  agent — no mod change was needed, only the missing forwarder subscription.
 - **Cloud link privacy & safety controls.** Each cloud-linked server now has
   two operator toggles on its Cloud card:
   - *Forward player IP & GUID to Cloud* (on by default) — turn it off to keep
@@ -23,6 +36,15 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   server) as defense-in-depth against a replayed or compromised cloud key.
 
 ### Internal
+- **Cloud-bridge protocol drift guard.** Added `cloud-bridge-protocol-contract.test.js`,
+  which pins the cloud wire contract (`CommandAction`, `config_type`, and the
+  `PluginToCloudMessage` telemetry union from citadel-cloud's `plugin.ts`) and
+  asserts the hand-ported JS mirror still covers it — every inbound command and
+  config type is handled, and every mod event maps to its cloud frame. Since the
+  two repos don't share a build, this converts silent drift (a cloud-side rename
+  or new action) into a loud, reviewable test failure. Every `PluginToCloudMessage`
+  telemetry type now has an agent source or is explicitly documented as
+  intentionally-unused in cloud v1 (`world_events`, `schedule_executed`).
 - **Playwright E2E harness.** Added `@playwright/test` as a dev dependency with
   a root `playwright.config.js` and an initial `e2e/smoke.spec.js` (app-shell +
   login-surface smoke tests) — the frontend previously had no automated tests.
