@@ -27,14 +27,17 @@ function refreshMetrics() {
     const raw = fs.readFileSync(config.metricsFile, 'utf-8');
     const data = JSON.parse(raw);
 
-    // Derive actual server FPS from tick_avg (ms per simulation tick).
-    // The raw fps field is an inflated OnUpdate tick count — not real server FPS.
-    // tick_avg gives the true simulation frame time: 1000 / tick_avg = real FPS.
-    if (data.tick_avg > 0) {
-      data.fps = +(1000 / data.tick_avg).toFixed(2);
-    } else if (data.fps != null) {
-      // Fallback: mod sends fps * 100 for integer precision
+    // The mod already measures real server FPS (it counts doSim ticks/sec) and
+    // ships it as fps = real_fps * 100 for integer precision — divide it back.
+    // Prefer that authoritative value; only fall back to tick_avg when the mod
+    // hasn't supplied fps yet (e.g. before mission load). tick_avg is the delta
+    // between *uncapped* OnUpdate() calls (sub-millisecond on an idle dedicated
+    // server), so 1000/tick_avg over-reports into the thousands — using it as
+    // the primary source pinned the dashboard at the 300 clamp below.
+    if (data.fps != null && data.fps > 0) {
       data.fps = +(data.fps / 100).toFixed(2);
+    } else if (data.tick_avg > 0) {
+      data.fps = +(1000 / data.tick_avg).toFixed(2);
     }
     // Idle dedicated servers spin the sim loop uncapped (sub-ms tick_avg →
     // four-digit "FPS"), and the cloud stores fps×100 in a smallint (max

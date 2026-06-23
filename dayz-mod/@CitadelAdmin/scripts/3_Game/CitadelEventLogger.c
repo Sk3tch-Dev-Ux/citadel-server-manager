@@ -51,14 +51,15 @@ class CitadelEventLogger
 
     static string EscapeJson(string input)
     {
-        string output = input;
-        // NOTE: Enforce CParser does not support \" or \\ in string literals.
-        // Backslash and double-quote escaping removed to prevent compile errors.
-        // Steam display names cannot contain " so this is safe in practice.
-        output.Replace("\n", " ");
-        output.Replace("\r", " ");
-        output.Replace("\t", " ");
-        return output;
+        // Delegate to the shared escaper in CitadelClasses.c, which correctly
+        // escapes double-quotes, backslashes and control chars. It builds the
+        // escape sequences via char concatenation (result += "\\"; result += ch)
+        // rather than the literal "\"" / "\\" tokens that the engine's CParser
+        // rejects — which is why this used to only strip whitespace and emit
+        // invalid JSON for any name/chat/className containing a " or \.
+        // Every Log* writer (and CitadelReporter / CitadelPlayerTracker, which
+        // call this) is fixed in one place by delegating here.
+        return CitJsonEscape(input);
     }
 
     private static string GetTimestamp()

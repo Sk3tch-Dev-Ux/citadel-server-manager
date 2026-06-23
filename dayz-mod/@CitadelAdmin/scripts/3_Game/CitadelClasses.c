@@ -184,7 +184,21 @@ class CitadelTrackedVehicle
         }
     }
 
-    string GetID() { return m_Id; }
+    // Self-healing id: the network id may not be assigned yet at the deferred
+    // registration tick, leaving m_Id "". Re-resolve lazily on a later report
+    // so the vehicle isn't dropped by consumers that reject empty ids (the
+    // cloud forwarder upserts by id and skips rows with no id). Once resolved,
+    // this is a cheap string check.
+    string GetID()
+    {
+        if (m_Id == "" && m_Reference)
+        {
+            EntityAI entity = EntityAI.Cast(m_Reference);
+            if (entity)
+                m_Id = CitGetNetworkIDString(entity);
+        }
+        return m_Id;
+    }
     string GetClassName() { return m_ClassName; }
     string GetIcon() { return m_Icon; }
     string GetVehicleType() { return m_VehicleType; }
@@ -224,7 +238,17 @@ class CitadelTrackedEvent
             m_Id = CitGetNetworkIDString(entity);
     }
 
-    string GetID() { return m_Id; }
+    // Self-healing id — same one-shot-constructor race as CitadelTrackedVehicle.
+    string GetID()
+    {
+        if (m_Id == "" && m_Reference)
+        {
+            EntityAI entity = EntityAI.Cast(m_Reference);
+            if (entity)
+                m_Id = CitGetNetworkIDString(entity);
+        }
+        return m_Id;
+    }
     string GetClassName() { return m_ClassName; }
     string GetDisplayName() { return m_DisplayName; }
     void SetDisplayName(string name) { m_DisplayName = name; }
