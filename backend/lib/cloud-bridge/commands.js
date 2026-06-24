@@ -164,6 +164,28 @@ async function handle({ localServerId, client, message }) {
     return;
   }
 
+  // `vehicle_action` — a per-vehicle op selected on the cloud live map. The mod
+  // already implements these (CitadelVehicleActions); the op maps 1:1 to the
+  // `vehicle.<op>` mod IPC the sidecar/local UI already use, so route it through
+  // the same bridge with the target vehicleId.
+  if (action === 'vehicle_action') {
+    const vehicleId = String(params.vehicleId || '');
+    const op = String(params.op || '');
+    const VEHICLE_OPS = ['repair', 'refuel', 'delete', 'unstuck', 'explode', 'kill-engine', 'eject-driver'];
+    if (!vehicleId) { reply(false, 'Missing required param: vehicleId'); return; }
+    if (!VEHICLE_OPS.includes(op)) { reply(false, `Unknown vehicle op: ${op}`); return; }
+    const vbridge = getBridge(localServerId);
+    if (!vbridge) { reply(false, 'Citadel bridge unavailable on this server'); return; }
+    try {
+      const res = await vbridge.sendCommand(`vehicle.${op}`, { vehicleId });
+      const ok = !!res?.ok;
+      reply(ok, ok ? (res?.data?.message || `vehicle ${op} ok`) : (res?.error || 'mod reported failure'));
+    } catch (err) {
+      reply(false, `Vehicle ${op} failed: ${err.message}`);
+    }
+    return;
+  }
+
   const spec = ACTION_MAP[action];
   if (!spec) {
     reply(false, `Unknown action: ${action}`);
