@@ -237,6 +237,24 @@ async function handle({ localServerId, client, message }) {
     }
   }
 
+  // `broadcast` — prefer BattlEye RCON `say -1` so a server WITHOUT the
+  // @CitadelAdmin mod loaded still gets a working server-wide announcement
+  // instead of timing out on a bridge waiting for a mod that isn't there.
+  // Mirrors the kick fallback above; falls through to the mod IPC
+  // (world.broadcast, which is richer when present) only if RCON is down.
+  if (action === 'broadcast') {
+    const state = ctx.serverStates[localServerId];
+    if (state?.rcon?.loggedIn) {
+      try {
+        await state.rcon.say(String(params.text));
+        reply(true, 'broadcast (RCON)');
+        return;
+      } catch (err) {
+        logger.warn({ err: err.message, localServerId }, 'cloud-bridge: RCON broadcast failed — falling back to mod IPC');
+      }
+    }
+  }
+
   const bridge = getBridge(localServerId);
   if (!bridge) {
     reply(false, 'Citadel bridge unavailable on this server');
