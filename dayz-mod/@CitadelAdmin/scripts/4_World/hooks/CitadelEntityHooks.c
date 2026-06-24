@@ -48,7 +48,14 @@ modded class CarScript
         string className = GetType();
         className.ToLower();
 
-        if (className.Contains("truck") || className.Contains("v3s"))
+        // Expansion (and similar) helicopters extend CarScript, so detect them
+        // here rather than letting them fall through to the generic car icon.
+        if (className.Contains("heli") || className.Contains("uh1") || className.Contains("mh6") || className.Contains("merlin") || className.Contains("gyro"))
+        {
+            icon = "helicopter";
+            vType = "helicopter";
+        }
+        else if (className.Contains("truck") || className.Contains("v3s"))
         {
             icon = "truck";
             vType = "truck";
