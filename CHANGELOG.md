@@ -8,6 +8,25 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## v2.27.0 — 2026-07-01
+
+### Added
+- **Per-vehicle actions from the cloud.** The cloud-bridge relays the cloud's
+  per-vehicle commands to the mod and classifies helicopters in the vehicle
+  snapshot, so the Live Ops map's vehicle layer can act on individual
+  vehicles, not just list them.
+
+### Fixed
+- **Cloud broadcast works without the mod.** A cloud-issued `broadcast` now
+  falls back to BattlEye RCON `say` when the @CitadelAdmin mod isn't loaded,
+  instead of timing out — no-mod servers get working broadcasts out of the box.
+- **Mod telemetry robustness.** JSON escaping corrected in mod-sourced frames,
+  vehicle/entity IDs are resolved lazily, and the bridge prefers the mod's FPS
+  reading over the RCON-derived one when both are present.
+- **Dependencies.** Cleared the high-severity transitive `ws` advisories
+  (GHSA-96hv-2xvq-fx4p) via a non-force `npm audit fix`; backend suite green
+  (461 passed / 0 failed).
+
 ## v2.26.0 — 2026-06-17
 
 ### Added
