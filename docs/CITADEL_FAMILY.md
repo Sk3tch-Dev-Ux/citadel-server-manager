@@ -86,6 +86,10 @@ live drills only Kurt can run, in order. Details for A–F live in `docs/CITADEL
       consider branch protection on `main` so CI gates the auto-deploy.
 - [ ] **O. Confirm one live LB Core test purchase** on a customer server (the named-field
       wire format landed 2026-06-25; one real purchase closes the loop).
+- [ ] **P. Check the platform's LIVE Stripe webhook endpoint in the Stripe Dashboard** —
+      an ops note referenced `api.citadel-hub.com/api/webhooks/stripe` (Cloud's domain);
+      if it was registered there, re-point it at `platform.citadel-hub.com` and refresh
+      the `whsec_` secret in Coolify.
 
 ## 5. Repo hygiene status (2026-07-01)
 
